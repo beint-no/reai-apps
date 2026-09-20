@@ -26,7 +26,8 @@ def output(*args, **kwargs):
 
 def configuration(app_id, version=None):
     app = APPS[app_id].copy()
-    app['version'] = version or app['version']
+    app['version'] = version or '0.0.0'
+    app['build'] = os.environ.get('GITHUB_RUN_NUMBER', '1')
     if not re.fullmatch(r'\d+\.\d+\.\d+', app['version']):
         raise ValueError('Version must be major.minor.patch')
     return app

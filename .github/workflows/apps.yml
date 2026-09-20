@@ -1,5 +1,12 @@
-name: Apple apps
+name: Release app
 on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: App to release
+        required: true
+        type: choice
+        options: [time-tracker, finder-vault]
   pull_request:
     paths: ['apple/**', 'tools/apple/**', 'apps.json', '.github/actions/**', '.github/workflows/apps.yml']
   push:
@@ -8,6 +15,9 @@ on:
     paths: ['apple/**', 'tools/apple/**', 'apps.json', '.github/actions/**', '.github/workflows/apps.yml']
 permissions:
   contents: read
+concurrency:
+  group: apple-${{ github.event_name == 'workflow_dispatch' && inputs.app || github.ref }}
+  cancel-in-progress: false
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -43,15 +53,12 @@ jobs:
           retention-days: 7
   release:
     needs: [prepare, build]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     runs-on: macos-26
     timeout-minutes: 45
     environment: apple-release
-    concurrency:
-      group: release-${{ github.ref }}
-      cancel-in-progress: false
     permissions:
       contents: write
       actions: write
@@ -89,5 +96,10 @@ jobs:
           APP_ASSET: ${{ matrix.asset }}
         run: |
           python3 tools/apple/release-notes.py "$APP_ID" > "$RUNNER_TEMP/release-notes.md"
-          gh release create "$GITHUB_REF_NAME" "dist/$APP_ID/$APP_ASSET" "dist/$APP_ID/SHA256SUMS" --verify-tag --latest=false --title "$APP_NAME $APP_VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
+          RELEASE_TAG="$APP_ID/v$APP_VERSION"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            git tag "$RELEASE_TAG" "$GITHUB_SHA"
+            git push origin "$RELEASE_TAG"
+          fi
+          gh release create "$RELEASE_TAG" "dist/$APP_ID/$APP_ASSET" "dist/$APP_ID/SHA256SUMS" --verify-tag --latest=false --title "$APP_NAME $APP_VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
           gh workflow run pages.yml --ref main

@@ -5,10 +5,23 @@ Adding an app does not require another Apple credential or a ReAI backend regist
 
 ## Release
 
-1. Add or update the app in `apps.json`. Increase its semantic version and numeric build number.
-2. Merge the PR after affected apps build and the code is reviewed.
-3. Push `<app>/v<version>` at the merged commit, for example `finder-vault/v0.2.0`.
-4. Check the **Apple apps** workflow. It publishes the DMG and `SHA256SUMS` only after Apple accepts notarization and Gatekeeper verification passes.
+1. Merge the app changes into `main` after review and successful builds.
+2. Open **[Actions → Release app](https://github.com/beint-no/reai-apps/actions/workflows/apps.yml) → Run workflow**, keep **main**, choose the app, and run.
+3. The workflow chooses the next patch version and publishes the DMG and `SHA256SUMS` only after Apple accepts notarization and Gatekeeper verification passes.
+
+Or use this one-liner with a GitHub account that has repository write access:
+
+```sh
+gh workflow run apps.yml --repo beint-no/reai-apps --ref main -f app=time-tracker
+```
+
+Use `finder-vault` for Finder Vault. No local Apple credentials, version edits, or manual tags are needed.
+Pushes and pull requests run build checks; they do not publish downloads.
+
+Release tags (`<app>/v<major>.<minor>.<patch>`) are the version source. Automatic releases increment the highest existing tag for that app.
+To deliberately change the major or minor version, push the corresponding tag at a commit merged into `main`; the same pipeline verifies it.
+Build numbers come from the workflow run number. Local development builds use version `0.0.0` and build `1`.
+Releases for the same app run serially. Failed notarization publishes nothing; run the action again after fixing the cause.
 
 The download site rebuilds after publication. Each app has its own tags and releases; GitHub's single “latest release” is not used.
 
@@ -21,7 +34,7 @@ Apps that add restricted Apple capabilities or embedded code need their signing 
 
 ## Credentials
 
-Use the GitHub environment **apple-release**, restricted to release tags. Store:
+Use the GitHub environment **apple-release**, restricted to `main` and the app release tags. Store:
 
 | Name | Type | Value |
 | --- | --- | --- |

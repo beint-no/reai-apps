@@ -4,8 +4,6 @@
     "path": "apple/time-tracker",
     "executable": "ReAITimeTracker",
     "bundle_id": "no.reai.timetracker",
-    "version": "0.3.1",
-    "build": "4",
     "icon": "scripts/make-icon.swift",
     "asset": "ReAI-Time-Tracker-Apple-Silicon.dmg"
   },
@@ -14,8 +12,6 @@
     "path": "apple/finder-vault",
     "executable": "ReAIFinderVault",
     "bundle_id": "no.reai.findervault",
-    "version": "0.2.1",
-    "build": "3",
     "icon": "make-icon.swift",
     "asset": "ReAI-Finder-Vault-Apple-Silicon.dmg"
   }
