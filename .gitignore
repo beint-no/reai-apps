@@ -1,0 +1,12 @@
+.DS_Store
+.build/
+.swiftpm/
+build/
+dist/
+__pycache__/
+*.p12
+*.p8
+*.key
+*.cer
+*.certSigningRequest
+*.keychain-db

@@ -1,0 +1,22 @@
+{
+  "time-tracker": {
+    "name": "ReAI Time Tracker",
+    "path": "apple/time-tracker",
+    "executable": "ReAITimeTracker",
+    "bundle_id": "no.reai.timetracker",
+    "version": "0.3.0",
+    "build": "3",
+    "icon": "scripts/make-icon.swift",
+    "asset": "ReAI-Time-Tracker-Apple-Silicon.dmg"
+  },
+  "finder-vault": {
+    "name": "ReAI Finder Vault",
+    "path": "apple/finder-vault",
+    "executable": "ReAIFinderVault",
+    "bundle_id": "no.reai.findervault",
+    "version": "0.2.0",
+    "build": "2",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Finder-Vault-Apple-Silicon.dmg"
+  }
+}

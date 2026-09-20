@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Download ReAI Time Tracker and Finder Vault for Mac. Track time and upload documents with a secure connection to your ReAI company.">
+  <meta name="theme-color" content="#f5f6f2">
+  <title>ReAI Apps — Desktop apps for ReAI</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#apps">Skip to apps</a>
+  <header class="site-header wrap">
+    <a class="brand" href="./" aria-label="ReAI Apps home"><span class="brand-mark" aria-hidden="true">r</span>ReAI <span class="brand-suffix">Apps</span></a>
+    <nav aria-label="Main navigation"><a href="#install">How to install</a><a class="source-link" href="https://github.com/beint-no/reai-apps">GitHub <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main>
+    <section class="hero wrap">
+      <div class="eyebrow"><span class="status-dot"></span> FOR APPLE SILICON</div>
+      <h1>Desktop apps<br>for <span>ReAI.</span></h1>
+      <p>Track time and upload documents<br class="desktop-break"> without opening the web app.</p>
+      <div class="requirements"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8m-4-4v4"></path></svg>Mac with M1 or newer · macOS 15+</div>
+    </section>
+    <section id="apps" class="apps wrap" aria-label="Available apps">
+      <article class="app-card" id="time-tracker">
+        <div class="app-content">
+          <img class="app-icon" src="assets/time-tracker.png" width="76" height="76" alt="" loading="eager">
+          <div class="app-category">TIME</div>
+          <h2>Time Tracker</h2>
+          <p>Start a timer from your menu bar.<br>Stop it to save your time in ReAI.</p>
+          <ul><li>Choose a project and activity</li><li>Keep tracking when your Mac sleeps</li><li>Pick up a running timer on another device</li></ul>
+          <div class="download">{{time-tracker.download}}{{time-tracker.version}}</div>
+          <a class="text-link" href="https://github.com/beint-no/reai-apps/tree/main/apple/time-tracker">Instructions & source <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="app-preview timer-preview" aria-label="Time Tracker interface preview">
+          <div class="preview-label">MENU BAR → TIMESHEET</div>
+          <div class="timer-window">
+            <div class="window-chrome"><span></span><span></span><span></span><span class="window-title">Time Tracker</span></div>
+            <div class="timer-inner"><div class="preview-company">Your company</div><div class="tracking"><span class="status-dot"></span>TRACKING</div><div class="elapsed">00:24:36</div><div class="project-name">Website redesign</div><div class="project-activity">Development</div><div class="preview-stop"><span aria-hidden="true">■</span> Stop & save</div><div class="preview-foot">Your timer is synced with ReAI.</div></div>
+          </div>
+          <div class="preview-caption">Start and stop from your menu bar.</div>
+        </div>
+      </article>
+      <article class="app-card" id="finder-vault">
+        <div class="app-content">
+          <img class="app-icon" src="assets/finder-vault.png" width="76" height="76" alt="" loading="lazy">
+          <div class="app-category">DOCUMENTS</div>
+          <h2>Finder Vault</h2>
+          <p>Drop files into a folder.<br>Find them in your ReAI company.</p>
+          <ul><li>Upload documents, receipts and invoices</li><li>Watch selected folders for new files</li><li>Keep your originals and local copies</li></ul>
+          <div class="download">{{finder-vault.download}}{{finder-vault.version}}</div>
+          <a class="text-link" href="https://github.com/beint-no/reai-apps/tree/main/apple/finder-vault">Instructions & source <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="app-preview vault-preview" aria-label="Finder Vault interface preview">
+          <div class="preview-label">FINDER → REAI</div>
+          <div class="vault-window">
+            <div class="window-chrome"><span></span><span></span><span></span><span class="window-title">Finder Vault</span></div>
+            <div class="vault-inner"><div class="vault-heading">Company inbox</div><div class="file-row"><span class="file-icon">PDF</span><div><strong>Invoice.pdf</strong><small>Supplier invoices</small></div><span class="file-check" aria-label="Uploaded">✓</span></div><div class="file-row"><span class="file-icon">PDF</span><div><strong>Receipt.pdf</strong><small>Receipts</small></div><span class="file-check" aria-label="Uploaded">✓</span></div><div class="drop-zone"><span aria-hidden="true">＋</span> Drop files here</div><div class="preview-foot">Originals stay on your Mac.</div></div>
+          </div>
+          <div class="preview-caption">Uploads run while the app is open.</div>
+        </div>
+      </article>
+    </section>
+    <section class="install wrap" id="install">
+      <div class="section-intro"><div class="eyebrow">GET STARTED</div><h2>Download. Connect. Work.</h2><p>No developer tools or API-key copying.</p></div>
+      <ol class="steps"><li><span class="step-number">01</span><h3>Install the app</h3><p>Open the downloaded disk image and drag the app to Applications.</p></li><li><span class="step-number">02</span><h3>Connect to ReAI</h3><p>Sign in in your browser, compare the code, choose a company and approve.</p></li><li><span class="step-number">03</span><h3>Start working</h3><p>The app uses your existing permissions in the company you selected.</p></li></ol>
+      <div class="access-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9S4 17 4 12V6l8-3Z"></path><path d="m8 12 3 3 5-6"></path></svg><p>Your password stays in the browser. Access keys stay in macOS Keychain.<br>Revoke an app’s access at any time in your <a href="https://app.reai.no/user/profile#user-access-tokens">ReAI profile</a>.</p></div>
+    </section>
+    <section class="contribute wrap"><div><h2>Have another task in mind?</h2><p>Suggest an app or contribute to an existing one.</p></div><a class="button secondary" href="https://github.com/beint-no/reai-apps/issues/new?template=app-idea.yml">Suggest an app <span aria-hidden="true">↗</span></a></section>
+  </main>
+  <footer class="site-footer wrap"><a class="brand" href="https://reai.no">ReAI</a><p>Free apps · MIT license</p><nav aria-label="Footer"><a href="https://github.com/beint-no/reai-apps">Source code</a><a href="https://app.reai.no/openapi/public/ui">API docs</a><a href="https://github.com/beint-no/reai-apps/issues">Report an issue</a></nav></footer>
+</body>
+</html>
