@@ -43,7 +43,8 @@ for app_id, app in apps.items():
         download = f'<a class="button primary" href="{html.escape(asset["browser_download_url"], quote=True)}">{label} <span aria-hidden="true">↓</span></a>'
         details = f'<a class="release-note" href="{html.escape(release["html_url"], quote=True)}">Version {".".join(map(str, version))} · Release notes ↗</a>'
     else:
-        download = '<span class="button unavailable">Download coming soon</span>'
+        label = 'Windows download coming soon' if app.get('platform') == 'windows' else 'Download coming soon'
+        download = f'<span class="button unavailable">{label}</span>'
         message = 'Windows download pending code signing.' if app.get('platform') == 'windows' else 'Preparing the first notarized release.'
         details = f'<span class="release-note">{message}</span>'
     source = source.replace('{{' + app_id + '.download}}', download).replace('{{' + app_id + '.version}}', details)

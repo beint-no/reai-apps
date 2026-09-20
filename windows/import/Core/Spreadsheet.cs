@@ -12,8 +12,11 @@ public static class Spreadsheet
     public static List<Sheet> Read(string path)
     {
         if (new FileInfo(path).Length > MaxFileBytes) throw new InvalidDataException("Choose a file smaller than 10 MB.");
-        var data = File.ReadAllBytes(path);
-        if (data.Length > MaxFileBytes) throw new InvalidDataException("Choose a file smaller than 10 MB.");
+        using var input = File.OpenRead(path);
+        var buffer = new byte[MaxFileBytes + 1];
+        int length = input.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
+        if (length > MaxFileBytes) throw new InvalidDataException("Choose a file smaller than 10 MB.");
+        var data = buffer[..length];
         return Path.GetExtension(path).ToLowerInvariant() switch
         {
             ".xlsx" => Excel(data),

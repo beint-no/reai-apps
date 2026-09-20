@@ -61,7 +61,8 @@ public sealed class MainWindow : Window
     {
         Title = "ReAI Import";
         SystemBackdrop = new MicaBackdrop();
-        AppWindow.Resize(new SizeInt32(1180, 840));
+        var area = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary).WorkArea;
+        AppWindow.Resize(new SizeInt32(Math.Min(1180, area.Width - 80), Math.Min(840, area.Height - 80)));
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "import.ico"));
         journal = new ImportJournal(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ReAI", "Import"));
         session = new ImportSession(api, journal);
@@ -115,7 +116,7 @@ public sealed class MainWindow : Window
         exclude.Click += (_, _) => { if (batch != null && rows.SelectedItem is ImportRow { State: RowState.Ready } row) { try { row.State = RowState.Skipped; row.Detail = "Excluded by you."; journal.Record(batch, row); RefreshRows(); } catch (Exception e) { Fail(e); } } };
         AppWindow.Closing += (_, e) => { if (busy) { e.Cancel = true; connecting?.Cancel(); session.PauseRequested = true; status.Text = "Finishing the current operation. Close the window once it completes."; } };
         root.Loaded += async (_, _) => await Guard(Initialize);
-        Refresh();
+        Remap();
     }
     private static TextBlock Text(string value, double size = 14) => new() { Text = value, FontSize = size, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
     private void Add(FrameworkElement element, int row) { Grid.SetRow(element, row); root.Children.Add(element); }
@@ -184,6 +185,7 @@ public sealed class MainWindow : Window
     private async Task Review()
     {
         if (token == null || Sheet == null) throw new InvalidOperationException("Choose a file and connect to ReAI first.");
+        if (double.IsNaN(header.Value) || header.Value != Math.Truncate(header.Value)) throw new InvalidOperationException("Choose a whole-number header row.");
         var current = await api.Account(token); account = current;
         var company = current.Tenants[0];
         var existing = await api.Existing(Kind, token, company.Id);
@@ -250,6 +252,7 @@ public sealed class MainWindow : Window
         connect.Visibility = account == null ? Visibility.Visible : Visibility.Collapsed; connect.IsEnabled = !busy || connecting != null;
         disconnect.Visibility = account == null ? Visibility.Collapsed : Visibility.Visible; disconnect.IsEnabled = !busy;
         browse.IsEnabled = !busy && batch == null; dropZone.AllowDrop = !busy && batch == null;
+        settings.Visibility = batch == null ? Visibility.Visible : Visibility.Collapsed;
         foreach (var control in settings.Children.OfType<Control>()) control.IsEnabled = !busy && batch == null; mappingScroll.IsEnabled = !busy;
         mappingScroll.Visibility = batch == null ? Visibility.Visible : Visibility.Collapsed; reviewPanel.Visibility = batch == null ? Visibility.Collapsed : Visibility.Visible;
         review.Visibility = batch == null ? Visibility.Visible : Visibility.Collapsed; review.IsEnabled = !busy && Sheet != null && token != null;

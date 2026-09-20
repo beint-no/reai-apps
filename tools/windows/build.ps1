@@ -5,7 +5,7 @@ $rid = 'win-' + $Architecture.ToLowerInvariant()
 $destination = "$root/dist/import-windows/$rid"
 Push-Location "$root/windows"
 try {
-    dotnet publish import/ReAI.Import.csproj -c Release -p:Platform=$Architecture -r $rid --self-contained -o $destination
+    dotnet publish import/ReAI.Import.csproj -c Release -p:RestoreLockedMode=true -p:Platform=$Architecture -r $rid --self-contained -o $destination
     if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
     Copy-Item "$root/LICENSE" "$destination/LICENSE.txt"
     Copy-Item "$root/windows/import/README.md" "$destination/README.md"

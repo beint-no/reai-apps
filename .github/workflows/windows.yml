@@ -25,7 +25,7 @@ jobs:
         working-directory: windows
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
         with:
           global-json-file: windows/global.json
       - name: Build self-contained Windows app
@@ -42,7 +42,19 @@ jobs:
               if ($app.HasExited) { throw "App exited during startup: $($app.ExitCode)" }
             } while ($app.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
             if ($app.MainWindowHandle -eq 0) { throw 'No native window appeared' }
-            Write-Output "Native window opened: $($app.MainWindowTitle)"
+            $desktopRuntime = Get-ChildItem "$env:DOTNET_ROOT/shared/Microsoft.WindowsDesktop.App" -Directory | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+            Add-Type -Path "$($desktopRuntime.FullName)/UIAutomationTypes.dll"
+            Add-Type -Path "$($desktopRuntime.FullName)/UIAutomationClient.dll"
+            $window = [System.Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+            $condition = New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::NameProperty), 'Connect to ReAI'
+            do {
+              $button = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+              if ($button) { break }
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+            } while (-not $app.HasExited -and [DateTime]::UtcNow -lt $deadline)
+            if (-not $button) { throw 'The connection control did not render' }
+            Write-Output "Native window and connection control rendered: $($app.MainWindowTitle)"
             Add-Type -AssemblyName System.Drawing
             Add-Type -AssemblyName System.Windows.Forms
             $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
@@ -56,8 +68,13 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: import-windows-${{ matrix.architecture }}-unsigned
-          path: |
-            dist/import-windows/*.zip
-            dist/import-windows/*.png
+          path: dist/import-windows/*.zip
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: matrix.architecture == 'x64'
+        with:
+          name: import-windows-startup
+          path: dist/import-windows/startup.png
           if-no-files-found: error
           retention-days: 7
