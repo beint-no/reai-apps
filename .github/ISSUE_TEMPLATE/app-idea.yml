@@ -1,0 +1,27 @@
+name: Suggest an app
+description: A focused tool you would like to connect to ReAI
+title: 'App idea: '
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: What task should this app make easier?
+      placeholder: Tell us who needs it and what they do today.
+    validations:
+      required: true
+  - type: textarea
+    id: experience
+    attributes:
+      label: What should the app let you do?
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Preferred platform
+      options:
+        - macOS
+        - iPhone / iPad
+        - Windows
+        - Linux
+        - No preference
