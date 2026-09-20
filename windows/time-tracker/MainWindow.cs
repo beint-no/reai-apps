@@ -56,17 +56,18 @@ public sealed class MainWindow : Window
         tracker = new(api, new TrackerStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ReAI", "TimeTracker")));
         tracker.Changed += Render;
         clock.FontFamily = new FontFamily("Cascadia Mono");
-        body.Children.Add(Text("Time Tracker", 28)); body.Children.Add(company); body.Children.Add(connect); body.Children.Add(connectionStatus); body.Children.Add(error);
+        body.Children.Add(Text("Time Tracker", 28)); body.Children.Add(company); body.Children.Add(connect); body.Children.Add(connectionStatus); body.Children.Add(error); body.Children.Add(saved);
         var timer = new StackPanel { Spacing = 6 }; timer.Children.Add(phase); timer.Children.Add(clock); timer.Children.Add(work); timer.Children.Add(preview);
         body.Children.Add(new Border { Child = timer, Padding = new Thickness(20), CornerRadius = new CornerRadius(12), Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"] });
         selection.Children.Add(search); selection.Children.Add(projects); selection.Children.Add(activities); body.Children.Add(selection);
         body.Children.Add(action); body.Children.Add(recent);
         pending.Children.Add(Text("A request needs confirmation", 17));
         pending.Children.Add(Text("Retry the saved request with the original account and company. This will not duplicate time or stop a newer timer. Until Stop is confirmed, the timer may keep running.", 13)); pending.Children.Add(retry); body.Children.Add(pending);
-        body.Children.Add(saved);
         body.Children.Add(Text(Timing.Rules, 13));
-        body.Children.Add(Text("Timers keep running when you close the app or your PC sleeps. ReAI caps each session at 10 hours. Start and Stop need an internet connection.", 12));
-        body.Children.Add(sync);
+        var details = new StackPanel { Spacing = 8 };
+        details.Children.Add(Text("Timers keep running when you close the app or your PC sleeps. ReAI caps each session at 10 hours. Start and Stop need an internet connection.", 12));
+        details.Children.Add(sync);
+        body.Children.Add(new Expander { Header = "Sync and timer limits", Content = details, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
         var links = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; links.Children.Add(timesheet); links.Children.Add(refresh); links.Children.Add(disconnect); body.Children.Add(links); body.Children.Add(top);
         body.Children.Add(Text("Ctrl + Enter: start / stop", 12));
         Content = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
@@ -176,6 +177,7 @@ public sealed class MainWindow : Window
     {
         bool connected = tracker.Account != null, busy = initializing || tracker.Busy || connecting != null;
         company.Text = connected ? tracker.Company!.CompanyName + " · " + tracker.Account!.Email : "Choose a company when connecting";
+        connectionStatus.Visibility = connected && connecting == null ? Visibility.Collapsed : Visibility.Visible;
         connect.Visibility = connected ? Visibility.Collapsed : Visibility.Visible; connect.Content = connecting == null ? "Connect to ReAI" : "Cancel connection"; connect.IsEnabled = tracker.StorageReady && !tracker.Busy && !initializing;
         disconnect.IsEnabled = connected && !busy; refresh.IsEnabled = connected && !busy; timesheet.IsEnabled = connected;
         selection.Visibility = connected && tracker.Timer == null ? Visibility.Visible : Visibility.Collapsed;

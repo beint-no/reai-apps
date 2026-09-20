@@ -11,7 +11,7 @@ struct TrackerApp: App {
                 .frame(minWidth: 390, idealWidth: 420, maxWidth: 520, minHeight: 530)
                 .task { model.startMonitoring() }
         }
-        .defaultSize(width: 420, height: 590)
+        .defaultSize(width: 420, height: 740)
         .windowResizability(.contentSize)
         MenuBarExtra {
             TrackerView(model: model, compact: true).frame(width: 350)
@@ -38,13 +38,13 @@ struct TrackerView: View {
                     Spacer()
                     if model.busy { ProgressView().controlSize(.small) }
                 }
+                if let notice = model.notice {
+                    Label(notice, systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
+                }
                 if let account = model.account {
                     connected(account)
                 } else {
                     connection
-                }
-                if let notice = model.notice {
-                    Label(notice, systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
                 }
                 if let error = model.error {
                     Label(error, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(.orange)
@@ -153,10 +153,13 @@ struct TrackerView: View {
                 }
             }
             Text(TimerPresentation.rules).font(.caption).foregroundStyle(.secondary)
-            Text("Timers keep running when you quit or your Mac sleeps. ReAI caps each session at 10 hours. Start and Stop need an internet connection.")
-                .font(.caption).foregroundStyle(.secondary)
+            DisclosureGroup("Sync and timer limits") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Timers keep running when you quit or your Mac sleeps. ReAI caps each session at 10 hours. Start and Stop need an internet connection.")
+                    Text("Status checks every 30 seconds; saves on Stop. Refresh an already-open ReAI timesheet to see changes.")
+                }.font(.caption).foregroundStyle(.secondary)
+            }.font(.caption)
             if let url = model.timesheetURL { Link("Open timesheet", destination: url) }
-            Text("Status checks every 30 seconds; saves on Stop. Refresh an already-open ReAI timesheet to see changes.").font(.caption).foregroundStyle(.secondary)
             HStack {
                 Button("Refresh", systemImage: "arrow.clockwise") { Task { await model.refresh() } }.disabled(model.busy)
                 Spacer()
