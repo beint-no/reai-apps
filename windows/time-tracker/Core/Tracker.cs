@@ -89,7 +89,7 @@ public sealed class Tracker(ReAIClient api, TrackerStore store)
     public async Task Stop()
     {
         if (Busy || Pending != null || Timer == null || Account == null) return;
-        var work = new WorkChoice(Timer.ProjectId, Timer.ActivityId, Timer.ProjectName ?? "Without a project", Activities.Find(a => a.Id == Timer.ActivityId)?.Code);
+        var work = new WorkChoice(Timer.ProjectId, Timer.ActivityId, Timer.ProjectName ?? (Timer.ProjectId is int id ? $"Project #{id}" : "Without a project"), Activities.Find(a => a.Id == Timer.ActivityId)?.Code);
         await Perform(new(Account.Email, Company!.Id, null, new(Timer.TimerId), work));
     }
     public async Task Retry()

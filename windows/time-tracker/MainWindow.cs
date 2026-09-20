@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Activity = ReAI.TimeTracker.Core.Activity;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -164,7 +165,7 @@ public sealed class MainWindow : Window
         {
             int seconds = Timing.Seconds(timer.StartedAt, DateTimeOffset.UtcNow);
             clock.Text = Timing.Display(seconds); preview.Text = Timing.StopPreview(seconds);
-            work.Text = (timer.ProjectName ?? "Without a project") + (tracker.Activities.Find(a => a.Id == timer.ActivityId) is { } activity ? " · " + activity.Code : "");
+            work.Text = (timer.ProjectName ?? (timer.ProjectId is int id ? $"Project #{id}" : "Without a project")) + (tracker.Activities.Find(a => a.Id == timer.ActivityId) is { } activity ? " · " + activity.Code : "");
             phase.Text = tracker.Synchronized ? "TRACKING" : "LAST KNOWN TIMER";
             action.Content = seconds < 60 ? "Stop — no time saved yet" : "Stop & save";
         }

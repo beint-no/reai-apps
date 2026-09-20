@@ -62,11 +62,12 @@ jobs:
             }
             Write-Output "Native window and connection control rendered: $($app.MainWindowTitle)"
             Add-Type -AssemblyName System.Drawing
-            Add-Type -AssemblyName System.Windows.Forms
-            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+            $bounds = $window.Current.BoundingRectangle
+            $size = [System.Drawing.Size]::new([int]$bounds.Width, [int]$bounds.Height)
+            $location = [System.Drawing.Point]::new([int]$bounds.X, [int]$bounds.Y)
+            $bitmap = New-Object System.Drawing.Bitmap $size.Width, $size.Height
             $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $graphics.CopyFromScreen($location, [System.Drawing.Point]::Empty, $size)
             $bitmap.Save("$env:GITHUB_WORKSPACE/dist/${{ matrix.app }}/startup.png")
             $graphics.Dispose()
             $bitmap.Dispose()

@@ -109,7 +109,7 @@ struct TrackerView: View {
                         Text(TimerPresentation.stopPreview(seconds: seconds)).font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    Text(timer.projectName ?? "Without a project").font(.headline)
+                    Text(timer.projectName ?? timer.projectId.map { "Project #\($0)" } ?? "Without a project").font(.headline)
                     Text("Started \(timer.startedAt.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(20).background(.teal.opacity(0.08), in: .rect(cornerRadius: 16))
                 TimelineView(.periodic(from: .now, by: 1)) { context in

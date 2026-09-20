@@ -187,7 +187,7 @@ final class TrackerModel {
                     company: operation.company, body: JSONEncoder().encode(start))
                 guard result.requestId == start.requestId, result.timerId > 0 else { throw appError("Unexpected timer response. Retry the saved request.") }
                 timer = result.stoppedAt == nil ? result : nil
-                let title = projects.first(where: { $0.id == result.projectId }).map(projectTitle) ?? result.projectName ?? "Without a project"
+                let title = projects.first(where: { $0.id == result.projectId }).map(projectTitle) ?? result.projectName ?? result.projectId.map { "Project #\($0)" } ?? "Without a project"
                 let activity = activities.first { $0.id == result.activityId }?.code
                 try? await recentStore.remember(RecentWork(account: operation.account, company: operation.company,
                     projectID: result.projectId, activityID: result.activityId, title: title + (activity.map { " · " + $0 } ?? "")))
