@@ -7,6 +7,7 @@ from pathlib import Path
 import plistlib
 import re
 import secrets
+import shlex
 import subprocess
 import tempfile
 
@@ -33,8 +34,10 @@ def release(app_id, version):
         key.chmod(0o600)
         keychain = work / 'signing.keychain-db'
         password = secrets.token_urlsafe(32)
+        original_keychains = shlex.split(output('security', 'list-keychains', '-d', 'user'))
         run('security', 'create-keychain', '-p', password, keychain)
         try:
+            run('security', 'list-keychains', '-d', 'user', '-s', keychain, *original_keychains)
             run('security', 'set-keychain-settings', '-lut', '21600', keychain)
             run('security', 'unlock-keychain', '-p', password, keychain)
             run('security', 'import', certificate, '-P', os.environ['APPLE_SIGNING_PASSWORD'], '-k', keychain, '-T', '/usr/bin/codesign', capture_output=True)
@@ -62,7 +65,7 @@ def release(app_id, version):
             (staging / 'Applications').symlink_to('/Applications')
             image = destination / app['asset']
             image.unlink(missing_ok=True)
-            run('hdiutil', 'create', '-volname', app['name'], '-srcfolder', staging, '-fs', 'APFS', '-format', 'UDZO', image)
+            run('diskutil', 'image', 'create', 'from', '--volumeName', app['name'], '--format', 'UDZO', staging, image)
             run('codesign', '--force', '--timestamp', '--sign', identity, '--keychain', keychain, image)
             credentials = ['--key', key, '--key-id', os.environ['APPLE_NOTARY_KEY_ID'], '--issuer', os.environ['APPLE_NOTARY_ISSUER']]
             response = subprocess.run([str(value) for value in ['xcrun', 'notarytool', 'submit', image, *credentials, '--wait', '--timeout', '30m', '--output-format', 'json']], capture_output=True, text=True)
@@ -79,7 +82,10 @@ def release(app_id, version):
             checksum(image)
             print(f'Ready: {image}')
         finally:
-            run('security', 'delete-keychain', keychain)
+            try:
+                run('security', 'list-keychains', '-d', 'user', '-s', *original_keychains)
+            finally:
+                run('security', 'delete-keychain', keychain)
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ The download site rebuilds after publication. Each app has its own tags and rele
 
 The build job creates a development archive with Swift 6.4 on an Apple Silicon runner. The release job imports credentials into a temporary keychain,
 signs with hardened runtime and a secure timestamp, creates a disk image with an Applications shortcut, signs and submits the disk image to Apple,
-staples the ticket, and verifies the result. The temporary keychain and credential files are removed even on failure.
+staples the ticket, and verifies the result. The temporary keychain is added to the search list so macOS can resolve the certificate chain. The original search list is restored and the temporary keychain and credential files are removed even on failure.
 
 No app-store listing, per-app certificate, provisioning profile, or installer certificate is required for these apps.
 Apps that add restricted Apple capabilities or embedded code need their signing requirements reviewed first.
@@ -25,7 +25,7 @@ Use the GitHub environment **apple-release**, restricted to release tags. Store:
 
 | Name | Type | Value |
 | --- | --- | --- |
-| `APPLE_SIGNING_CERTIFICATE` | Secret | Base64-encoded Developer ID Application `.p12`, including its private key |
+| `APPLE_SIGNING_CERTIFICATE` | Secret | Base64-encoded Developer ID Application `.p12`, including its private key and Developer ID intermediate certificate |
 | `APPLE_SIGNING_PASSWORD` | Secret | Password protecting the `.p12` |
 | `APPLE_NOTARY_KEY` | Secret | Base64-encoded App Store Connect team API `.p8` key |
 | `APPLE_NOTARY_KEY_ID` | Secret | API key ID |
