@@ -1,6 +1,6 @@
 # Source history
 
-This repository consolidates the app sources on 20 September 2026. Original repositories retain earlier history.
+This repository consolidates the app sources on 20 September 2026. The original repositories were retired after consolidation. Their history and release archives were backed up privately before deletion.
 
 | App | Original repository | Imported commit |
 | --- | --- | --- |

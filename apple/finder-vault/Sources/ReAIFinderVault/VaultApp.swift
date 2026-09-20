@@ -1,18 +1,16 @@
 import SwiftUI
 import AppKit
 
-typealias StoredState<Value> = SwiftUI.State<Value>
-
 @main
 struct VaultApp: App {
-    @StoredState private var model = VaultModel()
+    @State private var model = VaultModel()
     var body: some Scene {
         WindowGroup(VaultEnvironment.appName, id: "vault") {
             GeometryReader { geometry in
                 VaultView(model: model, availableHeight: geometry.size.height)
                     .frame(width: geometry.size.width, height: geometry.size.height)
             }
-                .frame(minWidth: 780, minHeight: 520)
+                .frame(minWidth: 780, minHeight: 620)
                 .task { await model.start() }
         }
         .defaultSize(width: 960, height: 650)
@@ -27,8 +25,8 @@ struct MenuContent: View {
     @Bindable var model: VaultModel
     @Environment(\.openWindow) private var openWindow
     var body: some View {
-        Text(model.pending == 0 ? "Your vault is up to date" : "\(model.pending) uploads waiting")
-        Button("Open ReAI Finder Vault") { openWindow(id: "vault"); NSApp.activate(ignoringOtherApps: true) }
+        Text(model.uploadStatus)
+        Button("Open ReAI Finder Vault") { openWindow(id: "vault"); NSApp.activate() }
         Button("Show folder in Finder") { Task { await model.showFolder() } }.disabled(model.company == nil)
         Divider()
         Button(model.paused ? "Resume uploads" : "Pause uploads") {
@@ -83,10 +81,10 @@ struct ConnectionView: View {
 struct VaultView: View {
     @Bindable var model: VaultModel
     let availableHeight: CGFloat
-    @StoredState private var search = ""
-    @StoredState private var targeted = false
-    @StoredState private var retryID: UUID?
-    @StoredState private var showWatchedFolders = false
+    @State private var search = ""
+    @State private var targeted = false
+    @State private var retryID: UUID?
+    @State private var showWatchedFolders = false
 
     var body: some View {
         Group {
@@ -194,7 +192,7 @@ struct VaultView: View {
                             }
                         }
                         .listStyle(.plain)
-                        .frame(height: max(80, availableHeight - 415 - (model.uploadNotice == nil ? 0 : 65) - (model.error == nil ? 0 : 50)))
+                        .frame(minHeight: 100, maxHeight: .infinity)
                         .overlay {
                             if model.visibleTransfers.isEmpty {
                                 ContentUnavailableView("No uploads yet", systemImage: "doc", description: Text("Upload a file or open your company’s inbox in Finder."))

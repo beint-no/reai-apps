@@ -42,9 +42,19 @@ final class VaultModel {
     }
 
     var company: Company? { companies.first { $0.id == selectedCompanyID } }
-    var pending: Int { transfers.filter { $0.status == "Queued" || $0.status == "Uploading" }.count }
+    var pending: Int { visibleTransfers.filter { $0.status == "Queued" || $0.status == "Uploading" }.count }
     var visibleTransfers: [Transfer] {
         transfers.filter { $0.company.id == selectedCompanyID }.reversed()
+    }
+
+    var uploadStatus: String {
+        if !connected { return "Connect to ReAI to upload documents" }
+        if error != nil || visibleTransfers.contains(where: { $0.status == "Check ReAI" }) {
+            return "Uploads need attention"
+        }
+        if paused { return "Uploads paused" }
+        if pending > 0 { return "\(pending) uploads waiting" }
+        return "No uploads waiting"
     }
 
     func start() async {
@@ -73,7 +83,7 @@ final class VaultModel {
                 }).connect()
                 try Task.checkCancellation()
                 await connect(credential)
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             } catch is CancellationError {
             } catch { self.error = error.localizedDescription }
         }
@@ -87,7 +97,7 @@ final class VaultModel {
         defer { connecting = false }
         do {
             let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !candidate.isEmpty else { throw vaultError("Enter a ReAI user access token.") }
+            guard !candidate.isEmpty else { throw vaultError("Connect to ReAI in your browser.") }
             let account = try await api.account(token: candidate)
             guard account.tenants.count == 1 else {
                 throw vaultError("Connect again in your browser and choose one company.")
@@ -96,7 +106,7 @@ final class VaultModel {
             token = candidate
             companies = account.tenants
             email = account.email
-            selectedCompanyID = companies.count == 1 ? companies.first?.id : nil
+            selectedCompanyID = companies.first?.id
             connected = true
             error = nil
             if company != nil { await selectCompany() }
