@@ -53,7 +53,7 @@ struct ImportView: View {
             Button("Cancel", role: .cancel) {}
             Button("Create in ReAI", action: model.runImport)
         } message: {
-            Text("Create new records in \(model.company?.companyName ?? "ReAI"). Skipped and invalid rows are excluded. Existing records will not be updated. Completed imports are not automatically undone.")
+            Text("Create new records in \(model.company?.companyName ?? "ReAI"). Skipped and invalid rows are excluded. ReAI may reuse company profiles and fill missing address details. Completed imports are not automatically undone.")
         }
         .alert("Start a new import?", isPresented: $confirmNew) {
             Button("Cancel", role: .cancel) {}
@@ -203,7 +203,7 @@ struct ImportView: View {
                         }.frame(maxHeight: 100)
                     }.padding(12).background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
                 }
-                Text("Existing matches are skipped; no records are overwritten. Select a row to inspect its exact values. Correct invalid rows in your source file, then start a new import.").font(.caption).foregroundStyle(.secondary)
+                Text("Existing matches are skipped. This app does not send update requests. Select a row to inspect its exact values. Correct invalid rows in your source file, then start a new import.").font(.caption).foregroundStyle(.secondary)
                 if model.importing {
                     ProgressView(model.progress, value: Double(batch.rows.filter { $0.state != .ready && $0.state != .sending }.count), total: Double(max(1, batch.rows.count)))
                 }

@@ -84,3 +84,5 @@ struct ExistingRecord: Decodable, Sendable {
         return values
     }
 }
+
+struct ExistingSnapshot: Sendable { var keys = Set<String>(); var ids = Set<Int>() }

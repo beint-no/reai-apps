@@ -13,7 +13,7 @@ Open the disk image, drag **ReAI Import** to **Applications**, then open it. Pub
 2. Choose **Products**, **Customers** or **Suppliers**, then drop a file or use **Choose file**. A blank CSV template is available in the app.
 3. Select the worksheet and header row. English and Norwegian headings are matched locally, including common abbreviations and small spelling mistakes. Review every match, change it if needed, and leave unwanted columns as **Do not import**.
 4. Check the decimal separator for products, or the default contact type for customers/suppliers.
-5. Click **Review import**. Existing active/archived records and repeated file rows are checked by SKU (products), or contact number, name and email (contacts). Matches are skipped, never overwritten. Organization-number-only matches are not detected by this pre-check; ReAI still validates each creation.
+5. Click **Review import**. Existing active/archived records and repeated file rows are checked by SKU (products), or contact number, name and email (contacts). Matches are skipped; this app does not send update requests. Organization-number-only matches are not detected by this pre-check; ReAI still validates each creation. ReAI may reuse company profiles and fill missing address details. If a create request returns an already-known record ID, it is reported as skipped.
 6. Inspect the preview. Select a row to see its prepared values or exclude it. Invalid rows are excluded. Click **Import rows**, verify the company in the confirmation, and create the records.
 7. **Export report** saves source row numbers, results, ReAI IDs and errors. Correct invalid rows in your source file and start another import.
 

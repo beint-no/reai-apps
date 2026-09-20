@@ -34,13 +34,13 @@ actor ReAIAPI {
         }
         return try JSONDecoder().decode(T.self, from: data)
     }
-    func existing(kind: ImportKind, token: String, company: Int) async throws -> Set<String> {
-        var keys = Set<String>()
+    func existing(kind: ImportKind, token: String, company: Int) async throws -> ExistingSnapshot {
+        var snapshot = ExistingSnapshot()
         for archived in ["false", "true"] {
             let records: [ExistingRecord] = try await request("api/\(kind.rawValue)", token: token, company: company, query: [URLQueryItem(name: "archived", value: archived)])
-            for record in records { keys.formUnion(record.keys) }
+            for record in records { snapshot.keys.formUnion(record.keys); snapshot.ids.insert(record.id) }
         }
-        return keys
+        return snapshot
     }
 }
 actor ImportJournal {

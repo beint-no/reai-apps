@@ -109,7 +109,7 @@ final class ImportModel {
             defer { busy = false; progress = "" }
             do {
                 let existing = try await api.existing(kind: kind, token: token, company: company.id)
-                let prepared = try await validator.prepare(rows: rows, headerRow: header, mapping: mapping, kind: kind, decimalComma: comma, privatePeople: people, existing: existing)
+                let prepared = try await validator.prepare(rows: rows, headerRow: header, mapping: mapping, kind: kind, decimalComma: comma, privatePeople: people, existing: existing.keys)
                 batch = ImportBatch(filename: filename, kind: kind, company: company, email: email, rows: prepared)
             } catch { self.error = error.localizedDescription }
         }
@@ -129,8 +129,8 @@ final class ImportModel {
             defer { importing = false; progress = "" }
             do {
                 var current = initial
-                let existing = try await api.existing(kind: current.kind, token: token, company: current.company.id)
-                for i in current.rows.indices where current.rows[i].state == .ready && !ImportValidator.keys(current.rows[i].fields, kind: current.kind).isDisjoint(with: existing) {
+                var existing = try await api.existing(kind: current.kind, token: token, company: current.company.id)
+                for i in current.rows.indices where current.rows[i].state == .ready && !ImportValidator.keys(current.rows[i].fields, kind: current.kind).isDisjoint(with: existing.keys) {
                     current.rows[i].state = .skipped; current.rows[i].detail = "This record now exists in ReAI."
                 }
                 try await journal.save(current); batch = current
@@ -143,8 +143,11 @@ final class ImportModel {
                     do {
                         struct Created: Decodable, Sendable { let id: Int }
                         let result: Created = try await api.request("api/\(current.kind.rawValue)", token: token, company: current.company.id, body: payload)
-                        current.rows[i].state = .created; current.rows[i].remoteID = result.id
-                        current.rows[i].detail = "Created in ReAI · ID \(result.id)"
+                        let matchedExisting = existing.ids.contains(result.id)
+                        current.rows[i].state = matchedExisting ? .skipped : .created
+                        current.rows[i].remoteID = result.id
+                        current.rows[i].detail = matchedExisting ? "ReAI matched an existing record · ID \(result.id)" : "Created in ReAI · ID \(result.id)"
+                        existing.ids.insert(result.id)
                     } catch {
                         let failure = error as NSError
                         current.rows[i].state = failure.domain == "no.reai.import" && (400..<500).contains(failure.code) ? .rejected : .uncertain
