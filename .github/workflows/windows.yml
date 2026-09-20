@@ -55,6 +55,7 @@ jobs:
               $app.Refresh()
             } while (-not $app.HasExited -and [DateTime]::UtcNow -lt $deadline)
             if (-not $button) {
+              Get-Content "$env:LOCALAPPDATA/ReAI/Import/last-error.txt" -ErrorAction SilentlyContinue
               Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'ReAI.Import' } | Select-Object -First 5 -ExpandProperty Message
               throw "The connection control did not render. Exited: $($app.HasExited), exit code: $($app.ExitCode)"
             }

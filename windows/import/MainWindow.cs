@@ -32,7 +32,7 @@ public sealed class MainWindow : Window
     private readonly Button export = new() { Content = "Export report", Visibility = Visibility.Collapsed };
     private readonly Button reset = new() { Content = "New import", Visibility = Visibility.Collapsed };
     private readonly Button exclude = new() { Content = "Exclude selected row", Visibility = Visibility.Collapsed };
-    private readonly ComboBox kind = new() { Header = "Import", ItemsSource = Enum.GetValues<ImportKind>(), SelectedIndex = 0, Width = 150 };
+    private readonly ComboBox kind = new() { Header = "Import", ItemsSource = Enum.GetNames<ImportKind>(), SelectedIndex = 0, Width = 150 };
     private readonly ComboBox sheetPicker = new() { Header = "Worksheet", Width = 180 };
     private readonly NumberBox header = new() { Header = "Header row", Minimum = 1, Maximum = 100, Value = 1, SmallChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 110 };
     private readonly ComboBox decimals = new() { Header = "Decimal separator", ItemsSource = new[] { "Dot · 1234.50", "Comma · 1234,50" }, SelectedIndex = 0, Width = 170 };
@@ -54,7 +54,7 @@ public sealed class MainWindow : Window
     private string filename = "";
     private bool busy, importing, changing;
     private CancellationTokenSource? connecting;
-    private ImportKind Kind => (ImportKind)(kind.SelectedItem ?? ImportKind.Products);
+    private ImportKind Kind => (ImportKind)Math.Max(0, kind.SelectedIndex);
     private Sheet? Sheet => sheetPicker.SelectedIndex >= 0 && sheetPicker.SelectedIndex < sheets.Count ? sheets[sheetPicker.SelectedIndex] : null;
 
     public MainWindow()
