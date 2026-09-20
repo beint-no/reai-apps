@@ -15,6 +15,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <ProjectPriFileName>resources.pri</ProjectPriFileName>
     <AssemblyName>ReAI.Import</AssemblyName>
     <Product>ReAI Import</Product>
     <Company>ReAI</Company>
