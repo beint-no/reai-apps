@@ -14,5 +14,13 @@
     "bundle_id": "no.reai.findervault",
     "icon": "make-icon.swift",
     "asset": "ReAI-Finder-Vault-Apple-Silicon.dmg"
+  },
+  "import": {
+    "name": "ReAI Import",
+    "path": "apple/import",
+    "executable": "ReAIImport",
+    "bundle_id": "no.reai.import",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Import-Apple-Silicon.dmg"
   }
 }

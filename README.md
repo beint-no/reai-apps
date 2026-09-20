@@ -7,6 +7,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 | App | What it does |
 | --- | --- |
 | [Time Tracker](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
+| [Import](apple/import) | Import products, customers and suppliers from Excel or CSV. |
 | [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
 
 ## Install
@@ -27,6 +28,7 @@ with your existing API permissions. Revoke access in your [ReAI profile](https:/
 apple/
   time-tracker/     Swift package and app source
   finder-vault/     Swift package and app source
+  import/           Swift package and app source
 apps.json          App identities and download names
 site/              GitHub Pages download site
 tools/apple/      Shared build, signing and release tools
@@ -43,6 +45,7 @@ Install [Swift 6.4](https://www.swift.org/install/macos/) and the macOS SDK, the
 ```sh
 python3 tools/apple/build.py time-tracker
 python3 tools/apple/build.py finder-vault
+python3 tools/apple/build.py import
 ```
 
 Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
