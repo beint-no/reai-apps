@@ -83,6 +83,7 @@ public sealed class ReAIClient : IDisposable
             using var content = new FormUrlEncodedContent(new Dictionary<string, string> { ["client_id"] = client, ["device_code"] = grant.GetProperty("device_code").GetString()!, ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code" });
             HttpResponseMessage poll;
             try { poll = await http.PostAsync("oauth/device/token", content, deadline.Token); }
+            catch (OperationCanceledException) when (!deadline.IsCancellationRequested) { delay = Math.Min(60, Math.Max(10, delay * 2)); continue; }
             catch (HttpRequestException) { delay = Math.Min(60, Math.Max(10, delay * 2)); continue; }
             using (poll)
             {
