@@ -9,6 +9,7 @@ Push-Location "$root/windows"
 try {
     dotnet publish import/ReAI.Import.csproj -c Release -p:RestoreLockedMode=true -p:Platform=$Architecture -r $rid --self-contained -o $destination
     if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+    if (-not (Test-Path "$destination/resources.pri")) { throw 'Published app is missing its XAML resources' }
     $notices = New-Item -ItemType Directory -Path "$destination/ThirdPartyNotices" -Force
     $packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { "$env:USERPROFILE/.nuget/packages" }
     $lock = Get-Content "$root/windows/import/packages.lock.json" -Raw | ConvertFrom-Json
