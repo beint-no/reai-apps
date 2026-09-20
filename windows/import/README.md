@@ -56,8 +56,7 @@ Tools checked 20 September 2026:
 .NET 11 RC1 is the explicitly selected release candidate with Microsoft go-live support. Windows 11 25H2 is the minimum customer OS; no Windows 10 or x86 support.
 The Windows SDK reference version is an API contract, not the app's minimum supported Windows release.
 
-Write code on macOS and build the import logic there with `cd windows
-dotnet build import/Core`.
+Write code on macOS; from `windows/`, run `dotnet build import/Core` to build the import logic.
 WinUI compilation and execution require Windows. GitHub's **Windows apps** workflow builds x64 and ARM64.
 On Windows, install the .NET SDK and run from the repository root:
 
@@ -67,3 +66,5 @@ On Windows, install the .NET SDK and run from the repository root:
 ```
 
 Build output is in `dist/import-windows`. It includes the .NET and Windows App SDK runtimes.
+
+Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.3.9, Runtime 2.5.1, Interactive Experiences 2.1.9, Foundation 2.3.12, Base 2.0.4, WebView2 1.0.4191.47, SDK Build Tools 10.0.28000.2705 and MSIX Build Tools 1.7.260903100.

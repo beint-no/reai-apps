@@ -57,3 +57,5 @@ WinUI requires Windows. CI builds both apps for x64 and ARM64 and checks native 
 ```
 
 API: `/api/me`, `/api/projects`, `/api/projects/activities`, `/api/project-timer`, `/api/project-timer/start`, `/api/project-timer/stop`. Authentication uses the registration-free device flow with `time-tracker-windows`. ReAI owns accounting and permissions.
+
+Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.3.9, Runtime 2.5.1, Interactive Experiences 2.1.9, Foundation 2.3.12, Base 2.0.4, WebView2 1.0.4191.47, SDK Build Tools 10.0.28000.2705 and MSIX Build Tools 1.7.260903100.
