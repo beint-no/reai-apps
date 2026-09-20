@@ -27,7 +27,7 @@ with your existing API permissions. Revoke access in your [ReAI profile](https:/
 apple/
   time-tracker/     Swift package and app source
   finder-vault/     Swift package and app source
-apps.json          App identities, versions and download names
+apps.json          App identities and download names
 site/              GitHub Pages download site
 tools/apple/      Shared build, signing and release tools
 .github/           CI, release and Pages workflows
@@ -41,22 +41,24 @@ Add `windows/<app>/` when the first Windows app exists. No empty platform projec
 Install [Swift 6.4](https://www.swift.org/install/macos/) and the macOS SDK, then run from the repository root:
 
 ```sh
-python3tools/apple/build.py time-tracker
-python3tools/apple/build.py finder-vault
+python3 tools/apple/build.py time-tracker
+python3 tools/apple/build.py finder-vault
 ```
 
 Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
 Pull requests build affected apps without signing credentials. Public releases use the shared [Apple release workflow](tools/apple/README.md).
 
-To release, update that app’s version and build number in `apps.json`, merge the PR, then tag the merged commit:
+To release, merge your changes, then open **[Actions → Release app](https://github.com/beint-no/reai-apps/actions/workflows/apps.yml) → Run workflow**, keep **main**, and choose the app.
+Or run:
 
 ```sh
-git tag time-tracker/v0.3.0
-git push origin time-tracker/v0.3.0
+gh workflow run apps.yml --repo beint-no/reai-apps --ref main -f app=time-tracker
 ```
 
-Use the version from `apps.json`. CI signs, notarizes, staples, verifies, and publishes the app’s disk image and checksums.
-The download site updates automatically after publication. A failed verification publishes nothing.
+GitHub chooses the next patch version, builds, signs, notarizes, verifies, publishes the download, and updates the site.
+Pushing code runs build checks; publishing requires the release action. Repository write access is required.
+Apple credentials are already stored in GitHub. Teammates need no signing secrets or `.zshrc` changes.
+A failed verification publishes nothing.
 
 ## Connect another app
 

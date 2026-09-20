@@ -8,9 +8,9 @@ Keep each app independent. Share release tooling; introduce shared runtime code 
 Read https://app.reai.no/openapi/public before changing API calls. ReAI owns permissions and accounting behavior.
 Device authorization accepts self-declared app names. Approval chooses one company; tokens remain bound to it.
 
-apps.json is authoritative for app identity, version, build number, and downloadable filename.
+apps.json is authoritative for app identity and downloadable filename.
 Build affected apps with python3 tools/apple/build.py <app>. Set SWIFT_BIN when Swift 6.4 is not the default.
-Never release an ad-hoc build. Release tags use <app>/v<version>, match apps.json, and point to a commit merged into main.
+Never release an ad-hoc build. Release tags use <app>/v<version> and point to a commit merged into main. The Release app action on main chooses the next patch version; build numbers use GITHUB_RUN_NUMBER.
 The apple-release environment holds signing and notary secrets; PR jobs must never receive them.
 Sign with hardened runtime, notarize the outer DMG, staple and assess before publishing. See tools/apple/README.md.
 
