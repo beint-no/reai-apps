@@ -8,6 +8,7 @@ final class TrackerModel {
     private(set) var timer: RunningTimer?
     private(set) var projects: [Project] = []
     private(set) var activities: [Activity] = []
+    private(set) var recentWork: [RecentWork] = []
     private(set) var pending: PendingOperation?
     private(set) var busy = false
     private(set) var connecting = false
@@ -23,15 +24,33 @@ final class TrackerModel {
     @ObservationIgnored private let api = ReAIAPI()
     @ObservationIgnored private let credentials = Credentials()
     @ObservationIgnored private let operations = OperationStore()
+    @ObservationIgnored private let recentStore = RecentWorkStore()
     @ObservationIgnored private var monitoringTask: Task<Void, Never>?
     @ObservationIgnored private var connectionTask: Task<Void, Never>?
 
     var company: Company? { account?.tenants.first { $0.id == companyID } }
     var canStart: Bool { account != nil && companyID != nil && synchronized && timer == nil && pending == nil && !busy }
-    var availableActivities: [Activity] {
-        guard let project = projects.first(where: { $0.id == projectID }) else { return [] }
+    var availableActivities: [Activity] { activitiesFor(projectID) }
+    var timesheetURL: URL? {
+        companyID.flatMap { URL(string: "https://app.reai.no/timesheet?tenantId=\($0)") }
+    }
+    func projectTitle(_ project: Project) -> String {
+        if let parent = projects.first(where: { $0.id == project.parentId }) { return "\(parent.name) / \(project.name)" }
+        return project.name
+    }
+    func selectProject(_ id: Int?) { projectID = id; activityID = nil }
+    private func activitiesFor(_ id: Int?) -> [Activity] {
+        guard let project = projects.first(where: { $0.id == id }) else { return [] }
         let owner = project.parentId.flatMap { parent in projects.first { $0.id == parent } } ?? project
         return activities.filter { owner.activityIds.contains($0.id) }
+    }
+    private func loadRecent() async {
+        guard let account, let companyID else { return }
+        let saved = (try? await recentStore.load(account: account.email, company: companyID)) ?? []
+        recentWork = saved.filter { work in
+            if work.projectID == nil { return work.activityID == nil }
+            return projects.contains { $0.id == work.projectID } && (work.activityID == nil || activitiesFor(work.projectID).contains { $0.id == work.activityID })
+        }
     }
 
     func startMonitoring() {
@@ -80,6 +99,9 @@ final class TrackerModel {
         account = loaded
         companyID = nil
         timer = nil
+        projectID = nil
+        activityID = nil
+        recentWork = []
         synchronized = false
         if loaded.tenants.count == 1 {
             companyID = loaded.tenants[0].id
@@ -94,7 +116,7 @@ final class TrackerModel {
         try await loadTimer(token: token, company: companyID)
         do {
             let list: [Project] = try await api.request("api/projects", token: token, company: companyID)
-            projects = list.filter { !$0.archived }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            projects = list.filter { project in !project.archived && (project.parentId == nil || list.contains { $0.id == project.parentId && !$0.archived }) }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             activities = try await api.request("api/projects/activities", token: token, company: companyID)
             projectNotice = nil
         } catch {
@@ -102,6 +124,8 @@ final class TrackerModel {
             activities = []
             projectNotice = "Projects are unavailable. You can still track time without a project."
         }
+        await loadRecent()
+        if let recent = recentWork.first { projectID = recent.projectID; activityID = recent.activityID }
     }
 
     private func loadTimer(token: String, company: Int) async throws {
@@ -123,8 +147,12 @@ final class TrackerModel {
         } catch { self.error = error.localizedDescription }
     }
 
-    func start() async {
+    func start(recent: RecentWork? = nil) async {
         guard canStart, let account, let companyID else { return }
+        if let recent {
+            guard recentWork.contains(where: { $0.id == recent.id && $0.account == account.email && $0.company == companyID }) else { return }
+            projectID = recent.projectID; activityID = recent.activityID
+        }
         let operation = PendingOperation(account: account.email, company: companyID,
                                          start: StartRequest(requestId: UUID(), projectId: projectID, activityId: activityID), stop: nil)
         await perform(operation)
@@ -157,11 +185,18 @@ final class TrackerModel {
             if let start = operation.start {
                 let result: RunningTimer = try await api.request("api/project-timer/start", token: token,
                     company: operation.company, body: JSONEncoder().encode(start))
+                guard result.requestId == start.requestId, result.timerId > 0 else { throw appError("Unexpected timer response. Retry the saved request.") }
                 timer = result.stoppedAt == nil ? result : nil
+                let title = projects.first(where: { $0.id == result.projectId }).map(projectTitle) ?? result.projectName ?? "Without a project"
+                let activity = activities.first { $0.id == result.activityId }?.code
+                try? await recentStore.remember(RecentWork(account: operation.account, company: operation.company,
+                    projectID: result.projectId, activityID: result.activityId, title: title + (activity.map { " · " + $0 } ?? "")))
+                await loadRecent()
                 notice = result.stoppedAt == nil ? "Timer started in ReAI." : "This session already finished in ReAI."
             } else if let stop = operation.stop {
                 let result: CompletedTimer = try await api.request("api/project-timer/stop", token: token,
                     company: operation.company, body: JSONEncoder().encode(stop))
+                guard result.timerId == stop.timerId, (0...600).contains(result.minutes) else { throw appError("Unexpected stop response. Retry the saved request.") }
                 timer = nil
                 notice = result.minutes == 0 ? "Stopped. Sessions under one minute do not create a timesheet entry." : "Saved \(result.minutes) minutes to ReAI."
             }
@@ -190,6 +225,7 @@ final class TrackerModel {
             timer = nil
             projects = []
             activities = []
+            recentWork = []
             projectID = nil
             activityID = nil
             projectNotice = nil

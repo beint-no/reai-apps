@@ -16,6 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        app: [import-windows, time-tracker-windows]
         architecture: [x64, ARM64]
     runs-on: windows-2025
     timeout-minutes: 25
@@ -29,12 +30,13 @@ jobs:
         with:
           global-json-file: windows/global.json
       - name: Build self-contained Windows app
-        run: ../tools/windows/build.ps1 -Architecture '${{ matrix.architecture }}'
+        run: ../tools/windows/build.ps1 -App '${{ matrix.app }}' -Architecture '${{ matrix.architecture }}'
       - name: Verify native window opens
         if: matrix.architecture == 'x64'
         run: |
           $started = Get-Date
-          $app = Start-Process ../dist/import-windows/win-x64/ReAI.Import.exe -PassThru
+          $manifest = (Get-Content ../apps.json -Raw | ConvertFrom-Json).PSObject.Properties['${{ matrix.app }}'].Value
+          $app = Start-Process "../dist/${{ matrix.app }}/win-x64/$($manifest.executable)" -PassThru
           try {
             $deadline = [DateTime]::UtcNow.AddSeconds(30)
             do {
@@ -55,7 +57,7 @@ jobs:
               $app.Refresh()
             } while (-not $app.HasExited -and [DateTime]::UtcNow -lt $deadline)
             if (-not $button) {
-              Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'ReAI.Import' } | Select-Object -First 5 -ExpandProperty Message
+              Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction SilentlyContinue | Where-Object { $_.Message -like ('*' + $manifest.executable + '*') } | Select-Object -First 5 -ExpandProperty Message
               throw "The connection control did not render. Exited: $($app.HasExited), exit code: $($app.ExitCode)"
             }
             Write-Output "Native window and connection control rendered: $($app.MainWindowTitle)"
@@ -65,20 +67,20 @@ jobs:
             $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
             $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
             $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-            $bitmap.Save("$env:GITHUB_WORKSPACE/dist/import-windows/startup.png")
+            $bitmap.Save("$env:GITHUB_WORKSPACE/dist/${{ matrix.app }}/startup.png")
             $graphics.Dispose()
             $bitmap.Dispose()
           } finally { if (-not $app.HasExited) { Stop-Process -Id $app.Id } }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: import-windows-${{ matrix.architecture }}-unsigned
-          path: dist/import-windows/*.zip
+          name: ${{ matrix.app }}-${{ matrix.architecture }}-unsigned
+          path: dist/${{ matrix.app }}/*.zip
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: matrix.architecture == 'x64'
         with:
-          name: import-windows-startup
-          path: dist/import-windows/startup.png
+          name: ${{ matrix.app }}-startup
+          path: dist/${{ matrix.app }}/startup.png
           if-no-files-found: error
           retention-days: 7

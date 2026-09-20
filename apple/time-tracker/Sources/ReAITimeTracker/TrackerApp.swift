@@ -26,6 +26,7 @@ struct TrackerView: View {
     @Bindable var model: TrackerModel
     var compact = false
     @State private var confirmDisconnect = false
+    @State private var projectSearch = ""
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -100,24 +101,31 @@ struct TrackerView: View {
                     Label(model.synchronized ? "TRACKING" : "LAST KNOWN TIMER", systemImage: "record.circle.fill")
                         .font(.caption.weight(.semibold)).foregroundStyle(.teal)
                     TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let seconds = min(36_000, max(0, Int(context.date.timeIntervalSince(timer.startedAt))))
+                        let seconds = TimerPresentation.seconds(startedAt: timer.startedAt, now: context.date)
+                        VStack(alignment: .leading, spacing: 8) {
                         Text(String(format: "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60))
                             .font(.system(size: compact ? 42 : 52, weight: .light, design: .monospaced))
                             .accessibilityLabel("Elapsed time")
+                        Text(TimerPresentation.stopPreview(seconds: seconds)).font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     Text(timer.projectName ?? "Without a project").font(.headline)
                     Text("Started \(timer.startedAt.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(20).background(.teal.opacity(0.08), in: .rect(cornerRadius: 16))
-                Button("Stop & save", systemImage: "stop.fill") { Task { await model.stop() } }
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                Button(TimerPresentation.seconds(startedAt: timer.startedAt, now: context.date) < 60 ? "Stop — no time saved yet" : "Stop & save", systemImage: "stop.fill") { Task { await model.stop() } }
                     .buttonStyle(.borderedProminent).tint(.teal).controlSize(.large)
                     .disabled(model.busy || model.pending != nil)
+                    .keyboardShortcut(.return, modifiers: .command)
+                }
             } else if model.companyID != nil {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(model.synchronized ? "No timer running." : "Checking your timer…").font(.title2.weight(.medium))
-                    Picker("Project", selection: $model.projectID) {
+                    TextField("Find a project", text: $projectSearch).textFieldStyle(.roundedBorder)
+                    Picker("Project", selection: Binding(get: { model.projectID }, set: { model.selectProject($0) })) {
                         Text("Without a project").tag(Int?.none)
-                        ForEach(model.projects) { project in Text(project.name).tag(Optional(project.id)) }
-                    }.onChange(of: model.projectID) { model.activityID = nil }
+                        ForEach(model.projects.filter { projectSearch.isEmpty || model.projectTitle($0).localizedStandardContains(projectSearch) || $0.id == model.projectID }) { project in Text(model.projectTitle(project)).tag(Optional(project.id)) }
+                    }
                     if !model.availableActivities.isEmpty {
                         Picker("Activity", selection: $model.activityID) {
                             Text("No activity").tag(Int?.none)
@@ -126,6 +134,14 @@ struct TrackerView: View {
                     }
                     Button("Start tracking", systemImage: "play.fill") { Task { await model.start() } }
                         .buttonStyle(.borderedProminent).tint(.teal).controlSize(.large).disabled(!model.canStart)
+                        .keyboardShortcut(.return, modifiers: .command)
+                    if !model.recentWork.isEmpty {
+                        Text("Recent work").font(.caption).foregroundStyle(.secondary)
+                        ForEach(Array(model.recentWork.prefix(3))) { recent in
+                            Button("Start: " + recent.title, systemImage: "play.fill") { Task { await model.start(recent: recent) } }
+                                .disabled(!model.canStart)
+                        }
+                    }
                     if let notice = model.projectNotice { Text(notice).font(.caption).foregroundStyle(.secondary) }
                 }.disabled(model.busy || model.pending != nil)
             }
@@ -136,8 +152,11 @@ struct TrackerView: View {
                     Button("Retry saved request", systemImage: "arrow.clockwise") { Task { await model.retry() } }.disabled(model.busy)
                 }
             }
-            Text("Timers keep running when you quit or your Mac sleeps. ReAI stops them automatically after 10 hours.")
+            Text(TimerPresentation.rules).font(.caption).foregroundStyle(.secondary)
+            Text("Timers keep running when you quit or your Mac sleeps. ReAI caps each session at 10 hours. Start and Stop need an internet connection.")
                 .font(.caption).foregroundStyle(.secondary)
+            if let url = model.timesheetURL { Link("Open timesheet", destination: url) }
+            Text("Status checks every 30 seconds; saves on Stop. Refresh an already-open ReAI timesheet to see changes.").font(.caption).foregroundStyle(.secondary)
             HStack {
                 Button("Refresh", systemImage: "arrow.clockwise") { Task { await model.refresh() } }.disabled(model.busy)
                 Spacer()

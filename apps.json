@@ -30,5 +30,13 @@
     "executable": "ReAI.Import.exe",
     "asset": "ReAI-Import-Windows-x64.zip",
     "arm64_asset": "ReAI-Import-Windows-ARM64.zip"
+  },
+  "time-tracker-windows": {
+    "platform": "windows",
+    "name": "ReAI Time Tracker for Windows",
+    "path": "windows/time-tracker",
+    "executable": "ReAI.TimeTracker.exe",
+    "asset": "ReAI-Time-Tracker-Windows-x64.zip",
+    "arm64_asset": "ReAI-Time-Tracker-Windows-ARM64.zip"
   }
 }
