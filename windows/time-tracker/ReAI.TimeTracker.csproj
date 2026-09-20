@@ -16,22 +16,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableMsixTooling>true</EnableMsixTooling>
     <ProjectPriFileName>resources.pri</ProjectPriFileName>
-    <AssemblyName>ReAI.Import</AssemblyName>
-    <Product>ReAI Import</Product>
+    <AssemblyName>ReAI.TimeTracker</AssemblyName>
+    <Product>ReAI Time Tracker</Product>
     <Company>ReAI</Company>
     <Version>0.1.0</Version>
-    <ApplicationIcon>Assets/import.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/timer.ico</ApplicationIcon>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Core/**/*.cs" />
-    <ProjectReference Include="Core/ReAI.Import.Core.csproj" />
+    <ProjectReference Include="Core/ReAI.TimeTracker.Core.csproj" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.9" />
     <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="2.1.9" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.5.1" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.260903100" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all" />
-    <Content Update="Assets/import.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Assets/timer.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

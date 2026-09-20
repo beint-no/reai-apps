@@ -68,7 +68,7 @@
           "Microsoft.WindowsAppSDK.InteractiveExperiences": "2.1.8"
         }
       },
-      "reai.import.core": {
+      "reai.timetracker.core": {
         "type": "Project"
       }
     },

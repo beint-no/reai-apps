@@ -20,12 +20,19 @@ To update, quit the app and replace it in Applications with the latest download.
 ## Timer behavior
 
 - ReAI stores the timer. Closing the app, sleep, or losing your connection does not stop it.
-- The app refreshes every 30 seconds. Use **Refresh** to check immediately.
+- Stop saves immediately when ReAI confirms it; there is no periodic timesheet save while running.
+- The app reads timer status every 30 seconds. Use **Refresh** to check immediately. Refresh an already-open ReAI timesheet to see changes.
 - ReAI stops timers after 10 hours and splits time at Europe/Oslo midnight.
-- Sessions shorter than one minute create no timesheet entry.
+- Only completed whole minutes are saved: 0:59 saves nothing, 1:00 saves 1 minute, 1:59 saves 1 minute. Seconds do not carry between sessions.
+- The timer counts down to the first saved minute and previews what Stop will save. ReAI’s response confirms the actual result.
+- Minutes accumulate in matching unedited, unbilled timesheet rows; hours are shown with two decimals.
 - If a request is interrupted, **Retry saved request** safely confirms its result without duplicating time.
   Pending requests survive restarting the app and require the original account and company.
 - To use another company, disconnect and connect again. Existing timers keep running.
+
+Choose **Without a project** for general work, or search for a project/sub-project and optional activity.
+**Recent work** starts a previous selection with one click; selections are scoped to your account and company.
+**Command + Return** starts/stops while the tracker is focused. **Open timesheet** opens the connected company for review, notes and corrections.
 
 This app tracks your own time. Edit timesheets or track for another employee in ReAI.
 
@@ -37,7 +44,7 @@ The key is restricted to the company chosen during approval, with your existing 
 
 **Disconnect** removes the local key. It does not stop timers or revoke server access.
 Revoke the key in [ReAI profile → Access tokens](https://app.reai.no/user/profile#user-access-tokens).
-Pending request metadata is stored under `~/Library/Application Support/ReAI Time Tracker/`; it contains no access key.
+Pending requests and recent-work metadata are stored under `~/Library/Application Support/ReAI Time Tracker/`; it contains no access key.
 
 ## Development
 

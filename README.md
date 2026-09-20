@@ -6,7 +6,8 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 
 | App | What it does |
 | --- | --- |
-| [Time Tracker](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
+| [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Public download pending Windows signing. |
+| [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
 | [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
 | [Import for Windows](windows/import) | Native Windows 11 import app. Public download pending Windows code signing. |
 | [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
@@ -31,8 +32,9 @@ apple/
   finder-vault/     Swift package and app source
   import/           Swift package and app source
 windows/
-  import/           .NET 10 / WinUI 3 app and app-local import logic
-  global.json       Current stable .NET SDK
+  import/           .NET 11 / WinUI 3 app and app-local import logic
+  time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
+  global.json       Pinned .NET 11 RC1 SDK
 apps.json          App identities and download names
 site/              GitHub Pages download site
 tools/apple/       Apple build, signing and release tools
@@ -70,9 +72,9 @@ A failed verification publishes nothing.
 
 ## Windows development
 
-The Windows Import app uses .NET 10.0.401, C# 14 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local import logic also builds on macOS.
+Windows Import and Time Tracker use .NET 11 RC1 (SDK 11.0.100-rc.1.26425.128), C# 15 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. .NET 11 RC1 is explicitly selected; the other Windows dependencies remain at their latest stable releases.
 
-See [Windows Import](windows/import) for development and import instructions. The **Windows apps** action builds on pull requests and pushes; it does not publish unsigned downloads. Trusted Windows signing is a separate setup from Apple notarization.
+See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. The **Windows apps** action builds on pull requests and pushes; it does not publish unsigned downloads. Trusted Windows signing is a separate setup from Apple notarization.
 
 ## Connect another app
 
