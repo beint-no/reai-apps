@@ -6,7 +6,8 @@ import subprocess
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-apps = json.loads((root / 'apps.json').read_text())
+all_apps = json.loads((root / 'apps.json').read_text())
+apps = {key: app for key, app in all_apps.items() if app.get('platform', 'apple') == 'apple'}
 ref = os.environ.get('GITHUB_REF', '')
 event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
 version = '0.0.0'
@@ -22,10 +23,10 @@ if os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch':
     selected = [app_id]
 elif ref.startswith('refs/tags/'):
     match = re.fullmatch(r'refs/tags/([a-z-]+)/v(\d+\.\d+\.\d+)', ref)
-    if not match or match[1] not in apps:
+    if not match or match[1] not in all_apps:
         raise SystemExit('Release tag must use a known app and major.minor.patch version')
     subprocess.run(['git', 'merge-base', '--is-ancestor', 'HEAD', 'origin/main'], cwd=root, check=True)
-    selected = [match[1]]
+    selected = [match[1]] if match[1] in apps else []
     version = match[2]
 else:
     base = event.get('pull_request', {}).get('base', {}).get('sha') or event.get('before')

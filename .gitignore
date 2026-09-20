@@ -10,3 +10,7 @@ __pycache__/
 *.cer
 *.certSigningRequest
 *.keychain-db
+bin/
+obj/
+.vs/
+*.pfx

@@ -7,7 +7,8 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 | App | What it does |
 | --- | --- |
 | [Time Tracker](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
-| [Import](apple/import) | Import products, customers and suppliers from Excel or CSV. |
+| [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
+| [Import for Windows](windows/import) | Native Windows 11 import app. Public download pending Windows code signing. |
 | [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
 
 ## Install
@@ -29,14 +30,18 @@ apple/
   time-tracker/     Swift package and app source
   finder-vault/     Swift package and app source
   import/           Swift package and app source
+windows/
+  import/           .NET 10 / WinUI 3 app and app-local import logic
+  global.json       Current stable .NET SDK
 apps.json          App identities and download names
 site/              GitHub Pages download site
-tools/apple/      Shared build, signing and release tools
+tools/apple/       Apple build, signing and release tools
+tools/windows/     Windows build and packaging tools
 .github/           CI, release and Pages workflows
 ```
 
 Each app is independently versioned. Platform folders contain app source; shared release tooling stays in `tools/`.
-Add `windows/<app>/` when the first Windows app exists. No empty platform projects or shared app framework are required.
+Apple apps use SwiftUI. Windows apps use WinUI 3 and support Windows 11 25H2+, x64 and ARM64. Each platform uses native controls.
 
 ## Build and release
 
@@ -62,6 +67,12 @@ GitHub chooses the next patch version, builds, signs, notarizes, verifies, publi
 Pushing code runs build checks; publishing requires the release action. Repository write access is required.
 Apple credentials are already stored in GitHub. Teammates need no signing secrets or `.zshrc` changes.
 A failed verification publishes nothing.
+
+## Windows development
+
+The Windows Import app uses .NET 10.0.401, C# 14 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local import logic also builds on macOS.
+
+See [Windows Import](windows/import) for development and import instructions. The **Windows apps** action builds on pull requests and pushes; it does not publish unsigned downloads. Trusted Windows signing is a separate setup from Apple notarization.
 
 ## Connect another app
 

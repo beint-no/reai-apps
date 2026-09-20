@@ -1,0 +1,84 @@
+name: Windows apps
+on:
+  pull_request:
+    paths: ['windows/**', 'tools/windows/**', 'apps.json', '.github/workflows/windows.yml']
+  push:
+    branches: [main]
+    paths: ['windows/**', 'tools/windows/**', 'apps.json', '.github/workflows/windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x64, ARM64]
+    runs-on: windows-2025
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          global-json-file: windows/global.json
+      - name: Build self-contained Windows app
+        run: ../tools/windows/build.ps1 -Architecture '${{ matrix.architecture }}'
+      - name: Verify native window opens
+        if: matrix.architecture == 'x64'
+        run: |
+          $started = Get-Date
+          $app = Start-Process ../dist/import-windows/win-x64/ReAI.Import.exe -PassThru
+          try {
+            $deadline = [DateTime]::UtcNow.AddSeconds(30)
+            do {
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+              if ($app.HasExited) { throw "App exited during startup: $($app.ExitCode)" }
+            } while ($app.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
+            if ($app.MainWindowHandle -eq 0) { throw 'No native window appeared' }
+            $desktopRuntime = Get-ChildItem "$env:DOTNET_ROOT/shared/Microsoft.WindowsDesktop.App" -Directory | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+            Add-Type -Path "$($desktopRuntime.FullName)/UIAutomationTypes.dll"
+            Add-Type -Path "$($desktopRuntime.FullName)/UIAutomationClient.dll"
+            $window = [System.Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+            $condition = New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::NameProperty), 'Connect to ReAI'
+            do {
+              $button = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+              if ($button) { break }
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+            } while (-not $app.HasExited -and [DateTime]::UtcNow -lt $deadline)
+            if (-not $button) {
+              Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'ReAI.Import' } | Select-Object -First 5 -ExpandProperty Message
+              throw "The connection control did not render. Exited: $($app.HasExited), exit code: $($app.ExitCode)"
+            }
+            Write-Output "Native window and connection control rendered: $($app.MainWindowTitle)"
+            Add-Type -AssemblyName System.Drawing
+            Add-Type -AssemblyName System.Windows.Forms
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $bitmap.Save("$env:GITHUB_WORKSPACE/dist/import-windows/startup.png")
+            $graphics.Dispose()
+            $bitmap.Dispose()
+          } finally { if (-not $app.HasExited) { Stop-Process -Id $app.Id } }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: import-windows-${{ matrix.architecture }}-unsigned
+          path: dist/import-windows/*.zip
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: matrix.architecture == 'x64'
+        with:
+          name: import-windows-startup
+          path: dist/import-windows/startup.png
+          if-no-files-found: error
+          retention-days: 7
