@@ -15,7 +15,7 @@ Or use this one-liner with a GitHub account that has repository write access:
 gh workflow run apps.yml --repo beint-no/reai-apps --ref main -f app=time-tracker
 ```
 
-Use `finder-vault` for Finder Vault. No local Apple credentials, version edits, or manual tags are needed.
+Use `finder-vault` for Finder Vault or `import` for ReAI Import. No local Apple credentials, version edits, or manual tags are needed.
 Pushes and pull requests run build checks; they do not publish downloads.
 
 Release tags (`<app>/v<major>.<minor>.<patch>`) are the version source. Automatic releases increment the highest existing tag for that app.

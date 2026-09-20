@@ -55,6 +55,10 @@ def build(app_id, version=None):
     (bundle / 'Contents' / 'MacOS').mkdir()
     binary = bundle / 'Contents' / 'MacOS' / app['executable']
     shutil.copy2(binary_directory / app['executable'], binary)
+    for resource in binary_directory.glob('*.bundle'):
+        shutil.copytree(resource, resources / resource.name)
+    if (source / 'Resources').is_dir():
+        shutil.copytree(source / 'Resources', resources, dirs_exist_ok=True)
     if output('lipo', '-archs', binary) != 'arm64':
         raise ValueError('Release executable must contain only arm64')
     info = plistlib.loads((source / 'Info.plist').read_bytes())
