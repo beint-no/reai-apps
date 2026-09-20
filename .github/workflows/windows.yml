@@ -6,18 +6,35 @@ on:
     branches: [main]
     paths: ['windows/**', 'tools/windows/**', 'apps.json', '.github/workflows/windows.yml']
   workflow_dispatch:
+    inputs:
+      app:
+        description: Windows app to release (unsigned, no signing fee)
+        required: true
+        type: choice
+        options: [import-windows, time-tracker-windows]
 permissions:
   contents: read
 concurrency:
-  group: windows-${{ github.ref }}
-  cancel-in-progress: true
+  group: windows-${{ github.event_name }}-${{ github.ref }}-${{ inputs.app }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.apps.outputs.matrix }}
+      app: ${{ steps.apps.outputs.app }}
+      version: ${{ steps.apps.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - id: apps
+        run: python3 tools/windows/matrix.py
   build:
+    needs: prepare
     strategy:
       fail-fast: false
-      matrix:
-        app: [import-windows, time-tracker-windows]
-        architecture: [x64, ARM64]
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     runs-on: windows-2025
     timeout-minutes: 25
     defaults:
@@ -30,7 +47,7 @@ jobs:
         with:
           global-json-file: windows/global.json
       - name: Build self-contained Windows app
-        run: ../tools/windows/build.ps1 -App '${{ matrix.app }}' -Architecture '${{ matrix.architecture }}'
+        run: ../tools/windows/build.ps1 -App '${{ matrix.app }}' -Architecture '${{ matrix.architecture }}' -Version '${{ matrix.version }}'
       - name: Verify native window opens
         if: matrix.architecture == 'x64'
         run: |
@@ -85,3 +102,30 @@ jobs:
           path: dist/${{ matrix.app }}/startup.png
           if-no-files-found: error
           retention-days: 7
+  release:
+    needs: [prepare, build]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: ${{ needs.prepare.outputs.app }}-*-unsigned
+          merge-multiple: true
+          path: dist/release
+      - name: Verify both archives and create release notes
+        env:
+          APP: ${{ needs.prepare.outputs.app }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python3 tools/windows/release.py "$APP" --version "$VERSION" --directory dist/release
+      - name: Publish unsigned download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ needs.prepare.outputs.app }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gh release create "$APP/v$VERSION" dist/release/*.zip dist/release/SHA256SUMS --target "$GITHUB_SHA" --latest=false --title "$APP $VERSION (unsigned)" --notes-file dist/release/release-notes.md
+          gh workflow run pages.yml --ref main

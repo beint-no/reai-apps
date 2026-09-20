@@ -4,9 +4,21 @@ Track your own work in ReAI, with or without a project. Native WinUI 3, Windows 
 
 ## Download
 
-The public Windows download is pending trusted Windows code signing. CI builds are for development.
-The app bundles .NET and the Windows App SDK; customers will not need build tools or separate runtimes.
-The [Mac version](../../apple/time-tracker) is available now.
+[Download for Windows](https://beint-no.github.io/reai-apps/#time-tracker) — x64 for Intel/AMD PCs, ARM64 for ARM-based PCs. Check **Settings → System → About → System type** if unsure.
+
+1. Download the ZIP for your processor from the app’s GitHub release.
+2. Right-click it → **Extract All**. Keep the entire extracted folder together.
+3. Open **ReAI.TimeTracker.exe** from that folder.
+
+The app is self-contained: no .NET installation, developer tools or administrator access is needed.
+
+**Unsigned download.** Windows may show “Unknown publisher” or block it. If SmartScreen offers **More info → Run anyway**, you can choose it after confirming the download is from `beint-no/reai-apps` and you trust it. Smart App Control, S mode or workplace policy can block it with no per-app override. Keep Windows security protections enabled; this download cannot run on every locked-down PC.
+
+The release includes `SHA256SUMS`. To check a download, run `Get-FileHash .\ReAI-Time-Tracker-Windows-x64.zip -Algorithm SHA256` in PowerShell (use the ARM64 filename when applicable) and compare with the matching checksum. Checksums detect changed downloads; they are not a trusted publisher signature.
+
+To update, close the app and extract the new release into a new folder. Your connection and saved app data remain in your Windows user profile. To uninstall, close the app and delete the extracted folder. Disconnect/revoke access and remove the local data described below if you also want to remove your connection and history.
+
+[Windows security behavior](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions)
 
 ## Track time
 

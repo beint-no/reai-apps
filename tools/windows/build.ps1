@@ -1,4 +1,4 @@
-param([ValidateSet('import-windows', 'time-tracker-windows')][string]$App = 'import-windows', [ValidateSet('x64', 'ARM64')][string]$Architecture = 'x64')
+param([ValidateSet('import-windows', 'time-tracker-windows')][string]$App = 'import-windows', [ValidateSet('x64', 'ARM64')][string]$Architecture = 'x64', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.0.0')
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path "$PSScriptRoot/../..").Path
 $rid = 'win-' + $Architecture.ToLowerInvariant()
@@ -9,8 +9,10 @@ $asset = if ($Architecture -eq 'ARM64') { $manifest.arm64_asset } else { $manife
 $destination = "$root/dist/$App/$rid"
 Push-Location "$root/windows"
 try {
-    dotnet publish $projectPath -c Release -p:RestoreLockedMode=true -p:Platform=$Architecture -r $rid --self-contained -o $destination
+    dotnet publish $projectPath -c Release -p:Version=$Version -p:FileVersion=$Version.0 -p:AssemblyVersion=$Version.0 -p:RestoreLockedMode=true -p:Platform=$Architecture -r $rid --self-contained -o $destination
     if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+    $fileVersion = (Get-Item "$destination/$($manifest.executable)").VersionInfo.FileVersion
+    if ($fileVersion -ne "$Version.0") { throw "Unexpected app version: $fileVersion" }
     if (-not (Test-Path "$destination/resources.pri")) {
         Get-ChildItem "$root/$($manifest.path)/bin", $destination -Recurse -Include *.pri,*.xbf | Select-Object FullName
         throw 'Published app is missing its XAML resources'

@@ -2,27 +2,26 @@
 
 Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/ui).
 
-**[Download apps](https://beint-no.github.io/reai-apps/)** — Apple Silicon (M1 or newer), macOS 15+.
+**[Download apps](https://beint-no.github.io/reai-apps/)** — Mac: Apple Silicon, macOS 15+. Windows: Windows 11 25H2+, x64 or ARM64.
 
 | App | What it does |
 | --- | --- |
-| [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Public download pending Windows signing. |
+| [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
 | [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
-| [Import for Windows](windows/import) | Native Windows 11 import app. Public download pending Windows code signing. |
+| [Import for Windows](windows/import) | Native Windows 11 import app. Unsigned ZIP download. |
 | [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
 
 ## Install
 
-1. Download the app’s disk image from the [download page](https://beint-no.github.io/reai-apps/).
-2. Open the disk image and drag the app to **Applications**.
-3. Open the app and click **Connect to ReAI**. Sign in in your browser, compare the code, choose a company, and approve.
+Download from the **[app page](https://beint-no.github.io/reai-apps/)**.
 
-Published downloads are signed with Developer ID and notarized by Apple. No build tools or security-setting changes are needed.
-macOS may ask you to confirm opening an app downloaded from the internet. To update, quit the app and replace it in Applications.
+- **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. To update, quit and replace the app in Applications.
+- **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. To update, close the app and extract the new version into a new folder.
 
-Your password stays in the browser. Access keys are stored in macOS Keychain and restricted to the company chosen during approval,
-with your existing API permissions. Revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens).
+**Windows downloads are unsigned.** Windows may warn or block them. If SmartScreen offers **More info → Run anyway**, you can choose it after confirming the download came from this repository and you trust it. Smart App Control, S mode and workplace policy may prevent running the app. Keep Windows security protections enabled. See the app README for details and checksum verification.
+
+Click **Connect to ReAI**, sign in in your browser, compare the code, choose a company and approve. Your password stays in the browser. Access keys stay in macOS Keychain or Windows Credential Locker, restricted to the approved company and your existing permissions. Revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens).
 
 ## Repository
 
@@ -56,9 +55,9 @@ python3 tools/apple/build.py import
 ```
 
 Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
-Pull requests build affected apps without signing credentials. Public releases use the shared [Apple release workflow](tools/apple/README.md).
+Pull requests build affected apps without signing credentials. Apple releases use the shared [Apple release workflow](tools/apple/README.md).
 
-To release, merge your changes, then open **[Actions → Release app](https://github.com/beint-no/reai-apps/actions/workflows/apps.yml) → Run workflow**, keep **main**, and choose the app.
+To release a Mac app, merge your changes, then open **[Actions → Release app](https://github.com/beint-no/reai-apps/actions/workflows/apps.yml) → Run workflow**, keep **main**, and choose the app.
 Or run:
 
 ```sh
@@ -74,7 +73,7 @@ A failed verification publishes nothing.
 
 Windows Import and Time Tracker use .NET 11 RC1 (SDK 11.0.100-rc.1.26425.128), C# 15 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. .NET 11 RC1 is explicitly selected; the other Windows dependencies remain at their latest stable releases.
 
-See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. The **Windows apps** action builds on pull requests and pushes; it does not publish unsigned downloads. Trusted Windows signing is a separate setup from Apple notarization.
+See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. PRs and pushes only run checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
 
 ## Connect another app
 

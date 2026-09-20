@@ -11,4 +11,4 @@ Resume only in the original account/company. Fetch active and archived existing 
 Never log keys or row data. Never put credentials in the progress journal. Keep bounded file parsing and DTD/external-entity rejection.
 
 Build Core locally, then verify both Windows architectures in GitHub CI. Temporary tests may live outside the repository; do not commit tests.
-Public downloads require trusted Windows Authenticode signing. Apple signing credentials are unrelated. Unsigned CI artifacts are developer-only, not public site downloads.
+Public Windows releases are unsigned portable ZIPs by owner request. Follow windows/AGENTS.md for release and installation requirements. CI artifacts remain temporary development output; the site links only to versioned releases.
