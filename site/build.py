@@ -35,6 +35,8 @@ for app_id, app in apps.items():
         if not match or release['draft'] or release['prerelease']:
             continue
         asset = next((a for a in release['assets'] if a['name'] == app['asset']), None)
+        if app.get('platform') == 'windows' and not {app['arm64_asset'], 'SHA256SUMS'}.issubset({a['name'] for a in release['assets']}):
+            continue
         if asset:
             candidates.append((tuple(map(int, match.groups())), release, asset))
     if candidates:
@@ -42,10 +44,16 @@ for app_id, app in apps.items():
         label = 'Download for Windows (x64)' if app.get('platform') == 'windows' else 'Download for Mac'
         download = f'<a class="button primary" href="{html.escape(asset["browser_download_url"], quote=True)}">{label} <span aria-hidden="true">↓</span></a>'
         details = f'<a class="release-note" href="{html.escape(release["html_url"], quote=True)}">Version {".".join(map(str, version))} · Release notes ↗</a>'
+        if app.get('platform') == 'windows':
+            arm = next(a for a in release['assets'] if a['name'] == app['arm64_asset'])
+            download = '<div class="download-actions">' + ''.join(
+                f'<a class="button secondary" href="{html.escape(item["browser_download_url"], quote=True)}">Windows {architecture} <span aria-hidden="true">↓</span></a>'
+                for architecture, item in [('x64', asset), ('ARM64', arm)]) + '</div>'
+            details = '<span class="release-note">Unsigned · Windows may warn or block. <a href="#windows-install">Installation help</a></span>' + details
     else:
         label = 'Windows download coming soon' if app.get('platform') == 'windows' else 'Download coming soon'
         download = f'<span class="button unavailable">{label}</span>'
-        message = 'Windows download pending code signing.' if app.get('platform') == 'windows' else 'Preparing the first notarized release.'
+        message = 'Preparing the first unsigned Windows release.' if app.get('platform') == 'windows' else 'Preparing the first notarized release.'
         details = f'<span class="release-note">{message}</span>'
     source = source.replace('{{' + app_id + '.download}}', download).replace('{{' + app_id + '.version}}', details)
 if '{{' in source:
