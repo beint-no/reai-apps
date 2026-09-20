@@ -15,7 +15,7 @@ struct WatchedFoldersView: View {
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
-            Text("Link a folder to this company and a destination. Other companies’ saved folders keep running when you switch companies.")
+            Text("Link a folder to this company and a destination. Only folders for the connected company and account are watched.")
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Picker("Destination for new folder", selection: $model.destination) {
