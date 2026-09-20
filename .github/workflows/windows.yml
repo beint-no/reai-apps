@@ -1,0 +1,38 @@
+name: Windows apps
+on:
+  pull_request:
+    paths: ['windows/**', 'tools/windows/**', '.github/workflows/windows.yml']
+  push:
+    branches: [main, codex/wt-reai-apps-windows-import]
+    paths: ['windows/**', 'tools/windows/**', '.github/workflows/windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x64, ARM64]
+    runs-on: windows-2025
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: windows/global.json
+      - name: Build self-contained Windows app
+        run: ../tools/windows/build.ps1 -Architecture '${{ matrix.architecture }}'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: import-windows-${{ matrix.architecture }}-unsigned
+          path: dist/import-windows/*.zip
+          if-no-files-found: error
+          retention-days: 7
