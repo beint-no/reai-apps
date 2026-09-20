@@ -118,7 +118,7 @@ public sealed class MainWindow : Window
         Refresh();
     }
     private static TextBlock Text(string value, double size = 14) => new() { Text = value, FontSize = size, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
-    private void Add(UIElement element, int row) { Grid.SetRow(element, row); root.Children.Add(element); }
+    private void Add(FrameworkElement element, int row) { Grid.SetRow(element, row); root.Children.Add(element); }
     private void Fail(Exception error) { notice.Title = "Could not complete the action"; notice.Message = error.Message; notice.Severity = InfoBarSeverity.Error; notice.IsOpen = true; }
     private async Task Guard(Func<Task> action)
     {
@@ -250,7 +250,7 @@ public sealed class MainWindow : Window
         connect.Visibility = account == null ? Visibility.Visible : Visibility.Collapsed; connect.IsEnabled = !busy || connecting != null;
         disconnect.Visibility = account == null ? Visibility.Collapsed : Visibility.Visible; disconnect.IsEnabled = !busy;
         browse.IsEnabled = !busy && batch == null; dropZone.AllowDrop = !busy && batch == null;
-        settings.IsEnabled = !busy && batch == null; mappingScroll.IsEnabled = !busy;
+        foreach (var control in settings.Children.OfType<Control>()) control.IsEnabled = !busy && batch == null; mappingScroll.IsEnabled = !busy;
         mappingScroll.Visibility = batch == null ? Visibility.Visible : Visibility.Collapsed; reviewPanel.Visibility = batch == null ? Visibility.Collapsed : Visibility.Visible;
         review.Visibility = batch == null ? Visibility.Visible : Visibility.Collapsed; review.IsEnabled = !busy && Sheet != null && token != null;
         start.Visibility = batch == null ? Visibility.Collapsed : Visibility.Visible;

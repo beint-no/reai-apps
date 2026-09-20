@@ -46,7 +46,7 @@ public sealed class ImportJournal(string directory)
             batch.Rows[i] = rows[batch.Rows[i].Line];
             if (batch.Rows[i].State == RowState.Sending) { batch.Rows[i].State = RowState.Uncertain; batch.Rows[i].Detail = "The app closed during a request. Check ReAI before importing this row again."; }
         }
-        active = batch.Id;
+        Save(batch);
         return batch;
     }
     public void Clear() { File.Delete(BatchPath); File.Delete(ProgressPath); active = Guid.Empty; }

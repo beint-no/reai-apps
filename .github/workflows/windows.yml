@@ -25,14 +25,39 @@ jobs:
         working-directory: windows
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
         with:
           global-json-file: windows/global.json
       - name: Build self-contained Windows app
         run: ../tools/windows/build.ps1 -Architecture '${{ matrix.architecture }}'
+      - name: Verify native window opens
+        if: matrix.architecture == 'x64'
+        run: |
+          $app = Start-Process ../dist/import-windows/win-x64/ReAI.Import.exe -PassThru
+          try {
+            $deadline = [DateTime]::UtcNow.AddSeconds(30)
+            do {
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+              if ($app.HasExited) { throw "App exited during startup: $($app.ExitCode)" }
+            } while ($app.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
+            if ($app.MainWindowHandle -eq 0) { throw 'No native window appeared' }
+            Write-Output "Native window opened: $($app.MainWindowTitle)"
+            Add-Type -AssemblyName System.Drawing
+            Add-Type -AssemblyName System.Windows.Forms
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $bitmap.Save("$env:GITHUB_WORKSPACE/dist/import-windows/startup.png")
+            $graphics.Dispose()
+            $bitmap.Dispose()
+          } finally { if (-not $app.HasExited) { Stop-Process -Id $app.Id } }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: import-windows-${{ matrix.architecture }}-unsigned
-          path: dist/import-windows/*.zip
+          path: |
+            dist/import-windows/*.zip
+            dist/import-windows/*.png
           if-no-files-found: error
           retention-days: 7
