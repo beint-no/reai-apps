@@ -71,7 +71,9 @@ final class ImportModel {
     func cancelConnection() { connectionTask?.cancel() }
     func disconnect() {
         guard !busy, !importing else { return }
+        busy = true
         Task {
+            defer { busy = false }
             do { try await credentials.delete(); token = ""; company = nil; email = "" }
             catch { self.error = error.localizedDescription }
         }
@@ -136,7 +138,7 @@ final class ImportModel {
                     if stopRequested { break }
                     guard let payload = current.rows[i].payload else { throw appError("A row is missing its prepared data. Start a new import.") }
                     current.rows[i].state = .sending; current.rows[i].detail = "Sending to ReAI…"
-                    try await journal.save(current); batch = current
+                    try await journal.record(current.rows[i], batchID: current.id); batch = current
                     progress = "Creating row \(current.rows[i].line)…"
                     do {
                         struct Created: Decodable, Sendable { let id: Int }
@@ -151,7 +153,7 @@ final class ImportModel {
                         self.error = "Import paused at row \(current.rows[i].line). Completed rows are saved. Check the row details before continuing."
                     }
                     batch = current
-                    try await journal.save(current)
+                    try await journal.record(current.rows[i], batchID: current.id)
                 }
             } catch { self.error = "Import stopped: " + error.localizedDescription }
         }

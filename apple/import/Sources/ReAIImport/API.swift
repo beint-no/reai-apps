@@ -44,7 +44,10 @@ actor ReAIAPI {
     }
 }
 actor ImportJournal {
+    private struct Progress: Codable { let batchID: UUID; let row: ImportRow }
     private let file: URL
+    private var activeID: UUID?
+    private var progressFile: URL { file.appendingPathExtension("progress") }
     init(file: URL? = nil) {
         self.file = file ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appending(path: "ReAI Import", directoryHint: .isDirectory).appending(path: "last-import.json")
@@ -54,17 +57,45 @@ actor ImportJournal {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: file.deletingLastPathComponent().path)
         try JSONEncoder().encode(batch).write(to: file, options: [.atomic])
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+        let handle = try FileHandle(forWritingTo: file)
+        defer { try? handle.close() }
+        try handle.synchronize()
+        if FileManager.default.fileExists(atPath: progressFile.path) { try FileManager.default.removeItem(at: progressFile) }
+        activeID = batch.id
+    }
+    func record(_ row: ImportRow, batchID: UUID) throws {
+        guard activeID == batchID else { throw appError("The local import record changed. Reopen the app before continuing.") }
+        if !FileManager.default.fileExists(atPath: progressFile.path) {
+            guard FileManager.default.createFile(atPath: progressFile.path, contents: nil, attributes: [.posixPermissions: 0o600]) else { throw appError("Could not save import progress.") }
+        }
+        var data = try JSONEncoder().encode(Progress(batchID: batchID, row: row)); data.append(10)
+        let handle = try FileHandle(forWritingTo: progressFile)
+        defer { try? handle.close() }
+        try handle.seekToEnd(); try handle.write(contentsOf: data); try handle.synchronize()
     }
     func load() throws -> ImportBatch? {
         guard FileManager.default.fileExists(atPath: file.path) else { return nil }
         var batch = try JSONDecoder().decode(ImportBatch.self, from: Data(contentsOf: file))
+        guard Set(batch.rows.map(\.line)).count == batch.rows.count else { throw appError("The saved import report is invalid.") }
+        let indices = Dictionary(uniqueKeysWithValues: batch.rows.enumerated().map { ($0.element.line, $0.offset) })
+        if FileManager.default.fileExists(atPath: progressFile.path) {
+            let data = try Data(contentsOf: progressFile)
+            var lines = data.split(separator: 10, omittingEmptySubsequences: false)
+            if !lines.isEmpty { lines.removeLast() }
+            for line in lines where !line.isEmpty {
+                let progress = try JSONDecoder().decode(Progress.self, from: Data(line))
+                if progress.batchID == batch.id, let index = indices[progress.row.line] { batch.rows[index] = progress.row }
+            }
+        }
         for i in batch.rows.indices where batch.rows[i].state == .sending {
             batch.rows[i].state = .uncertain
             batch.rows[i].detail = "The app closed during this request. Check ReAI before importing this row again."
         }
+        activeID = batch.id
         return batch
     }
     func clear() throws {
-        if FileManager.default.fileExists(atPath: file.path) { try FileManager.default.removeItem(at: file) }
+        for url in [file, progressFile] where FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        activeID = nil
     }
 }

@@ -40,7 +40,7 @@ Reconnect with the same account/company to continue only unsent rows. A failed o
 The API does not provide an idempotency key for these create endpoints, so the app cannot guarantee exactly-once creation after a lost response or concurrent imports.
 A new import replaces the local report; export it first if you need to retain it. Completed records are not automatically rolled back.
 
-The last report, including prepared row data, is stored with owner-only permissions in `~/Library/Application Support/ReAI Import/last-import.json`.
+The last report, including prepared row data, is stored with owner-only permissions in `~/Library/Application Support/ReAI Import/last-import.json` and its `.progress` file. Row progress is appended and flushed before each request, so large imports do not rewrite the entire file for every row.
 **New import** removes that report. The access token is stored separately in macOS Keychain; disconnect to remove it from this Mac, or revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens).
 
 ## Development
