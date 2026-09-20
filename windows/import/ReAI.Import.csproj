@@ -26,6 +26,7 @@
     <Compile Remove="Core/**/*.cs" />
     <ProjectReference Include="Core/ReAI.Import.Core.csproj" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
-    <Content Include="Assets/import.ico" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all" />
+    <Content Update="Assets/import.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

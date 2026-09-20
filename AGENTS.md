@@ -8,6 +8,8 @@ Keep each app independent. Share release tooling; introduce shared runtime code 
 Read https://app.reai.no/openapi/public before changing API calls. ReAI owns permissions and accounting behavior.
 Device authorization accepts self-declared app names. Approval chooses one company; tokens remain bound to it.
 
+Windows apps live in windows/; read windows/AGENTS.md and the app module instructions. Shared build tools live in tools/windows.
+
 apps.json is authoritative for app identity and downloadable filename.
 Build affected apps with python3 tools/apple/build.py <app>. Set SWIFT_BIN when Swift 6.4 is not the default.
 Never release an ad-hoc build. Release tags use <app>/v<version> and point to a commit merged into main. The Release app action on main chooses the next patch version; build numbers use GITHUB_RUN_NUMBER.

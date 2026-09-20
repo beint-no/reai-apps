@@ -162,7 +162,7 @@ public sealed class MainWindow : Window
         contacts.Visibility = Kind == ImportKind.Products ? Visibility.Collapsed : Visibility.Visible;
         decimals.Visibility = Kind == ImportKind.Products ? Visibility.Visible : Visibility.Collapsed;
         mappings.Children.Clear(); mappingPickers.Clear();
-        if (Sheet is not { } sheet || double.IsNaN(header.Value)) return;
+        if (Sheet is not { } sheet || double.IsNaN(header.Value)) { Refresh(); return; }
         var row = (int)header.Value - 1;
         if (row < 0 || row >= sheet.Rows.Count) return;
         var headers = sheet.Rows[row]; var matched = Fields.Match(headers, Kind);

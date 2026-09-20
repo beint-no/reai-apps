@@ -22,5 +22,13 @@
     "bundle_id": "no.reai.import",
     "icon": "make-icon.swift",
     "asset": "ReAI-Import-Apple-Silicon.dmg"
+  },
+  "import-windows": {
+    "name": "ReAI Import for Windows",
+    "platform": "windows",
+    "path": "windows/import",
+    "executable": "ReAI.Import.exe",
+    "asset": "ReAI-Import-Windows-x64.zip",
+    "arm64_asset": "ReAI-Import-Windows-ARM64.zip"
   }
 }

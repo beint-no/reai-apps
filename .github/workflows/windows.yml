@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['windows/**', 'tools/windows/**', '.github/workflows/windows.yml']
   push:
-    branches: [main, codex/wt-reai-apps-windows-import]
+    branches: [main]
     paths: ['windows/**', 'tools/windows/**', '.github/workflows/windows.yml']
   workflow_dispatch:
 permissions:

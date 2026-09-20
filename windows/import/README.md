@@ -50,6 +50,7 @@ Current stable tools, checked 20 September 2026:
 
 - [.NET SDK 10.0.401](https://dotnet.microsoft.com/en-us/download/dotnet/10.0), runtime 10.0.12 and C# 14.
 - [Windows App SDK 2.5.1](https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.5.1), including WinUI 3.
+- [Windows SDK Build Tools 10.0.28000.2705](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/10.0.28000.2705).
 - Windows SDK .NET reference package 10.0.26100.87, the latest stable reference package available for the .NET Windows target.
 
 .NET 11 RC1 is a prerelease; this app uses the latest stable .NET. Windows 11 25H2 is the minimum customer OS; no Windows 10 or x86 support.
