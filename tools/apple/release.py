@@ -65,7 +65,7 @@ def release(app_id, version):
             (staging / 'Applications').symlink_to('/Applications')
             image = destination / app['asset']
             image.unlink(missing_ok=True)
-            run('hdiutil', 'create', '-volname', app['name'], '-srcfolder', staging, '-fs', 'APFS', '-format', 'UDZO', image)
+            run('diskutil', 'image', 'create', 'from', '--volumeName', app['name'], '--format', 'UDZO', staging, image)
             run('codesign', '--force', '--timestamp', '--sign', identity, '--keychain', keychain, image)
             credentials = ['--key', key, '--key-id', os.environ['APPLE_NOTARY_KEY_ID'], '--issuer', os.environ['APPLE_NOTARY_ISSUER']]
             response = subprocess.run([str(value) for value in ['xcrun', 'notarytool', 'submit', image, *credentials, '--wait', '--timeout', '30m', '--output-format', 'json']], capture_output=True, text=True)
