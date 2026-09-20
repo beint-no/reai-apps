@@ -127,5 +127,6 @@ jobs:
           APP: ${{ needs.prepare.outputs.app }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          gh release create "$APP/v$VERSION" dist/release/*.zip dist/release/SHA256SUMS --target "$GITHUB_SHA" --latest=false --title "$APP $VERSION (unsigned)" --notes-file dist/release/release-notes.md
+          gh release create "$APP/v$VERSION" dist/release/*.zip dist/release/SHA256SUMS --target "$GITHUB_SHA" --draft --latest=false --title "$APP $VERSION (unsigned)" --notes-file dist/release/release-notes.md
+          gh release edit "$APP/v$VERSION" --draft=false --latest=false
           gh workflow run pages.yml --ref main
