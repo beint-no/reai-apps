@@ -12,9 +12,9 @@ Time Tracker is MIT licensed. Its README includes installation instructions. The
 ## Connect an app
 
 Apps can connect without registration or backend changes. The app opens ReAI in your browser; compare the approval
-code and approve access. App names are self-declared. Only approve apps you trust.
+code, choose a company, and approve access. App names are self-declared. Only approve apps you trust.
 
-Access keys use your existing API permissions across accessible companies. Revoke them in your
+Each connection is restricted to the company chosen during approval, using your existing API permissions. Revoke them in your
 [ReAI profile](https://app.reai.no/user/profile#user-access-tokens).
 
 For an implementation example, see [Time Tracker’s connection code](https://github.com/beint-no/reai-time-tracker/blob/main/Sources/ReAITimeTracker/Connection.swift).
