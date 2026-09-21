@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Net;
 
 namespace ReAI.Import.Core;
 
@@ -86,9 +87,9 @@ public sealed class ImportSession(ReAIClient api, ImportJournal journal)
             catch (Exception error) when (error is HttpRequestException or TaskCanceledException or JsonException or InvalidDataException or KeyNotFoundException or InvalidOperationException)
             {
                 var status = (error as HttpRequestException)?.StatusCode;
-                row.State = status is not null && (int)status is >= 400 and < 500 ? RowState.Rejected : RowState.Uncertain;
+                row.State = status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity ? RowState.Rejected : RowState.Uncertain;
                 row.Detail = row.State == RowState.Rejected ? error.Message + " This row will not be retried automatically." : "The outcome is unknown. Check ReAI before importing this row again.";
-                PauseRequested = true;
+                if (row.State == RowState.Uncertain) PauseRequested = true;
             }
             journal.Record(batch, row); changed();
         }

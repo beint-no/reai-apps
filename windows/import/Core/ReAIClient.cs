@@ -60,6 +60,20 @@ public sealed class ReAIClient : IDisposable
         }
         return new(keys, ids);
     }
+    public async Task<HashSet<string>> Countries(string token, CancellationToken cancellation = default)
+    {
+        var result = await Request("api/countries", token, cancellation: cancellation);
+        if (result.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Invalid country list response.");
+        var countries = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var country in result.EnumerateArray())
+        {
+            if (!country.TryGetProperty("code", out var codeProperty) || codeProperty.ValueKind != JsonValueKind.String || codeProperty.GetString() is not { Length: 2 } code)
+                throw new InvalidDataException("Invalid country list response.");
+            countries.Add(code);
+        }
+        if (countries.Count == 0 || !countries.Contains("NO")) throw new InvalidDataException("Invalid country list response.");
+        return countries;
+    }
     public async Task<string> Connect(Action<string, Uri> showCode, CancellationToken cancellation)
     {
         async Task<HttpResponseMessage> Post(string action, Dictionary<string, string> form) => await http.PostAsync("oauth/device/" + action, new FormUrlEncodedContent(form), cancellation);

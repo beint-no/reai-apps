@@ -189,8 +189,9 @@ public sealed class MainWindow : Window
         var current = await api.Account(token); account = current;
         var company = current.Tenants[0];
         var existing = await api.Existing(Kind, token, company.Id);
+        HashSet<string> supportedCountries = Kind == ImportKind.Products ? [] : await api.Countries(token);
         var mapping = mappingPickers.Select(p => ((Field[])p.Tag)[p.SelectedIndex].Id).ToArray();
-        var prepared = Validation.Prepare(Sheet, (int)header.Value - 1, mapping, Kind, decimals.SelectedIndex == 1, contacts.SelectedIndex == 1, existing.Keys);
+        var prepared = Validation.Prepare(Sheet, (int)header.Value - 1, mapping, Kind, decimals.SelectedIndex == 1, contacts.SelectedIndex == 1, existing.Keys, supportedCountries);
         var next = new ImportBatch(Guid.NewGuid(), filename, Kind, company, current.Email, prepared);
         journal.Save(next); batch = next; RefreshRows();
         status.Text = "Review the rows. Invalid, duplicate and excluded rows will not be imported.";
@@ -203,7 +204,8 @@ public sealed class MainWindow : Window
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         importing = true; Refresh();
         await session.Run(batch, token, RefreshRows);
-        status.Text = session.PauseRequested ? "Import paused. Check the report before continuing." : "Import complete. Export the report for your records.";
+        var summary = Summary(batch);
+        status.Text = session.PauseRequested ? $"Import paused. {summary}. Check the report before continuing." : $"Import complete. {summary}. Export the report for your records.";
     }
     private async Task NewImport()
     {
@@ -228,9 +230,19 @@ public sealed class MainWindow : Window
         rows.ItemsSource = null; rows.ItemsSource = batch?.Rows;
         if (selected != null) rows.SelectedItem = selected;
         else if (batch?.Rows.Count > 0) rows.SelectedIndex = 0;
-        counts.Text = batch == null ? "" : string.Join(" · ", batch.Rows.GroupBy(r => r.Status).Select(g => $"{g.Count()} {g.Key}"));
+        counts.Text = batch == null ? "" : Summary(batch);
         ShowRow();
     }
+    private static string Summary(ImportBatch batch) => string.Join(" · ", new[]
+    {
+        $"Created: {batch.Rows.Count(r => r.State == RowState.Created)}",
+        $"Rejected: {batch.Rows.Count(r => r.State == RowState.Rejected)}",
+        $"Needs correction: {batch.Rows.Count(r => r.State == RowState.Invalid)}",
+        $"Skipped: {batch.Rows.Count(r => r.State == RowState.Skipped)}",
+        $"Ready: {batch.Rows.Count(r => r.State == RowState.Ready)}",
+        $"Sending: {batch.Rows.Count(r => r.State == RowState.Sending)}",
+        $"Check ReAI: {batch.Rows.Count(r => r.State == RowState.Uncertain)}"
+    });
     private void ShowRow()
     {
         rowDetails.Children.Clear();

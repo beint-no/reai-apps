@@ -35,6 +35,7 @@ The first version uses create APIs, not update APIs. ReAI may reuse an existing 
 Products use one product and one variant per row; product name, SKU and selling price are required. Prices exclude VAT.
 Stock item defaults to yes. Use ReAI VAT codes, not percentages. Omitted VAT and revenue account use ReAI defaults.
 Contacts default to Norway. Norwegian companies require valid organization numbers; private people must not have one.
+Country codes are checked against the countries supported by ReAI before import.
 An address requires both address line 1 and city. Phone numbers need their international +country prefix.
 
 Matching is local, using column titles and conservative typo matching. Files are not uploaded to an AI service.
@@ -53,6 +54,7 @@ Disconnect removes the key from this computer. Revoke access in your [ReAI profi
 The latest import and progress are saved in `%LOCALAPPDATA%\ReAI\Import`. They contain your prepared data and report, but no access key.
 **Pause** finishes the current request first. Reopen the app and connect with the same account/company to continue unsent rows.
 Interrupted requests become **Check ReAI**; rejected and uncertain rows are never retried automatically. Check the actual record before preparing another import for them.
+Rejected rows do not stop the remaining ready rows. Unknown outcomes still pause the import for manual review.
 **New import** removes the previous local report; export it first if needed. Already-created ReAI records remain there.
 
 ## Development
