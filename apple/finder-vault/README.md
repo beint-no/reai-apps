@@ -16,13 +16,19 @@ To update, quit the app and replace it in Applications.
 
 ## Uploads
 
-- Choose documents, receipts, or supplier invoices as the destination. Your ReAI account needs permission to upload there.
+- Choose Documents, Supplier invoices, Income reception, or Receipt reception as the destination. Your ReAI account needs permission to upload there.
 - Drag files into the app or use **Add files**. Originals stay in place; the app keeps a local copy and transfer history.
 - Enable **Watch company inboxes** to scan the app's company folders. Use **Open folder** to find them.
 - Add a watched folder to upload new or changed files while the app is open. Existing files are skipped when the folder is first added. Subfolders are not watched.
 - Identical file contents already staged for the same company and destination are skipped.
 - If an upload is interrupted, check ReAI before retrying: the server may already have received it.
 - To change company, disconnect and connect again. Existing folder mappings remain associated with their original account and company.
+
+### Receipt uploads
+
+Receipt reception is enabled for manual uploads and watched folders. Finder Vault sends each file to `POST /api/receipt-reception-documents` as multipart `files`, with the connected company's `X-Tenant-Id`. ReAI analyzes it and returns the reception document ID; uploading does not register or pay the receipt. Open Receipt reception in ReAI to review it.
+
+The production API contract was verified on September 21, 2026: HTTP 201 returns an array of created documents with `id` and attachment metadata. Finder Vault sends one file per request, up to 20 MB. The app's HTTP 405 message is an error fallback, not a disabled-destination flag. If an earlier attempt failed, check ReAI before explicitly retrying it.
 
 ## Access and privacy
 
