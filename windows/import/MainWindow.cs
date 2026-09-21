@@ -46,6 +46,7 @@ public sealed class MainWindow : Window
     private readonly Border dropZone;
     private readonly TextBlock filenameText = Text("Drop an Excel or CSV file here", 20);
     private readonly TextBlock counts = Text("", 14);
+    private readonly Grid actions = new() { ColumnSpacing = 8, RowSpacing = 8 };
     private List<Sheet> sheets = [];
     private readonly List<ComboBox> mappingPickers = [];
     private ImportBatch? batch;
@@ -87,9 +88,15 @@ public sealed class MainWindow : Window
             """);
         rows.SelectionChanged += (_, _) => ShowRow();
         reviewPanel.Children.Add(rows); var inspector = new ScrollViewer { Content = rowDetails }; Grid.SetColumn(inspector, 1); reviewPanel.Children.Add(inspector); Add(reviewPanel, 4);
-        var footer = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        foreach (var b in new[] { review, start, pause, exclude, export, reset }) footer.Children.Add(b);
-        footer.Children.Add(counts); Add(footer, 5); Add(status, 6);
+        var footer = new StackPanel { Spacing = 10 };
+        footer.Children.Add(counts);
+        foreach (var b in new[] { review, start, pause, exclude, export, reset }) actions.Children.Add(b);
+        footer.Children.Add(actions);
+        footer.Children.Add(status);
+        var footerScroll = new ScrollViewer { Content = footer, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollMode = ScrollMode.Disabled, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        Add(footerScroll, 5);
+        actions.SizeChanged += (_, _) => LayoutActions();
+        root.SizeChanged += (_, _) => footerScroll.MaxHeight = Math.Max(100, root.ActualHeight * 0.45);
         Content = root;
         connect.Click += async (_, _) => { if (connecting != null) { connecting.Cancel(); return; } await Guard(Connect); };
         disconnect.Click += (_, _) => { Credentials.Clear(); token = null; account = null; Refresh(); };
@@ -204,8 +211,7 @@ public sealed class MainWindow : Window
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         importing = true; Refresh();
         await session.Run(batch, token, RefreshRows);
-        var summary = Summary(batch);
-        status.Text = session.PauseRequested ? $"Import paused. {summary}. Check the report before continuing." : $"Import complete. {summary}. Export the report for your records.";
+        status.Text = session.PauseRequested ? "Import paused. Check the report before continuing." : "Import complete. You can export the report.";
     }
     private async Task NewImport()
     {
@@ -231,18 +237,39 @@ public sealed class MainWindow : Window
         if (selected != null) rows.SelectedItem = selected;
         else if (batch?.Rows.Count > 0) rows.SelectedIndex = 0;
         counts.Text = batch == null ? "" : Summary(batch);
+        counts.Visibility = batch == null ? Visibility.Collapsed : Visibility.Visible;
         ShowRow();
     }
-    private static string Summary(ImportBatch batch) => string.Join(" · ", new[]
+    private static string Summary(ImportBatch batch)
     {
-        $"Created: {batch.Rows.Count(r => r.State == RowState.Created)}",
-        $"Rejected: {batch.Rows.Count(r => r.State == RowState.Rejected)}",
-        $"Needs correction: {batch.Rows.Count(r => r.State == RowState.Invalid)}",
-        $"Skipped: {batch.Rows.Count(r => r.State == RowState.Skipped)}",
-        $"Ready: {batch.Rows.Count(r => r.State == RowState.Ready)}",
-        $"Sending: {batch.Rows.Count(r => r.State == RowState.Sending)}",
-        $"Check ReAI: {batch.Rows.Count(r => r.State == RowState.Uncertain)}"
-    });
+        var totals = batch.Rows.CountBy(r => r.State).ToDictionary();
+        var parts = new List<string>
+        {
+            $"Created: {totals.GetValueOrDefault(RowState.Created)}",
+            $"Failed: {totals.GetValueOrDefault(RowState.Invalid) + totals.GetValueOrDefault(RowState.Rejected)}",
+            $"Remaining: {totals.GetValueOrDefault(RowState.Ready) + totals.GetValueOrDefault(RowState.Sending)}"
+        };
+        if (totals.GetValueOrDefault(RowState.Skipped) > 0) parts.Add($"Skipped: {totals[RowState.Skipped]}");
+        if (totals.GetValueOrDefault(RowState.Uncertain) > 0) parts.Add($"Check ReAI: {totals[RowState.Uncertain]}");
+        return string.Join(" · ", parts);
+    }
+    private void LayoutActions()
+    {
+        var buttons = actions.Children.OfType<Button>().Where(b => b.Visibility == Visibility.Visible).ToArray();
+        int columns = Math.Max(1, Math.Min(buttons.Length, (int)(actions.ActualWidth / 190)));
+        int rowCount = (buttons.Length + columns - 1) / columns;
+        if (actions.ColumnDefinitions.Count != columns || actions.RowDefinitions.Count != rowCount)
+        {
+            actions.ColumnDefinitions.Clear(); actions.RowDefinitions.Clear();
+            for (int i = 0; i < columns; i++) actions.ColumnDefinitions.Add(new());
+            for (int i = 0; i < rowCount; i++) actions.RowDefinitions.Add(new() { Height = GridLength.Auto });
+        }
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            Grid.SetColumn(buttons[i], i % columns); Grid.SetRow(buttons[i], i / columns);
+            buttons[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+        }
+    }
     private void ShowRow()
     {
         rowDetails.Children.Clear();
@@ -273,5 +300,7 @@ public sealed class MainWindow : Window
         pause.Visibility = importing ? Visibility.Visible : Visibility.Collapsed; pause.IsEnabled = importing && !session.PauseRequested;
         foreach (var button in new[] { export, reset, exclude }) { button.Visibility = batch == null ? Visibility.Collapsed : Visibility.Visible; button.IsEnabled = !busy; }
         exclude.IsEnabled = !busy && rows.SelectedItem is ImportRow { State: RowState.Ready };
+        counts.Visibility = batch == null ? Visibility.Collapsed : Visibility.Visible;
+        LayoutActions();
     }
 }
