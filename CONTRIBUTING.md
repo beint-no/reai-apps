@@ -95,4 +95,6 @@ Commit and push from a worktree/feature branch, review the PR and merge after th
 
 Mac releases reuse the repository's Apple signing/notarization environment. Windows releases are free unsigned ZIPs. No new per-app credential setup is needed for ordinary apps; review Apple signing requirements if adding restricted capabilities or embedded code.
 
+Use the manual release action on `main` for a new Mac app. If deliberately releasing from a version tag instead, a repository administrator must first allow that app's `<app>/v*` tag pattern in the `apple-release` environment's deployment rules; the existing tag rules list individual apps.
+
 [Apple release details](tools/apple/README.md) · [Windows release details](tools/windows/README.md)
