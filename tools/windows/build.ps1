@@ -1,8 +1,9 @@
-param([ValidateSet('import-windows', 'time-tracker-windows')][string]$App = 'import-windows', [ValidateSet('x64', 'ARM64')][string]$Architecture = 'x64', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.0.0')
+param([Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$App, [ValidateSet('x64', 'ARM64')][string]$Architecture = 'x64', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.0.0')
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path "$PSScriptRoot/../..").Path
 $rid = 'win-' + $Architecture.ToLowerInvariant()
 $manifest = (Get-Content "$root/apps.json" -Raw | ConvertFrom-Json).PSObject.Properties[$App].Value
+if (-not $manifest -or $manifest.platform -ne 'windows') { throw "Choose a Windows app ID from apps.json: $App" }
 $project = [IO.Path]::ChangeExtension($manifest.executable, '.csproj')
 $projectPath = "$root/$($manifest.path)/$project"
 $asset = if ($Architecture -eq 'ARM64') { $manifest.arm64_asset } else { $manifest.asset }

@@ -1,6 +1,7 @@
 # ReAI Apps
 
 Use a dedicated worktree under ~/.r-worktrees and a descriptive codex/ branch. Read the app's AGENTS.md before changing its source.
+For a new app, follow CONTRIBUTING.md. Register identity in apps.json and reuse the platform build/release tooling.
 Keep user-facing copy concise and factual. Never commit credentials, private keys, signing files, build output, or customer data.
 
 Apple apps use Swift 6.4, SwiftUI, Observation, strict concurrency, macOS 15+, and arm64 only. No third-party dependencies unless justified.
@@ -11,7 +12,7 @@ Device authorization accepts self-declared app names. Approval chooses one compa
 Windows apps live in windows/; read windows/AGENTS.md and the app module instructions. Shared build tools live in tools/windows.
 
 apps.json is authoritative for app identity and downloadable filename.
-Build affected apps with python3 tools/apple/build.py <app>. Set SWIFT_BIN when Swift 6.4 is not the default.
+For Apple, build affected apps with python3 tools/apple/build.py <app>. Set SWIFT_BIN when Swift 6.4 is not the default. For Windows, use tools/windows/build.ps1 -App <app> on Windows and verify both architectures in CI.
 Never release an ad-hoc Apple build. Release tags use <app>/v<version> and point to a commit merged into main. The Release app action on main chooses the next patch version; build numbers use GITHUB_RUN_NUMBER.
 The apple-release environment holds signing and notary secrets; PR jobs must never receive them.
 Sign with hardened runtime, notarize the outer DMG, staple and assess before publishing. See tools/apple/README.md.

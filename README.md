@@ -44,6 +44,11 @@ tools/windows/     Windows build and packaging tools
 Each app is independently versioned. Platform folders contain app source; shared release tooling stays in `tools/`.
 Apple apps use SwiftUI. Windows apps use WinUI 3 and support Windows 11 25H2+, x64 and ARM64. Each platform uses native controls.
 
+## Add an app
+
+Follow **[Adding a new app](CONTRIBUTING.md)** for the starting points, identity checklist, `apps.json` examples and build/release steps.
+Add the app inside this monorepo and reuse the existing release tooling. No ReAI backend registration or new signing credentials are needed for ordinary apps.
+
 ## Build and release
 
 Install [Swift 6.4](https://www.swift.org/install/macos/) and the macOS SDK, then run from the repository root:
@@ -71,7 +76,7 @@ A failed verification publishes nothing.
 
 ## Windows development
 
-Windows Import and Time Tracker use .NET 11 RC1 (SDK 11.0.100-rc.1.26425.128), C# 15 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. .NET 11 RC1 is explicitly selected; the other Windows dependencies remain at their latest stable releases.
+Windows Import and Time Tracker use .NET 11 RC1 (SDK 11.0.100-rc.1.26425.128), C# 15 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. Toolchains and dependencies are pinned; the app READMEs record the versions checked on 20 September 2026. Verify current releases when adding or updating dependencies.
 
 See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. PRs and pushes only run checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
 

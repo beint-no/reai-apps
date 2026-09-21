@@ -10,7 +10,8 @@ import shutil
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
-APPS = json.loads((ROOT / 'apps.json').read_text())
+APPS = {key: app for key, app in json.loads((ROOT / 'apps.json').read_text()).items()
+        if app.get('platform', 'apple') == 'apple'}
 
 
 def run(*args, **kwargs):
