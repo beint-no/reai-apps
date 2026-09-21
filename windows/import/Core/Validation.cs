@@ -6,7 +6,7 @@ namespace ReAI.Import.Core;
 
 public static class Validation
 {
-    public static List<ImportRow> Prepare(Sheet sheet, int header, string[] mapping, ImportKind kind, bool comma, bool people, HashSet<string> existing)
+    public static List<ImportRow> Prepare(Sheet sheet, int header, string[] mapping, ImportKind kind, bool comma, bool people, HashSet<string> existing, IReadOnlySet<string> supportedCountries)
     {
         var assigned = mapping.Where(m => m.Length > 0).ToArray();
         if (assigned.Distinct().Count() != assigned.Length) throw new InvalidOperationException("Map each ReAI field to only one source column.");
@@ -64,7 +64,7 @@ public static class Validation
                 payload["privateContact"] = person; payload["skipRegistryLookup"] = true;
                 if (name.Length > 75) errors.Add("Name exceeds 75 characters.");
                 if (Get("number").Length > 50) errors.Add("Contact number exceeds 50 characters.");
-                if (!Regex.IsMatch(country, "^[A-Z]{2}$")) errors.Add("Use a two-letter country code, such as NO.");
+                if (!supportedCountries.Contains(country)) errors.Add($"{country} is not a country code supported by ReAI.");
                 var org = Get("organizationNumber").Replace(" ", "");
                 if (!person && country == "NO" && !OrganizationNumber(org)) errors.Add("Norwegian companies need a valid organization number. For people, choose the private-person default.");
                 if (org.Length > 0) payload["organizationNumber"] = org;
