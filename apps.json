@@ -23,6 +23,14 @@
     "icon": "make-icon.swift",
     "asset": "ReAI-Import-Apple-Silicon.dmg"
   },
+  "stripe": {
+    "name": "ReAI Stripe Import",
+    "path": "apple/stripe",
+    "executable": "ReAIStripeImport",
+    "bundle_id": "no.reai.stripeimport",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Stripe-Import-Apple-Silicon.dmg"
+  },
   "import-windows": {
     "name": "ReAI Import for Windows",
     "platform": "windows",
