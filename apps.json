@@ -70,5 +70,13 @@
     "bundle_id": "no.reai.zettlereconcile",
     "icon": "make-icon.swift",
     "asset": "ReAI-Zettle-Reconcile-Apple-Silicon.dmg"
+  },
+  "dintero": {
+    "name": "ReAI Dintero Fees",
+    "path": "apple/dintero",
+    "executable": "ReAIDinteroFees",
+    "bundle_id": "no.reai.dinterofees",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Dintero-Fees-Apple-Silicon.dmg"
   }
 }

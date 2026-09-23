@@ -4,7 +4,7 @@ from build import configuration
 
 app = configuration(sys.argv[1])
 connection = ('Open the app, paste a ReAI user access token and the provider credentials, then choose a company and bank account.'
-              if sys.argv[1] in {'vipps', 'klarna', 'zettle'} else
+              if sys.argv[1] in {'vipps', 'klarna', 'zettle', 'dintero'} else
               'Open the app, click **Connect to ReAI**, choose a company, and approve in your browser.')
 print(f'''Requires Apple Silicon (M1 or newer) and macOS 15 or newer.
 
