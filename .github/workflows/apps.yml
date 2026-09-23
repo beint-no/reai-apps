@@ -6,7 +6,7 @@ on:
         description: App to release
         required: true
         type: choice
-        options: [time-tracker, finder-vault, import, stripe]
+        options: [time-tracker, finder-vault, import, stripe, vipps, klarna, zettle]
   pull_request:
     paths: ['apple/**', 'tools/apple/**', 'apps.json', '.github/actions/**', '.github/workflows/apps.yml']
   push:

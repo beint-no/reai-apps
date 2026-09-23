@@ -46,5 +46,29 @@
     "executable": "ReAI.TimeTracker.exe",
     "asset": "ReAI-Time-Tracker-Windows-x64.zip",
     "arm64_asset": "ReAI-Time-Tracker-Windows-ARM64.zip"
+  },
+  "vipps": {
+    "name": "ReAI Vipps Reconcile",
+    "path": "apple/vipps",
+    "executable": "ReAIVippsReconcile",
+    "bundle_id": "no.reai.vippsreconcile",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Vipps-Reconcile-Apple-Silicon.dmg"
+  },
+  "klarna": {
+    "name": "ReAI Klarna Reconcile",
+    "path": "apple/klarna",
+    "executable": "ReAIKlarnaReconcile",
+    "bundle_id": "no.reai.klarnareconcile",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Klarna-Reconcile-Apple-Silicon.dmg"
+  },
+  "zettle": {
+    "name": "ReAI Zettle Reconcile",
+    "path": "apple/zettle",
+    "executable": "ReAIZettleReconcile",
+    "bundle_id": "no.reai.zettlereconcile",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Zettle-Reconcile-Apple-Silicon.dmg"
   }
 }

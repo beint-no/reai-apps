@@ -12,6 +12,9 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 | [Import for Windows](windows/import) | Native Windows 11 import app. Unsigned ZIP download. |
 | [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
 | [Stripe Import for Mac](apple/stripe) | Manually import simple paid Stripe invoices and stage subscriptions. |
+| [Vipps Reconcile for Mac](apple/vipps) | Review Vipps payouts against ReAI bank transactions. |
+| [Klarna Reconcile for Mac](apple/klarna) | Review Klarna payouts against ReAI bank transactions. |
+| [Zettle Reconcile for Mac](apple/zettle) | Review Zettle payouts against ReAI bank transactions. |
 
 ## Install
 
@@ -22,7 +25,7 @@ Download from the **[app page](https://beint-no.github.io/reai-apps/)**.
 
 **Windows downloads are unsigned.** Windows may warn or block them. If SmartScreen offers **More info → Run anyway**, you can choose it after confirming the download came from this repository and you trust it. Smart App Control, S mode and workplace policy may prevent running the app. Keep Windows security protections enabled. See the app README for details and checksum verification.
 
-Click **Connect to ReAI**, sign in in your browser, compare the code, choose a company and approve. Your password stays in the browser. Access keys stay in macOS Keychain or Windows Credential Locker, restricted to the approved company and your existing permissions. Revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens).
+Most apps use **Connect to ReAI** with browser approval. The Vipps, Klarna and Zettle reconciliation apps instead accept a ReAI user access token pasted into the app. Visit the selected app README for provider credentials. Your password stays in the browser. Access keys stay in macOS Keychain or Windows Credential Locker, restricted to the approved company and your existing permissions. Revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens).
 
 ## Repository
 
@@ -31,6 +34,10 @@ apple/
   time-tracker/     Swift package and app source
   finder-vault/     Swift package and app source
   import/           Swift package and app source
+  stripe/           Stripe migration app
+  vipps/            Vipps payout reconciliation app
+  klarna/           Klarna payout reconciliation app
+  zettle/           Zettle payout reconciliation app
 windows/
   import/           .NET 11 / WinUI 3 app and app-local import logic
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
@@ -59,6 +66,9 @@ python3 tools/apple/build.py time-tracker
 python3 tools/apple/build.py finder-vault
 python3 tools/apple/build.py import
 python3 tools/apple/build.py stripe
+python3 tools/apple/build.py vipps
+python3 tools/apple/build.py klarna
+python3 tools/apple/build.py zettle
 ```
 
 Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
