@@ -55,7 +55,10 @@ actor ProviderAPI {
         var result: [Payout] = []
         var cursor: Cursor?
         var seen: Set<String> = []
+        var pages = 0
         repeat {
+            pages += 1
+            if pages > 50 { throw appError("More than 50 settlement pages. Choose a smaller period.") }
             var query = [URLQueryItem(name: "limit", value: "100"),
                          URLQueryItem(name: "created_at.gte", value: start),
                          URLQueryItem(name: "created_at.lte", value: end)]
