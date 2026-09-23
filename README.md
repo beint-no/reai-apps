@@ -11,6 +11,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 | [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
 | [Import for Windows](windows/import) | Native Windows 11 import app. Unsigned ZIP download. |
 | [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
+| [Stripe Import for Mac](apple/stripe) | Manually import simple paid Stripe invoices and stage subscriptions. |
 
 ## Install
 
@@ -57,6 +58,7 @@ Install [Swift 6.4](https://www.swift.org/install/macos/) and the macOS SDK, the
 python3 tools/apple/build.py time-tracker
 python3 tools/apple/build.py finder-vault
 python3 tools/apple/build.py import
+python3 tools/apple/build.py stripe
 ```
 
 Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
