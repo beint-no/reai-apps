@@ -15,6 +15,7 @@ apps.json is authoritative for app identity and downloadable filename.
 For Apple, build affected apps with python3 tools/apple/build.py <app>. Set SWIFT_BIN when Swift 6.4 is not the default. For Windows, use tools/windows/build.ps1 -App <app> on Windows and verify both architectures in CI.
 Never release an ad-hoc Apple build. Release tags use <app>/v<version> and point to a commit merged into main. The Release app action on main chooses the next patch version; build numbers use GITHUB_RUN_NUMBER.
 The apple-release environment holds signing and notary secrets; PR jobs must never receive them.
+App builds run on pull requests, release tags and manual releases only, not on pushes to main: the pull request already built the change, and macOS and Windows runners are the slowest and most expensive.
 Sign with hardened runtime, notarize the outer DMG, staple and assess before publishing. See tools/apple/README.md.
 
 site/ is a static GitHub Pages site built using Python's standard library. No runtime framework, tracking, external fonts, or browser JS.

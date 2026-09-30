@@ -2,9 +2,6 @@ name: Windows apps
 on:
   pull_request:
     paths: ['windows/**', 'tools/windows/**', 'apps.json', '.github/workflows/windows.yml']
-  push:
-    branches: [main]
-    paths: ['windows/**', 'tools/windows/**', 'apps.json', '.github/workflows/windows.yml']
   workflow_dispatch:
     inputs:
       app:
