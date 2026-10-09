@@ -51,7 +51,7 @@ Pending requests and recent-work metadata are stored under `~/Library/Applicatio
 From the repository root, with Swift 6.4 and Apple's macOS SDK installed:
 
 ```sh
-python3 tools/apple/build.py time-tracker
+tools/apple/build.py time-tracker
 ```
 
 Set `SWIFT_BIN` if Swift 6.4 is not your default toolchain. Development builds appear in `dist/time-tracker/`.

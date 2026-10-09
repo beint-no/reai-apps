@@ -42,7 +42,7 @@ There is no analytics or third-party upload service.
 Swift 6.4, SwiftUI, no third-party dependencies. From the repository root:
 
 ```sh
-python3 tools/apple/build.py finder-vault
+tools/apple/build.py finder-vault
 ```
 
 Set `SWIFT_BIN` if needed. Development builds appear in `dist/finder-vault/`.

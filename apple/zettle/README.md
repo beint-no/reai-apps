@@ -10,4 +10,4 @@ Manually compare Zettle payouts with pending ReAI bank transactions for one mont
 
 Export CSV saves the payout reference, amount, status and possible ReAI transaction ID to a local file. The app does not create vouchers, record POS sales, infer VAT, match transactions, or change Zettle. A payout may arrive in the bank later or in the next month. The [Finance API](https://developer.zettle.com/docs/api/finance/user-guides/fetch-account-transactions) supplies payout amounts; purchase details and VAT need a separate sales import.
 
-Remove credentials in the app and revoke the ReAI token in ReAI when finished. The Zettle key is never sent to ReAI. Build locally with `python3 tools/apple/build.py zettle` using Swift 6.4. Published DMGs are Developer ID signed and notarized.
+Remove credentials in the app and revoke the ReAI token in ReAI when finished. The Zettle key is never sent to ReAI. Build locally with `tools/apple/build.py zettle` using Swift 6.4. Published DMGs are Developer ID signed and notarized.

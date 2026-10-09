@@ -10,4 +10,4 @@ Manually compare Klarna settlement payouts with pending ReAI bank transactions f
 
 Export CSV saves the payout reference, amount, status and possible ReAI transaction ID to a local file. The app does not create vouchers, record sales, infer VAT, match transactions, or change Klarna. A payout may arrive in the bank later or in the next month. The app uses Klarna's payout totals for bank comparison, not gross sales; use a transaction-level report and your accountant for sales, returns, fee and VAT postings.
 
-Remove credentials in the app and revoke the ReAI token in ReAI when finished. The Klarna key is never sent to ReAI. Build locally with `python3 tools/apple/build.py klarna` using Swift 6.4. Published DMGs are Developer ID signed and notarized.
+Remove credentials in the app and revoke the ReAI token in ReAI when finished. The Klarna key is never sent to ReAI. Build locally with `tools/apple/build.py klarna` using Swift 6.4. Published DMGs are Developer ID signed and notarized.

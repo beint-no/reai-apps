@@ -45,6 +45,6 @@ The last report, including prepared row data, is stored with owner-only permissi
 
 ## Development
 
-From the repository root: `python3 tools/apple/build.py import`. Swift 6.4, SwiftUI, arm64, macOS 15+.
+From the repository root: `tools/apple/build.py import`. Swift 6.4, SwiftUI, arm64, macOS 15+.
 ZIPFoundation 0.9.20 handles bounded in-memory Excel ZIP decompression; Foundation parses the worksheet XML. The dependency is pinned in `Package.resolved`.
 See the shared [release instructions](../../tools/apple/README.md). No local Apple signing credentials are needed to publish through GitHub.

@@ -5,4 +5,4 @@ Persist the exact start request UUID or stop timer ID before sending; never sile
 App connections accept a self-declared `client_id` and `client_name`; no ReAI registration is required.
 The user chooses a company in ReAI during approval. The key and `/api/me` are restricted to that company.
 Keep UI and documentation concise and factual.
-From the repository root, build/package with `python3 tools/apple/build.py time-tracker`. Follow the shared release instructions in tools/apple/README.md.
+From the repository root, build/package with `tools/apple/build.py time-tracker`. Follow the shared release instructions in tools/apple/README.md.

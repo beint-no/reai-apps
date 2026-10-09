@@ -61,17 +61,17 @@ Add the app inside this monorepo and reuse the existing release tooling. No ReAI
 
 ## Build and release
 
-Install [Swift 6.4](https://www.swift.org/install/macos/) and the macOS SDK, then run from the repository root:
+Install [Swift 6.4](https://www.swift.org/install/macos/), the macOS SDK and [uv](https://docs.astral.sh/uv/) (the build scripts require Python 3.15 and run through `uv run --script`), then run from the repository root:
 
 ```sh
-python3 tools/apple/build.py time-tracker
-python3 tools/apple/build.py finder-vault
-python3 tools/apple/build.py import
-python3 tools/apple/build.py stripe
-python3 tools/apple/build.py vipps
-python3 tools/apple/build.py klarna
-python3 tools/apple/build.py zettle
-python3 tools/apple/build.py dintero
+tools/apple/build.py time-tracker
+tools/apple/build.py finder-vault
+tools/apple/build.py import
+tools/apple/build.py stripe
+tools/apple/build.py vipps
+tools/apple/build.py klarna
+tools/apple/build.py zettle
+tools/apple/build.py dintero
 ```
 
 Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.

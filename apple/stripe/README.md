@@ -24,4 +24,4 @@ Subscription staging requires a single fixed-price item, explicit zero-tax confi
 
 Download the signed, notarized DMG from the [ReAI Apps page](https://beint-no.github.io/reai-apps/), open it and drag the app to Applications. To update, quit and replace the app. To remove, delete the app, use **Remove key from this Mac** for the Stripe key, and revoke the ReAI token in your ReAI profile. Existing ReAI records remain.
 
-Build locally with `python3 tools/apple/build.py stripe` using Swift 6.4. Local builds are for development; published builds go through the repository's signing and notarization workflow.
+Build locally with `tools/apple/build.py stripe` using Swift 6.4. Local builds are for development; published builds go through the repository's signing and notarization workflow.

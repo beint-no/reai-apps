@@ -77,7 +77,7 @@ Build matrices discover apps from `apps.json`. Add the ID to the matching workfl
 For Mac, from the repository root:
 
 ```sh
-python3 tools/apple/build.py my-app
+tools/apple/build.py my-app
 ```
 
 Set `SWIFT_BIN` when Swift 6.4 is not the default. For Windows, on Windows:
@@ -89,7 +89,7 @@ Set `SWIFT_BIN` when Swift 6.4 is not the default. For Windows, on Windows:
 
 Check the native UI, connection/company choice, revocation, and the app's main flow with suitable test data. Test recovery where the app writes data. Windows CI expects a native window with a **Connect to ReAI** control; retain that entry point. CI launches x64 only, so report ARM64 execution separately.
 
-Run `python3 site/build.py --offline` and preview `dist/site` when changing the site. Offline mode intentionally shows unpublished placeholders. Run without `--offline` to use actual releases.
+Run `site/build.py --offline` and preview `dist/site` when changing the site. Offline mode intentionally shows unpublished placeholders. Run without `--offline` to use actual releases.
 
 Commit and push from a worktree/feature branch, review the PR and merge after the affected builds pass. Then run the platform's release action on `main`, choosing the app. Versions come from independent app tags; the first release is 0.1.0. Pushing ordinary code does not publish an app.
 
