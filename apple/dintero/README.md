@@ -11,4 +11,4 @@ Review paid Dintero settlements for a month, compare their net payouts with pend
 
 Dintero says its payout reports show gross sales, deducted fees and net payouts. It also offers free automated delivery of payout reports to accounting systems. If Dintero has separately invoiced a fee, or the fee is already booked through a report/integration, **do not create a second voucher here**. The app checks for its own existing voucher marker for the account and month, but cannot identify all entries made outside this app. It does not post sales, refunds, VAT, or bank matches.
 
-Export CSV writes the reviewed settlement rows to a local file. Both credentials stay in this Mac's Keychain. Remove them in the app and revoke the ReAI token in ReAI when finished. Build with `python3 tools/apple/build.py dintero` using Swift 6.4. Published DMGs are Developer ID signed and notarized.
+Export CSV writes the reviewed settlement rows to a local file. Both credentials stay in this Mac's Keychain. Remove them in the app and revoke the ReAI token in ReAI when finished. Build with `tools/apple/build.py dintero` using Swift 6.4. Published DMGs are Developer ID signed and notarized.

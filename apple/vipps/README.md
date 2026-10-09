@@ -10,4 +10,4 @@ Manually compare Vipps MobilePay **scheduled payouts** with pending ReAI bank tr
 
 Export CSV saves the payout reference, amount, status and possible ReAI transaction ID to a local file. The app does not create vouchers, record sales, infer VAT, match transactions, or change Vipps. A scheduled payout may arrive in the bank later, including the next month, so a missing match does not establish a discrepancy. Vipps may return a report later than the day it was scheduled. This app does not import individual sales or fee lines.
 
-Remove credentials in the app and revoke the ReAI token in ReAI when finished. The app's credentials are never sent to ReAI. Build locally with `python3 tools/apple/build.py vipps` using Swift 6.4. Published DMGs are Developer ID signed and notarized.
+Remove credentials in the app and revoke the ReAI token in ReAI when finished. The app's credentials are never sent to ReAI. Build locally with `tools/apple/build.py vipps` using Swift 6.4. Published DMGs are Developer ID signed and notarized.
