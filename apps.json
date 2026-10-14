@@ -78,5 +78,13 @@
     "bundle_id": "no.reai.dinterofees",
     "icon": "make-icon.swift",
     "asset": "ReAI-Dintero-Fees-Apple-Silicon.dmg"
+  },
+  "shipping": {
+    "name": "ReAI Shipping",
+    "path": "apple/shipping",
+    "executable": "ReAIShipping",
+    "bundle_id": "no.reai.shipping",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Shipping-Apple-Silicon.dmg"
   }
 }
