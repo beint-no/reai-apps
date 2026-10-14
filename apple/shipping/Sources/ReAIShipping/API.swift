@@ -101,13 +101,13 @@ struct Draft: Codable, Equatable, Sendable {
 }
 struct ShippingService: Decodable, Identifiable, Sendable {
     var id: String { carrierCode + ":" + deliveryMethod }
-    let carrierCode: String; let deliveryMethod: String; let carrierName: String; let name: String; let pickupRequired: Bool
+    let carrierCode: String; let deliveryMethod: String; let carrierName: String; let name: String; let pickupRequired: Bool; let testMode: Bool
 }
 struct AvailableLine: Decodable, Identifiable, Sendable { var id: Int { orderLineId }; let orderLineId: Int; let name: String; let availableQuantity: Decimal }
 struct ShipmentPage: Decodable, Sendable { let items: [ShipmentSummary]; let nextBeforeId: Int? }
 struct ShipmentSummary: Decodable, Identifiable, Sendable { let id: Int; let orderId: Int; let status: String }
 struct ShippingOptions: Decodable, Sendable {
-    let orderId: Int; let canCreate: Bool; let unavailableReason: String?; let testMode: Bool; let weightEstimated: Bool
+    let orderId: Int; let canCreate: Bool; let unavailableReason: String?; let weightEstimated: Bool
     let services: [ShippingService]; let availableLines: [AvailableLine]; let defaults: Draft?; let existingShipments: ShipmentPage
 }
 struct Rate: Decodable, Identifiable, Sendable {
@@ -115,13 +115,13 @@ struct Rate: Decodable, Identifiable, Sendable {
     let carrierCode: String; let deliveryMethod: String; let status: String; let quote: Quote?
     let bookingBlockedReason: String?; let error: String?
 }
-struct Pickup: Decodable, Identifiable, Sendable { var id: String { providerId }; let providerId: String; let name: String; let description: String }
+struct Pickup: Decodable, Identifiable, Sendable { var id: String { providerId }; let providerId: String; let name: String; let displayName: String; let description: String }
 struct QuoteResult: Decodable, Sendable {
     let status: String; let quote: Quote?; let pickupRequired: Bool; let pickupPlaces: [Pickup]
     let selectedPickupProviderId: String?; let bookingBlockedReason: String?; let error: String?
 }
 struct Shipment: Decodable, Sendable {
-    let id: Int; let orderId: Int; let status: String; let checkoutManaged: Bool; let recipient: Recipient; let parcel: Parcel
+    let id: Int; let orderId: Int; let status: String; let checkoutManaged: Bool; let carrierCode: String; let recipient: Recipient; let parcel: Parcel
     let error: String?; let errorCode: String?; let labelAvailable: Bool; let actions: [String]
     let inventoryRecordingPending: Bool
     struct Charge: Decodable, Sendable { let amount: Decimal?; let currencyCode: String?; let recordingPending: Bool }

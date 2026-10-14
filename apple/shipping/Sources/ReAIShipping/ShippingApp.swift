@@ -104,7 +104,7 @@ struct ShippingView: View {
         VStack(alignment: .leading, spacing: 20) {
             if let order = model.selectedOrder {
                 VStack(alignment: .leading, spacing: 5) { Text(order.orderNumber).font(.title.bold()); Text(order.customerName).font(.title3).foregroundStyle(.secondary) }
-                if model.options?.testMode == true { Label(t("Carrier test mode"), systemImage: "testtube.2").foregroundStyle(.orange) }
+                if model.testMode { Label(t("Carrier test mode"), systemImage: "testtube.2").foregroundStyle(.orange) }
                 if let shipment = model.shipment { savedShipment(shipment) }
                 else if let draft = Binding($model.draft) { proposal(draft) }
                 else if let reason = model.options?.unavailableReason { Text(reason).foregroundStyle(.secondary) }
@@ -212,7 +212,7 @@ struct ShippingView: View {
             if !model.pickups.isEmpty {
                 Picker(t("Pickup place"), selection: Binding(get: { value.wrappedValue.pickupProviderId ?? "" }, set: { id in Task { await model.choosePickup(id) } })) {
                     Text(t("Choose pickup place")).tag("")
-                    ForEach(model.pickups) { Text($0.name).tag($0.id) }
+                    ForEach(model.pickups) { Text($0.displayName).tag($0.id) }
                 }
             }
         }

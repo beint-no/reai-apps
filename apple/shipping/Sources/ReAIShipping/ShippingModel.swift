@@ -48,6 +48,10 @@ final class ShippingModel {
     var operations: [ShippingOperation] = []
     private var bookingJournal: URL { journal.deletingLastPathComponent().appending(path: "shipping-operations.json") }
     var unfinished: [ShippingOperation] { operations.filter { $0.tenantId == company?.id && $0.state != "done" } }
+    var testMode: Bool {
+        let carrier = shipment?.carrierCode ?? draft?.carrierCode
+        return options?.services.first(where: { $0.carrierCode == carrier })?.testMode ?? false
+    }
     var canShip: Bool { historyReadable && !busy && !printerId.isEmpty && !unfinished.contains { $0.orderId == selectedOrder?.id } && (shipment?.actions.contains("book") == true || quote != nil) }
 
     private let api = ReAIAPI()
