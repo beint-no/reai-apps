@@ -6,7 +6,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 
 | App | What it does |
 | --- | --- |
-| [Shipping for Mac](apple/shipping) | Print carrier labels from the web app directly to a Zebra printer. |
+| [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
 | [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
 | [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |

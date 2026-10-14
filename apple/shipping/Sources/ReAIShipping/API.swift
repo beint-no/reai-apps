@@ -9,15 +9,12 @@ final class RedirectBlocker: NSObject, URLSessionTaskDelegate, Sendable {
 }
 
 struct Company: Decodable, Sendable { let id: Int; let companyName: String }
+struct Problem: Decodable { let detail: String? }
 struct Account: Decodable, Sendable { let tenants: [Company] }
 
 enum AppEnvironment {
     static let origin = URL(string: "https://app.reai.no")!
-    static func setup(company: Int) -> URL {
-        origin.appending(path: "shipments").appending(queryItems: [
-            URLQueryItem(name: "printOnMac", value: "true"), URLQueryItem(name: "tenantId", value: String(company))
-        ])
-    }
+
 }
 
 func t(_ key: String) -> String { NSLocalizedString(key, bundle: .module, comment: "") }
@@ -42,11 +39,11 @@ actor ReAIAPI {
         return company
     }
 
-    func label(_ job: PrintRequest, token: String, verifyHandoff: Bool) async throws -> Data {
+    func label(_ job: PrintRequest, token: String) async throws -> Data {
         let deadline = ContinuousClock.now.advanced(by: .seconds(120))
         while ContinuousClock.now < deadline {
             try Task.checkCancellation()
-            let (data, response) = try await get("api/shipments/\(job.shipmentId)/label", token: token, company: job.tenantId, ticket: verifyHandoff ? job.printTicket : nil)
+            let (data, response) = try await get("api/shipments/\(job.shipmentId)/label", token: token, company: job.tenantId)
             if response.statusCode == 202 {
                 try await Task.sleep(for: .seconds(2))
                 continue
@@ -60,9 +57,8 @@ actor ReAIAPI {
         throw appError("The label is still being prepared. Try again here; the shipment will not be booked again.")
     }
 
-    private func get(_ path: String, token: String, company: Int? = nil, ticket: String? = nil) async throws -> (Data, HTTPURLResponse) {
-        var url = AppEnvironment.origin.appending(path: path)
-        if let ticket { url.append(queryItems: [URLQueryItem(name: "printTicket", value: ticket)]) }
+    private func get(_ path: String, token: String, company: Int? = nil) async throws -> (Data, HTTPURLResponse) {
+        let url = AppEnvironment.origin.appending(path: path)
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(Locale.preferredLanguages.first ?? "en", forHTTPHeaderField: "Accept-Language")
@@ -72,14 +68,113 @@ actor ReAIAPI {
         guard (200..<300).contains(response.statusCode) else {
             switch response.statusCode {
             case 401: throw appError("Your connection has expired. Disconnect and connect to ReAI again.", code: 401)
-            case 403: throw appError("You do not have permission to read labels in this company.", code: 403)
+            case 403: throw appError("You do not have permission for this shipping operation.", code: 403)
             case 404: throw appError("The shipment was not found, or shipping is disabled for this company.", code: 404)
             default:
-                struct Problem: Decodable { let detail: String? }
                 let detail = (try? JSONDecoder().decode(Problem.self, from: data))?.detail
                 throw appError(detail ?? "ReAI could not load the label. Open the order to check its status.", code: response.statusCode)
             }
         }
         return (data, response)
+    }
+}
+
+struct ReadyOrder: Decodable, Identifiable, Sendable {
+    var id: Int { orderId }
+    let orderId: Int; let orderNumber: String; let customerName: String; let date: String
+    let remainingQuantity: Decimal; let preparedShipmentId: Int?
+}
+struct ReadyPage: Decodable, Sendable { let items: [ReadyOrder]; let page: Int; let totalPages: Int; let totalItems: Int }
+struct Recipient: Codable, Equatable, Sendable {
+    var name: String?; var email: String?; var phone: String?; var countryCode: String?
+    var city: String?; var postalCode: String?; var addressPart1: String?; var addressPart2: String?
+}
+struct Parcel: Codable, Equatable, Sendable { var weightGrams: Int; var lengthCm: Decimal; var widthCm: Decimal; var heightCm: Decimal }
+struct ShipmentLine: Codable, Equatable, Identifiable, Sendable { var id: Int { orderLineId }; let orderLineId: Int; var quantity: Decimal }
+struct Quote: Codable, Equatable, Sendable {
+    let customerPriceAmount: Decimal; let currencyCode: String; let productCode: String; let fingerprint: String
+    var display: String { "\(customerPriceAmount.formatted()) \(currencyCode)" }
+}
+struct Draft: Codable, Equatable, Sendable {
+    var requestId: UUID; var carrierCode: String?; var deliveryMethod: String?; var recipient: Recipient
+    var parcel: Parcel; var lines: [ShipmentLine]; var pickupProviderId: String?; var acceptedQuote: Quote?
+}
+struct ShippingService: Decodable, Identifiable, Sendable {
+    var id: String { carrierCode + ":" + deliveryMethod }
+    let carrierCode: String; let deliveryMethod: String; let carrierName: String; let name: String; let pickupRequired: Bool
+}
+struct AvailableLine: Decodable, Identifiable, Sendable { var id: Int { orderLineId }; let orderLineId: Int; let name: String; let availableQuantity: Decimal }
+struct ShipmentPage: Decodable, Sendable { let items: [ShipmentSummary]; let nextBeforeId: Int? }
+struct ShipmentSummary: Decodable, Identifiable, Sendable { let id: Int; let orderId: Int; let status: String }
+struct ShippingOptions: Decodable, Sendable {
+    let orderId: Int; let canCreate: Bool; let unavailableReason: String?; let testMode: Bool; let weightEstimated: Bool
+    let services: [ShippingService]; let availableLines: [AvailableLine]; let defaults: Draft?; let existingShipments: ShipmentPage
+}
+struct Rate: Decodable, Identifiable, Sendable {
+    var id: String { carrierCode + ":" + deliveryMethod }
+    let carrierCode: String; let deliveryMethod: String; let status: String; let quote: Quote?
+    let bookingBlockedReason: String?; let error: String?
+}
+struct Pickup: Decodable, Identifiable, Sendable { var id: String { providerId }; let providerId: String; let name: String; let description: String }
+struct QuoteResult: Decodable, Sendable {
+    let status: String; let quote: Quote?; let pickupRequired: Bool; let pickupPlaces: [Pickup]
+    let selectedPickupProviderId: String?; let bookingBlockedReason: String?; let error: String?
+}
+struct Shipment: Decodable, Sendable {
+    let id: Int; let orderId: Int; let status: String; let checkoutManaged: Bool; let recipient: Recipient; let parcel: Parcel
+    let error: String?; let errorCode: String?; let labelAvailable: Bool; let actions: [String]
+    let inventoryRecordingPending: Bool
+    struct Charge: Decodable, Sendable { let amount: Decimal?; let currencyCode: String?; let recordingPending: Bool }
+    let customerCharge: Charge
+    var pending: Bool { status == "capture_pending" || status == "booking" }
+}
+
+extension ReAIAPI {
+    func orders(token: String, company: Int, search: String, page: Int) async throws -> ReadyPage {
+        try await json("api/orders/shipping-ready", token: token, company: company, query: [
+            URLQueryItem(name: "search", value: search), URLQueryItem(name: "page", value: String(page))])
+    }
+    func options(order: Int, token: String, company: Int) async throws -> ShippingOptions {
+        try await json("api/orders/\(order)/shipping-options", token: token, company: company)
+    }
+    func rates(order: Int, draft: Draft, token: String, company: Int) async throws -> [Rate] {
+        try await json("api/orders/\(order)/shipping-rates", token: token, company: company, body: JSONEncoder().encode(draft))
+    }
+    func quote(order: Int, draft: Draft, token: String, company: Int) async throws -> QuoteResult {
+        try await json("api/orders/\(order)/shipping-quote", token: token, company: company, body: JSONEncoder().encode(draft))
+    }
+    func create(order: Int, draft: Draft, token: String, company: Int) async throws -> Shipment {
+        struct Request: Encodable { let orderId: Int; let shipment: Draft }
+        return try await json("api/shipments", token: token, company: company, body: JSONEncoder().encode(Request(orderId: order, shipment: draft)))
+    }
+    func shipment(_ id: Int, token: String, company: Int, book: Bool = false) async throws -> Shipment {
+        try await json("api/shipments/\(id)" + (book ? "/book" : ""), token: token, company: company, body: book ? Data() : nil)
+    }
+    func cancel(_ id: Int, token: String, company: Int) async throws -> Shipment {
+        try await json("api/shipments/\(id)/cancel", token: token, company: company, body: Data())
+    }
+    func find(requestId: UUID, token: String, company: Int) async throws -> Shipment? {
+        do { return try await json("api/shipments/by-request-id/\(requestId.uuidString)", token: token, company: company) }
+        catch let error as NSError where error.code == 404 { return nil }
+    }
+    private func json<T: Decodable & Sendable>(_ path: String, token: String, company: Int,
+                query: [URLQueryItem] = [], body: Data? = nil) async throws -> T {
+        var url = AppEnvironment.origin.appending(path: path)
+        if !query.isEmpty { url.append(queryItems: query) }
+        var request = URLRequest(url: url)
+        request.httpMethod = body == nil ? "GET" : "POST"
+        request.httpBody = body
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(String(company), forHTTPHeaderField: "X-Tenant-Id")
+        request.setValue(Locale.preferredLanguages.first ?? "en", forHTTPHeaderField: "Accept-Language")
+        let (data, raw) = try await session.data(for: request)
+        guard let response = raw as? HTTPURLResponse else { throw appError("ReAI returned an invalid response.") }
+        guard (200..<300).contains(response.statusCode) else {
+            let detail = (try? JSONDecoder().decode(Problem.self, from: data))?.detail
+            throw appError(detail ?? "The shipping operation failed. Refresh to check the current state.", code: response.statusCode)
+        }
+        return try JSONDecoder().decode(T.self, from: data)
     }
 }

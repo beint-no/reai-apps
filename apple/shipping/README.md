@@ -1,25 +1,23 @@
 # ReAI Shipping
 
-Print shipping labels directly from ReAI to your Mac's Zebra printer. ReAI books the shipment and handles payment, inventory and fulfillment; this app fetches the existing label and sends it to macOS's print queue.
+Ship orders and print labels from a native Mac app. Connect to ReAI, choose an order, review its parcel and shipping price, then click **Ship & print**. ReAI books the carrier, handles payment capture where required, and records shipping, stock and fulfillment. The Mac prints one copy of the resulting label.
 
 ## Install and connect
 
-1. Download the signed, Apple-notarized DMG from [ReAI Apps](https://beint-no.github.io/reai-apps/#shipping), open it and drag **ReAI Shipping** into **Applications**. Requires Apple Silicon and macOS 15 or later.
-2. Add your Zebra under **System Settings → Printers & Scanners**, using a driver that can print PDFs from macOS.
-3. Open ReAI Shipping, choose **Connect to ReAI**, and approve the company in your browser. Your ReAI user needs invoice read permission and shipping enabled.
-4. The app chooses a single installed Zebra automatically. If several are installed, choose one. Click **Enable printing in ReAI**.
-5. Prepare the order normally and click **Create label**. The app fetches and prints the label automatically. Allow your browser to open ReAI Shipping when first asked; browsers may require permission again according to their own policies.
+1. Download the signed, Apple-notarized DMG from [ReAI Apps](https://beint-no.github.io/reai-apps/#shipping), open it and drag **ReAI Shipping** into **Applications**. Apple Silicon, macOS 15 or later.
+2. Add your Zebra under **System Settings → Printers & Scanners**, with a driver that prints PDFs through macOS. Raw-only queues are unsupported. The app chooses a single Zebra automatically; choose a queue if several are installed.
+3. Open the app, **Connect to ReAI**, and approve one company in your browser. Your user needs invoice read/write permission and shipping enabled.
+4. Select an order. Existing checkout parcels use their agreed snapshot. Other orders get recipient, item, weight and parcel defaults; check the actual package, choose a service/pickup and review the price. The last service choice is remembered.
+5. Click **Ship & print**. Labels use the carrier PDF's dimensions, including common 100/102 × 150/192 mm formats; load matching stock. No print dialog or label-size setting is needed.
 
-The preference applies to the current browser and company. Turn it off on ReAI's Shipments page. Labels use the carrier PDF's actual size, including common 100/102 × 150/192 mm formats. Load matching label stock. No API key entry, print dialog, cloud printing service or label-size setting is needed. The printer must already be installed and able to print through macOS; raw-only Zebra queues are not supported.
+The app is a public API client. The web app remains independent and needs no browser setting, extension, native app links or handoff permissions. Agents and other clients can use the same shipping operations in [ReAI's public API](https://app.reai.no/openapi/public/ui).
 
 ## Recovery and privacy
 
-The app waits up to two minutes when a label is still being prepared. A retry here only downloads/prints an existing label; it never creates another shipment or charges shipping again. Return labels print the same way.
+Shipping requests are saved before sending. If interrupted, use **Resume safely**: the app looks up the original request/shipment, continues confirmed preparation, and polls pending progress. It never creates a replacement merely because a response was lost. Unknown or failed outcomes require review. A definitively rejected create can be reviewed and priced again after the app checks that no shipment exists. Cancel preparation releases an unbooked manual parcel so it can be edited; checkout parcels follow ReAI’s order/payment workflow. There is a two-minute polling limit; resume later to check the same shipment.
 
-**Sent to the printer queue** means macOS accepted the job. If the printer is offline or out of labels, check the macOS queue before using **Reprint**. macOS retains accepted jobs. Duplicate shipping links do not automatically print another copy, including after relaunch. Interrupted submissions require checking the queue and confirming another copy. A label sent before connecting/selecting a printer stays in memory until setup is complete; reopen its print link if the app is quit during setup.
+**Sent to the printer queue** means macOS accepted the job. Check that queue if the printer is offline or out of stock. Print receipts prevent automatic duplicate copies across restarts. **Reprint** requires explicit confirmation and only downloads/prints the existing label; it never books shipping again. Existing labels can be reprinted from the app's recent history.
 
-Browser handoff links contain numeric company/shipment IDs and a ten-minute server-signed print ticket. The ticket prevents arbitrary websites from inventing automatic print requests; it does not grant API access. A server restart invalidates tickets; explicit Reprint remains available. Access tokens stay in Keychain (`no.reai.shipping`) and are bound to the approved company. Labels come only from `https://app.reai.no`, with redirects blocked. Temporary PDFs are deleted after submission; macOS owns its print spool. Local receipt IDs and queue status are stored in `~/Library/Application Support/ReAI Shipping/print-history.json`, without customer names or addresses. Keep this history to preserve duplicate protection.
+Tokens stay in Keychain (`no.reai.shipping`) and are bound to the approved company. Requests go only to `https://app.reai.no`, with redirects blocked. Private local journals live in `~/Library/Application Support/ReAI Shipping/`: `shipping-operations.json` stores request IDs, exact proposals until creation (including delivery details), and shipment progress; `print-history.json` stores shipment IDs and queue receipts. Keep these files to preserve recovery and duplicate protection. Temporary PDFs are removed after submission; macOS owns its spool.
 
-Disconnect removes the Keychain token. Revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens). To remove the app, disconnect, quit, delete it from Applications, and optionally remove its Application Support folder and preferences. To update, quit and replace the app in Applications; history and connection survive.
-
-Build: `tools/apple/build.py shipping`. Publish with the repository's Release app action on main, choosing `shipping`. Development bundles are not public downloads.
+Disconnect removes the Keychain token. Revoke access in your [ReAI profile](https://app.reai.no/user/profile#user-access-tokens). Update by quitting and replacing the app in Applications. To remove, disconnect, quit, delete the app, and optionally remove its Application Support folder and preferences.
