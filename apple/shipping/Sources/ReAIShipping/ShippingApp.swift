@@ -17,7 +17,7 @@ struct ShippingApp: App {
         .windowResizability(.contentSize)
         MenuBarExtra("ReAI Shipping", systemImage: "printer") {
             Button(t("Open ReAI Shipping")) { openWindow(id: "shipping"); NSApp.activate() }
-            Button(t("Open orders in ReAI")) { NSWorkspace.shared.open(AppEnvironment.origin.appending(path: "orders")) }
+            Button(t("Open orders in ReAI")) { NSWorkspace.shared.open(AppEnvironment.origin.appending(path: "order")) }
             Divider()
             Button(t("Quit")) { NSApp.terminate(nil) }.disabled(model.busy)
         }
@@ -100,7 +100,7 @@ struct ShippingView: View {
                 HStack {
                     Text(t("Recent labels")).font(.headline)
                     Spacer()
-                    Button(t("Open orders in ReAI")) { NSWorkspace.shared.open(AppEnvironment.origin.appending(path: "orders")) }
+                    Button(t("Open orders in ReAI")) { NSWorkspace.shared.open(AppEnvironment.origin.appending(path: "order")) }
                 }
                 if model.records.isEmpty { Text(t("Labels sent from ReAI will appear here.")).font(.callout).foregroundStyle(.secondary) }
                 ForEach(model.records.prefix(10)) { record in
