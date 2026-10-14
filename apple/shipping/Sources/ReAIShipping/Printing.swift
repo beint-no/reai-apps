@@ -4,26 +4,8 @@ import PDFKit
 struct PrintRequest: Codable, Equatable, Sendable {
     let tenantId: Int
     let shipmentId: Int
-    let printTicket: String
     var key: String { "\(tenantId):\(shipmentId)" }
 
-    init(url: URL) throws {
-        guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              parts.scheme == "reai-shipping", parts.host == "print", parts.path.isEmpty,
-              parts.user == nil, parts.password == nil, parts.port == nil, parts.fragment == nil,
-              let items = parts.queryItems, items.count == 3,
-              Set(items.map(\.name)) == Set(["tenantId", "shipmentId", "printTicket"]),
-              let ticket = items.first(where: { $0.name == "printTicket" })?.value,
-              ticket.range(of: "^[0-9]{10}\\.[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil,
-              let tenant = items.first(where: { $0.name == "tenantId" })?.value.flatMap(Int.init),
-              let shipment = items.first(where: { $0.name == "shipmentId" })?.value.flatMap(Int.init),
-              (1...Int(Int32.max)).contains(tenant), (1...Int(Int32.max)).contains(shipment) else {
-            throw appError("This is not a valid ReAI shipping link.")
-        }
-        printTicket = ticket
-        tenantId = tenant
-        shipmentId = shipment
-    }
 }
 
 struct Printer: Identifiable, Equatable, Sendable {

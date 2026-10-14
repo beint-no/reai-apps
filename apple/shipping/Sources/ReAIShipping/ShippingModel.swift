@@ -9,6 +9,15 @@ struct PrintRecord: Codable, Identifiable {
     var queueResult: String?
 }
 
+struct ShippingOperation: Codable, Identifiable {
+    let id: UUID
+    let tenantId: Int
+    let orderId: Int
+    var draft: Draft?
+    var shipmentId: Int?
+    var state: String
+}
+
 @MainActor @Observable
 final class ShippingModel {
     var company: Company?
@@ -22,7 +31,29 @@ final class ShippingModel {
         didSet { UserDefaults.standard.set(printerId, forKey: "shipping.printer") }
     }
     var records: [PrintRecord] = []
-    var pending: [PrintRequest] = []
+    var loadingOrders = false
+    var orders: [ReadyOrder] = []
+    var search = ""
+    var page = 0
+    var totalPages = 0
+    var totalOrders = 0
+    var selectedOrder: ReadyOrder?
+    var options: ShippingOptions?
+    var draft: Draft?
+    var rates: [Rate] = []
+    var selectedRate = ""
+    var pickups: [Pickup] = []
+    var quote: Quote?
+    var shipment: Shipment?
+    var operations: [ShippingOperation] = []
+    private var bookingJournal: URL { journal.deletingLastPathComponent().appending(path: "shipping-operations.json") }
+    var unfinished: [ShippingOperation] { operations.filter { $0.tenantId == company?.id && $0.state != "done" } }
+    var testMode: Bool {
+        let carrier = shipment?.carrierCode ?? draft?.carrierCode
+        return options?.services.first(where: { $0.carrierCode == carrier })?.testMode ?? false
+    }
+    var canShip: Bool { historyReadable && !busy && !printerId.isEmpty && !unfinished.contains { $0.orderId == selectedOrder?.id } && (shipment?.actions.contains("book") == true || quote != nil) }
+
     private let api = ReAIAPI()
     private let credentials = Credentials()
     private let printer = LabelPrinter()
@@ -44,7 +75,10 @@ final class ShippingModel {
                     notice = t("A previous print was interrupted. Check the printer queue before reprinting.")
                 }
             }
-        } catch { historyReadable = false; self.error = t("Print history could not be read. Automatic printing is paused to prevent duplicates.") }
+            if FileManager.default.fileExists(atPath: bookingJournal.path) {
+                operations = try JSONDecoder().decode([ShippingOperation].self, from: Data(contentsOf: bookingJournal))
+            }
+        } catch { historyReadable = false; self.error = t("Shipping history could not be read. Shipping and printing are paused to prevent duplicates.") }
     }
 
     func start() async {
@@ -63,6 +97,7 @@ final class ShippingModel {
             if let saved = try await credentials.load() {
                 company = try await api.account(token: saved)
                 token = saved
+                await refreshOrders()
             }
         } catch { self.error = error.localizedDescription }
     }
@@ -83,8 +118,8 @@ final class ShippingModel {
                 try Task.checkCancellation()
                 token = key
                 company = approved
-                notice = t("Connected. Enable printing in your browser to finish setup.")
-                await drain()
+                notice = t("Connected. Choose an order to ship.")
+                await refreshOrders()
             } catch is CancellationError {
             } catch { self.error = error.localizedDescription }
         }
@@ -97,7 +132,7 @@ final class ShippingModel {
             try await credentials.delete()
             token = nil
             company = nil
-            pending.removeAll()
+            orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; quote = nil
             notice = nil
         } catch { self.error = error.localizedDescription }
     }
@@ -112,50 +147,231 @@ final class ShippingModel {
         } catch { self.error = error.localizedDescription }
     }
 
-    func receive(_ url: URL) async {
-        await start()
+    func refreshOrders(more: Bool = false) async {
+        guard !loadingOrders, let token, let company else { return }
+        loadingOrders = true
+        defer { loadingOrders = false }
         do {
-            let request = try PrintRequest(url: url)
-            if let index = records.firstIndex(where: { $0.id == request.key }) {
-                let record = records.remove(at: index)
-                records.insert(record, at: 0)
-                notice = t("This label was already received. Use Reprint below if another copy is needed.")
-                return
-            }
-            if !pending.contains(request) { pending.append(request) }
-            await drain()
+            let result = try await api.orders(token: token, company: company.id, search: search, page: more ? page + 1 : 0)
+            if more {
+                let known = Set(orders.map(\.id))
+                orders += result.items.filter { !known.contains($0.id) }
+            } else { orders = result.items }
+            page = result.page; totalPages = result.totalPages; totalOrders = result.totalItems
         } catch { self.error = error.localizedDescription }
     }
 
-    func drain() async {
-        guard historyReadable, !busy, let token, let company, !printerId.isEmpty, !pending.isEmpty else { return }
+    func select(_ order: ReadyOrder) async {
+        guard !busy, let token, let company else { return }
         busy = true
         defer { busy = false }
-        while !pending.isEmpty {
-            let request = pending.removeFirst()
-            guard request.tenantId == company.id else {
-                error = t("This label belongs to another company. Connect to that company before printing.")
-                continue
+        selectedOrder = order; options = nil; draft = nil; rates = []; pickups = []; quote = nil; shipment = nil
+        error = nil; notice = nil
+        do {
+            let result = try await api.options(order: order.id, token: token, company: company.id)
+            options = result
+            if let saved = unfinished.first(where: { $0.orderId == order.id }) {
+                if let id = saved.shipmentId { shipment = try await api.shipment(id, token: token, company: company.id) }
+                else { draft = saved.draft; notice = t("A saved shipping request needs checking. Use Resume below.") }
+            } else if let id = result.existingShipments.items.first(where: { $0.status == "prepared" })?.id {
+                shipment = try await api.shipment(id, token: token, company: company.id)
+            } else {
+                draft = result.defaults
+                if draft != nil { try await loadRates(token: token, company: company.id) }
             }
-            guard !records.contains(where: { $0.id == request.key }) else { continue }
-            await printLabel(request, token: token, verifyHandoff: true)
-        }
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func chooseShipment(_ id: Int) async {
+        guard !busy, let token, let company else { return }
+        busy = true; defer { busy = false }
+        do { shipment = try await api.shipment(id, token: token, company: company.id); draft = nil; quote = nil }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func refreshRates() async {
+        guard !busy, let token, let company else { return }
+        busy = true; defer { busy = false }
+        do { try await loadRates(token: token, company: company.id) }
+        catch { self.error = error.localizedDescription }
+    }
+
+    private func loadRates(token: String, company: Int) async throws {
+        guard var value = draft, let order = selectedOrder else { return }
+        quote = nil; pickups = []; value.acceptedQuote = nil; value.pickupProviderId = nil; draft = value
+        rates = try await api.rates(order: order.id, draft: value, token: token, company: company)
+        let available = rates.filter { $0.status == "quoted" && $0.bookingBlockedReason == nil && $0.quote != nil }
+        let preferred = UserDefaults.standard.string(forKey: "shipping.service")
+        let choice = available.first { $0.id == preferred } ?? available.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) } ?? available.first
+        if let choice { try await selectRate(choice.id, token: token, company: company) }
+        else { error = rates.compactMap { $0.bookingBlockedReason ?? $0.error }.first ?? t("No shipping rate is available for this parcel.") }
+    }
+
+    func chooseRate(_ id: String) async {
+        guard !busy, let token, let company else { return }
+        busy = true; defer { busy = false }
+        do { try await selectRate(id, token: token, company: company.id) }
+        catch { self.error = error.localizedDescription }
+    }
+    private func selectRate(_ id: String, token: String, company: Int) async throws {
+        guard let rate = rates.first(where: { $0.id == id }), var value = draft else { return }
+        selectedRate = id; quote = nil; pickups = []; error = nil
+        value.carrierCode = rate.carrierCode; value.deliveryMethod = rate.deliveryMethod
+        value.pickupProviderId = nil; value.acceptedQuote = nil; draft = value
+        UserDefaults.standard.set(id, forKey: "shipping.service")
+        try await loadQuote(token: token, company: company)
+    }
+    func choosePickup(_ id: String) async {
+        guard !busy, let token, let company else { return }
+        busy = true; defer { busy = false }
+        draft?.pickupProviderId = id.isEmpty ? nil : id
+        do { try await loadQuote(token: token, company: company.id) }
+        catch { self.error = error.localizedDescription }
+    }
+    private func loadQuote(token: String, company: Int) async throws {
+        guard let value = draft, let order = selectedOrder else { return }
+        quote = nil; error = nil
+        let result = try await api.quote(order: order.id, draft: value, token: token, company: company)
+        pickups = result.pickupPlaces
+        if let blocked = result.bookingBlockedReason ?? result.error { error = blocked; return }
+        if result.pickupRequired && result.selectedPickupProviderId == nil { return }
+        quote = result.quote
+    }
+    func invalidateQuote() { quote = nil; rates = []; pickups = []; selectedRate = ""; draft?.acceptedQuote = nil }
+
+    func shipAndPrint() async {
+        guard canShip, let company, let order = selectedOrder else { return }
+        if let op = unfinished.first(where: { $0.orderId == order.id }) { await resume(op); return }
+        var value = draft
+        value?.acceptedQuote = quote
+        let operation = ShippingOperation(id: UUID(), tenantId: company.id, orderId: order.id, draft: shipment == nil ? value : nil,
+                                          shipmentId: shipment?.id, state: "saved")
+        operations.append(operation)
+        do { try saveOperations() } catch { self.error = error.localizedDescription; return }
+        await resume(operation)
+    }
+
+    func resume(_ operation: ShippingOperation) async {
+        guard historyReadable, !busy, operation.tenantId == company?.id, let token, let company, !printerId.isEmpty else { return }
+        busy = true; error = nil; notice = t("Preparing shipment…")
+        defer { busy = false }
+        do {
+            try saveOperations()
+            guard let index = operations.firstIndex(where: { $0.id == operation.id }) else { return }
+            var current: Shipment
+            if let id = operations[index].shipmentId { current = try await api.shipment(id, token: token, company: company.id) }
+            else {
+                guard let proposal = operations[index].draft else { throw appError("The saved shipping request is incomplete. Contact ReAI support.") }
+                if let existing = try await api.find(requestId: proposal.requestId, token: token, company: company.id) { current = existing }
+                else {
+                    do { current = try await api.create(order: operation.orderId, draft: proposal, token: token, company: company.id) }
+                    catch {
+                        let code = (error as NSError).code
+                        if (400..<500).contains(code) && code != 408 && code != 429 {
+                            operations[index].state = "rejected"
+                            try saveOperations()
+                        }
+                        throw error
+                    }
+                }
+                operations[index].shipmentId = current.id
+                operations[index].draft = nil
+                operations[index].state = "prepared"
+                try saveOperations()
+            }
+            if ["prepared", "failed", "capture_pending"].contains(current.status) && current.actions.contains("book") {
+                operations[index].state = "booking"
+                try saveOperations()
+                current = try await api.shipment(current.id, token: token, company: company.id, book: true)
+            }
+            let deadline = ContinuousClock.now.advanced(by: .seconds(120))
+            while current.pending && ContinuousClock.now < deadline {
+                notice = t("Waiting for payment and carrier confirmation…")
+                try await Task.sleep(for: .seconds(2))
+                current = try await api.shipment(current.id, token: token, company: company.id)
+            }
+            shipment = current
+            guard current.status == "booked" else {
+                if current.status == "failed" && !current.checkoutManaged && !current.actions.contains("book") {
+                    operations[index].state = "failed"
+                    try saveOperations()
+                }
+                throw appError(current.error ?? (current.pending ? "Still processing. Resume checks this same shipment; it will not create another." : "This shipment needs review in ReAI. A replacement will not be booked automatically."))
+            }
+            operations[index].state = "booked"; try saveOperations()
+            let request = PrintRequest(tenantId: company.id, shipmentId: current.id)
+            if records.contains(where: { $0.id == request.key }) {
+                notice = t("This label already has a print receipt. Check the queue and use Reprint if needed.")
+            } else { await printLabel(request, token: token) }
+            operations[index].state = "done"; try saveOperations()
+            await refreshOrders()
+        } catch { self.error = error.localizedDescription; notice = nil }
+    }
+
+    func review(_ operation: ShippingOperation) async {
+        guard !busy, ["rejected", "failed"].contains(operation.state), let token, let company, operation.tenantId == company.id else { return }
+        busy = true; error = nil
+        do {
+            let existing: Shipment?
+            if let id = operation.shipmentId { existing = try await api.shipment(id, token: token, company: company.id) }
+            else if let proposal = operation.draft { existing = try await api.find(requestId: proposal.requestId, token: token, company: company.id) }
+            else { throw appError("The saved shipping request is incomplete. Contact ReAI support.") }
+            if let existing, existing.status != "failed" && existing.status != "cancelled" {
+                if let index = operations.firstIndex(where: { $0.id == operation.id }) {
+                    operations[index].shipmentId = existing.id; operations[index].draft = nil; operations[index].state = "saved"
+                    try saveOperations()
+                }
+                shipment = existing
+                notice = t("The original shipment exists. Resume it instead of creating another.")
+            } else {
+                try removeOperation(operation.id)
+                busy = false
+                if let order = orders.first(where: { $0.id == operation.orderId }) { await select(order) }
+            }
+        } catch { self.error = error.localizedDescription }
+        busy = false
+    }
+
+    func cancelPreparation() async {
+        guard !busy, let current = shipment, current.actions.contains("cancel"), let token, let company else { return }
+        busy = true; error = nil
+        do {
+            let result = try await api.cancel(current.id, token: token, company: company.id)
+            guard result.status == "cancelled" else { throw appError("This shipment needs review in ReAI. A replacement will not be booked automatically.") }
+            if let op = unfinished.first(where: { $0.shipmentId == current.id }) { try removeOperation(op.id) }
+            shipment = result
+            busy = false
+            if let order = selectedOrder { await select(order) }
+        } catch { self.error = error.localizedDescription }
+        busy = false
+    }
+
+    private func removeOperation(_ id: UUID) throws {
+        let previous = operations
+        operations.removeAll { $0.id == id }
+        do { try saveOperations() } catch { operations = previous; throw error }
+    }
+
+    private func saveOperations() throws {
+        try FileManager.default.createDirectory(at: bookingJournal.deletingLastPathComponent(), withIntermediateDirectories: true,
+                                               attributes: [.posixPermissions: 0o700])
+        try JSONEncoder().encode(operations).write(to: bookingJournal, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: bookingJournal.path)
     }
 
     func reprint(_ record: PrintRecord) async {
         guard historyReadable, !busy, let token, company?.id == record.request.tenantId, !printerId.isEmpty else { return }
         busy = true
-        await printLabel(record.request, token: token, verifyHandoff: false)
+        await printLabel(record.request, token: token)
         busy = false
-        await drain()
     }
 
-    private func printLabel(_ request: PrintRequest, token: String, verifyHandoff: Bool) async {
+    private func printLabel(_ request: PrintRequest, token: String) async {
         error = nil
         notice = t("Preparing label…")
         let selectedPrinter = printerId
         do {
-            let data = try await api.label(request, token: token, verifyHandoff: verifyHandoff)
+            let data = try await api.label(request, token: token)
             _ = try LabelPrinter.media(for: data)
             records.removeAll { $0.id == request.key }
             records.insert(PrintRecord(request: request, state: "submitting"), at: 0)
