@@ -80,6 +80,7 @@ final class ShippingModel {
                 let approved = try await api.account(token: key)
                 try Task.checkCancellation()
                 try await credentials.save(key)
+                try Task.checkCancellation()
                 token = key
                 company = approved
                 notice = t("Connected. Enable printing in your browser to finish setup.")
@@ -115,7 +116,9 @@ final class ShippingModel {
         await start()
         do {
             let request = try PrintRequest(url: url)
-            if records.contains(where: { $0.id == request.key }) {
+            if let index = records.firstIndex(where: { $0.id == request.key }) {
+                let record = records.remove(at: index)
+                records.insert(record, at: 0)
                 notice = t("This label was already received. Use Reprint below if another copy is needed.")
                 return
             }
@@ -142,8 +145,9 @@ final class ShippingModel {
     func reprint(_ record: PrintRecord) async {
         guard historyReadable, !busy, let token, company?.id == record.request.tenantId, !printerId.isEmpty else { return }
         busy = true
-        defer { busy = false }
         await printLabel(record.request, token: token, verifyHandoff: false)
+        busy = false
+        await drain()
     }
 
     private func printLabel(_ request: PrintRequest, token: String, verifyHandoff: Bool) async {
