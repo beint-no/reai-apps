@@ -49,6 +49,7 @@
 "Preparing label…" = "Preparing label…";
 "Preparing shipment…" = "Preparing shipment…";
 "Print another copy" = "Print another copy";
+"Print label" = "Print label";
 "Print another copy? Check the printer queue first." = "Print another copy? Check the printer queue first.";
 "Printed labels will appear here." = "Printed labels will appear here.";
 "Printer" = "Printer";
@@ -73,6 +74,7 @@
 "Saved shipments" = "Saved shipments";
 "Search" = "Search";
 "Sent to the printer queue." = "Sent to the printer queue.";
+"Sends one label to your printer." = "Sends one label to your printer.";
 "Ship & print" = "Ship & print";
 "Shipment" = "Shipment";
 "Shipping history could not be read. Shipping and printing are paused to prevent duplicates." = "Shipping history could not be read. Shipping and printing are paused to prevent duplicates.";

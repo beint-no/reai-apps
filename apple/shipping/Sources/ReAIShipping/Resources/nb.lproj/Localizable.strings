@@ -49,6 +49,7 @@
 "Preparing label…" = "Klargjør etiketten …";
 "Preparing shipment…" = "Klargjør forsendelsen …";
 "Print another copy" = "Skriv ut en kopi til";
+"Print label" = "Skriv ut etikett";
 "Print another copy? Check the printer queue first." = "Skrive ut en kopi til? Kontroller utskriftskøen først.";
 "Printed labels will appear here." = "Utskrevne etiketter vises her.";
 "Printer" = "Skriver";
@@ -73,6 +74,7 @@
 "Saved shipments" = "Lagrede forsendelser";
 "Search" = "Søk";
 "Sent to the printer queue." = "Sendt til utskriftskøen.";
+"Sends one label to your printer." = "Sender én etikett til skriveren.";
 "Ship & print" = "Send og skriv ut";
 "Shipment" = "Forsendelse";
 "Shipping history could not be read. Shipping and printing are paused to prevent duplicates." = "Frakthistorikken kunne ikke leses. Sending og utskrift er stanset for å unngå duplikater.";

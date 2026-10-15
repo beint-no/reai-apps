@@ -108,12 +108,12 @@ struct ShippingView: View {
                 if let shipment = model.shipment { savedShipment(shipment) }
                 else if let draft = Binding($model.draft) { proposal(draft) }
                 else if let reason = model.options?.unavailableReason { Text(reason).foregroundStyle(.secondary) }
-                if model.draft != nil || model.shipment?.actions.contains("book") == true {
+                if model.draft != nil || model.shipment?.actions.contains("book") == true || (model.shipment?.status == "booked" && model.shipment?.labelAvailable == true) {
                     Button { Task { await model.shipAndPrint() } } label: {
-                        Label(t("Ship & print") + (model.quote.map { " · " + $0.display } ?? ""), systemImage: "printer.fill").frame(maxWidth: .infinity)
+                        Label((model.shipment?.status == "booked" ? t("Print label") : t("Ship & print")) + (model.quote.map { " · " + $0.display } ?? ""), systemImage: "printer.fill").frame(maxWidth: .infinity)
                     }.buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canShip)
                     if model.printerId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
-                    Text(t("Books this parcel, updates ReAI and sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
+                    Text(model.shipment?.status == "booked" ? t("Sends one label to your printer.") : t("Books this parcel, updates ReAI and sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
                 }
                 if let existing = model.options?.existingShipments.items, existing.count > 1 {
                     DisclosureGroup(t("Saved shipments")) {

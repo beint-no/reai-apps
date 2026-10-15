@@ -10,7 +10,7 @@ Ship orders and print labels from a native Mac app. Connect to ReAI, choose an o
 4. Select an order. Existing checkout parcels use their agreed snapshot. Other orders get recipient, item, weight and parcel defaults; check the actual package, choose a service/pickup and review the price. The last service choice is remembered.
 5. Click **Ship & print**. Labels use the carrier PDF's dimensions, including common 100/102 × 150/192 mm formats; load matching stock. No print dialog or label-size setting is needed.
 
-The app is a public API client. The web app remains independent and needs no browser setting, extension, native app links or handoff permissions. Agents and other clients can use the same shipping operations in [ReAI's public API](https://app.reai.no/openapi/public/ui).
+The app is a public API client. The web app remains independent and needs no browser setting, extension, native app links or handoff permissions. Agents and other clients can use the same shipping operations in [ReAI's public API](https://app.reai.no/openapi/public/ui). An iOS client could use those same operations to pick an order and book it; printing from a phone would need a reachable network printer or a small Mac relay, since iOS cannot directly submit to a locally installed Mac printer queue.
 
 ## Recovery and privacy
 
