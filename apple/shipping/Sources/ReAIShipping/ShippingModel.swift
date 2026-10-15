@@ -52,7 +52,10 @@ final class ShippingModel {
         let carrier = shipment?.carrierCode ?? draft?.carrierCode
         return options?.services.first(where: { $0.carrierCode == carrier })?.testMode ?? false
     }
-    var canShip: Bool { historyReadable && !busy && !printerId.isEmpty && !unfinished.contains { $0.orderId == selectedOrder?.id } && (shipment?.actions.contains("book") == true || quote != nil) }
+    var canShip: Bool {
+        historyReadable && !busy && !printerId.isEmpty && !unfinished.contains { $0.orderId == selectedOrder?.id } &&
+            (shipment?.actions.contains("book") == true || (shipment?.status == "booked" && shipment?.labelAvailable == true) || quote != nil)
+    }
 
     private let api = ReAIAPI()
     private let credentials = Credentials()
@@ -168,14 +171,18 @@ final class ShippingModel {
         selectedOrder = order; options = nil; draft = nil; rates = []; pickups = []; quote = nil; shipment = nil
         error = nil; notice = nil
         do {
-            let result = try await api.options(order: order.id, token: token, company: company.id)
-            options = result
             if let saved = unfinished.first(where: { $0.orderId == order.id }) {
                 if let id = saved.shipmentId { shipment = try await api.shipment(id, token: token, company: company.id) }
                 else { draft = saved.draft; notice = t("A saved shipping request needs checking. Use Resume below.") }
-            } else if let id = result.existingShipments.items.first(where: { $0.status == "prepared" })?.id {
+            } else if let id = order.preparedShipmentId {
                 shipment = try await api.shipment(id, token: token, company: company.id)
             } else {
+                let result = try await api.options(order: order.id, token: token, company: company.id)
+                options = result
+                if let id = result.existingShipments.items.first(where: { $0.status == "prepared" })?.id {
+                    shipment = try await api.shipment(id, token: token, company: company.id)
+                    return
+                }
                 draft = result.defaults
                 if draft != nil { try await loadRates(token: token, company: company.id) }
             }
