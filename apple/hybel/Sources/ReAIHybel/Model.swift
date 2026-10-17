@@ -158,7 +158,7 @@ struct Attempt: Codable { let marker: String; let fingerprint: String; var vouch
                     "reviewReason": "Check the attached Hybel journal/period report, BatchIDs, cutoff, bank entries and VAT code 0. Tenant-level subledger remains in Hybel. Attach source documentation before clearing review.",
                     "postings": journal.postings(bankAccounts: bankMap)])
                 let attempt = Attempt(marker: marker, fingerprint: journal.fingerprint, voucherID: nil)
-                try JSONEncoder().encode(attempt).write(to: path, options: [.atomic, .withoutOverwriting])
+                try JSONEncoder().encode(attempt).write(to: path, options: .withoutOverwriting)
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path.path)
                 let created: Voucher = try await api.request("api/manual-vouchers", token: token, company: tenant, body: body)
                 voucherID = created.id; confirmedNotBooked = false
