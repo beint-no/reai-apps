@@ -1,0 +1,7 @@
+Native macOS 15+ / Apple Silicon app for explicitly reviewed Hybel monthly general-ledger CSV imports through the ReAI public API. Build with `tools/apple/build.py hybel` using Swift 6.4.
+
+Hybel's public help documents exports and vendor-managed outbound integrations, not an independent read API. Do not invent Hybel endpoints, authentication or background sync. Add direct API access only against a verified provider contract. No Hybel credentials are collected in this version.
+
+Keep ReAI secrets in the app's unique Keychain service. Reuse device approval and allow a user API key. Company choice must be explicit for multi-company tokens. Validate source organization number, NOK, all account ownership/restrictions, monthly scope, VAT 0 and balanced source references before booking. Subsidiary ledger imports, VAT, projects and departments are deliberately outside this release; never silently discard those dimensions. Keep Hybel as the tenant-level subledger.
+
+Create one review-flagged manual voucher per company/month, preserving dates and BatchIDs. Paired debit/credit must share rowNumber. Never send invoices, approve payments, auto-close bank reconciliation, overwrite drafts or automatically retry writes. Check server history and persist a checkpoint before POST. An uncertain checkpoint blocks later attempts until an operator verifies actual server state. Retain source evidence outside Git and attach original reports in ReAI before clearing review. Do not embed customer data in code or releases.

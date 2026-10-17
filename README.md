@@ -6,6 +6,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 
 | App | What it does |
 | --- | --- |
+| [Hybel Journal for Mac](apple/hybel) | Preview a monthly Hybel CSV journal and create a ReAI voucher for accountant review. Experimental; no direct Hybel API sync. |
 | [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
 | [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
@@ -33,6 +34,7 @@ Most apps use **Connect to ReAI** with browser approval. The Vipps, Klarna, Zett
 
 ```text
 apple/
+  hybel/            Hybel monthly journal bridge
   time-tracker/     Swift package and app source
   finder-vault/     Swift package and app source
   import/           Swift package and app source
