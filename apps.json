@@ -86,5 +86,13 @@
     "bundle_id": "no.reai.shipping",
     "icon": "make-icon.swift",
     "asset": "ReAI-Shipping-Apple-Silicon.dmg"
+  },
+  "hybel": {
+    "name": "ReAI Hybel Journal",
+    "path": "apple/hybel",
+    "executable": "ReAIHybel",
+    "bundle_id": "no.reai.hybeljournal",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Hybel-Journal-Apple-Silicon.dmg"
   }
 }
