@@ -82,8 +82,14 @@ actor ReAIAPI {
 struct ReadyOrder: Decodable, Identifiable, Sendable {
     var id: Int { orderId }
     let orderId: Int; let orderNumber: String; let customerName: String; let date: String
-    let remainingQuantity: Decimal; let preparedShipmentId: Int?
+    let remainingQuantity: Decimal?; let preparedShipmentId: Int?
 }
+struct HistoricalOrder: Decodable, Sendable {
+    let id: Int; let number: String; let customerName: String?; let date: String
+    var row: ReadyOrder { ReadyOrder(orderId: id, orderNumber: number, customerName: customerName ?? "", date: date,
+                                     remainingQuantity: nil, preparedShipmentId: nil) }
+}
+struct HistoryPage: Sendable { let items: [ReadyOrder]; let nextBeforeId: Int? }
 struct ReadyPage: Decodable, Sendable { let items: [ReadyOrder]; let page: Int; let totalPages: Int; let totalItems: Int }
 struct Recipient: Codable, Equatable, Sendable {
     var name: String?; var email: String?; var phone: String?; var countryCode: String?
@@ -133,6 +139,63 @@ extension ReAIAPI {
     func orders(token: String, company: Int, search: String, page: Int) async throws -> ReadyPage {
         try await json("api/orders/shipping-ready", token: token, company: company, query: [
             URLQueryItem(name: "search", value: search), URLQueryItem(name: "page", value: String(page))])
+    }
+    func history(token: String, company: Int, search: String, beforeId: Int?) async throws -> HistoryPage {
+        let term = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !term.isEmpty {
+            var orderId = Int(term)
+            if let url = URLComponents(string: term), url.scheme != nil {
+                guard url.scheme == "https", url.host == AppEnvironment.origin.host(),
+                      url.path.hasPrefix("/order/"),
+                      let id = Int(url.path.dropFirst("/order/".count)), id > 0 else {
+                    throw appError("Paste a ReAI order link, order number or order ID.")
+                }
+                if let tenant = url.queryItems?.first(where: { $0.name == "tenantId" })?.value,
+                   tenant != String(company) { throw appError("This order link belongs to another company. Connect to that company first.") }
+                orderId = id
+            }
+            var rows: [HistoricalOrder] = []
+            if let id = orderId, id > 0 {
+                do { rows.append(try await json("api/orders/\(id)", token: token, company: company)) }
+                catch let error as NSError where error.code == 404 { }
+            }
+            if !term.contains("://") {
+                let matches: [HistoricalOrder] = try await json("api/orders", token: token, company: company, query: [
+                    URLQueryItem(name: "status", value: "all"), URLQueryItem(name: "startDate", value: "0001-01-01"),
+                    URLQueryItem(name: "endDate", value: "9999-12-31"), URLQueryItem(name: "orderNumber", value: term)])
+                let known = Set(rows.map(\.id))
+                rows += matches.filter { !known.contains($0.id) }
+            }
+            return HistoryPage(items: rows.map(\.row), nextBeforeId: nil)
+        }
+        let page = try await shipments(order: nil, beforeId: beforeId, token: token, company: company)
+        let ids = Array(Set(page.items.map(\.orderId)))
+        var rows: [ReadyOrder] = []
+        // Bound concurrent lookups while browsing the shipment cursor.
+        for offset in stride(from: 0, to: ids.count, by: 4) {
+            let batch = Array(ids[offset..<min(offset + 4, ids.count)])
+            let values = try await withThrowingTaskGroup(of: ReadyOrder.self) { group in
+                for id in batch {
+                    group.addTask {
+                        let order: HistoricalOrder = try await self.json("api/orders/\(id)", token: token, company: company)
+                        return order.row
+                    }
+                }
+                var values: [ReadyOrder] = []
+                for try await value in group { values.append(value) }
+                return values
+            }
+            rows += values
+        }
+        let positions = Dictionary(page.items.reversed().map { ($0.orderId, $0.id) }, uniquingKeysWith: { _, latest in latest })
+        rows.sort { positions[$0.id, default: 0] > positions[$1.id, default: 0] }
+        return HistoryPage(items: rows, nextBeforeId: page.nextBeforeId)
+    }
+    func shipments(order: Int?, beforeId: Int? = nil, token: String, company: Int) async throws -> ShipmentPage {
+        var query = [URLQueryItem(name: "limit", value: "50")]
+        if let order { query.append(URLQueryItem(name: "orderId", value: String(order))) }
+        if let beforeId { query.append(URLQueryItem(name: "beforeId", value: String(beforeId))) }
+        return try await json("api/shipments", token: token, company: company, query: query)
     }
     func options(order: Int, token: String, company: Int) async throws -> ShippingOptions {
         try await json("api/orders/\(order)/shipping-options", token: token, company: company)

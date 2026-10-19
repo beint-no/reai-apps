@@ -34,6 +34,15 @@ final class ShippingModel {
     var loadingOrders = false
     var orders: [ReadyOrder] = []
     var search = ""
+    var showingHistory = false
+    var historyBeforeId: Int?
+    var savedShipments: [ShipmentSummary] = []
+    var shipmentBeforeId: Int?
+    var canLoadMore: Bool { showingHistory ? historyBeforeId != nil : page + 1 < totalPages }
+    var selectedPrintRecord: PrintRecord? {
+        guard let company, let shipment else { return nil }
+        return PrintRecord(request: PrintRequest(tenantId: company.id, shipmentId: shipment.id), state: "saved")
+    }
     var page = 0
     var totalPages = 0
     var totalOrders = 0
@@ -52,8 +61,9 @@ final class ShippingModel {
         let carrier = shipment?.carrierCode ?? draft?.carrierCode
         return options?.services.first(where: { $0.carrierCode == carrier })?.testMode ?? false
     }
+    var canPrint: Bool { historyReadable && !busy && !printerId.isEmpty }
     var canShip: Bool {
-        historyReadable && !busy && !printerId.isEmpty && !unfinished.contains { $0.orderId == selectedOrder?.id } &&
+        !showingHistory && historyReadable && !busy && !printerId.isEmpty && !unfinished.contains { $0.orderId == selectedOrder?.id } &&
             (shipment?.actions.contains("book") == true || (shipment?.status == "booked" && shipment?.labelAvailable == true) || quote != nil)
     }
 
@@ -135,6 +145,7 @@ final class ShippingModel {
             try await credentials.delete()
             token = nil
             company = nil
+            savedShipments = []; historyBeforeId = nil; shipmentBeforeId = nil
             orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; quote = nil
             notice = nil
         } catch { self.error = error.localizedDescription }
@@ -150,12 +161,32 @@ final class ShippingModel {
         } catch { self.error = error.localizedDescription }
     }
 
+    func changeOrderView(history: Bool) async {
+        guard !busy, !loadingOrders else { return }
+        showingHistory = history
+        historyBeforeId = nil; shipmentBeforeId = nil; error = nil; notice = nil
+        orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; savedShipments = []; quote = nil
+        await refreshOrders()
+    }
+
     func refreshOrders(more: Bool = false) async {
         guard !loadingOrders, let token, let company else { return }
         loadingOrders = true
         defer { loadingOrders = false }
         do {
+            if showingHistory {
+                let result = try await api.history(token: token, company: company.id, search: search, beforeId: more ? historyBeforeId : nil)
+                guard self.company?.id == company.id else { return }
+                if more {
+                    let known = Set(orders.map(\.id))
+                    orders += result.items.filter { !known.contains($0.id) }
+                } else { orders = result.items }
+                historyBeforeId = result.nextBeforeId
+                totalOrders = orders.count
+                return
+            }
             let result = try await api.orders(token: token, company: company.id, search: search, page: more ? page + 1 : 0)
+            guard self.company?.id == company.id else { return }
             if more {
                 let known = Set(orders.map(\.id))
                 orders += result.items.filter { !known.contains($0.id) }
@@ -168,9 +199,18 @@ final class ShippingModel {
         guard !busy, let token, let company else { return }
         busy = true
         defer { busy = false }
+        savedShipments = []; shipmentBeforeId = nil
         selectedOrder = order; options = nil; draft = nil; rates = []; pickups = []; quote = nil; shipment = nil
         error = nil; notice = nil
         do {
+            let history = try await api.shipments(order: order.id, token: token, company: company.id)
+            savedShipments = history.items; shipmentBeforeId = history.nextBeforeId
+            if showingHistory {
+                if let id = savedShipments.first(where: { $0.status == "booked" })?.id ?? savedShipments.first?.id {
+                    shipment = try await api.shipment(id, token: token, company: company.id)
+                } else { notice = t("No saved shipping labels for this order.") }
+                return
+            }
             if let saved = unfinished.first(where: { $0.orderId == order.id }) {
                 if let id = saved.shipmentId { shipment = try await api.shipment(id, token: token, company: company.id) }
                 else { draft = saved.draft; notice = t("A saved shipping request needs checking. Use Resume below.") }
@@ -189,9 +229,21 @@ final class ShippingModel {
         } catch { self.error = error.localizedDescription }
     }
 
+    func loadMoreShipments() async {
+        guard !busy, let token, let company, let order = selectedOrder, let beforeId = shipmentBeforeId else { return }
+        busy = true; defer { busy = false }
+        do {
+            let result = try await api.shipments(order: order.id, beforeId: beforeId, token: token, company: company.id)
+            let known = Set(savedShipments.map(\.id))
+            savedShipments += result.items.filter { !known.contains($0.id) }
+            shipmentBeforeId = result.nextBeforeId
+        } catch { self.error = error.localizedDescription }
+    }
+
     func chooseShipment(_ id: Int) async {
         guard !busy, let token, let company else { return }
         busy = true; defer { busy = false }
+        error = nil; notice = nil
         do { shipment = try await api.shipment(id, token: token, company: company.id); draft = nil; quote = nil }
         catch { self.error = error.localizedDescription }
     }

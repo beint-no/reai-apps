@@ -77,14 +77,25 @@ struct ShippingView: View {
     private var orderList: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(t("Ready to ship")).font(.headline)
+                Text(t("Orders")).font(.headline)
                 Spacer()
                 Button { Task { await model.refreshOrders() } } label: { Image(systemName: "arrow.clockwise") }.disabled(model.busy)
             }.padding(.horizontal, 16).padding(.top, 16)
+            Picker(t("Orders"), selection: Binding(get: { model.showingHistory }, set: { history in
+                Task { await model.changeOrderView(history: history) }
+            })) {
+                Text(t("Ready to ship")).tag(false)
+                Text(t("History")).tag(true)
+            }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 16).disabled(model.busy || model.loadingOrders)
             HStack {
-                TextField(t("Order or customer"), text: $model.search).onSubmit { Task { await model.refreshOrders() } }
+                TextField(t(model.showingHistory ? "Order number, ID or link" : "Order or customer"), text: $model.search).onSubmit { Task { await model.refreshOrders() } }
                 Button(t("Search")) { Task { await model.refreshOrders() } }.disabled(model.loadingOrders)
             }.padding(.horizontal, 16).disabled(model.busy)
+            if model.loadingOrders { ProgressView().controlSize(.small).padding(.horizontal, 16) }
+            if model.orders.isEmpty && !model.loadingOrders {
+                Text(t(model.showingHistory ? "Search all past orders by number, ID or ReAI link." : "No orders ready to ship. Find past labels in History."))
+                    .font(.callout).foregroundStyle(.secondary).padding(.horizontal, 16)
+            }
             List {
                 ForEach(model.orders) { order in
                     Button { Task { await model.select(order) } } label: {
@@ -95,7 +106,7 @@ struct ShippingView: View {
                         }.padding(.vertical, 7).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                     }.buttonStyle(.plain).listRowBackground(model.selectedOrder?.id == order.id ? Color.accentColor.opacity(0.12) : Color.clear).disabled(model.busy)
                 }
-                if model.page + 1 < model.totalPages { Button(t("Load more")) { Task { await model.refreshOrders(more: true) } }.disabled(model.busy) }
+                if model.canLoadMore { Button(t("Load more")) { Task { await model.refreshOrders(more: true) } }.disabled(model.busy || model.loadingOrders) }
             }.listStyle(.sidebar)
             Text("\(model.totalOrders) " + t("orders")).font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.bottom, 12)
         }
@@ -108,17 +119,39 @@ struct ShippingView: View {
                 if let shipment = model.shipment { savedShipment(shipment) }
                 else if let draft = Binding($model.draft) { proposal(draft) }
                 else if let reason = model.options?.unavailableReason { Text(reason).foregroundStyle(.secondary) }
-                if model.draft != nil || model.shipment?.actions.contains("book") == true || (model.shipment?.status == "booked" && model.shipment?.labelAvailable == true) {
+                if model.shipment?.status == "booked", model.shipment?.labelAvailable == true {
+                    Button { reprint = model.selectedPrintRecord } label: {
+                        Label(t("Print label"), systemImage: "printer.fill").frame(maxWidth: .infinity)
+                    }.buttonStyle(.borderedProminent).controlSize(.large)
+                        .disabled(!model.canPrint)
+                    Text(t("Sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
+                    if model.printerId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
+                } else if !model.showingHistory && (model.draft != nil || model.shipment?.actions.contains("book") == true) {
                     Button { Task { await model.shipAndPrint() } } label: {
-                        Label((model.shipment?.status == "booked" ? t("Print label") : t("Ship & print")) + (model.quote.map { " · " + $0.display } ?? ""), systemImage: "printer.fill").frame(maxWidth: .infinity)
+                        Label(t("Ship & print") + (model.quote.map { " · " + $0.display } ?? ""), systemImage: "printer.fill").frame(maxWidth: .infinity)
                     }.buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canShip)
                     if model.printerId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
-                    Text(model.shipment?.status == "booked" ? t("Sends one label to your printer.") : t("Books this parcel, updates ReAI and sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
+                    Text(t("Books this parcel, updates ReAI and sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
                 }
-                if let existing = model.options?.existingShipments.items, existing.count > 1 {
-                    DisclosureGroup(t("Saved shipments")) {
-                        ForEach(existing) { s in Button("#\(s.id) · " + t(s.status)) { Task { await model.chooseShipment(s.id) } }.disabled(model.busy) }
+                if !model.savedShipments.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(t("Saved shipments")).font(.headline)
+                        ForEach(model.savedShipments) { s in
+                            Button { Task { await model.chooseShipment(s.id) } } label: {
+                                HStack {
+                                    Image(systemName: model.shipment?.id == s.id ? "largecircle.fill.circle" : "circle")
+                                    Text("#\(s.id) · " + t(s.status))
+                                }
+                            }.buttonStyle(.plain).disabled(model.busy)
+                        }
+                        if model.shipmentBeforeId != nil {
+                            Button(t("Load more")) { Task { await model.loadMoreShipments() } }.disabled(model.busy)
+                        }
                     }
+                }
+                if let company = model.company {
+                    Link(t("Open order in ReAI"), destination: AppEnvironment.origin.appending(path: "order/\(order.id)")
+                        .appending(queryItems: [URLQueryItem(name: "tenantId", value: String(company.id))]))
                 }
             } else {
                 ContentUnavailableView(t("Choose an order"), systemImage: "shippingbox", description: Text(t("Review the parcel and price, then ship and print in one click.")))
@@ -161,7 +194,7 @@ struct ShippingView: View {
             Text("\(shipment.parcel.weightGrams) g · \(shipment.parcel.lengthCm.formatted()) × \(shipment.parcel.widthCm.formatted()) × \(shipment.parcel.heightCm.formatted()) cm").foregroundStyle(.secondary)
             if let amount = shipment.customerCharge.amount, let currency = shipment.customerCharge.currencyCode { Text(t("Shipping price") + ": \(amount.formatted()) \(currency)").font(.headline) }
             if let error = shipment.error { Text(error).foregroundStyle(.orange) }
-            if shipment.actions.contains("cancel") { Button(t("Cancel preparation")) { Task { await model.cancelPreparation() } }.disabled(model.busy) }
+            if !model.showingHistory && shipment.actions.contains("cancel") { Button(t("Cancel preparation")) { Task { await model.cancelPreparation() } }.disabled(model.busy) }
             if shipment.inventoryRecordingPending || shipment.customerCharge.recordingPending { Text(t("Booked shipment has pending recording in ReAI. Check its status before further action.")).foregroundStyle(.orange) }
         }
     }
