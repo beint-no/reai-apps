@@ -109,3 +109,12 @@
 "orders" = "ordre";
 "outcome_unknown" = "Uavklart resultat";
 "prepared" = "Klargjort";
+"Orders" = "Ordrer";
+"History" = "Historikk";
+"Order number, ID or link" = "Ordrenummer, ID eller lenke";
+"Search all past orders by number, ID or ReAI link." = "Søk i alle tidligere ordrer med nummer, ID eller ReAI-lenke.";
+"No orders ready to ship. Find past labels in History." = "Ingen ordrer klare til sending. Finn tidligere etiketter i Historikk.";
+"No saved shipping labels for this order." = "Ingen lagrede fraktetiketter for denne ordren.";
+"Open order in ReAI" = "Åpne ordre i ReAI";
+"Paste a ReAI order link, order number or order ID." = "Lim inn en ReAI-ordrelenke, et ordrenummer eller en ordre-ID.";
+"This order link belongs to another company. Connect to that company first." = "Denne ordrelenken tilhører et annet selskap. Koble til det selskapet først.";

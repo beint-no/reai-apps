@@ -109,3 +109,12 @@
 "orders" = "orders";
 "outcome_unknown" = "Outcome unknown";
 "prepared" = "Prepared";
+"Orders" = "Orders";
+"History" = "History";
+"Order number, ID or link" = "Order number, ID or link";
+"Search all past orders by number, ID or ReAI link." = "Search all past orders by number, ID or ReAI link.";
+"No orders ready to ship. Find past labels in History." = "No orders ready to ship. Find past labels in History.";
+"No saved shipping labels for this order." = "No saved shipping labels for this order.";
+"Open order in ReAI" = "Open order in ReAI";
+"Paste a ReAI order link, order number or order ID." = "Paste a ReAI order link, order number or order ID.";
+"This order link belongs to another company. Connect to that company first." = "This order link belongs to another company. Connect to that company first.";

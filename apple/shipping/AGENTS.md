@@ -8,6 +8,8 @@ Use browser device authorization with client `shipping`; Keychain service `no.re
 
 Persist request UUID and exact accepted proposal in the private shipping-operations.json journal BEFORE any write. After an uncertain create, look up by request ID; retry only that same proposal/UUID. Save shipment ID before booking. Pending progress uses bounded GET polling. Unknown outcomes never trigger a replacement or automatic booking retry. Resuming is explicit. Preserve unresolved operations across restarts and company changes. Never silently reset unreadable journals.
 
+History browses cursor-paged shipments and searches all order dates by number, ID or tenant-checked ReAI link. Load saved shipments directly without preparing a new parcel; reprinting must only retrieve the existing label, never invoke booking. Keep the local print receipt and explicit reprint confirmation.
+
 Use installed macOS printer queues; automatically choose exactly one Zebra. Carrier PDF dimensions determine custom media. Reject non-PDF, oversized, mixed-size and non-label documents. Print one copy without dialogs. Temporary PDFs are private and removed after spooling.
 
 Persist a tenant/shipment receipt before invoking lp. Interrupted/uncertain submissions require checking the OS queue and explicitly reprinting. Never automatically retry uncertain prints. Report queue acceptance, never physical printing success. Keep English and Norwegian copy in Resources. Native UI and the download site require local screenshot inspection after UI changes.
