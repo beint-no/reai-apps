@@ -68,3 +68,11 @@ Do not tell users to disable Gatekeeper or remove quarantine. Fix the release an
 References: [Developer ID certificates](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/),
 [notarization](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution),
 [packaging Mac software](https://developer.apple.com/documentation/xcode/packaging-mac-software-for-distribution).
+
+## Shipping in-app updates
+
+Shipping uses pinned Sparkle 2.10.0. The build embeds its framework with symlinks preserved; release signs Autoupdate, Updater.app, both XPC helpers and the framework inside-out before signing the host with hardened runtime. Other apps remain independent.
+
+The `apple-release` secret `SHIPPING_SPARKLE_PRIVATE_KEY` signs the notarized DMG and appcast. Its public key is in Shipping's Info.plist; the private key is also retained in the operator's login Keychain under Sparkle account `no.reai.shipping`. To rotate, follow Sparkle's key-rotation guidance and preserve the Apple signing identity. Never print or commit the private key.
+
+After notarization, the pinned Sparkle distribution (SHA-256 verified) generates a signed `shipping.xml` release asset pointing at that release's DMG. Pages copies the newest published Shipping release's feed without modification. Future Shipping releases automatically update this feed. Shipping checks only through **Check for Updates…**; automatic checks and installs are disabled. Existing versions without Sparkle need one manual installation to gain the updater.

@@ -118,3 +118,8 @@
 "Open order in ReAI" = "Åpne ordre i ReAI";
 "Paste a ReAI order link, order number or order ID." = "Lim inn en ReAI-ordrelenke, et ordrenummer eller en ordre-ID.";
 "This order link belongs to another company. Connect to that company first." = "Denne ordrelenken tilhører et annet selskap. Koble til det selskapet først.";
+
+"Check for Updates…" = "Se etter oppdateringer…";
+"Include older orders" = "Inkluder eldre ordrer";
+"All order dates" = "Alle ordredatoer";
+"Orders from the last 14 days" = "Ordrer fra de siste 14 dagene";

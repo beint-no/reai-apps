@@ -26,6 +26,8 @@ def release(app_id, version):
         raise ValueError('Missing release credentials: ' + ', '.join(missing))
     if not re.fullmatch(r'[A-Z0-9]{10}', os.environ['APPLE_TEAM_ID']):
         raise ValueError('Invalid Apple team ID')
+    if app_id == 'shipping' and not os.environ.get('SHIPPING_SPARKLE_PRIVATE_KEY'):
+        raise ValueError('Missing SHIPPING_SPARKLE_PRIVATE_KEY')
     destination = ROOT / 'dist' / app_id
     with tempfile.TemporaryDirectory(prefix='reai-release-') as temporary:
         work = Path(temporary)
@@ -62,7 +64,13 @@ def release(app_id, version):
             binary = bundle / 'Contents' / 'MacOS' / app['executable']
             if output('lipo', '-archs', binary) != 'arm64':
                 raise ValueError('Only Apple Silicon releases are supported')
-            if any((bundle / 'Contents' / name).exists() for name in ['Frameworks', 'PlugIns', 'XPCServices']):
+            framework = bundle / 'Contents' / 'Frameworks' / 'Sparkle.framework'
+            if app_id == 'shipping':
+                from sparkle import sign_framework
+                sign_framework(framework, identity, keychain)
+            elif (bundle / 'Contents' / 'Frameworks').exists():
+                raise ValueError('Embedded frameworks need explicit inside-out signing')
+            if any((bundle / 'Contents' / name).exists() for name in ['PlugIns', 'XPCServices']):
                 raise ValueError('Embedded code needs explicit inside-out signing before adding this app')
             run('codesign', '--force', '--timestamp', '--options', 'runtime', '--sign', identity, '--keychain', keychain, bundle)
             run('codesign', '--verify', '--strict', '--verbose=2', bundle)
@@ -84,6 +92,9 @@ def release(app_id, version):
             run('xcrun', 'stapler', 'validate', image)
             run('spctl', '--assess', '--type', 'open', '--context', 'context:primary-signature', '--verbose=2', image)
             checksum(image)
+            if app_id == 'shipping':
+                from sparkle import generate_feed
+                generate_feed(image, version, work)
             print(f'Ready: {image}')
         finally:
             try:

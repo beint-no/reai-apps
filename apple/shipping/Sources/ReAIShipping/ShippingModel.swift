@@ -35,6 +35,8 @@ final class ShippingModel {
     var orders: [ReadyOrder] = []
     var search = ""
     var showingHistory = false
+    var includeOlderOrders = false
+    private var readyFromDate = ""
     var historyBeforeId: Int?
     var savedShipments: [ShipmentSummary] = []
     var shipmentBeforeId: Int?
@@ -169,6 +171,23 @@ final class ShippingModel {
         await refreshOrders()
     }
 
+    func changeOrderAge(includeOlder: Bool) async {
+        guard !busy, !loadingOrders else { return }
+        includeOlderOrders = includeOlder
+        await changeOrderView(history: false)
+    }
+
+    static func readyOrderStart(includeOlder: Bool, now: Date = .now, calendar: Calendar = .current) -> String {
+        if includeOlder { return "1900-01-01" }
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: now)!
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: cutoff)
+    }
+
     func refreshOrders(more: Bool = false) async {
         guard !loadingOrders, let token, let company else { return }
         loadingOrders = true
@@ -185,7 +204,9 @@ final class ShippingModel {
                 totalOrders = orders.count
                 return
             }
-            let result = try await api.orders(token: token, company: company.id, search: search, page: more ? page + 1 : 0)
+            if !more { readyFromDate = Self.readyOrderStart(includeOlder: includeOlderOrders) }
+            let result = try await api.orders(token: token, company: company.id, search: search,
+                                              page: more ? page + 1 : 0, from: readyFromDate)
             guard self.company?.id == company.id else { return }
             if more {
                 let known = Set(orders.map(\.id))

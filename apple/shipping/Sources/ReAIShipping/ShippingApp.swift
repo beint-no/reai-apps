@@ -4,13 +4,22 @@ import SwiftUI
 @main
 struct ShippingApp: App {
     @State private var model = ShippingModel()
+    @StateObject private var updater = ShippingUpdater()
     @Environment(\.openWindow) private var openWindow
     var body: some Scene {
         Window("ReAI Shipping", id: "shipping") {
-            ShippingView(model: model).frame(minWidth: 860, minHeight: 700).task { await model.start() }
+            ShippingView(model: model).disabled(updater.inProgress).frame(minWidth: 860, minHeight: 700).task { await model.start() }
         }.defaultSize(width: 960, height: 780)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button(t("Check for Updates…")) { updater.check() }
+                    .disabled(model.busy || model.connecting || !updater.canCheck)
+            }
+        }
         MenuBarExtra("ReAI Shipping", systemImage: "shippingbox") {
             Button(t("Open ReAI Shipping")) { openWindow(id: "shipping"); NSApp.activate() }
+            Button(t("Check for Updates…")) { updater.check() }
+                .disabled(model.busy || model.connecting || !updater.canCheck)
             Divider()
             Button(t("Quit")) { NSApp.terminate(nil) }.disabled(model.busy)
         }
@@ -91,6 +100,13 @@ struct ShippingView: View {
                 TextField(t(model.showingHistory ? "Order number, ID or link" : "Order or customer"), text: $model.search).onSubmit { Task { await model.refreshOrders() } }
                 Button(t("Search")) { Task { await model.refreshOrders() } }.disabled(model.loadingOrders)
             }.padding(.horizontal, 16).disabled(model.busy)
+            if !model.showingHistory {
+                Toggle(t("Include older orders"), isOn: Binding(get: { model.includeOlderOrders }, set: { includeOlder in
+                    Task { await model.changeOrderAge(includeOlder: includeOlder) }
+                })).toggleStyle(.checkbox).padding(.horizontal, 16).disabled(model.busy || model.loadingOrders)
+                Text(t(model.includeOlderOrders ? "All order dates" : "Orders from the last 14 days"))
+                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16)
+            }
             if model.loadingOrders { ProgressView().controlSize(.small).padding(.horizontal, 16) }
             if model.orders.isEmpty && !model.loadingOrders {
                 Text(t(model.showingHistory ? "Search all past orders by number, ID or ReAI link." : "No orders ready to ship. Find past labels in History."))
