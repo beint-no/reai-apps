@@ -10,6 +10,8 @@ app = configuration(sys.argv[1])
 connection = ('Open the app, paste a ReAI user access token and the provider credentials, then choose a company and bank account.'
               if sys.argv[1] in {'vipps', 'klarna', 'zettle', 'dintero'} else
               'Open the app, click **Connect to ReAI**, choose a company, and approve in your browser.')
+updating = ('After this initial installation, use **ReAI Shipping → Check for Updates…** to download and install future updates in the app. No scheduled checks or automatic updates.'
+            if sys.argv[1] == 'shipping' else 'To update, quit the app and replace it in Applications.')
 print(f'''Requires Apple Silicon (M1 or newer) and macOS 15 or newer.
 
 1. Download **{app['asset']}** below and open it.
@@ -21,5 +23,5 @@ The normal first-open confirmation from macOS may appear.
 
 [App instructions](https://github.com/beint-no/reai-apps/tree/main/{app['path']}) · [All ReAI apps](https://beint-no.github.io/reai-apps/)
 
-To update, quit the app and replace it in Applications. A SHA-256 checksum is included in `SHA256SUMS`.
+{updating} A SHA-256 checksum is included in `SHA256SUMS`.
 ''')

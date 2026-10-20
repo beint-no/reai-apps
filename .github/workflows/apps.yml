@@ -91,6 +91,7 @@ jobs:
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          SHIPPING_SPARKLE_PRIVATE_KEY: ${{ secrets.SHIPPING_SPARKLE_PRIVATE_KEY }}
         run: python3 tools/apple/release.py "$APP_ID" --version "$APP_VERSION"
       - name: Preserve notarization diagnostics
         if: always()
@@ -114,5 +115,7 @@ jobs:
             git tag "$RELEASE_TAG" "$GITHUB_SHA"
             git push origin "$RELEASE_TAG"
           fi
-          gh release create "$RELEASE_TAG" "dist/$APP_ID/$APP_ASSET" "dist/$APP_ID/SHA256SUMS" --verify-tag --latest=false --title "$APP_NAME $APP_VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
+          EXTRA_ASSETS=()
+          if [ "$APP_ID" = shipping ]; then EXTRA_ASSETS+=("dist/$APP_ID/shipping.xml"); fi
+          gh release create "$RELEASE_TAG" "dist/$APP_ID/$APP_ASSET" "dist/$APP_ID/SHA256SUMS" "${EXTRA_ASSETS[@]}" --verify-tag --latest=false --title "$APP_NAME $APP_VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
           gh workflow run pages.yml --ref main

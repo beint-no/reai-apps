@@ -31,6 +31,8 @@ if not args.offline:
         if len(batch) < 100:
             break
         page += 1
+destination = root / 'dist' / 'site'
+destination.mkdir(parents=True, exist_ok=True)
 source = (root / 'site' / 'index.html').read_text()
 for app_id, app in apps.items():
     candidates = []
@@ -45,6 +47,17 @@ for app_id, app in apps.items():
             candidates.append((tuple(map(int, match.groups())), release, asset))
     if candidates:
         version, release, asset = max(candidates, key=lambda entry: entry[0])
+        if app_id == 'shipping':
+            feed = next((a for a in release['assets'] if a['name'] == 'shipping.xml'), None)
+            if feed:
+                request = urllib.request.Request(feed['browser_download_url'], headers={'User-Agent': 'reai-apps-site'})
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    data = response.read(1024 * 1024 + 1)
+                if len(data) > 1024 * 1024:
+                    raise ValueError('Shipping update feed is too large')
+                updates = destination / 'updates'
+                updates.mkdir(exist_ok=True)
+                (updates / 'shipping.xml').write_bytes(data)
         label = 'Download for Windows (x64)' if app.get('platform') == 'windows' else 'Download for Mac'
         download = f'<a class="button primary" href="{html.escape(asset["browser_download_url"], quote=True)}">{label} <span aria-hidden="true">↓</span></a>'
         details = f'<a class="release-note" href="{html.escape(release["html_url"], quote=True)}">Version {".".join(map(str, version))} · Release notes ↗</a>'
@@ -62,8 +75,6 @@ for app_id, app in apps.items():
     source = source.replace('{{' + app_id + '.download}}', download).replace('{{' + app_id + '.version}}', details)
 if '{{' in source:
     raise SystemExit('Unresolved site template field')
-destination = root / 'dist' / 'site'
-destination.mkdir(parents=True, exist_ok=True)
 (destination / 'index.html').write_text(source)
 shutil.copy2(root / 'site' / 'style.css', destination / 'style.css')
 shutil.copytree(root / 'site' / 'assets', destination / 'assets', dirs_exist_ok=True)

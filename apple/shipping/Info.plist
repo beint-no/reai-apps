@@ -31,5 +31,17 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 ReAI contributors. MIT License.</string>
+	<key>SUFeedURL</key>
+	<string>https://beint-no.github.io/reai-apps/updates/shipping.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>jOpLPlP1AtrmJJY9F/v7nnAIy+90yjqL5/oUrfKN+f8=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
 </dict>
 </plist>

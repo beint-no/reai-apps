@@ -79,7 +79,19 @@ def build(app_id, version=None):
     run(swiftc, source / app['icon'], '-sdk', output('xcrun', '--sdk', 'macosx', '--show-sdk-path'), '-o', icon_tool, '-framework', 'AppKit')
     run(icon_tool, iconset)
     run('iconutil', '-c', 'icns', iconset, '-o', resources / 'AppIcon.icns')
-    run('codesign', '--force', '--options', 'runtime', '--sign', '-', bundle)
+    if app_id == 'shipping':
+        frameworks = list((source / '.build' / 'artifacts').glob('sparkle/Sparkle/Sparkle.xcframework/macos-*/Sparkle.framework'))
+        if len(frameworks) != 1:
+            raise ValueError('Expected one pinned Sparkle framework')
+        embedded = bundle / 'Contents' / 'Frameworks' / 'Sparkle.framework'
+        embedded.parent.mkdir()
+        run('ditto', frameworks[0], embedded)
+        shutil.copy2(frameworks[0].parents[2] / 'LICENSE', resources / 'Sparkle-LICENSE')
+        from sparkle import sign_framework
+        sign_framework(embedded, '-')
+    # Ad-hoc development builds cannot load nested code under library validation.
+    options = [] if app_id == 'shipping' else ['--options', 'runtime']
+    run('codesign', '--force', *options, '--sign', '-', bundle)
     run('codesign', '--verify', '--strict', bundle)
     archive = destination / 'unsigned.zip'
     archive.unlink(missing_ok=True)

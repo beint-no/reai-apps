@@ -118,3 +118,8 @@
 "Open order in ReAI" = "Open order in ReAI";
 "Paste a ReAI order link, order number or order ID." = "Paste a ReAI order link, order number or order ID.";
 "This order link belongs to another company. Connect to that company first." = "This order link belongs to another company. Connect to that company first.";
+
+"Check for Updates…" = "Check for Updates…";
+"Include older orders" = "Include older orders";
+"All order dates" = "All order dates";
+"Orders from the last 14 days" = "Orders from the last 14 days";
