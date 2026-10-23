@@ -115,3 +115,5 @@
 "items" = "varer";
 "labels" = "etiketter";
 "macOS could not submit the labels. Check the printer queue before trying again." = "macOS kunne ikke sende etikettene. Kontroller skriverkøen før du prøver igjen.";
+"Price input" = "Prisformat inn";
+"Whole prices · No thousands separators" = "Hele priser · Uten tusenskille";

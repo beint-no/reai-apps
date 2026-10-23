@@ -186,8 +186,8 @@ struct LabelsView: View {
                     Picker(t("Currency"), selection: $model.saved.settings.currency) {
                         ForEach(["NOK", "EUR", "USD", "SEK", "DKK", "GBP", "None"], id: \.self) { Text($0 == "None" ? t("None") : $0).tag($0) }
                     }.frame(width: 150).help(t("Currency applies to manual labels. Catalog labels keep their selected currencies."))
-                    Picker(t("Numbers"), selection: $model.saved.settings.locale) {
-                        Text("1,234.50").tag("en_US"); Text("1 234,50").tag("nb_NO")
+                    Picker(t("Price input"), selection: $model.saved.settings.locale) {
+                        Text("1234.50").tag("en_US"); Text("1234,50").tag("nb_NO")
                         if !["en_US", "nb_NO"].contains(model.saved.settings.locale) { Text(Locale(identifier: model.saved.settings.locale).localizedString(forIdentifier: model.saved.settings.locale) ?? model.saved.settings.locale).tag(model.saved.settings.locale) }
                     }.frame(width: 170)
                 }
@@ -213,6 +213,9 @@ struct LabelsView: View {
                 Text(t("Print preview")).font(.headline)
                 Text("\(model.saved.settings.width.formatted()) × \(model.saved.settings.height.formatted()) mm").monospacedDigit()
                 Text(t("One label per page · Actual size")).font(.caption).foregroundStyle(.secondary)
+                if model.saved.settings.design == .price {
+                    Text(t("Whole prices · No thousands separators")).font(.caption).foregroundStyle(.secondary)
+                }
                 Text(model.previewId == nil ? t("Manual draft") : t("Selected batch item")).font(.caption).foregroundStyle(.secondary)
                 if let error = previewError { Text(error).font(.caption).foregroundStyle(.orange) }
             }

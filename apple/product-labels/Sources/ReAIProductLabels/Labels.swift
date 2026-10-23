@@ -49,7 +49,7 @@ enum LabelRenderer {
             throw appError("Enter a price with up to two decimals using your selected number format, without thousands separators.")
         }
         let f = NumberFormatter(); f.locale = locale; f.numberStyle = .decimal
-        f.minimumFractionDigits = raw.contains(separator) ? 2 : 0; f.maximumFractionDigits = 2
+        f.usesGroupingSeparator = false; f.minimumFractionDigits = 0; f.maximumFractionDigits = 0; f.roundingMode = .halfUp
         let text = f.string(from: number as NSDecimalNumber) ?? raw
         return text + (settings.currency == "None" ? "" : " " + (settings.currency == "NOK" ? "kr" : settings.currency))
     }
