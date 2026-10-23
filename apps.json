@@ -85,7 +85,9 @@
     "executable": "ReAIShipping",
     "bundle_id": "no.reai.shipping",
     "icon": "make-icon.swift",
-    "asset": "ReAI-Shipping-Apple-Silicon.dmg"
+    "asset": "ReAI-Shipping-Apple-Silicon.dmg",
+    "sparkle": true,
+    "sparkle_key_secret": "SHIPPING_SPARKLE_PRIVATE_KEY"
   },
   "hybel": {
     "name": "ReAI Hybel Journal",
@@ -94,5 +96,15 @@
     "bundle_id": "no.reai.hybeljournal",
     "icon": "make-icon.swift",
     "asset": "ReAI-Hybel-Journal-Apple-Silicon.dmg"
+  },
+  "product-labels": {
+    "name": "ReAI Product Labels",
+    "path": "apple/product-labels",
+    "executable": "ReAIProductLabels",
+    "bundle_id": "no.reai.productlabels",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Product-Labels-Apple-Silicon.dmg",
+    "sparkle": true,
+    "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
   }
 }

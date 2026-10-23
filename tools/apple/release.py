@@ -26,8 +26,8 @@ def release(app_id, version):
         raise ValueError('Missing release credentials: ' + ', '.join(missing))
     if not re.fullmatch(r'[A-Z0-9]{10}', os.environ['APPLE_TEAM_ID']):
         raise ValueError('Invalid Apple team ID')
-    if app_id == 'shipping' and not os.environ.get('SHIPPING_SPARKLE_PRIVATE_KEY'):
-        raise ValueError('Missing SHIPPING_SPARKLE_PRIVATE_KEY')
+    if app.get('sparkle', False) and not os.environ.get(app['sparkle_key_secret']):
+        raise ValueError('Missing ' + app['sparkle_key_secret'])
     destination = ROOT / 'dist' / app_id
     with tempfile.TemporaryDirectory(prefix='reai-release-') as temporary:
         work = Path(temporary)
@@ -65,7 +65,7 @@ def release(app_id, version):
             if output('lipo', '-archs', binary) != 'arm64':
                 raise ValueError('Only Apple Silicon releases are supported')
             framework = bundle / 'Contents' / 'Frameworks' / 'Sparkle.framework'
-            if app_id == 'shipping':
+            if app.get('sparkle', False):
                 from sparkle import sign_framework
                 sign_framework(framework, identity, keychain)
             elif (bundle / 'Contents' / 'Frameworks').exists():
@@ -92,9 +92,9 @@ def release(app_id, version):
             run('xcrun', 'stapler', 'validate', image)
             run('spctl', '--assess', '--type', 'open', '--context', 'context:primary-signature', '--verbose=2', image)
             checksum(image)
-            if app_id == 'shipping':
+            if app.get('sparkle', False):
                 from sparkle import generate_feed
-                generate_feed(image, version, work)
+                generate_feed(image, version, work, app_id, app['sparkle_key_secret'])
             print(f'Ready: {image}')
         finally:
             try:
