@@ -47,17 +47,17 @@ for app_id, app in apps.items():
             candidates.append((tuple(map(int, match.groups())), release, asset))
     if candidates:
         version, release, asset = max(candidates, key=lambda entry: entry[0])
-        if app_id == 'shipping':
-            feed = next((a for a in release['assets'] if a['name'] == 'shipping.xml'), None)
+        if app.get('sparkle', False):
+            feed = next((a for a in release['assets'] if a['name'] == f'{app_id}.xml'), None)
             if feed:
                 request = urllib.request.Request(feed['browser_download_url'], headers={'User-Agent': 'reai-apps-site'})
                 with urllib.request.urlopen(request, timeout=30) as response:
                     data = response.read(1024 * 1024 + 1)
                 if len(data) > 1024 * 1024:
-                    raise ValueError('Shipping update feed is too large')
+                    raise ValueError(f'{app_id} update feed is too large')
                 updates = destination / 'updates'
                 updates.mkdir(exist_ok=True)
-                (updates / 'shipping.xml').write_bytes(data)
+                (updates / f'{app_id}.xml').write_bytes(data)
         label = 'Download for Windows (x64)' if app.get('platform') == 'windows' else 'Download for Mac'
         download = f'<a class="button primary" href="{html.escape(asset["browser_download_url"], quote=True)}">{label} <span aria-hidden="true">↓</span></a>'
         details = f'<a class="release-note" href="{html.escape(release["html_url"], quote=True)}">Version {".".join(map(str, version))} · Release notes ↗</a>'

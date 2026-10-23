@@ -22,7 +22,7 @@ def sign_framework(framework, identity, keychain=None):
     run('codesign', '--verify', '--deep', '--strict', framework)
 
 
-def generate_feed(image, version, work):
+def generate_feed(image, version, work, app_id, key_secret):
     archive = work / 'Sparkle.tar.xz'
     with urllib.request.urlopen(SPARKLE_URL, timeout=60) as response:
         archive.write_bytes(response.read())
@@ -32,15 +32,15 @@ def generate_feed(image, version, work):
     with tarfile.open(archive) as compressed:
         compressed.extractall(distribution, filter='data')
     key = work / 'sparkle-private-key'
-    key.write_text(os.environ['SHIPPING_SPARKLE_PRIVATE_KEY'])
+    key.write_text(os.environ[key_secret])
     key.chmod(0o600)
     try:
         updates = work / 'updates'
         updates.mkdir()
         shutil.copy2(image, updates / image.name)
-        feed = image.parent / 'shipping.xml'
+        feed = image.parent / f'{app_id}.xml'
         run(distribution / 'bin' / 'generate_appcast', '--ed-key-file', key,
-            '--download-url-prefix', f'https://github.com/beint-no/reai-apps/releases/download/shipping/v{version}/',
+            '--download-url-prefix', f'https://github.com/beint-no/reai-apps/releases/download/{app_id}/v{version}/',
             '--maximum-deltas', '0', '-o', feed, updates)
         run(distribution / 'bin' / 'sign_update', '--ed-key-file', key, '--verify', feed)
     finally:
