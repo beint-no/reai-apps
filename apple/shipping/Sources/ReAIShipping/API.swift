@@ -39,11 +39,12 @@ actor ReAIAPI {
         return company
     }
 
-    func document(_ job: PrintRequest, token: String) async throws -> Data {
+    func label(_ job: PrintRequest, token: String) async throws -> Data {
+        guard job.document == .label else { throw appError("Customs invoices are printed from ReAI.") }
         let deadline = ContinuousClock.now.advanced(by: .seconds(120))
         while ContinuousClock.now < deadline {
             try Task.checkCancellation()
-            let (data, response) = try await get("api/shipments/\(job.shipmentId)/\(job.document.rawValue)", token: token, company: job.tenantId)
+            let (data, response) = try await get("api/shipments/\(job.shipmentId)/label", token: token, company: job.tenantId)
             if response.statusCode == 202 {
                 try await Task.sleep(for: .seconds(2))
                 continue

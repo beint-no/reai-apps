@@ -126,25 +126,18 @@
 
 "Shipping label" = "Shipping label";
 "Customs invoice" = "Customs invoice";
-"Customs invoice (optional)" = "Customs invoice (optional)";
-"Choose between 1 and 5 customs invoice copies." = "Choose between 1 and 5 customs invoice copies.";
-"Choose an A4 / Letter document printer for this PDF." = "Choose an A4 / Letter document printer for this PDF.";
 "The shipping document PDF is invalid." = "The shipping document PDF is invalid.";
 "This PDF has an unsupported page size. Print it manually from ReAI." = "This PDF has an unsupported page size. Print it manually from ReAI.";
 "macOS could not send the document to the printer. Check the printer queue before trying again." = "macOS could not send the document to the printer. Check the printer queue before trying again.";
 "This document is not a supported PDF. Open the order in ReAI to print it manually." = "This document is not a supported PDF. Open the order in ReAI to print it manually.";
 "Preparing document…" = "Preparing document…";
-"Choose a label printer for this PDF." = "Choose a label printer for this PDF.";
-"Document printer" = "Document printer";
-"Choose an A4 / Letter printer" = "Choose an A4 / Letter printer";
-"Customs invoices and full-page labels" = "Customs invoices and full-page labels";
-"Original carrier PDF · A4 / Letter" = "Original carrier PDF · A4 / Letter";
-"Print customs invoice" = "Print customs invoice";
-"Copies" = "Copies";
-"Choose a document printer below to print the customs invoice." = "Choose a document printer below to print the customs invoice.";
-"Print paper copies only when required by the carrier; sign where required." = "Print paper copies only when required by the carrier; sign where required.";
-"For DHL, PLT on the label indicates Paperless Trade. Paper copies are normally unnecessary." = "For DHL, PLT on the label indicates Paperless Trade. Paper copies are normally unnecessary.";
 "Recent prints" = "Recent prints";
 "Printed documents will appear here." = "Printed documents will appear here.";
 "Print again? Check the printer queue first." = "Print again? Check the printer queue first.";
 "Print again" = "Print again";
+
+"Customs invoices are printed from ReAI." = "Customs invoices are printed from ReAI.";
+"This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI." = "This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI.";
+"One copy · Carrier PDF size" = "One copy · Carrier PDF size";
+"Open customs invoice in ReAI (A4)" = "Open customs invoice in ReAI (A4)";
+"Open in ReAI" = "Open in ReAI";
