@@ -182,16 +182,35 @@ final class LabelsModel {
         guard total + items.count <= 1000 else { error = t("A batch must contain 1–1000 labels."); return }
         busy = true; error = nil; defer { busy = false }
         do {
-            try await loadChosenPrices(chosenSources)
+            if saved.settings.design == .price { try await loadChosenPrices(chosenSources) }
             let labels = try items.map { item in
-                let values = try prices(for: item, sources: chosenSources)
-                var label = LabelItem(title: item.title, price: values[0].amount, sku: item.sku,
+                let values = saved.settings.design == .price ? try prices(for: item, sources: chosenSources) : []
+                var label = LabelItem(title: item.title, price: values.first?.amount ?? "", sku: item.sku,
                                       barcode: item.barcode, origin: item.origin, details: item.details)
-                label.currencyCode = values[0].currency; label.extraPrices = Array(values.dropFirst()); label.variantUUID = item.variantUUID
+                label.currencyCode = values.first?.currency; label.extraPrices = Array(values.dropFirst()); label.variantUUID = item.variantUUID
                 return label
             }
             saved.batch.append(contentsOf: labels); previewId = saved.batch.last?.id; selected = []; persist()
         } catch { self.error = error.localizedDescription }
+    }
+    func reformatNumbers(from oldLocale: String) {
+        let old = Locale(identifier: oldLocale).decimalSeparator ?? "."
+        let new = Locale(identifier: saved.settings.locale).decimalSeparator ?? "."
+        guard old != new else { return }
+        func convert(_ value: String) -> String {
+            let pattern = "^[0-9]{1,9}(" + NSRegularExpression.escapedPattern(for: old) + "[0-9]{1,2})?$"
+            return value.range(of: pattern, options: .regularExpression) == nil ? value : value.replacingOccurrences(of: old, with: new)
+        }
+        func convertItem(_ item: inout LabelItem) {
+            item.price = convert(item.price)
+            if var extras = item.extraPrices {
+                for index in extras.indices { extras[index].amount = convert(extras[index].amount) }
+                item.extraPrices = extras
+            }
+        }
+        convertItem(&saved.draft)
+        for index in saved.batch.indices { convertItem(&saved.batch[index]) }
+        persist()
     }
     func addDraft() {
         do {

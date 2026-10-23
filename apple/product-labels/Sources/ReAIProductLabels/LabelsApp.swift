@@ -55,6 +55,7 @@ struct LabelsView: View {
         }
         .disabled(model.busy || model.storageFailed)
         .onChange(of: model.saved.settings) { model.persist() }
+        .onChange(of: model.saved.settings.locale) { old, _ in model.reformatNumbers(from: old) }
         .onChange(of: model.saved.draft) { model.persist() }
         .onChange(of: model.saved.batch) { model.persist() }
         .confirmationDialog(t("Confirm printing"), isPresented: Binding(get: { printMode != nil }, set: { if !$0 { printMode = nil } })) {
@@ -194,7 +195,9 @@ struct LabelsView: View {
             }.textFieldStyle(.roundedBorder)
         }
         .onChange(of: model.saved.settings.design) { _, design in
-            if design == .price { model.saved.settings.width = 50; model.saved.settings.height = 30 }
+            if design == .price {
+                model.saved.settings.width = 50; model.saved.settings.height = 30
+            }
             else { model.saved.settings.width = 60; model.saved.settings.height = 40 }
         }
     }
