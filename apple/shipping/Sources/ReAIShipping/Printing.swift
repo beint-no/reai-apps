@@ -47,16 +47,14 @@ actor LabelPrinter {
             }
     }
 
-    func submit(_ data: Data, printer: String, request: PrintRequest, copies: Int) throws -> String {
-        let layout = try Self.layout(for: data, document: request.document)
-        guard (1...5).contains(copies), request.document != .label || copies == 1 else {
-            throw appError("Choose between 1 and 5 customs invoice copies.")
-        }
+    func submit(_ data: Data, printer: String, request: PrintRequest) throws -> String {
+        guard request.document == .label else { throw appError("Customs invoices are printed from ReAI.") }
+        let layout = try Self.layout(for: data)
         guard let queue = try printers().first(where: { $0.id == printer }) else {
             throw appError("The selected printer is unavailable. Check Printers & Scanners in System Settings.")
         }
         guard !layout.fullPage || !queue.isZebra else {
-            throw appError("Choose an A4 / Letter document printer for this PDF.")
+            throw appError("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI.")
         }
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
@@ -64,13 +62,13 @@ actor LabelPrinter {
         let file = directory.appending(path: "\(request.document.rawValue).pdf")
         try data.write(to: file, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-        return try run("/usr/bin/lp", ["-d", printer, "-t", "ReAI \(request.shipmentId) · \(t(request.document.title))", "-n", String(copies),
+        return try run("/usr/bin/lp", ["-d", printer, "-t", "ReAI \(request.shipmentId) · \(t(request.document.title))", "-n", "1",
                                        "-o", "media=\(layout.media)", "-o", "fit-to-page", "-o", "sides=one-sided",
                                        "-o", "orientation-requested=\(layout.landscape ? 4 : 3)",
                                        "-o", "job-sheets=none,none", "-o", "number-up=1", file.path])
     }
 
-    static func layout(for data: Data, document kind: ShippingDocument) throws -> PrintLayout {
+    static func layout(for data: Data) throws -> PrintLayout {
         guard data.count <= 10 * 1024 * 1024, data.starts(with: Data("%PDF-".utf8)),
               let document = PDFDocument(data: data), !document.isLocked, (1...20).contains(document.pageCount),
               let first = document.page(at: 0) else { throw appError("The shipping document PDF is invalid.") }
@@ -95,7 +93,7 @@ actor LabelPrinter {
         if abs(short - 215.9) < 2 && abs(long - 279.4) < 2 {
             return PrintLayout(media: "Letter", fullPage: true, landscape: width > height)
         }
-        if kind == .label, (40...120).contains(width), (40...220).contains(height) {
+        if (40...120).contains(width), (40...220).contains(height) {
             return PrintLayout(media: String(format: "Custom.%.2fx%.2fmm", locale: Locale(identifier: "en_US_POSIX"), width, height),
                                fullPage: false, landscape: false)
         }

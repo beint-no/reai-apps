@@ -28,10 +28,12 @@ Use **History** to browse orders with saved shipments, or search all historical 
 
 ## Customs invoices and full-page labels
 
-A saved customs/commercial invoice appears as **Customs invoice (optional)**, with its own **Print customs invoice** button and 1–5 copies. Select an installed A4/Letter queue under **Document printer** when you need paper copies. It is remembered independently of the label printer. Customs invoices never print automatically with **Ship & print**, and their print receipts and reprint confirmations are separate from the label's.
+The app has one printer selection and prints one shipping label per action. When a separate customs/commercial invoice exists, **Open customs invoice in ReAI (A4)** opens the standard web PDF viewer. Use its normal print dialog for exceptional paper copies; there is no second printer setting or invoice-copy workflow in the Mac app.
 
 ReAI requests DHL Paperless Trade (`WY`) together with the structured export declaration and DHL-generated invoice. DHL labels marked **PLT** indicate Paperless Trade; paper invoices are normally unnecessary for those shipments. Follow DHL's instructions if paper or signed originals are requested. The availability of a downloadable invoice alone does not establish Paperless Trade acceptance or required copies. See [DHL's Digital Customs Invoice guide](https://mydhl.express.dhl/content/dam/downloads/pl/en/mydhl-guides/Digital_customs_invoice_pl_en.pdf.coredownload.pdf).
 
-The app preserves full-page A4/Letter PDFs rather than reducing commercial invoices onto label stock. Full-page labels, including existing DHL A4 labels, also use the document printer; label-sized PDFs use the label printer. An A4 printer can handle both of the referenced DHL documents. Mixed page sizes and unsupported sizes still require manual printing in ReAI. Customs invoices cannot be sent to a detected Zebra queue.
+Labels use their original carrier PDF size, including full-page A4/Letter labels. Choose a printer with matching paper. Full-page PDFs are rejected on detected Zebra queues rather than reduced onto label stock. Mixed page sizes and unsupported sizes still require manual printing in ReAI.
+
+Print receipts from version 0.1.5 remain readable, including any interrupted customs-invoice prints. Existing invoice receipts link to ReAI for manual handling; label receipts retain their identity and reprint confirmation.
 
 The API exposes `customsInvoiceAvailable` and `download_customs_invoice` on shipment detail. `GET /api/shipments/{id}/customs-invoice` retrieves the stored PDF without contacting the carrier or booking shipping. Historical labels containing combined documents are kept intact; no separate invoice is invented when none was stored.

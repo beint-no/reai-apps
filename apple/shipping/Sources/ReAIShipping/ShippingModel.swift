@@ -32,10 +32,6 @@ final class ShippingModel {
     var printerId: String {
         didSet { UserDefaults.standard.set(printerId, forKey: "shipping.printer") }
     }
-    var documentPrinterId: String {
-        didSet { UserDefaults.standard.set(documentPrinterId, forKey: "shipping.documentPrinter") }
-    }
-    var customsCopies = 1
     var records: [PrintRecord] = []
     var loadingOrders = false
     var orders: [ReadyOrder] = []
@@ -47,10 +43,10 @@ final class ShippingModel {
     var savedShipments: [ShipmentSummary] = []
     var shipmentBeforeId: Int?
     var canLoadMore: Bool { showingHistory ? historyBeforeId != nil : page + 1 < totalPages }
-    func selectedPrintRecord(document: ShippingDocument) -> PrintRecord? {
+    var selectedPrintRecord: PrintRecord? {
         guard let company, let shipment else { return nil }
-        return PrintRecord(request: PrintRequest(tenantId: company.id, shipmentId: shipment.id, document: document),
-                           state: "saved", copies: document == .label ? 1 : customsCopies)
+        return PrintRecord(request: PrintRequest(tenantId: company.id, shipmentId: shipment.id),
+                           state: "saved", copies: 1)
     }
     var page = 0
     var totalPages = 0
@@ -70,11 +66,9 @@ final class ShippingModel {
         let carrier = shipment?.carrierCode ?? draft?.carrierCode
         return options?.services.first(where: { $0.carrierCode == carrier })?.testMode ?? false
     }
-    func canPrint(_ document: ShippingDocument) -> Bool {
-        historyReadable && !busy && (document == .customsInvoice ? !documentPrinterId.isEmpty : (!printerId.isEmpty || !documentPrinterId.isEmpty))
-    }
+    var canPrint: Bool { historyReadable && !busy && !printerId.isEmpty }
     var canShip: Bool {
-        !showingHistory && canPrint(.label) && !unfinished.contains { $0.orderId == selectedOrder?.id } &&
+        !showingHistory && canPrint && !unfinished.contains { $0.orderId == selectedOrder?.id } &&
             (shipment?.actions.contains("book") == true || (shipment?.status == "booked" && shipment?.labelAvailable == true) || quote != nil)
     }
 
@@ -89,8 +83,7 @@ final class ShippingModel {
     private let journal: URL
 
     init() {
-        printerId = UserDefaults.standard.string(forKey: "shipping.printer") ?? ""
-        documentPrinterId = UserDefaults.standard.string(forKey: "shipping.documentPrinter") ?? ""
+        printerId = ["shipping.printer", "shipping.documentPrinter"].compactMap { UserDefaults.standard.string(forKey: $0) }.first { !$0.isEmpty } ?? ""
         journal = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appending(path: "ReAI Shipping/print-history.json")
         do {
@@ -342,7 +335,7 @@ final class ShippingModel {
     }
 
     func resume(_ operation: ShippingOperation) async {
-        guard canPrint(.label), operation.tenantId == company?.id, let token, let company else { return }
+        guard canPrint, operation.tenantId == company?.id, let token, let company else { return }
         busy = true; error = nil; notice = t("Preparing shipment…")
         defer { busy = false }
         do {
@@ -392,7 +385,7 @@ final class ShippingModel {
             let request = PrintRequest(tenantId: company.id, shipmentId: current.id)
             if records.contains(where: { $0.id == request.key }) {
                 notice = t("This label already has a print receipt. Check the queue and use Reprint if needed.")
-            } else { await printDocument(request, token: token, copies: 1) }
+            } else { await printLabel(request, token: token) }
             operations[index].state = "done"; try saveOperations()
             await refreshOrders()
         } catch { self.error = error.localizedDescription; notice = nil }
@@ -450,27 +443,24 @@ final class ShippingModel {
     }
 
     func reprint(_ record: PrintRecord) async {
-        guard canPrint(record.request.document), let token, company?.id == record.request.tenantId else { return }
+        guard canPrint, record.request.document == .label, let token, company?.id == record.request.tenantId else { return }
         busy = true
-        await printDocument(record.request, token: token, copies: record.copies ?? 1)
+        await printLabel(record.request, token: token)
         busy = false
     }
 
-    private func printDocument(_ request: PrintRequest, token: String, copies: Int) async {
+    private func printLabel(_ request: PrintRequest, token: String) async {
         error = nil
         notice = t("Preparing document…")
         do {
-            let data = try await api.document(request, token: token)
-            let layout = try LabelPrinter.layout(for: data, document: request.document)
-            let selectedPrinter = layout.fullPage ? documentPrinterId : printerId
-            guard !selectedPrinter.isEmpty else {
-                throw appError(layout.fullPage ? "Choose an A4 / Letter document printer for this PDF." : "Choose a label printer for this PDF.")
-            }
+            let data = try await api.label(request, token: token)
+            _ = try LabelPrinter.layout(for: data)
+            let selectedPrinter = printerId
             records.removeAll { $0.id == request.key }
-            records.insert(PrintRecord(request: request, state: "submitting", printerId: selectedPrinter, copies: copies), at: 0)
+            records.insert(PrintRecord(request: request, state: "submitting", printerId: selectedPrinter, copies: 1), at: 0)
             // Persist before handing off: a crash must never cause an automatic second print.
             try save()
-            let result = try await printer.submit(data, printer: selectedPrinter, request: request, copies: copies)
+            let result = try await printer.submit(data, printer: selectedPrinter, request: request)
             records[0].state = "queued"
             records[0].queueResult = result
             try save()
