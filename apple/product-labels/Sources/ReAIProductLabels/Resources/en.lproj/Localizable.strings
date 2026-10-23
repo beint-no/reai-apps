@@ -115,3 +115,5 @@
 "items" = "items";
 "labels" = "labels";
 "macOS could not submit the labels. Check the printer queue before trying again." = "macOS could not submit the labels. Check the printer queue before trying again.";
+"Price input" = "Price input";
+"Whole prices · No thousands separators" = "Whole prices · No thousands separators";
