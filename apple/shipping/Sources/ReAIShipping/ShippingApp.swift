@@ -50,25 +50,38 @@ struct ShippingView: View {
                     ScrollView { details.padding(24).frame(maxWidth: .infinity, alignment: .leading) }.frame(minWidth: 480)
                 }
                 Divider()
-                HStack {
-                    Label(t("Label printer"), systemImage: "printer")
-                    Picker(t("Printer"), selection: $model.printerId) {
-                        Text(t("Choose a printer")).tag("")
-                        ForEach(model.printers) { Text($0.name).tag($0.id) }
-                    }.labelsHidden().frame(maxWidth: 280).disabled(model.busy)
-                    Button { Task { await model.refreshPrinters() } } label: { Image(systemName: "arrow.clockwise") }.help(t("Refresh printers"))
-                    if model.printers.isEmpty {
-                        Button(t("Add printer")) { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Print-Scan-Settings.extension")!) }
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label(t("Label printer"), systemImage: "printer")
+                        Picker(t("Printer"), selection: $model.printerId) {
+                            Text(t("Choose a printer")).tag("")
+                            ForEach(model.printers) { Text($0.name).tag($0.id) }
+                        }.labelsHidden().frame(maxWidth: 280).disabled(model.busy)
+                        Button { Task { await model.refreshPrinters() } } label: { Image(systemName: "arrow.clockwise") }.help(t("Refresh printers"))
+                        if model.printers.isEmpty {
+                            Button(t("Add printer")) { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Print-Scan-Settings.extension")!) }
+                        }
+                        Spacer()
+                        Text(t("One copy · Carrier label size")).font(.caption).foregroundStyle(.secondary)
                     }
-                    Spacer()
-                    Text(t("One copy · Carrier label size")).font(.caption).foregroundStyle(.secondary)
+                    HStack {
+                        Label(t("Document printer"), systemImage: "doc")
+                        Picker(t("Document printer"), selection: $model.documentPrinterId) {
+                            Text(t("Choose an A4 / Letter printer")).tag("")
+                            ForEach(model.printers.filter { !$0.isZebra }) { Text($0.name).tag($0.id) }
+                        }.labelsHidden().frame(maxWidth: 280).disabled(model.busy)
+                        Spacer()
+                        Text(t("Customs invoices and full-page labels")).font(.caption).foregroundStyle(.secondary)
+                    }
                 }.padding(16)
             }
             if let notice = model.notice { Label(notice, systemImage: "info.circle").font(.callout).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.bottom, 12) }
             if let error = model.error { Label(error, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(.orange).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.bottom, 12) }
         }
-        .confirmationDialog(t("Print another copy? Check the printer queue first."), isPresented: Binding(get: { reprint != nil }, set: { if !$0 { reprint = nil } })) {
-            if let record = reprint { Button(t("Print another copy")) { Task { await model.reprint(record) }; reprint = nil } }
+        .confirmationDialog(t("Print again? Check the printer queue first."), isPresented: Binding(get: { reprint != nil }, set: { if !$0 { reprint = nil } })) {
+            if let record = reprint { Button(t("Print again")) { Task { await model.reprint(record) }; reprint = nil } }
+        } message: {
+            if let record = reprint { Text("\(record.copies ?? 1) × " + t(record.request.document.title)) }
         }
         .confirmationDialog(t("Disconnect this Mac?"), isPresented: $disconnect) {
             Button(t("Disconnect"), role: .destructive) { Task { await model.disconnect() } }
@@ -136,18 +149,39 @@ struct ShippingView: View {
                 else if let draft = Binding($model.draft) { proposal(draft) }
                 else if let reason = model.options?.unavailableReason { Text(reason).foregroundStyle(.secondary) }
                 if model.shipment?.status == "booked", model.shipment?.labelAvailable == true {
-                    Button { reprint = model.selectedPrintRecord } label: {
+                    Button { requestPrint(.label) } label: {
                         Label(t("Print label"), systemImage: "printer.fill").frame(maxWidth: .infinity)
                     }.buttonStyle(.borderedProminent).controlSize(.large)
-                        .disabled(!model.canPrint)
+                        .disabled(!model.canPrint(.label))
                     Text(t("Sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
-                    if model.printerId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
+                    if model.printerId.isEmpty && model.documentPrinterId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
                 } else if !model.showingHistory && (model.draft != nil || model.shipment?.actions.contains("book") == true) {
                     Button { Task { await model.shipAndPrint() } } label: {
                         Label(t("Ship & print") + (model.quote.map { " · " + $0.display } ?? ""), systemImage: "printer.fill").frame(maxWidth: .infinity)
                     }.buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canShip)
-                    if model.printerId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
+                    if model.printerId.isEmpty && model.documentPrinterId.isEmpty { Text(t("Choose a printer below to ship and print.")).font(.caption).foregroundStyle(.secondary) }
                     Text(t("Books this parcel, updates ReAI and sends one label to your printer.")).font(.caption).foregroundStyle(.secondary)
+                }
+                if model.shipment?.customsInvoiceAvailable == true {
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label(t("Customs invoice (optional)"), systemImage: "doc.text").font(.headline)
+                            Text(t("Original carrier PDF · A4 / Letter")).font(.caption).foregroundStyle(.secondary)
+                            HStack {
+                                Button(t("Print customs invoice")) { requestPrint(.customsInvoice) }
+                                    .disabled(!model.canPrint(.customsInvoice))
+                                Stepper(t("Copies") + ": \(model.customsCopies)", value: $model.customsCopies, in: 1...5)
+                                    .fixedSize().disabled(model.busy)
+                            }
+                            if model.documentPrinterId.isEmpty {
+                                Text(t("Choose a document printer below to print the customs invoice.")).font(.caption).foregroundStyle(.orange)
+                            }
+                            Text(t("Print paper copies only when required by the carrier; sign where required.")).font(.caption).foregroundStyle(.secondary)
+                            if model.shipment?.carrierCode == "DHL" {
+                                Text(t("For DHL, PLT on the label indicates Paperless Trade. Paper copies are normally unnecessary.")).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading).padding(4)
+                    }
                 }
                 if !model.savedShipments.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -182,26 +216,33 @@ struct ShippingView: View {
                         if ["rejected", "failed"].contains(op.state) {
                             Button(t("Review parcel again")) { Task { await model.review(op) } }.disabled(model.busy)
                         } else {
-                            Button(t("Resume safely")) { Task { await model.resume(op) } }.disabled(model.busy || model.printerId.isEmpty)
+                            Button(t("Resume safely")) { Task { await model.resume(op) } }.disabled(!model.canPrint(.label))
                         }
                     }
                 }
                 Text(t("Resume checks the saved request and shipment before continuing. It never creates a replacement after an uncertain response.")).font(.caption).foregroundStyle(.secondary)
             }
             Divider()
-            Text(t("Recent labels")).font(.headline)
-            if model.records.filter({ $0.request.tenantId == model.company?.id }).isEmpty { Text(t("Printed labels will appear here.")).foregroundStyle(.secondary) }
+            Text(t("Recent prints")).font(.headline)
+            if model.records.filter({ $0.request.tenantId == model.company?.id }).isEmpty { Text(t("Printed documents will appear here.")).foregroundStyle(.secondary) }
             ForEach(model.records.filter { $0.request.tenantId == model.company?.id }.prefix(10)) { record in
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(t("Shipment") + " #\(record.request.shipmentId)")
+                        Text("\(record.copies ?? 1) × " + t(record.request.document.title)).font(.caption)
+                        if let printer = record.printerId { Text(printer.replacingOccurrences(of: "_", with: " ")).font(.caption).foregroundStyle(.secondary) }
                         Text(t(record.state == "queued" ? "In printer queue" : "Check before reprinting")).font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button(t("Reprint")) { reprint = record }.disabled(model.busy || model.printerId.isEmpty)
+                    Button(t("Reprint")) { reprint = record }.disabled(!model.canPrint(record.request.document))
                 }
             }
         }
+    }
+    private func requestPrint(_ document: ShippingDocument) {
+        guard let record = model.selectedPrintRecord(document: document) else { return }
+        if model.records.contains(where: { $0.id == record.id }) { reprint = record }
+        else { Task { await model.reprint(record) } }
     }
     private func savedShipment(_ shipment: Shipment) -> some View {
         VStack(alignment: .leading, spacing: 12) {
