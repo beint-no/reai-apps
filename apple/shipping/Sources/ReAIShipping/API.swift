@@ -39,18 +39,18 @@ actor ReAIAPI {
         return company
     }
 
-    func label(_ job: PrintRequest, token: String) async throws -> Data {
+    func document(_ job: PrintRequest, token: String) async throws -> Data {
         let deadline = ContinuousClock.now.advanced(by: .seconds(120))
         while ContinuousClock.now < deadline {
             try Task.checkCancellation()
-            let (data, response) = try await get("api/shipments/\(job.shipmentId)/label", token: token, company: job.tenantId)
+            let (data, response) = try await get("api/shipments/\(job.shipmentId)/\(job.document.rawValue)", token: token, company: job.tenantId)
             if response.statusCode == 202 {
                 try await Task.sleep(for: .seconds(2))
                 continue
             }
             guard response.mimeType == "application/pdf", data.count <= 10 * 1024 * 1024,
                   data.starts(with: Data("%PDF-".utf8)) else {
-                throw appError("This label is not a supported PDF. Open the order in ReAI to print it manually.")
+                throw appError("This document is not a supported PDF. Open the order in ReAI to print it manually.")
             }
             return data
         }
@@ -129,6 +129,7 @@ struct QuoteResult: Decodable, Sendable {
 struct Shipment: Decodable, Sendable {
     let id: Int; let orderId: Int; let status: String; let checkoutManaged: Bool; let carrierCode: String; let recipient: Recipient; let parcel: Parcel
     let error: String?; let errorCode: String?; let labelAvailable: Bool; let actions: [String]
+    let customsInvoiceAvailable: Bool?
     let inventoryRecordingPending: Bool
     struct Charge: Decodable, Sendable { let amount: Decimal?; let currencyCode: String?; let recordingPending: Bool }
     let customerCharge: Charge

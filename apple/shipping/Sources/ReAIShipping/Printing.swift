@@ -1,11 +1,32 @@
 import Foundation
 import PDFKit
 
+enum ShippingDocument: String, Codable, Sendable {
+    case label
+    case customsInvoice = "customs-invoice"
+
+    var title: String { self == .label ? "Shipping label" : "Customs invoice" }
+}
+
 struct PrintRequest: Codable, Equatable, Sendable {
     let tenantId: Int
     let shipmentId: Int
-    var key: String { "\(tenantId):\(shipmentId)" }
+    private let documentType: ShippingDocument?
+    var document: ShippingDocument { documentType ?? .label }
+    var key: String { "\(tenantId):\(shipmentId)" + (document == .label ? "" : ":\(document.rawValue)") }
 
+    init(tenantId: Int, shipmentId: Int, document: ShippingDocument = .label) {
+        self.tenantId = tenantId
+        self.shipmentId = shipmentId
+        // Missing documentType in an existing journal means label; retain its receipt identity.
+        documentType = document == .label ? nil : document
+    }
+}
+
+struct PrintLayout: Equatable, Sendable {
+    let media: String
+    let fullPage: Bool
+    let landscape: Bool
 }
 
 struct Printer: Identifiable, Equatable, Sendable {
@@ -26,31 +47,39 @@ actor LabelPrinter {
             }
     }
 
-    func submit(_ data: Data, printer: String, shipmentId: Int) throws -> String {
-        let media = try Self.media(for: data)
-        guard try printers().contains(where: { $0.id == printer }) else {
+    func submit(_ data: Data, printer: String, request: PrintRequest, copies: Int) throws -> String {
+        let layout = try Self.layout(for: data, document: request.document)
+        guard (1...5).contains(copies), request.document != .label || copies == 1 else {
+            throw appError("Choose between 1 and 5 customs invoice copies.")
+        }
+        guard let queue = try printers().first(where: { $0.id == printer }) else {
             throw appError("The selected printer is unavailable. Check Printers & Scanners in System Settings.")
+        }
+        guard !layout.fullPage || !queue.isZebra else {
+            throw appError("Choose an A4 / Letter document printer for this PDF.")
         }
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         defer { try? FileManager.default.removeItem(at: directory) }
-        let file = directory.appending(path: "label.pdf")
+        let file = directory.appending(path: "\(request.document.rawValue).pdf")
         try data.write(to: file, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-        return try run("/usr/bin/lp", ["-d", printer, "-t", "ReAI \(shipmentId)", "-n", "1",
-                                       "-o", "media=\(media)", "-o", "fit-to-page", "-o", "sides=one-sided",
+        return try run("/usr/bin/lp", ["-d", printer, "-t", "ReAI \(request.shipmentId) · \(t(request.document.title))", "-n", String(copies),
+                                       "-o", "media=\(layout.media)", "-o", "fit-to-page", "-o", "sides=one-sided",
+                                       "-o", "orientation-requested=\(layout.landscape ? 4 : 3)",
                                        "-o", "job-sheets=none,none", "-o", "number-up=1", file.path])
     }
 
-    static func media(for data: Data) throws -> String {
-        guard let document = PDFDocument(data: data), !document.isLocked, (1...20).contains(document.pageCount),
-              let first = document.page(at: 0) else { throw appError("The shipping label PDF is invalid.") }
+    static func layout(for data: Data, document kind: ShippingDocument) throws -> PrintLayout {
+        guard data.count <= 10 * 1024 * 1024, data.starts(with: Data("%PDF-".utf8)),
+              let document = PDFDocument(data: data), !document.isLocked, (1...20).contains(document.pageCount),
+              let first = document.page(at: 0) else { throw appError("The shipping document PDF is invalid.") }
         let box = first.bounds(for: .mediaBox)
         let rotated = abs(first.rotation) % 180 == 90
         let width = (rotated ? box.height : box.width) * 25.4 / 72
         let height = (rotated ? box.width : box.height) * 25.4 / 72
-        guard width.isFinite, height.isFinite, (40...120).contains(width), (40...220).contains(height) else {
-            throw appError("This PDF is not label-sized. Open the order in ReAI to print it manually.")
+        guard width.isFinite, height.isFinite, width > 0, height > 0 else {
+            throw appError("The shipping document PDF is invalid.")
         }
         for index in 0..<document.pageCount {
             guard let page = document.page(at: index), page.rotation == first.rotation,
@@ -59,7 +88,18 @@ actor LabelPrinter {
                 throw appError("The PDF contains different page sizes. Print it manually from ReAI.")
             }
         }
-        return String(format: "Custom.%.2fx%.2fmm", locale: Locale(identifier: "en_US_POSIX"), width, height)
+        let short = min(width, height), long = max(width, height)
+        if abs(short - 210) < 2 && abs(long - 297) < 2 {
+            return PrintLayout(media: "A4", fullPage: true, landscape: width > height)
+        }
+        if abs(short - 215.9) < 2 && abs(long - 279.4) < 2 {
+            return PrintLayout(media: "Letter", fullPage: true, landscape: width > height)
+        }
+        if kind == .label, (40...120).contains(width), (40...220).contains(height) {
+            return PrintLayout(media: String(format: "Custom.%.2fx%.2fmm", locale: Locale(identifier: "en_US_POSIX"), width, height),
+                               fullPage: false, landscape: false)
+        }
+        throw appError("This PDF has an unsupported page size. Print it manually from ReAI.")
     }
 
     private func run(_ executable: String, _ arguments: [String]) throws -> String {
@@ -74,7 +114,7 @@ actor LabelPrinter {
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         guard process.terminationStatus == 0 else {
-            throw appError("macOS could not send the label to the printer. Check the printer queue before trying again.")
+            throw appError("macOS could not send the document to the printer. Check the printer queue before trying again.")
         }
         return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
     }
