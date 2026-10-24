@@ -48,7 +48,10 @@ final class LabelsModel {
         return catalog.filter { term.isEmpty || [$0.title, $0.sku, $0.barcode, $0.details].contains { $0.localizedStandardContains(term) } }
     }
     var total: Int { saved.batch.reduce(0) { min(1001, $0 + min(1001, max(0, $1.copies))) } }
-    var preview: LabelItem { saved.batch.first { $0.id == previewId } ?? saved.draft }
+    var preview: LabelItem {
+        get { saved.batch.first { $0.id == previewId } ?? saved.draft }
+        set { if let index = saved.batch.firstIndex(where: { $0.id == previewId }) { saved.batch[index] = newValue } else { saved.draft = newValue } }
+    }
     func start() async {
         guard !started else { return }; started = true
         do {
@@ -130,7 +133,7 @@ final class LabelsModel {
     }
     private func prices(for item: CatalogItem, sources: [String]) throws -> [LabelPrice] {
         let f = NumberFormatter(); f.locale = Locale(identifier: saved.settings.locale); f.numberStyle = .decimal
-        f.usesGroupingSeparator = false; f.maximumFractionDigits = 2; f.minimumFractionDigits = 2; f.roundingMode = .halfUp
+        f.usesGroupingSeparator = false; f.maximumFractionDigits = 2; f.roundingMode = .halfUp
         return try sources.map { id in
             guard let source = priceSources.first(where: { $0.id == id }),
                   let amount = id == "base" ? item.price : listPrices[id]?[item.variantUUID] else {
@@ -148,8 +151,10 @@ final class LabelsModel {
                     rate = configured
                 } else { rate = defaultVatRate }
             }
-            let gross = amount * (1 + rate / 100)
-            return LabelPrice(currency: source.currency, amount: f.string(from: gross as NSDecimalNumber) ?? "")
+            var gross = amount * (1 + rate / 100), cents = gross, whole = gross
+            NSDecimalRound(&cents, &gross, 2, .plain); NSDecimalRound(&whole, &cents, 0, .plain)
+            f.minimumFractionDigits = cents == whole ? 0 : 2
+            return LabelPrice(currency: source.currency, amount: f.string(from: cents as NSDecimalNumber) ?? "")
         }
     }
     func choosePriceSource(_ source: PriceSource) async {
