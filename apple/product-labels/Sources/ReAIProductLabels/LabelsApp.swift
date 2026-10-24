@@ -1,5 +1,4 @@
 import AppKit
-import PDFKit
 import SwiftUI
 
 @main
@@ -96,8 +95,27 @@ struct LabelsView: View {
             Text(t("Works without connecting to ReAI.")).font(.caption).foregroundStyle(.secondary)
             Form {
                 TextField(t("Product title"), text: $model.saved.draft.title)
+                TextField(t("Extra text"), text: Binding(get: { model.saved.draft.note ?? "" }, set: { model.saved.draft.note = $0.isEmpty ? nil : $0 }))
                 if model.saved.settings.design == .price {
                     TextField(t("Customer price"), text: $model.saved.draft.price)
+                    ForEach(Binding(get: { model.saved.draft.extraPrices ?? [] }, set: { model.saved.draft.extraPrices = $0.isEmpty ? nil : $0 })) { $price in
+                        let id = price.id
+                        LabeledContent(price.currency) {
+                            HStack {
+                                TextField(t("Customer price"), text: $price.amount).labelsHidden()
+                                Button { model.saved.draft.extraPrices?.removeAll { $0.id == id }; if model.saved.draft.extraPrices?.isEmpty == true { model.saved.draft.extraPrices = nil } }
+                                    label: { Image(systemName: "minus.circle") }.buttonStyle(.borderless).help(t("Remove currency"))
+                            }
+                        }
+                    }
+                    let used = [model.saved.settings.currency] + (model.saved.draft.extraPrices ?? []).map(\.currency)
+                    LabeledContent("") {
+                        Menu(t("Add currency")) {
+                            ForEach(["NOK", "EUR", "USD", "SEK", "DKK", "GBP"].filter { !used.contains($0) }, id: \.self) { code in
+                                Button(code) { model.saved.draft.extraPrices = (model.saved.draft.extraPrices ?? []) + [LabelPrice(currency: code, amount: "")] }
+                            }
+                        }.fixedSize().disabled(used.count >= 4 || model.saved.settings.currency == "None")
+                    }
                 } else {
                     TextField("SKU", text: $model.saved.draft.sku)
                     TextField(t("Barcode value"), text: $model.saved.draft.barcode)
@@ -207,7 +225,7 @@ struct LabelsView: View {
     }
     private var preview: some View {
         HStack(spacing: 24) {
-            LabelPreview(item: model.preview, settings: model.saved.settings).frame(width: 330, height: 185)
+            LabelPreview(item: $model.preview, settings: $model.saved.settings).frame(width: 330, height: 185)
                 .padding(12).background(.white).clipShape(RoundedRectangle(cornerRadius: 6)).shadow(color: .black.opacity(0.08), radius: 6, y: 2)
             VStack(alignment: .leading, spacing: 8) {
                 Text(t("Print preview")).font(.headline)
@@ -217,6 +235,13 @@ struct LabelsView: View {
                     Text(t("Whole prices · No thousands separators")).font(.caption).foregroundStyle(.secondary)
                 }
                 Text(model.previewId == nil ? t("Manual draft") : t("Selected batch item")).font(.caption).foregroundStyle(.secondary)
+                Text(t("Click text in the preview to edit it, resize it or move it.")).font(.caption).foregroundStyle(.secondary)
+                if model.saved.settings.customized {
+                    Button(t("Reset text layout")) {
+                        model.saved.settings.styles = nil; model.saved.settings.skuPrefix = nil
+                        model.saved.settings.originPrefix = nil; model.saved.settings.currencyTexts = nil
+                    }.controlSize(.small)
+                }
                 if let error = previewError { Text(error).font(.caption).foregroundStyle(.orange) }
             }
             Spacer(minLength: 0)
@@ -245,8 +270,10 @@ struct LabelsView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach($model.saved.batch) { $item in
-                            BatchRow(item: $item, settings: model.saved.settings, previewed: model.previewId == item.id,
-                                     preview: { model.previewId = item.id }, remove: { model.saved.batch.removeAll { $0.id == item.id } })
+                            // Capture the id first: reading item inside removeAll overlaps the batch mutation and traps.
+                            let id = item.id
+                            BatchRow(item: $item, settings: model.saved.settings, previewed: model.previewId == id,
+                                     preview: { model.previewId = id }, remove: { model.saved.batch.removeAll { $0.id == id } })
                         }
                     }
                 }
@@ -276,18 +303,116 @@ struct LabelsView: View {
         }.padding(16)
     }
 }
-struct LabelPreview: NSViewRepresentable {
-    let item: LabelItem
-    let settings: LabelSettings
-    func makeNSView(context: Context) -> PDFView {
-        let view = PDFView(); view.autoScales = true; view.displayMode = .singlePage; view.backgroundColor = .white
-        return view
+struct LabelPreview: View {
+    struct Target {
+        let role: LineRole; let index: Int; let rect: CGRect
+        let size: Double; let bold: Bool; let alignment: LineAlignment
     }
-    func updateNSView(_ view: PDFView, context: Context) {
-        var sample = item; sample.copies = 1
-        view.document = (try? LabelRenderer.pdf([sample], settings: settings)).flatMap(PDFDocument.init(data:))
-        do { try LabelRenderer.validate(sample, settings: settings) } catch { view.toolTip = error.localizedDescription }
+    @Binding var item: LabelItem
+    @Binding var settings: LabelSettings
+    @State private var editing: Target?
+    var body: some View {
+        GeometryReader { geometry in
+            let size = settings.size
+            let scale = min(geometry.size.width / size.width, geometry.size.height / size.height)
+            let origin = CGPoint(x: (geometry.size.width - size.width * scale) / 2, y: (geometry.size.height - size.height * scale) / 2)
+            let lines = (try? LabelRenderer.layout(item, settings: settings)) ?? []
+            ZStack(alignment: .topLeading) {
+                Group {
+                    if let image = LabelRenderer.image(item, settings: settings) { Image(decorative: image, scale: 1).resizable() } else { Color.white }
+                }
+                .frame(width: size.width * scale, height: size.height * scale).overlay(Rectangle().stroke(.quaternary))
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    let rect = CGRect(x: origin.x + line.rect.minX * scale, y: origin.y + line.rect.minY * scale,
+                                      width: line.rect.width * scale, height: line.rect.height * scale)
+                    let selected = editing?.role == line.role && editing?.index == line.index
+                    Button {
+                        let bold = NSFontManager.shared.traits(of: line.font).contains(.boldFontMask)
+                        let alignment: LineAlignment = line.alignment == .center ? .center : line.alignment == .right ? .right : .left
+                        editing = Target(role: line.role, index: line.index, rect: rect, size: Double(line.font.pointSize.rounded()), bold: bold, alignment: alignment)
+                    } label: { Rectangle().fill(Color.clear).contentShape(Rectangle()) }
+                    .buttonStyle(.plain).help(t("Edit text"))
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.accentColor.opacity(selected ? 0.9 : 0.25), style: StrokeStyle(lineWidth: 1, dash: [3])))
+                    .frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            // Anchor to the stored rect so the editor stays open while text is too long to lay out.
+            .popover(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } }),
+                     attachmentAnchor: .rect(.rect(editing?.rect ?? .zero)), arrowEdge: .bottom) {
+                if let editing { LineEditor(target: editing, item: $item, settings: $settings).padding(14).frame(width: 320) }
+            }
+        }
     }
+}
+struct LineEditor: View {
+    let target: LabelPreview.Target
+    @Binding var item: LabelItem
+    @Binding var settings: LabelSettings
+    private var style: Binding<LineStyle> { Binding(get: { settings.style(target.role) }, set: { settings.setStyle($0, for: target.role) }) }
+    private var prices: [LabelPrice] { [LabelPrice(currency: item.currencyCode ?? settings.currency, amount: item.price)] + (item.extraPrices ?? []) }
+    private var currency: String { prices[safe: target.index]?.currency ?? settings.currency }
+    private func currencyText(_ code: String) -> some View {
+        LabeledContent(t("Currency text") + " (\(code))") {
+            TextField(t("Currency text"), text: Binding(get: { LabelRenderer.currencyText(code, settings: settings, multiple: prices.count > 1) },
+                                                        set: { var texts = settings.currencyTexts ?? [:]; texts[code] = $0; settings.currencyTexts = texts })).labelsHidden().frame(width: 90)
+        }
+    }
+    private var amount: Binding<String> {
+        Binding(get: { target.index == 0 ? item.price : item.extraPrices?[safe: target.index - 1]?.amount ?? "" }, set: { value in
+            if target.index == 0 { item.price = value } else if var extras = item.extraPrices, extras.indices.contains(target.index - 1) {
+                extras[target.index - 1].amount = value; item.extraPrices = extras
+            }
+        })
+    }
+    private func fixed(_ path: WritableKeyPath<LabelSettings, String?>, _ value: String) -> Binding<String> {
+        Binding(get: { settings[keyPath: path] ?? value }, set: { settings[keyPath: path] = $0 })
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(t(target.role.title)).font(.headline)
+            Group {
+                switch target.role {
+                case .title: TextField(t("Product title"), text: $item.title, axis: .vertical).lineLimit(1...3)
+                case .note: TextField(t("Extra text"), text: Binding(get: { item.note ?? "" }, set: { item.note = $0.isEmpty ? nil : $0 }))
+                case .price:
+                    TextField(t("Customer price"), text: amount)
+                    currencyText(currency)
+                case .metadata:
+                    HStack { TextField(t("SKU text"), text: fixed(\.skuPrefix, settings.resolvedSkuPrefix)).frame(width: 110); TextField("SKU", text: $item.sku) }
+                    if settings.design == .product {
+                        TextField(t("Details / material / size"), text: $item.details)
+                        HStack { TextField(t("Origin text"), text: fixed(\.originPrefix, settings.resolvedOriginPrefix)).frame(width: 110); TextField(t("Country of origin"), text: $item.origin) }
+                    }
+                case .barcodeText: TextField(t("Barcode value"), text: $item.barcode)
+                }
+            }.textFieldStyle(.roundedBorder)
+            if [.price, .metadata].contains(target.role) {
+                Text(t("Fixed texts apply to all labels. Leave one empty to hide it.")).font(.caption).foregroundStyle(.secondary)
+            }
+            Divider()
+            Toggle(t("Automatic size"), isOn: Binding(get: { style.wrappedValue.size == nil }, set: { style.wrappedValue.size = $0 ? nil : target.size }))
+            if let size = style.wrappedValue.size {
+                Stepper(value: Binding(get: { size }, set: { style.wrappedValue.size = $0 }), in: 5...72, step: 1) { Text(t("Size") + ": \(Int(size)) pt").monospacedDigit() }
+            }
+            Toggle(t("Bold"), isOn: Binding(get: { style.wrappedValue.bold ?? target.bold }, set: { style.wrappedValue.bold = $0 }))
+            Picker(t("Alignment"), selection: Binding(get: { style.wrappedValue.alignment ?? target.alignment }, set: { style.wrappedValue.alignment = $0 })) {
+                ForEach(LineAlignment.allCases) { Image(systemName: $0.symbol).tag($0) }
+            }.pickerStyle(.segmented)
+            Stepper(value: Binding(get: { style.wrappedValue.offset ?? 0 }, set: { style.wrappedValue.offset = $0 == 0 ? nil : $0 }), in: -20...20, step: 0.5) {
+                Text(t("Move up or down") + ": " + (style.wrappedValue.offset ?? 0).formatted(.number.precision(.fractionLength(1))) + " mm").monospacedDigit()
+            }
+            HStack {
+                Text(t("Style applies to this line on every label with this design.")).font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button(t("Reset")) { style.wrappedValue = LineStyle() }.disabled(style.wrappedValue == LineStyle())
+            }
+        }
+    }
+}
+extension Array {
+    subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
 
 struct BatchRow: View {
@@ -307,6 +432,7 @@ struct BatchRow: View {
                         Text(item.currencyCode ?? settings.currency).font(.caption).frame(width: 35)
                     }
                 }
+                TextField(t("Extra text"), text: Binding(get: { item.note ?? "" }, set: { item.note = $0.isEmpty ? nil : $0 }))
                 if settings.design == .price {
                     ForEach(Binding(get: { item.extraPrices ?? [] }, set: { item.extraPrices = $0 })) { $price in
                         HStack {
