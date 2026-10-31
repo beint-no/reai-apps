@@ -55,10 +55,12 @@ enum LocationLabel {
         }
         context.setFillColor(NSColor.black.cgColor)
         context.setShouldAntialias(false)
+        let modules = CGMutablePath()
         for y in 0..<rows { for x in 0..<columns where pixels[(y * columns + x) * 4] < 128 {
-            context.fill(CGRect(x: 2 * mm + CGFloat(x + 4) * module,
-                y: (bounds.height - side) / 2 + CGFloat(y + 4) * module, width: module, height: module))
+            modules.addRect(CGRect(x: 2 * mm + CGFloat(x + 4) * module,
+                y: (bounds.height - side) / 2 + CGFloat(rows - 1 - y + 4) * module, width: module, height: module))
         } }
+        context.addPath(modules); context.fillPath()
         context.setShouldAntialias(true)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
