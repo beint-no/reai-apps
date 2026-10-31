@@ -13,13 +13,13 @@ struct ShippingApp: App {
         .commands {
             CommandGroup(after: .appInfo) {
                 Button(t("Check for Updates…")) { updater.check() }
-                    .disabled(model.busy || model.connecting || !updater.canCheck)
+                    .disabled(model.busy || model.loadingLocations || model.connecting || !updater.canCheck)
             }
         }
         MenuBarExtra("ReAI Shipping", systemImage: "shippingbox") {
             Button(t("Open ReAI Shipping")) { openWindow(id: "shipping"); NSApp.activate() }
             Button(t("Check for Updates…")) { updater.check() }
-                .disabled(model.busy || model.connecting || !updater.canCheck)
+                .disabled(model.busy || model.loadingLocations || model.connecting || !updater.canCheck)
             Divider()
             Button(t("Quit")) { NSApp.terminate(nil) }.disabled(model.busy)
         }
@@ -45,9 +45,16 @@ struct ShippingView: View {
             Divider()
             if model.company == nil { connection.padding(32); Spacer() }
             else {
-                HSplitView {
+                Picker(t("Section"), selection: $model.showingLocations) {
+                    Text(t("Shipping")).tag(false)
+                    Text(t("Locations")).tag(true)
+                }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 20).padding(.bottom, 12)
+                    .disabled(model.busy || model.loadingLocations)
+                if model.showingLocations { LocationLabelsView(model: model) }
+                else { HSplitView {
                     orderList.frame(minWidth: 260, idealWidth: 300, maxWidth: 360)
                     ScrollView { details.padding(24).frame(maxWidth: .infinity, alignment: .leading) }.frame(minWidth: 480)
+                }
                 }
                 Divider()
                 HStack {
@@ -61,7 +68,7 @@ struct ShippingView: View {
                         Button(t("Add printer")) { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Print-Scan-Settings.extension")!) }
                     }
                     Spacer()
-                    Text(t("One copy · Carrier PDF size")).font(.caption).foregroundStyle(.secondary)
+                    Text(model.showingLocations ? t("One copy · Actual label size") : t("One copy · Carrier PDF size")).font(.caption).foregroundStyle(.secondary)
                 }.padding(16)
             }
             if let notice = model.notice { Label(notice, systemImage: "info.circle").font(.callout).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.bottom, 12) }

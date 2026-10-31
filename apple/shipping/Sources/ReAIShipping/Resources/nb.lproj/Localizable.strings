@@ -141,3 +141,23 @@
 "One copy · Carrier PDF size" = "Én kopi · Transportørens PDF-størrelse";
 "Open customs invoice in ReAI (A4)" = "Åpne tollfaktura i ReAI (A4)";
 "Open in ReAI" = "Åpne i ReAI";
+
+"Section" = "Seksjon";
+"Shipping" = "Frakt";
+"Locations" = "Plasseringer";
+"Warehouse" = "Lager";
+"Choose a warehouse" = "Velg lager";
+"Zone" = "Sone";
+"All zones" = "Alle soner";
+"Refresh" = "Oppdater";
+"Find a location" = "Finn en plassering";
+"Label size" = "Etikettstørrelse";
+"Preview" = "Forhåndsvisning";
+"One copy · Actual label size" = "Én kopi · Faktisk etikettstørrelse";
+"Match the label size to the roll loaded in your printer. One location per label, at actual size." = "Velg størrelsen som passer etikettrullen i skriveren. Én plassering per etikett, i faktisk størrelse.";
+"Choose a location to preview its QR label." = "Velg en plassering for å forhåndsvise QR-etiketten.";
+"No locations found. Create locations in ReAI, then refresh here." = "Fant ingen plasseringer. Opprett plasseringer i ReAI og oppdater her.";
+"This location has no QR code. Refresh locations or update ReAI." = "Plasseringen mangler QR-kode. Oppdater plasseringene eller ReAI.";
+"The location label could not be prepared." = "Kunne ikke lage plasseringsetiketten.";
+"The location name is too long for this label. Choose a larger label size." = "Plasseringsnavnet er for langt for etiketten. Velg en større etikettstørrelse.";
+"Refresh locations before printing." = "Oppdater plasseringene før utskrift.";

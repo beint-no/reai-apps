@@ -244,3 +244,21 @@ extension ReAIAPI {
         return try JSONDecoder().decode(T.self, from: data)
     }
 }
+
+struct Warehouse: Decodable, Identifiable, Sendable { let id: Int; let name: String }
+struct WarehouseZone: Decodable, Identifiable, Sendable { let id: Int; let name: String }
+struct WarehouseLocation: Decodable, Identifiable, Sendable {
+    let id: Int; let warehouseId: Int; let name: String; let description: String?; let zoneId: Int?; let scanCode: String?
+}
+extension ReAIAPI {
+    func warehouses(token: String, company: Int) async throws -> [Warehouse] {
+        try await json("api/warehouses", token: token, company: company)
+    }
+    func locations(warehouse: Int, token: String, company: Int) async throws -> [WarehouseLocation] {
+        try await json("api/warehouses/\(warehouse)/locations", token: token, company: company,
+                       query: [URLQueryItem(name: "includePartialCoordinates", value: "true")])
+    }
+    func zones(warehouse: Int, token: String, company: Int) async throws -> [WarehouseZone] {
+        try await json("api/warehouses/\(warehouse)/zones", token: token, company: company)
+    }
+}

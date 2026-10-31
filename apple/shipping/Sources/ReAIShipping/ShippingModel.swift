@@ -22,6 +22,19 @@ struct ShippingOperation: Codable, Identifiable {
 
 @MainActor @Observable
 final class ShippingModel {
+    var showingLocations = false
+    var warehouses: [Warehouse] = []
+    var warehouseId = 0
+    var locationZoneId = 0
+    var locationSearch = ""
+    var locations: [WarehouseLocation] = []
+    var locationZones: [WarehouseZone] = []
+    var loadingLocations = false
+    var locationRecords: [LocationPrintRecord] = []
+    var labelSize: LocationLabelSize = .small {
+        didSet { UserDefaults.standard.set(labelSize.rawValue, forKey: "shipping.locationLabelSize") }
+    }
+    private var locationJournal: URL { journal.deletingLastPathComponent().appending(path: "location-print-history.json") }
     var company: Company?
     var connecting = false
     var busy = false
@@ -83,6 +96,7 @@ final class ShippingModel {
     private let journal: URL
 
     init() {
+        labelSize = LocationLabelSize(rawValue: UserDefaults.standard.string(forKey: "shipping.locationLabelSize") ?? "") ?? .small
         printerId = ["shipping.printer", "shipping.documentPrinter"].compactMap { UserDefaults.standard.string(forKey: $0) }.first { !$0.isEmpty } ?? ""
         journal = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appending(path: "ReAI Shipping/print-history.json")
@@ -90,6 +104,12 @@ final class ShippingModel {
             if FileManager.default.fileExists(atPath: journal.path) {
                 records = try JSONDecoder().decode([PrintRecord].self, from: Data(contentsOf: journal))
                 if records.contains(where: { $0.state == "submitting" }) {
+                    notice = t("A previous print was interrupted. Check the printer queue before reprinting.")
+                }
+            }
+            if FileManager.default.fileExists(atPath: locationJournal.path) {
+                locationRecords = try JSONDecoder().decode([LocationPrintRecord].self, from: Data(contentsOf: locationJournal))
+                if locationRecords.contains(where: { $0.state == "submitting" }) {
                     notice = t("A previous print was interrupted. Check the printer queue before reprinting.")
                 }
             }
@@ -150,6 +170,7 @@ final class ShippingModel {
             try await credentials.delete()
             token = nil
             company = nil
+            warehouses = []; warehouseId = 0; locations = []; locationZones = []; locationZoneId = 0; locationSearch = ""
             savedShipments = []; historyBeforeId = nil; shipmentBeforeId = nil
             orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; quote = nil
             notice = nil
@@ -475,6 +496,69 @@ final class ShippingModel {
             self.error = error.localizedDescription
             notice = nil
         }
+    }
+
+    func refreshLocations() async {
+        guard !busy, !loadingLocations, let token, let company else { return }
+        loadingLocations = true; error = nil
+        defer { loadingLocations = false }
+        do {
+            let values = try await api.warehouses(token: token, company: company.id)
+            guard self.company?.id == company.id else { return }
+            warehouses = values
+            if !values.contains(where: { $0.id == warehouseId }) { warehouseId = values.first?.id ?? 0 }
+            guard warehouseId > 0 else { locations = []; locationZones = []; return }
+            let selected = warehouseId
+            locations = []; locationZones = []
+            async let rows = api.locations(warehouse: selected, token: token, company: company.id)
+            async let zones = api.zones(warehouse: selected, token: token, company: company.id)
+            let result = try await (rows, zones)
+            guard self.company?.id == company.id, warehouseId == selected else { return }
+            locations = result.0; locationZones = result.1
+            if !locationZones.contains(where: { $0.id == locationZoneId }) { locationZoneId = 0 }
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func locationRecord(_ id: Int) -> LocationPrintRecord? {
+        locationRecords.first { $0.tenantId == company?.id && $0.locationId == id }
+    }
+
+    func locationPDF(_ location: WarehouseLocation) throws -> Data {
+        guard location.warehouseId == warehouseId, let current = locations.first(where: { $0.id == location.id }),
+              let warehouse = warehouses.first(where: { $0.id == warehouseId }) else {
+            throw appError("Refresh locations before printing.")
+        }
+        return try LocationLabel.pdf(location: current, warehouse: warehouse.name,
+            zone: locationZones.first(where: { $0.id == current.zoneId })?.name, size: labelSize)
+    }
+
+    func printLocation(_ location: WarehouseLocation, confirmed: Bool = false) async {
+        guard canPrint, !loadingLocations, let company, locationRecord(location.id) == nil || confirmed else { return }
+        busy = true; error = nil; notice = nil
+        defer { busy = false }
+        var recorded = false
+        do {
+            let data = try locationPDF(location)
+            let selectedPrinter = printerId
+            locationRecords.removeAll { $0.tenantId == company.id && $0.locationId == location.id }
+            locationRecords.insert(LocationPrintRecord(tenantId: company.id, locationId: location.id,
+                name: location.name, state: "submitting", printerId: selectedPrinter, size: labelSize.rawValue), at: 0)
+            do { try saveLocationPrints() } catch { historyReadable = false; throw error }; recorded = true
+            let result = try await printer.submitLocation(data, printer: selectedPrinter, title: "ReAI · " + location.name)
+            locationRecords[0].state = "queued"; locationRecords[0].queueResult = result
+            try saveLocationPrints()
+            notice = t("Sent to the printer queue.")
+        } catch {
+            if recorded { locationRecords[0].state = "check_queue"; try? saveLocationPrints() }
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func saveLocationPrints() throws {
+        try FileManager.default.createDirectory(at: locationJournal.deletingLastPathComponent(), withIntermediateDirectories: true,
+                                               attributes: [.posixPermissions: 0o700])
+        try JSONEncoder().encode(locationRecords).write(to: locationJournal, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: locationJournal.path)
     }
 
     private func save() throws {
