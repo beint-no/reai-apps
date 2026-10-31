@@ -141,3 +141,23 @@
 "One copy · Carrier PDF size" = "One copy · Carrier PDF size";
 "Open customs invoice in ReAI (A4)" = "Open customs invoice in ReAI (A4)";
 "Open in ReAI" = "Open in ReAI";
+
+"Section" = "Section";
+"Shipping" = "Shipping";
+"Locations" = "Locations";
+"Warehouse" = "Warehouse";
+"Choose a warehouse" = "Choose a warehouse";
+"Zone" = "Zone";
+"All zones" = "All zones";
+"Refresh" = "Refresh";
+"Find a location" = "Find a location";
+"Label size" = "Label size";
+"Preview" = "Preview";
+"One copy · Actual label size" = "One copy · Actual label size";
+"Match the label size to the roll loaded in your printer. One location per label, at actual size." = "Match the label size to the roll loaded in your printer. One location per label, at actual size.";
+"Choose a location to preview its QR label." = "Choose a location to preview its QR label.";
+"No locations found. Create locations in ReAI, then refresh here." = "No locations found. Create locations in ReAI, then refresh here.";
+"This location has no QR code. Refresh locations or update ReAI." = "This location has no QR code. Refresh locations or update ReAI.";
+"The location label could not be prepared." = "The location label could not be prepared.";
+"The location name is too long for this label. Choose a larger label size." = "The location name is too long for this label. Choose a larger label size.";
+"Refresh locations before printing." = "Refresh locations before printing.";

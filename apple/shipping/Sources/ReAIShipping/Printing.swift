@@ -56,16 +56,27 @@ actor LabelPrinter {
         guard !layout.fullPage || !queue.isZebra else {
             throw appError("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI.")
         }
+        return try spool(data, printer: printer, title: "ReAI \(request.shipmentId) · \(t(request.document.title))", layout: layout, scale: true)
+    }
+
+    func submitLocation(_ data: Data, printer: String, title: String) throws -> String {
+        let layout = try Self.layout(for: data)
+        guard !layout.fullPage, try printers().contains(where: { $0.id == printer }) else {
+            throw appError("The selected printer is unavailable. Check Printers & Scanners in System Settings.")
+        }
+        return try spool(data, printer: printer, title: title, layout: layout, scale: false)
+    }
+
+    private func spool(_ data: Data, printer: String, title: String, layout: PrintLayout, scale: Bool) throws -> String {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         defer { try? FileManager.default.removeItem(at: directory) }
-        let file = directory.appending(path: "\(request.document.rawValue).pdf")
+        let file = directory.appending(path: "label.pdf")
         try data.write(to: file, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-        return try run("/usr/bin/lp", ["-d", printer, "-t", "ReAI \(request.shipmentId) · \(t(request.document.title))", "-n", "1",
-                                       "-o", "media=\(layout.media)", "-o", "fit-to-page", "-o", "sides=one-sided",
-                                       "-o", "orientation-requested=\(layout.landscape ? 4 : 3)",
-                                       "-o", "job-sheets=none,none", "-o", "number-up=1", file.path])
+        return try run("/usr/bin/lp", ["-d", printer, "-t", title, "-n", "1",
+            "-o", "media=\(layout.media)", "-o", scale ? "fit-to-page" : "print-scaling=none", "-o", "sides=one-sided",
+            "-o", "orientation-requested=\(layout.landscape ? 4 : 3)", "-o", "job-sheets=none,none", "-o", "number-up=1", file.path])
     }
 
     static func layout(for data: Data) throws -> PrintLayout {
@@ -93,7 +104,8 @@ actor LabelPrinter {
         if abs(short - 215.9) < 2 && abs(long - 279.4) < 2 {
             return PrintLayout(media: "Letter", fullPage: true, landscape: width > height)
         }
-        if (40...120).contains(width), (40...220).contains(height) {
+        // PDF point conversion can round nominal 40 mm just below the lower bound.
+        if (39.5...120.5).contains(width), (39.5...220.5).contains(height) {
             return PrintLayout(media: String(format: "Custom.%.2fx%.2fmm", locale: Locale(identifier: "en_US_POSIX"), width, height),
                                fullPage: false, landscape: false)
         }

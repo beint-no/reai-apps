@@ -19,3 +19,14 @@ Persist a tenant/shipment label receipt before invoking lp. Retain decoding and 
 Ready to ship sends an inclusive `from` date 14 calendar days ago by default. Include older orders removes that restriction; History always covers all dates. Keep the date cutoff stable while paging.
 
 Sparkle is pinned in Package.swift/Package.resolved. Check for Updates is manual only and disabled while shipping/printing or authorizing; shipping controls are disabled for the update session. The signed appcast is published as shipping.xml on each shipping release, then copied byte-for-byte to Pages updates/shipping.xml. The release environment owns SHIPPING_SPARKLE_PRIVATE_KEY; never put it in Git.
+
+Locations is a separate read-only warehouse section in the same company connection. List active
+warehouses, zones and locations through the public API. Render each stable scanCode as a vector QR
+with a four-module quiet zone; names/warehouse/zone are human-readable. Preview and print use the
+same one-page PDF renderer. Default media is 60 × 40 mm, with 80 × 50 and 100 × 50 options matching
+the loaded roll. Never scale location labels to A4 or silently truncate text; reject missing codes
+and text that cannot fit. Description helps find locations in the app; it is not printed.
+Location prints use the same selected queue but their own private location-print-history.json.
+Persist submitting before lp, retain queued/check_queue receipts across restarts/company changes,
+show the OS result and require explicit confirmation for repeat prints. No location printing action
+creates a shipment, books postage, changes stock or retries an uncertain spool automatically.
