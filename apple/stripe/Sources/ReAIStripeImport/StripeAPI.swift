@@ -16,6 +16,7 @@ actor StripeAPI {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("2026-10-28.endive", forHTTPHeaderField: "Stripe-Version")
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw appError("Stripe returned an invalid response.") }
         guard (200..<300).contains(response.statusCode) else {

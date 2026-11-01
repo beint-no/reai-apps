@@ -4,3 +4,4 @@ Only import simple, fully paid, tax-free invoices with an explicitly selected ze
 Use ReAI's tenant-scoped idempotent invoice import. A 409 requires user review, not automatic retry.
 Stage subscriptions with automaticBillingGeneration=false; never cancel Stripe or move payment methods.
 Keep the migration manual and show skipped records and reasons. No background polling or webhooks.
+Requests pin `Stripe-Version`. Before bumping it, check the Stripe changelog for the invoice, subscription and account fields this app reads.
