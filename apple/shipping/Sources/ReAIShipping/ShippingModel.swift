@@ -302,11 +302,11 @@ final class ShippingModel {
 
     private func loadRates(token: String, company: Int) async throws {
         guard var value = draft, let order = selectedOrder else { return }
-        quote = nil; pickups = []; value.acceptedQuote = nil; value.pickupProviderId = nil; draft = value
+        quote = nil; pickups = []; value.acceptedQuote = nil; value.pickupProviderId = nil; value.productCode = nil; draft = value
         rates = try await api.rates(order: order.id, draft: value, token: token, company: company)
         let available = rates.filter { $0.status == "quoted" && $0.bookingBlockedReason == nil && $0.quote != nil }
         let preferred = UserDefaults.standard.string(forKey: "shipping.service")
-        let choice = available.first { $0.id == preferred } ?? available.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) } ?? available.first
+        let choice = available.first { $0.id == preferred } ?? available.first { $0.service == preferred } ?? available.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) } ?? available.first
         if let choice { try await selectRate(choice.id, token: token, company: company) }
         else { error = rates.compactMap { $0.bookingBlockedReason ?? $0.error }.first ?? t("No shipping rate is available for this parcel.") }
     }
@@ -320,7 +320,7 @@ final class ShippingModel {
     private func selectRate(_ id: String, token: String, company: Int) async throws {
         guard let rate = rates.first(where: { $0.id == id }), var value = draft else { return }
         selectedRate = id; quote = nil; pickups = []; error = nil
-        value.carrierCode = rate.carrierCode; value.deliveryMethod = rate.deliveryMethod
+        value.carrierCode = rate.carrierCode; value.deliveryMethod = rate.deliveryMethod; value.productCode = rate.quote?.productCode
         value.pickupProviderId = nil; value.acceptedQuote = nil; draft = value
         UserDefaults.standard.set(id, forKey: "shipping.service")
         try await loadQuote(token: token, company: company)

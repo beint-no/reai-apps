@@ -103,7 +103,7 @@ struct Quote: Codable, Equatable, Sendable {
     var display: String { "\(customerPriceAmount.formatted()) \(currencyCode)" }
 }
 struct Draft: Codable, Equatable, Sendable {
-    var requestId: UUID; var carrierCode: String?; var deliveryMethod: String?; var recipient: Recipient
+    var requestId: UUID; var carrierCode: String?; var deliveryMethod: String?; var productCode: String?; var recipient: Recipient
     var parcel: Parcel; var lines: [ShipmentLine]; var pickupProviderId: String?; var acceptedQuote: Quote?
 }
 struct ShippingService: Decodable, Identifiable, Sendable {
@@ -118,8 +118,9 @@ struct ShippingOptions: Decodable, Sendable {
     let services: [ShippingService]; let availableLines: [AvailableLine]; let defaults: Draft?; let existingShipments: ShipmentPage
 }
 struct Rate: Decodable, Identifiable, Sendable {
-    var id: String { carrierCode + ":" + deliveryMethod }
-    let carrierCode: String; let deliveryMethod: String; let status: String; let quote: Quote?
+    var id: String { [service, quote?.productCode].compactMap { $0 }.joined(separator: ":") }
+    var service: String { carrierCode + ":" + deliveryMethod }
+    let carrierCode: String; let deliveryMethod: String; let name: String?; let status: String; let quote: Quote?
     let bookingBlockedReason: String?; let error: String?
 }
 struct Pickup: Decodable, Identifiable, Sendable { var id: String { providerId }; let providerId: String; let name: String; let displayName: String; let description: String }
