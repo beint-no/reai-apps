@@ -181,8 +181,7 @@ import Observation
                     "automaticRemindersEnabled": false, "customerId": customer.id,
                     "comment": "Historical Stripe invoice \(invoice.id). Revenue and VAT were not posted by this import.",
                     "orderItems": [["productId": selectedProduct, "quantity": 1, "price": amount, "currency": company.currencyCode]],
-                    "payments": [["reference": "stripe:\(source):\(invoice.id):paid", "date": Dates.day(paidAt),
-                                  "paidAmount": amount, "receivedAmount": amount]]
+                    "payments": [["date": Dates.day(paidAt), "paidAmount": amount, "receivedAmount": amount]]
                 ]
                 let data = try JSONSerialization.data(withJSONObject: body)
                 let imported: ImportedInvoice = try await reai.request("api/invoices/import", token: token, company: company.id, body: data)

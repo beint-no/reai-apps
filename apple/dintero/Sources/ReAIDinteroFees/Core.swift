@@ -165,7 +165,7 @@ struct ReviewRow: Identifiable {
                 let fetched = try await provider.settlements(fields, start: interval.start, end: interval.end)
                 let bank: Reconciliation? = selectedBank > 0
                     ? try await reai.request("api/bank-reconciliations/\(selectedBank)", token: token, company: selectedCompany,
-                                             query: [URLQueryItem(name: "month", value: selectedMonth)])
+                                             query: [URLQueryItem(name: "month", value: selectedMonth), URLQueryItem(name: "include", value: "pending_transactions")])
                     : nil
                 guard companyID == selectedCompany, bankID == selectedBank, AppDates.month(month) == selectedMonth else { return }
                 payouts = fetched.filter { $0.currency == currency }.sorted { $0.date > $1.date }

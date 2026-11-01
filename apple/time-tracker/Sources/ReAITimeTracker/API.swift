@@ -19,8 +19,10 @@ actor ReAIAPI {
     }
 
     func request<T: Decodable & Sendable>(_ path: String, token: String, company: Int? = nil,
-                                         body: Data? = nil) async throws -> T {
-        var request = URLRequest(url: AppEnvironment.origin.appending(path: path))
+                                         body: Data? = nil, query: [URLQueryItem] = []) async throws -> T {
+        var url = AppEnvironment.origin.appending(path: path)
+        if !query.isEmpty { url.append(queryItems: query) }
+        var request = URLRequest(url: url)
         request.httpMethod = body == nil ? "GET" : "POST"
         request.httpBody = body
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
