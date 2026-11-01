@@ -57,7 +57,6 @@ struct StripeInvoice: Decodable, Identifiable, Sendable {
     let amount_remaining: Int
     let total: Int
     let total_excluding_tax: Int?
-    let total_tax_amounts: [TaxAmount]?
     let total_taxes: [TaxAmount]?
     let status_transitions: StatusTransitions?
     let starting_balance: Int?
@@ -101,7 +100,6 @@ struct StripeSubscription: Decodable, Identifiable, Sendable {
     let currency: String?
     let customer: StripeCustomer?
     let items: Items
-    let current_period_end: Int?
     let cancel_at_period_end: Bool?
     let automatic_tax: AutomaticTax?
     let default_tax_rates: [String]?
@@ -109,7 +107,7 @@ struct StripeSubscription: Decodable, Identifiable, Sendable {
     struct AutomaticTax: Decodable, Sendable { let enabled: Bool }
 
     enum CodingKeys: String, CodingKey {
-        case id, status, currency, customer, items, current_period_end, cancel_at_period_end, automatic_tax, default_tax_rates, discounts
+        case id, status, currency, customer, items, cancel_at_period_end, automatic_tax, default_tax_rates, discounts
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -118,7 +116,6 @@ struct StripeSubscription: Decodable, Identifiable, Sendable {
         currency = try c.decodeIfPresent(String.self, forKey: .currency)
         customer = try? c.decode(StripeCustomer.self, forKey: .customer)
         items = try c.decode(Items.self, forKey: .items)
-        current_period_end = try c.decodeIfPresent(Int.self, forKey: .current_period_end)
         cancel_at_period_end = try c.decodeIfPresent(Bool.self, forKey: .cancel_at_period_end)
         automatic_tax = try c.decodeIfPresent(AutomaticTax.self, forKey: .automatic_tax)
         default_tax_rates = (try? c.decode([String].self, forKey: .default_tax_rates))

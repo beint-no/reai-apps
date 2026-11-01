@@ -277,7 +277,7 @@ struct ShippingView: View {
                         Button { Task { await model.chooseRate(rate.id) } } label: {
                             HStack {
                                 Image(systemName: model.selectedRate == rate.id ? "largecircle.fill.circle" : "circle")
-                                Text(model.options?.services.first(where: { $0.id == rate.id }).map { $0.carrierName + " · " + $0.name } ?? rate.id)
+                                Text(model.options?.services.first(where: { $0.id == rate.service }).map { $0.carrierName + " · " + (rate.name ?? $0.name) } ?? rate.name ?? rate.service)
                                 Spacer()
                                 Text(rate.quote?.display ?? "")
                             }.contentShape(Rectangle())

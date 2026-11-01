@@ -139,9 +139,7 @@ import Observation
               invoice.pre_payment_credit_notes_amount == 0, invoice.post_payment_credit_notes_amount == 0,
               invoice.paidAt != nil else { return "Only fully paid positive invoices" }
         guard invoice.total_excluding_tax == invoice.total,
-              (invoice.total_tax_amounts != nil || invoice.total_taxes != nil),
-              invoice.total_tax_amounts?.allSatisfy({ $0.amount == 0 }) ?? true,
-              invoice.total_taxes?.allSatisfy({ $0.amount == 0 }) ?? true else { return "Tax could not be verified as zero" }
+              invoice.total_taxes?.allSatisfy({ $0.amount == 0 }) == true else { return "Tax could not be verified as zero" }
         guard let number = invoice.number, !number.isEmpty, number.count <= 100 else { return "Missing invoice number" }
         guard matchedCustomer(invoice.customer_email) != nil else { return "Match exactly one ReAI customer by email" }
         return nil
@@ -156,7 +154,7 @@ import Observation
               recurring.usage_type == "licensed", item.price.billing_scheme == "per_unit",
               recurring.interval == "month" || recurring.interval == "year" else { return "Only fixed monthly or yearly billing" }
         guard subscription.discounts?.isEmpty == true, item.discounts?.isEmpty == true else { return "Discounts need manual review" }
-        guard (item.current_period_end ?? subscription.current_period_end) != nil else { return "Next period date is unavailable" }
+        guard item.current_period_end != nil else { return "Next period date is unavailable" }
         guard subscription.automatic_tax?.enabled == false, subscription.default_tax_rates?.isEmpty == true,
               item.tax_rates?.isEmpty == true else { return "Tax configuration needs manual review" }
         guard subscription.currency?.uppercased() == company.currencyCode.uppercased(),
@@ -183,8 +181,7 @@ import Observation
                     "automaticRemindersEnabled": false, "customerId": customer.id,
                     "comment": "Historical Stripe invoice \(invoice.id). Revenue and VAT were not posted by this import.",
                     "orderItems": [["productId": selectedProduct, "quantity": 1, "price": amount, "currency": company.currencyCode]],
-                    "payments": [["reference": "stripe:\(source):\(invoice.id):paid", "date": Dates.day(paidAt),
-                                  "paidAmount": amount, "receivedAmount": amount]]
+                    "payments": [["date": Dates.day(paidAt), "paidAmount": amount, "receivedAmount": amount]]
                 ]
                 let data = try JSONSerialization.data(withJSONObject: body)
                 let imported: ImportedInvoice = try await reai.request("api/invoices/import", token: token, company: company.id, body: data)
@@ -197,7 +194,7 @@ import Observation
         guard let token = reaiToken, let source = stripeAccount, let company,
               let item = subscription.items.data.first, let amount = item.price.unit_amount,
               let quantity = item.quantity, let recurring = item.price.recurring,
-              let end = item.current_period_end ?? subscription.current_period_end,
+              let end = item.current_period_end,
               let customer = matchedCustomer(subscription.customer?.email),
               let vat = zeroVATProducts.first(where: { $0.id == selectedProduct })?.vatCode,
               subscriptionReason(subscription) == nil else { error = "Refresh the preview and check this subscription before staging."; return }

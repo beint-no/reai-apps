@@ -112,7 +112,12 @@ struct Attempt: Codable { let marker: String; let fingerprint: String; var vouch
                 guard company.currencyCode == "NOK", source.range(of: "^[0-9]{9}$", options: .regularExpression) != nil, source == settings.company.organizationNumber else {
                     throw appError("Enter the organization number shown on the source report. It must match a Norwegian NOK company in ReAI.")
                 }
-                let options: [LedgerAccount] = try await api.request("api/chart-of-accounts/accounts", token: token, company: selected)
+                var options: [LedgerAccount] = []
+                for accountNumber in Set(parsed.entries.map(\.account)) {
+                    let matches: [LedgerAccount] = try await api.request("api/chart-of-accounts/accounts", token: token, company: selected,
+                        query: [URLQueryItem(name: "accountNumberPrefix", value: accountNumber), URLQueryItem(name: "limit", value: "100")])
+                    options += matches
+                }
                 let availableBanks: [Bank] = try await api.request("api/company-banks", token: token, company: selected)
                 var selectedBanks: [String: Int] = [:]
                 for accountNumber in Set(parsed.entries.map(\.account)) {

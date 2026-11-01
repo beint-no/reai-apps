@@ -59,14 +59,14 @@ Rejected rows do not stop the remaining ready rows. Unknown outcomes still pause
 
 ## Development
 
-Tools checked 20 September 2026:
+Tools checked 1 November 2026:
 
-- [.NET SDK 11.0.100-rc.1.26425.128](https://dotnet.microsoft.com/en-us/download/dotnet/11.0), runtime 11.0.0-rc.1.26425.128 and C# 15.
-- [Windows App SDK 2.5.1](https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.5.1), including WinUI 3.
-- [Windows SDK Build Tools 10.0.28000.2705](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/10.0.28000.2705).
+- [.NET SDK 11.0.100-rc.3.26522.148](https://dotnet.microsoft.com/en-us/download/dotnet/11.0), runtime 11.0.0-rc.3.26522.148 and C# 15.
+- [Windows App SDK 2.6.4](https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.6.4), including WinUI 3.
+- [Windows SDK Build Tools 10.0.28000.2957](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/10.0.28000.2957).
 - Windows SDK .NET reference package 10.0.26100.87, the latest stable reference package available for the .NET Windows target.
 
-.NET 11 RC1 is the explicitly selected release candidate with Microsoft go-live support. Windows 11 25H2 is the minimum customer OS; no Windows 10 or x86 support.
+.NET 11 RC3 is the explicitly selected release candidate with Microsoft go-live support. Windows 11 25H2 is the minimum customer OS; no Windows 10 or x86 support.
 The Windows SDK reference version is an API contract, not the app's minimum supported Windows release.
 
 Write code on macOS; from `windows/`, run `dotnet build import/Core` to build the import logic.
@@ -80,4 +80,4 @@ On Windows, install the .NET SDK and run from the repository root:
 
 Build output is in `dist/import-windows`. It includes the .NET and Windows App SDK runtimes.
 
-Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.3.9, Runtime 2.5.1, Interactive Experiences 2.1.9, Foundation 2.3.12, Base 2.0.4, WebView2 1.0.4191.47, SDK Build Tools 10.0.28000.2705 and MSIX Build Tools 1.7.260903100.
+Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.6.4, Runtime 2.6.4, Interactive Experiences 2.6.4, Foundation 2.6.4, Base 2.6.4, WebView2 1.0.4314.35, SDK Build Tools 10.0.28000.2957 and MSIX Build Tools 1.7.261008100.

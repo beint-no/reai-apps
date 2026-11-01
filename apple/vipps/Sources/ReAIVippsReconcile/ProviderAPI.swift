@@ -21,7 +21,7 @@ actor ProviderAPI {
         var req = URLRequest(url: url)
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("reai-apps", forHTTPHeaderField: "Vipps-System-Name")
-        req.setValue("0.1.0", forHTTPHeaderField: "Vipps-System-Version")
+        req.setValue(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0", forHTTPHeaderField: "Vipps-System-Version")
         req.setValue(fields["subscriptionKey"], forHTTPHeaderField: "Ocp-Apim-Subscription-Key")
         req.setValue(fields["msn"], forHTTPHeaderField: "Merchant-Serial-Number")
         if let token { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }

@@ -71,7 +71,7 @@ References: [Developer ID certificates](https://developer.apple.com/help/account
 
 ## Shipping in-app updates
 
-Shipping uses pinned Sparkle 2.10.0. The build embeds its framework with symlinks preserved; release signs Autoupdate, Updater.app, both XPC helpers and the framework inside-out before signing the host with hardened runtime. Other apps remain independent.
+Shipping uses pinned Sparkle 2.10.1. The build embeds its framework with symlinks preserved; release signs Autoupdate, Updater.app, both XPC helpers and the framework inside-out before signing the host with hardened runtime. Other apps remain independent.
 
 The `apple-release` secret `SHIPPING_SPARKLE_PRIVATE_KEY` signs the notarized DMG and appcast. Its public key is in Shipping's Info.plist; the private key is also retained in the operator's login Keychain under Sparkle account `no.reai.shipping`. To rotate, follow Sparkle's key-rotation guidance and preserve the Apple signing identity. Never print or commit the private key.
 

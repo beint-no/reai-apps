@@ -47,7 +47,7 @@ apple/
 windows/
   import/           .NET 11 / WinUI 3 app and app-local import logic
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
-  global.json       Pinned .NET 11 RC1 SDK
+  global.json       Pinned .NET 11 RC3 SDK
 apps.json          App identities and download names
 site/              GitHub Pages download site
 tools/apple/       Apple build, signing and release tools
@@ -95,7 +95,7 @@ A failed verification publishes nothing.
 
 ## Windows development
 
-Windows Import and Time Tracker use .NET 11 RC1 (SDK 11.0.100-rc.1.26425.128), C# 15 and Windows App SDK 2.5.1. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. Toolchains and dependencies are pinned; the app READMEs record the versions checked on 20 September 2026. Verify current releases when adding or updating dependencies.
+Windows Import and Time Tracker use .NET 11 RC3 (SDK 11.0.100-rc.3.26522.148), C# 15 and Windows App SDK 2.6.4. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. Toolchains and dependencies are pinned; the app READMEs record the versions checked on 1 November 2026. Verify current releases when adding or updating dependencies.
 
 See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. PRs and pushes only run checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
 
