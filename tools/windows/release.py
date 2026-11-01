@@ -59,7 +59,7 @@ To update, close the app and extract the new version into a new folder. Account 
 
 `SHA256SUMS` contains download checksums. These detect changed downloads; they are not a publisher signature or a way around Windows security policy.
 
-Built from the main-branch source by GitHub Actions. .NET 11 RC1 is bundled. Native startup is checked on Windows x64; ARM64 is compiled and its archive checked, but not launched in CI.
+Built from the main-branch source by GitHub Actions. .NET 11 RC3 is bundled. Native startup is checked on Windows x64; ARM64 is compiled and its archive checked, but not launched in CI.
 
 [App instructions](https://github.com/beint-no/reai-apps/tree/main/{app['path']}) · [All apps](https://beint-no.github.io/reai-apps/)
 '''

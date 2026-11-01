@@ -27,7 +27,7 @@ Run from the repository root on Windows:
 ./tools/windows/build.ps1 -App import-windows -Architecture ARM64
 ```
 
-`build.ps1` publishes a self-contained folder and ZIP; `-Version 0.1.0` sets the app version. Local/check builds default to 0.0.0. `windows/global.json` pins .NET 11 RC1. Run local .NET commands from `windows/` so SDK selection applies.
+`build.ps1` publishes a self-contained folder and ZIP; `-Version 0.1.0` sets the app version. Local/check builds default to 0.0.0. `windows/global.json` pins .NET 11 RC3. Run local .NET commands from `windows/` so SDK selection applies.
 
 ## Windows warnings
 
