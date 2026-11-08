@@ -13,7 +13,7 @@ struct Company: Decodable, Sendable { let id: Int; let companyName: String; let 
 struct Product: Decodable, Sendable {
     let id: Int; let title: String; let material: String?; let vatCode: String?; let brand: String?; let variants: [Variant]
 }
-struct ProductPage: Decodable, Sendable { let items: [Product]; let hasNext: Bool }
+struct ReAIPage<T: Decodable & Sendable>: Decodable, Sendable { let items: [T]; let hasNext: Bool }
 struct Variant: Decodable, Sendable {
     let variantId: Int; let productVariantId: UUID; let sku: String; let barcode: String?; let countryOfOriginCode: String?
     let sellingPrice: Decimal; let options: [String: String]
@@ -46,22 +46,25 @@ actor ReAIAPI {
         return company
     }
     func products(token: String, company: Int) async throws -> [CatalogItem] {
-        var products: [Product] = []
-        var page = 1
-        while true {
-            let result: ProductPage = try await get("api/products", token: token, company: company, query: [
-                URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "pageSize", value: "200")])
-            products += result.items
-            guard result.hasNext else { break }
-            page += 1
-        }
+        let products: [Product] = try await all("api/products", token: token, company: company)
         return products.flatMap { p in p.variants.map { CatalogItem(product: p, variant: $0) } }
     }
     func priceLists(token: String, company: Int) async throws -> [PriceList] {
         try await get("api/product-price-lists", token: token, company: company)
     }
     func prices(token: String, company: Int, list: UUID) async throws -> [VariantPrice] {
-        try await get("api/product-price-lists/\(list.uuidString)/prices", token: token, company: company)
+        try await all("api/product-price-lists/\(list.uuidString)/prices", token: token, company: company)
+    }
+    private func all<T: Decodable & Sendable>(_ path: String, token: String, company: Int) async throws -> [T] {
+        var items: [T] = []
+        var page = 1
+        while true {
+            let result: ReAIPage<T> = try await get(path, token: token, company: company, query: [
+                URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "pageSize", value: "200")])
+            items += result.items
+            guard result.hasNext else { return items }
+            page += 1
+        }
     }
     func vatCodes(token: String, company: Int, salesOnly: Bool = false) async throws -> [VatCode] {
         try await get("api/vat-codes", token: token, company: company,
