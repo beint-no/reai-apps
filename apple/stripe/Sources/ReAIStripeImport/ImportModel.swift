@@ -106,8 +106,8 @@ import Observation
     private func refreshReAI() async throws {
         guard let token = reaiToken, selectedCompany > 0 else { return }
         let companyID = selectedCompany
-        async let fetchedCustomers: [Customer] = reai.request("api/customers", token: token, company: companyID, query: [URLQueryItem(name: "archived", value: "false")])
-        async let fetchedProducts: [Product] = reai.request("api/products", token: token, company: companyID)
+        async let fetchedCustomers: [Customer] = reai.all("api/customers", token: token, company: companyID, query: [URLQueryItem(name: "archived", value: "false")])
+        async let fetchedProducts: [Product] = reai.all("api/products", token: token, company: companyID)
         async let fetchedVAT: [VATCode] = reai.request("api/vat-codes", token: token, company: companyID, query: [URLQueryItem(name: "usage", value: "customer-invoice")])
         let (loadedCustomers, loadedProducts, loadedVAT) = try await (fetchedCustomers, fetchedProducts, fetchedVAT)
         guard selectedCompany == companyID else { return }

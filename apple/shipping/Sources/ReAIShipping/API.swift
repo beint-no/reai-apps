@@ -91,6 +91,7 @@ struct HistoricalOrder: Decodable, Sendable {
                                      remainingQuantity: nil, preparedShipmentId: nil) }
 }
 struct HistoryPage: Sendable { let items: [ReadyOrder]; let nextBeforeId: Int? }
+struct HistoricalOrderPage: Decodable, Sendable { let items: [HistoricalOrder] }
 struct ReadyPage: Decodable, Sendable { let items: [ReadyOrder]; let page: Int; let totalPages: Int; let totalItems: Int }
 struct Recipient: Codable, Equatable, Sendable {
     var name: String?; var email: String?; var phone: String?; var countryCode: String?
@@ -164,11 +165,11 @@ extension ReAIAPI {
                 catch let error as NSError where error.code == 404 { }
             }
             if !term.contains("://") {
-                let matches: [HistoricalOrder] = try await json("api/orders", token: token, company: company, query: [
+                let matches: HistoricalOrderPage = try await json("api/orders", token: token, company: company, query: [
                     URLQueryItem(name: "status", value: "all"), URLQueryItem(name: "startDate", value: "0001-01-01"),
                     URLQueryItem(name: "endDate", value: "9999-12-31"), URLQueryItem(name: "orderNumber", value: term)])
                 let known = Set(rows.map(\.id))
-                rows += matches.filter { !known.contains($0.id) }
+                rows += matches.items.filter { !known.contains($0.id) }
             }
             return HistoryPage(items: rows.map(\.row), nextBeforeId: nil)
         }

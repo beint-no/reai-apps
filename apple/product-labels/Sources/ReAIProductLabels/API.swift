@@ -13,6 +13,7 @@ struct Company: Decodable, Sendable { let id: Int; let companyName: String; let 
 struct Product: Decodable, Sendable {
     let id: Int; let title: String; let material: String?; let vatCode: String?; let brand: String?; let variants: [Variant]
 }
+struct ProductPage: Decodable, Sendable { let items: [Product]; let hasNext: Bool }
 struct Variant: Decodable, Sendable {
     let variantId: Int; let productVariantId: UUID; let sku: String; let barcode: String?; let countryOfOriginCode: String?
     let sellingPrice: Decimal; let options: [String: String]
@@ -45,7 +46,15 @@ actor ReAIAPI {
         return company
     }
     func products(token: String, company: Int) async throws -> [CatalogItem] {
-        let products: [Product] = try await get("api/products", token: token, company: company)
+        var products: [Product] = []
+        var page = 1
+        while true {
+            let result: ProductPage = try await get("api/products", token: token, company: company, query: [
+                URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "pageSize", value: "200")])
+            products += result.items
+            guard result.hasNext else { break }
+            page += 1
+        }
         return products.flatMap { p in p.variants.map { CatalogItem(product: p, variant: $0) } }
     }
     func priceLists(token: String, company: Int) async throws -> [PriceList] {
