@@ -8,6 +8,8 @@ final class RedirectBlocker: NSObject, URLSessionTaskDelegate, Sendable {
     }
 }
 
+struct ReAIPage<T: Decodable & Sendable>: Decodable, Sendable { let items: [T]; let hasNext: Bool }
+
 actor ReAIAPI {
     private struct Problem: Decodable { let detail: String? }
     private let session: URLSession
@@ -16,6 +18,19 @@ actor ReAIAPI {
         configuration.timeoutIntervalForRequest = 20
         configuration.timeoutIntervalForResource = 30
         session = URLSession(configuration: configuration, delegate: RedirectBlocker(), delegateQueue: nil)
+    }
+
+    /// Follows ReAI list pagination until the last page.
+    func all<T: Decodable & Sendable>(_ path: String, token: String, company: Int, query: [URLQueryItem] = []) async throws -> [T] {
+        var items: [T] = []
+        var page = 1
+        while true {
+            let result: ReAIPage<T> = try await request(path, token: token, company: company, query: query + [
+                URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "pageSize", value: "200")])
+            items += result.items
+            guard result.hasNext else { return items }
+            page += 1
+        }
     }
 
     func request<T: Decodable & Sendable>(_ path: String, token: String, company: Int? = nil,

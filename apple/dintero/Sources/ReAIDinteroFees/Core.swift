@@ -196,7 +196,7 @@ struct ReviewRow: Identifiable {
         Task {
             defer { busy = false }
             do {
-                let vouchers: [VoucherOverview] = try await reai.request("api/vouchers", token: token, company: selectedCompany,
+                let vouchers: [VoucherOverview] = try await reai.all("api/vouchers", token: token, company: selectedCompany,
                     query: [URLQueryItem(name: "startDate", value: interval.start), URLQueryItem(name: "endDate", value: interval.end)])
                 guard !vouchers.contains(where: { $0.description?.contains(marker) == true }) else {
                     throw appError("A Dintero fee voucher for this account and month already exists in ReAI. Review it there before retrying.")

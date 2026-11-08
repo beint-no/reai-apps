@@ -96,7 +96,7 @@ struct Attempt: Codable { let marker: String; let fingerprint: String; var vouch
         return directory.appending(path: "\(tenant)-\(month).json")
     }
     private func findExisting(_ marker: String, month: String, tenant: Int, token: String) async throws -> Voucher? {
-        let vouchers: [Voucher] = try await api.request("api/vouchers", token: token, company: tenant,
+        let vouchers: [Voucher] = try await api.all("api/vouchers", token: token, company: tenant,
             query: [URLQueryItem(name: "startDate", value: month + "-01"), URLQueryItem(name: "endDate", value: Journal.monthEnd(month)), URLQueryItem(name: "includeReversed", value: "true")])
         return vouchers.first { $0.description?.hasPrefix(marker) == true }
     }
