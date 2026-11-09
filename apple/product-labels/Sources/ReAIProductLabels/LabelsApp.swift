@@ -191,16 +191,18 @@ struct LabelsView: View {
                         if !["en_US", "nb_NO"].contains(model.saved.settings.locale) { Text(Locale(identifier: model.saved.settings.locale).localizedString(forIdentifier: model.saved.settings.locale) ?? model.saved.settings.locale).tag(model.saved.settings.locale) }
                     }.frame(width: 170)
                 }
+                if model.saved.settings.design != .price {
+                    Picker(t("Barcode height"), selection: Binding(get: { model.saved.settings.barcodeFraction }, set: { model.saved.settings.barcodeHeight = $0 })) {
+                        ForEach([0.25, 0.35, 0.40, 0.50], id: \.self) { value in
+                            Text(value, format: .percent.precision(.fractionLength(0))).tag(value)
+                        }
+                    }.frame(width: 210)
+                }
                 Spacer()
             }.textFieldStyle(.roundedBorder)
         }
-        .onChange(of: model.saved.settings.design) { _, design in
-            if design == .price {
-                model.saved.settings.width = 50; model.saved.settings.height = 30
-            }
-            else { model.saved.settings.width = 60; model.saved.settings.height = 40 }
-        }
     }
+
     private var previewError: String? {
         do { try LabelRenderer.validate(model.preview, settings: model.saved.settings); return nil }
         catch { return error.localizedDescription }
