@@ -30,10 +30,12 @@ struct LabelSettings: Codable, Equatable {
     var height = 30.0
     var currency = "NOK"
     var printer = ""
+    var barcodeHeight: Double?
+    var barcodeFraction: Double { barcodeHeight ?? 0.40 }
     var locale = ["nb", "nn", "no"].contains(Locale.current.language.languageCode?.identifier ?? "") ? "nb_NO" : "en_US"
     var size: CGSize { CGSize(width: width * 72 / 25.4, height: height * 72 / 25.4) }
-    static let sizes = ["50 × 30 mm", "60 × 40 mm", "70 × 50 mm", "100 × 50 mm", "38 × 25 mm", "62 × 29 mm", "89 × 36 mm"]
-    static let dimensions: [(Double, Double)] = [(50,30), (60,40), (70,50), (100,50), (38,25), (62,29), (89,36)]
+    static let sizes = ["40 × 27 mm", "50 × 30 mm", "60 × 40 mm", "70 × 50 mm", "100 × 50 mm", "38 × 25 mm", "62 × 29 mm", "89 × 36 mm"]
+    static let dimensions: [(Double, Double)] = [(40,27), (50,30), (60,40), (70,50), (100,50), (38,25), (62,29), (89,36)]
 }
 
 @MainActor
@@ -68,6 +70,9 @@ enum LabelRenderer {
         guard settings.width.isFinite, settings.height.isFinite, (25...110).contains(settings.width), (20...150).contains(settings.height) else {
             throw appError("Choose a width of 25–110 mm and a height of 20–150 mm.")
         }
+        guard settings.barcodeFraction.isFinite, (0.25...0.50).contains(settings.barcodeFraction) else {
+            throw appError("Choose a barcode height of 25–50%.")
+        }
         guard (1...1000).contains(item.copies), item.title.count <= 160, item.details.count <= 200,
               item.sku.count <= 60, item.origin.count <= 80, item.barcode.count <= 80 else { throw appError("Shorten the label text or choose 1–1000 copies.") }
         if settings.design == .price { _ = try displayedPrices(item, settings: settings) }
@@ -75,7 +80,7 @@ enum LabelRenderer {
             throw appError("Enter a product title.")
         }
         if settings.design == .barcode && item.barcode.isEmpty { throw appError("Enter a barcode value.") }
-        if settings.design != .price && !item.barcode.isEmpty { _ = try barcodeImage(item.barcode, width: settings.size.width - 16) }
+        if settings.design != .price && !item.barcode.isEmpty { _ = try barcodeImage(item.barcode, width: settings.size.width - 8) }
         // Reject overflowing text instead of quietly removing product information.
         _ = try layout(item, settings: settings)
     }
@@ -91,7 +96,8 @@ enum LabelRenderer {
     }
     struct TextLine { let text: String; let rect: CGRect; let font: NSFont; let centered: Bool }
     static func layout(_ item: LabelItem, settings: LabelSettings) throws -> [TextLine] {
-        let w = settings.size.width - 16, h = settings.size.height - 16
+        let inset: CGFloat = settings.design == .price ? 8 : 4
+        let w = settings.size.width - 2 * inset, h = settings.size.height - 2 * inset
         var lines: [TextLine] = []
         func add(_ text: String, y: CGFloat, height: CGFloat, maxSize: CGFloat, minSize: CGFloat, bold: Bool, centered: Bool = false) throws {
             guard !text.isEmpty else { return }
@@ -99,8 +105,8 @@ enum LabelRenderer {
             while size >= minSize {
                 let font = NSFont.systemFont(ofSize: size, weight: bold ? .bold : .regular)
                 let bounds = (text as NSString).boundingRect(with: CGSize(width: w, height: 10000), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font])
-                if ceil(bounds.height) + 4 <= height && bounds.width <= w + 0.1 {
-                    lines.append(TextLine(text: text, rect: CGRect(x: 8, y: y + 8, width: w, height: height), font: font, centered: centered)); return
+                if ceil(bounds.height) + (settings.design == .price ? 4 : 1) <= height && bounds.width <= w + 0.1 {
+                    lines.append(TextLine(text: text, rect: CGRect(x: inset, y: y + inset, width: w, height: height), font: font, centered: centered)); return
                 }
                 size -= 0.5
             }
@@ -116,13 +122,13 @@ enum LabelRenderer {
             }
         } else {
             let hasBarcode = !item.barcode.isEmpty
-            let textHeight = hasBarcode ? h * 0.56 : h
+            let textHeight = hasBarcode ? h * (0.77 - settings.barcodeFraction) : h
             let metadata = [item.sku.isEmpty ? "" : "SKU: " + item.sku,
                             settings.design == .product ? item.details : "",
                             settings.design == .product && !item.origin.isEmpty ? t("Country of origin") + ": " + item.origin : ""].filter { !$0.isEmpty }.joined(separator: "\n")
             try add(item.title, y: 0, height: textHeight * 0.45, maxSize: 12, minSize: 6, bold: true)
             try add(metadata, y: textHeight * 0.45, height: textHeight * 0.55, maxSize: 8, minSize: 5.5, bold: false)
-            if hasBarcode { try add(item.barcode, y: h * 0.86, height: h * 0.14, maxSize: 8, minSize: 5.5, bold: false, centered: true) }
+            if hasBarcode { try add(item.barcode, y: h * 0.82, height: h * 0.18, maxSize: 8, minSize: 5.5, bold: false, centered: true) }
         }
         return lines
     }
@@ -139,10 +145,10 @@ enum LabelRenderer {
             (line.text as NSString).draw(with: line.rect, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: line.font, .foregroundColor: NSColor.black, .paragraphStyle: style])
         }
         if settings.design != .price && !item.barcode.isEmpty {
-            let h = settings.size.height - 16, w = settings.size.width - 16
+            let h = settings.size.height - 8, w = settings.size.width - 8
             let image = try barcodeImage(item.barcode, width: w)
             context.interpolationQuality = .none
-            context.draw(image, in: CGRect(x: 8, y: 8 + h * 0.59, width: w, height: h * 0.25))
+            context.draw(image, in: CGRect(x: 4, y: 4 + h * (0.80 - settings.barcodeFraction), width: w, height: h * settings.barcodeFraction))
         }
     }
     static func pdf(_ items: [LabelItem], settings: LabelSettings) throws -> Data {

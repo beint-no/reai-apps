@@ -117,3 +117,7 @@
 "macOS could not submit the labels. Check the printer queue before trying again." = "macOS kunne ikke sende etikettene. Kontroller skriverkøen før du prøver igjen.";
 "Price input" = "Prisformat inn";
 "Whole prices · No thousands separators" = "Hele priser · Uten tusenskille";
+
+"Barcode height" = "Strekkodehøyde";
+
+"Choose a barcode height of 25–50%." = "Velg en strekkodehøyde på 25–50 %.";
