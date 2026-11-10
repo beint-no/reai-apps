@@ -12,7 +12,7 @@ gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=import-w
 gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=time-tracker-windows
 ```
 
-The action chooses the next independent patch version (starting at 0.1.0), builds x64 and ARM64, checks the executable version and native x64 startup, validates both final ZIPs and their architectures, generates SHA256SUMS, publishes a GitHub release and updates Pages. ARM64 is compiled and its archive verified; it is not launched in CI.
+The action chooses the next independent patch version (starting at 0.1.0), builds x64 and ARM64, checks the executable version and native startup on both architectures, validates both final ZIPs and their architectures, generates SHA256SUMS, publishes a GitHub release and updates Pages.
 
 Release tags use `<app>/v<version>` and point to the main commit that was built. Only manual runs on main publish. Pull requests run build checks and keep temporary artifacts for seven days. No signing keys or Azure account are needed; releases use the workflow’s GitHub token. The two architectures must both pass before publishing. A published release is never overwritten by a rerun; run a new release for a new version.
 

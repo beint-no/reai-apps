@@ -87,7 +87,7 @@ Set `SWIFT_BIN` when Swift 6.4 is not the default. For Windows, on Windows:
 ./tools/windows/build.ps1 -App my-app-windows -Architecture ARM64
 ```
 
-Check the native UI, connection/company choice, revocation, and the app's main flow with suitable test data. Test recovery where the app writes data. Windows CI expects a native window with a **Connect to ReAI** control; retain that entry point. CI launches x64 only, so report ARM64 execution separately.
+Check the native UI, connection/company choice, revocation, and the app's main flow with suitable test data. Test recovery where the app writes data. Windows CI expects a native window with a **Connect to ReAI** control; retain that entry point. CI builds and checks native startup on both x64 and ARM64 runners.
 
 Run `site/build.py --offline` and preview `dist/site` when changing the site. Offline mode intentionally shows unpublished placeholders. Run without `--offline` to use actual releases.
 

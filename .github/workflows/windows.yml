@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
-    runs-on: windows-2025
+    runs-on: ${{ matrix.architecture == 'ARM64' && 'windows-11-arm' || 'windows-2025' }}
     timeout-minutes: 25
     defaults:
       run:
@@ -50,11 +50,11 @@ jobs:
       - name: Build self-contained Windows app
         run: ../tools/windows/build.ps1 -App '${{ matrix.app }}' -Architecture '${{ matrix.architecture }}' -Version '${{ matrix.version }}'
       - name: Verify native window opens
-        if: matrix.architecture == 'x64'
         run: |
+          $rid = 'win-' + '${{ matrix.architecture }}'.ToLowerInvariant()
           $started = Get-Date
           $manifest = (Get-Content ../apps.json -Raw | ConvertFrom-Json).PSObject.Properties['${{ matrix.app }}'].Value
-          $app = Start-Process "../dist/${{ matrix.app }}/win-x64/$($manifest.executable)" -PassThru
+          $app = Start-Process "../dist/${{ matrix.app }}/$rid/$($manifest.executable)" -PassThru
           try {
             $deadline = [DateTime]::UtcNow.AddSeconds(30)
             do {
@@ -97,9 +97,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: matrix.architecture == 'x64'
         with:
-          name: ${{ matrix.app }}-startup
+          name: ${{ matrix.app }}-${{ matrix.architecture }}-startup
           path: dist/${{ matrix.app }}/startup.png
           if-no-files-found: error
           retention-days: 7
