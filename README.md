@@ -95,7 +95,7 @@ A failed verification publishes nothing.
 
 ## Windows development
 
-Windows Import and Time Tracker use .NET 11 RC3 (SDK 11.0.100-rc.3.26522.148), C# 15 and Windows App SDK 2.6.4. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. Toolchains and dependencies are pinned; the app READMEs record the versions checked on 1 November 2026. Verify current releases when adding or updating dependencies.
+Windows Import and Time Tracker use .NET 11 RC3 (SDK 11.0.100-rc.3.26522.148), C# 15 and Windows App SDK 2.6.5. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. Toolchains and dependencies are pinned; the app READMEs record the versions checked on 10 November 2026. Verify current releases when adding or updating dependencies.
 
 See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. PRs and pushes only run checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
 

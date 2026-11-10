@@ -59,10 +59,10 @@ Rejected rows do not stop the remaining ready rows. Unknown outcomes still pause
 
 ## Development
 
-Tools checked 1 November 2026:
+Tools checked 10 November 2026:
 
 - [.NET SDK 11.0.100-rc.3.26522.148](https://dotnet.microsoft.com/en-us/download/dotnet/11.0), runtime 11.0.0-rc.3.26522.148 and C# 15.
-- [Windows App SDK 2.6.4](https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.6.4), including WinUI 3.
+- [Windows App SDK 2.6.5](https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.6.5), including WinUI 3.
 - [Windows SDK Build Tools 10.0.28000.2957](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/10.0.28000.2957).
 - Windows SDK .NET reference package 10.0.26100.87, the latest stable reference package available for the .NET Windows target.
 
@@ -80,4 +80,4 @@ On Windows, install the .NET SDK and run from the repository root:
 
 Build output is in `dist/import-windows`. It includes the .NET and Windows App SDK runtimes.
 
-Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.6.4, Runtime 2.6.4, Interactive Experiences 2.6.4, Foundation 2.6.4, Base 2.6.4, WebView2 1.0.4314.35, SDK Build Tools 10.0.28000.2957 and MSIX Build Tools 1.7.261008100.
+Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.6.5, Runtime 2.6.5, Interactive Experiences 2.6.5, Foundation 2.6.5, Base 2.6.5, WebView2 1.0.4314.35, SDK Build Tools 10.0.28000.2957 and MSIX Build Tools 1.7.261102100.

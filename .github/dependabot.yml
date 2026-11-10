@@ -1,5 +1,18 @@
 version: 2
 updates:
+- package-ecosystem: nuget
+  directories:
+  - /windows/import
+  - /windows/time-tracker
+  schedule:
+    interval: daily
+    time: '04:00'
+    timezone: Europe/Oslo
+  groups:
+    windows-dependencies:
+      patterns:
+      - '*'
+  open-pull-requests-limit: 5
 - package-ecosystem: github-actions
   directory: /
   schedule:

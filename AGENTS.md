@@ -1,5 +1,7 @@
 # ReAI Apps
 
+Always keep ReAI Apps on the latest verified toolchains, runtimes, native platform APIs and dependencies. Adopt new releases proactively; previews and release candidates are allowed when validated. Do not delay upgrades for legacy operating systems, hardware, APIs or source compatibility, and do not add compatibility branches or fallback implementations for them. Raise minimum requirements when needed. Verify versions against official upstream sources, pin exact versions, refresh lockfiles and validate affected builds before release.
+
 Use a dedicated worktree under ~/.r-worktrees and a descriptive codex/ branch. Read the app's AGENTS.md before changing its source.
 For a new app, follow CONTRIBUTING.md. Register identity in apps.json and reuse the platform build/release tooling.
 Keep user-facing copy concise and factual. Never commit credentials, private keys, signing files, build output, or customer data.
