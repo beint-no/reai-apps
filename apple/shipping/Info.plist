@@ -36,9 +36,13 @@
 	<key>SUPublicEDKey</key>
 	<string>jOpLPlP1AtrmJJY9F/v7nnAIy+90yjqL5/oUrfKN+f8=</string>
 	<key>SUEnableAutomaticChecks</key>
-	<false/>
+	<true/>
 	<key>SUAllowsAutomaticUpdates</key>
-	<false/>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 	<key>SUVerifyUpdateBeforeExtraction</key>
 	<true/>
 	<key>SURequireSignedFeed</key>

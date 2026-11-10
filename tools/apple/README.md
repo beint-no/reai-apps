@@ -75,7 +75,7 @@ Shipping uses pinned Sparkle 2.10.1. The build embeds its framework with symlink
 
 The `apple-release` secret `SHIPPING_SPARKLE_PRIVATE_KEY` signs the notarized DMG and appcast. Its public key is in Shipping's Info.plist; the private key is also retained in the operator's login Keychain under Sparkle account `no.reai.shipping`. To rotate, follow Sparkle's key-rotation guidance and preserve the Apple signing identity. Never print or commit the private key.
 
-After notarization, the pinned Sparkle distribution (SHA-256 verified) generates a signed `shipping.xml` release asset pointing at that release's DMG. Pages copies the newest published Shipping release's feed without modification. Future Shipping releases automatically update this feed. Shipping checks only through **Check for Updates…**; automatic checks and installs are disabled. Existing versions without Sparkle need one manual installation to gain the updater.
+After notarization, the pinned Sparkle distribution (SHA-256 verified) generates a signed `shipping.xml` release asset pointing at that release's DMG. Pages copies the newest published Shipping release's feed without modification. Future Shipping releases automatically update this feed. Shipping defaults to checks every 24 hours while running, Monday–Friday in the Mac’s local time, with automatic downloads and installation on quit. A delegate defers checks on weekends or while shipping, printing, loading locations or authorizing until the next daily cycle. Manual **Check for Updates…** remains available any day when idle. Sparkle preserves user update preferences. Existing versions without Sparkle need one manual installation to gain the updater.
 
 ## Product Labels in-app updates
 

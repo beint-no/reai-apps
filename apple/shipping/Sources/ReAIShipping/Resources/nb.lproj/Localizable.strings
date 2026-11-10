@@ -161,3 +161,5 @@
 "The location label could not be prepared." = "Kunne ikke lage plasseringsetiketten.";
 "The location name is too long for this label. Choose a larger label size." = "Plasseringsnavnet er for langt for etiketten. Velg en større etikettstørrelse.";
 "Refresh locations before printing." = "Oppdater plasseringene før utskrift.";
+"Updates wait until shipping, printing and sign-in finish." = "Oppdateringer venter til frakt, utskrift og innlogging er ferdig.";
+"Automatic update checks run on weekdays." = "Automatiske oppdateringssøk kjøres på hverdager.";

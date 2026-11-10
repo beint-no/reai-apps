@@ -3,9 +3,15 @@ import SwiftUI
 
 @main
 struct ShippingApp: App {
-    @State private var model = ShippingModel()
-    @StateObject private var updater = ShippingUpdater()
+    @State private var model: ShippingModel
+    @StateObject private var updater: ShippingUpdater
     @Environment(\.openWindow) private var openWindow
+    init() {
+        let model = ShippingModel()
+        _model = State(initialValue: model)
+        _updater = StateObject(wrappedValue: ShippingUpdater(model: model))
+    }
+
     var body: some Scene {
         Window("ReAI Shipping", id: "shipping") {
             ShippingView(model: model).disabled(updater.inProgress).frame(minWidth: 860, minHeight: 700).task { await model.start() }
