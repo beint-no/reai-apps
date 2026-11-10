@@ -161,3 +161,5 @@
 "The location label could not be prepared." = "The location label could not be prepared.";
 "The location name is too long for this label. Choose a larger label size." = "The location name is too long for this label. Choose a larger label size.";
 "Refresh locations before printing." = "Refresh locations before printing.";
+"Updates wait until shipping, printing and sign-in finish." = "Updates wait until shipping, printing and sign-in finish.";
+"Automatic update checks run on weekdays." = "Automatic update checks run on weekdays.";
