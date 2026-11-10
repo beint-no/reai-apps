@@ -5,7 +5,7 @@ updates:
   - /windows/import
   - /windows/time-tracker
   schedule:
-    interval: daily
+    interval: monthly
     time: '04:00'
     timezone: Europe/Oslo
   groups:
@@ -16,10 +16,32 @@ updates:
 - package-ecosystem: github-actions
   directory: /
   schedule:
-    interval: weekly
-    time: 04:00
+    interval: monthly
+    time: '04:00'
+    timezone: Europe/Oslo
   groups:
     github-actions:
+      patterns:
+      - '*'
+  open-pull-requests-limit: 5
+- package-ecosystem: dotnet-sdk
+  directory: /windows
+  schedule:
+    interval: monthly
+    time: '04:00'
+    timezone: Europe/Oslo
+  open-pull-requests-limit: 5
+- package-ecosystem: swift
+  directories:
+  - /apple/import
+  - /apple/product-labels
+  - /apple/shipping
+  schedule:
+    interval: monthly
+    time: '04:00'
+    timezone: Europe/Oslo
+  groups:
+    apple-libraries:
       patterns:
       - '*'
   open-pull-requests-limit: 5

@@ -59,15 +59,8 @@ Rejected rows do not stop the remaining ready rows. Unknown outcomes still pause
 
 ## Development
 
-Tools checked 10 November 2026:
-
-- [.NET SDK 11.0.100-rc.3.26522.148](https://dotnet.microsoft.com/en-us/download/dotnet/11.0), runtime 11.0.0-rc.3.26522.148 and C# 15.
-- [Windows App SDK 2.6.5](https://www.nuget.org/packages/Microsoft.WindowsAppSDK/2.6.5), including WinUI 3.
-- [Windows SDK Build Tools 10.0.28000.2957](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools/10.0.28000.2957).
-- Windows SDK .NET reference package 10.0.26100.87, the latest stable reference package available for the .NET Windows target.
-
-.NET 11 RC3 is the explicitly selected release candidate with Microsoft go-live support. Windows 11 25H2 is the minimum customer OS; no Windows 10 or x86 support.
-The Windows SDK reference version is an API contract, not the app's minimum supported Windows release.
+The SDK is pinned in [global.json](../global.json); this app’s [project](ReAI.Import.csproj) and lockfile record its Windows dependencies. Builds are self-contained for x64 and ARM64.
+The Windows SDK reference version is an API contract, not the minimum supported Windows release.
 
 Write code on macOS; from `windows/`, run `dotnet build import/Core` to build the import logic.
 WinUI compilation and execution require Windows. GitHub's **Windows apps** workflow builds x64 and ARM64.
@@ -79,5 +72,3 @@ On Windows, install the .NET SDK and run from the repository root:
 ```
 
 Build output is in `dist/import-windows`. It includes the .NET and Windows App SDK runtimes.
-
-Windows dependencies use individual WinUI/runtime components, without unused AI/ML, widgets or search packages. All resolved NuGet packages were checked against their latest stable versions: WinUI 2.6.5, Runtime 2.6.5, Interactive Experiences 2.6.5, Foundation 2.6.5, Base 2.6.5, WebView2 1.0.4314.35, SDK Build Tools 10.0.28000.2957 and MSIX Build Tools 1.7.261102100.

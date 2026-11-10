@@ -24,7 +24,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 
 Download from the **[app page](https://beint-no.github.io/reai-apps/)**.
 
-- **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. To update, quit and replace the app in Applications.
+- **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. Shipping and Product Labels offer signed in-app updates; for other apps, quit and replace the app in Applications.
 - **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. To update, close the app and extract the new version into a new folder.
 
 **Windows downloads are unsigned.** Windows may warn or block them. If SmartScreen offers **More info → Run anyway**, you can choose it after confirming the download came from this repository and you trust it. Smart App Control, S mode and workplace policy may prevent running the app. Keep Windows security protections enabled. See the app README for details and checksum verification.
@@ -36,6 +36,8 @@ Most apps use **Connect to ReAI** with browser approval. The Vipps, Klarna, Zett
 ```text
 apple/
   hybel/            Hybel monthly journal bridge
+  product-labels/   Product, price and barcode labels
+  shipping/         Shipment booking and label printing
   time-tracker/     Swift package and app source
   finder-vault/     Swift package and app source
   import/           Swift package and app source
@@ -47,7 +49,7 @@ apple/
 windows/
   import/           .NET 11 / WinUI 3 app and app-local import logic
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
-  global.json       Pinned .NET 11 RC3 SDK
+  global.json       Pinned .NET SDK
 apps.json          App identities and download names
 site/              GitHub Pages download site
 tools/apple/       Apple build, signing and release tools
@@ -65,7 +67,7 @@ Add the app inside this monorepo and reuse the existing release tooling. No ReAI
 
 ## Build and release
 
-Install [Swift 6.4](https://www.swift.org/install/macos/), the macOS SDK and [uv](https://docs.astral.sh/uv/) (the build scripts require Python 3.15 and run through `uv run --script`), then run from the repository root:
+Install the [Swift](https://www.swift.org/install/macos/) version pinned in [.swift-version](.swift-version), the macOS SDK and [uv](https://docs.astral.sh/uv/) (the build scripts require Python 3.15 and run through `uv run --script`), then run from the repository root:
 
 ```sh
 tools/apple/build.py time-tracker
@@ -76,9 +78,12 @@ tools/apple/build.py vipps
 tools/apple/build.py klarna
 tools/apple/build.py zettle
 tools/apple/build.py dintero
+tools/apple/build.py hybel
+tools/apple/build.py shipping
+tools/apple/build.py product-labels
 ```
 
-Set `SWIFT_BIN` to the Swift 6.4 executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
+Set `SWIFT_BIN` to the pinned Swift executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
 Pull requests build affected apps without signing credentials. Apple releases use the shared [Apple release workflow](tools/apple/README.md).
 
 To release a Mac app, merge your changes, then open **[Actions → Release app](https://github.com/beint-no/reai-apps/actions/workflows/apps.yml) → Run workflow**, keep **main**, and choose the app.
@@ -89,15 +94,19 @@ gh workflow run apps.yml --repo beint-no/reai-apps --ref main -f app=time-tracke
 ```
 
 GitHub chooses the next patch version, builds, signs, notarizes, verifies, publishes the download, and updates the site.
-Pushing code runs build checks; publishing requires the release action. Repository write access is required.
+Pull requests run build checks; publishing requires the release action. Repository write access is required.
 Apple credentials are already stored in GitHub. Teammates need no signing secrets or `.zshrc` changes.
 A failed verification publishes nothing.
 
 ## Windows development
 
-Windows Import and Time Tracker use .NET 11 RC3 (SDK 11.0.100-rc.3.26522.148), C# 15 and Windows App SDK 2.6.5. Write code on your Mac; GitHub Windows runners build the native UI and self-contained x64/ARM64 packages. The app-local logic also builds on macOS. Toolchains and dependencies are pinned; the app READMEs record the versions checked on 10 November 2026. Verify current releases when adding or updating dependencies.
+Windows apps use .NET and WinUI 3. The SDK is pinned in [windows/global.json](windows/global.json); app projects and lockfiles record dependencies. GitHub Windows runners build self-contained x64/ARM64 packages. App-local logic also builds on macOS.
 
-See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. PRs and pushes only run checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
+See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. Pull requests run build checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
+
+## Dependency updates
+
+Monthly Dependabot PRs cover GitHub Actions, NuGet, Swift packages and the .NET SDK. CI selects the latest stable Python 3.15 patch. Swift compiler pins in `.swift-version`, Python minor versions, target frameworks and platform SDK properties need explicit updates. When Sparkle changes, update the release-tool download and checksum in `tools/apple/sparkle.py` together with the Swift package pins.
 
 ## Connect another app
 

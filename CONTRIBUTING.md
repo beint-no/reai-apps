@@ -12,7 +12,7 @@ Add apps inside this monorepo. Reuse a small existing app as a starting point an
 
 Create `apple/<app>` or `windows/<app>`. Copy only source/configuration files, not `.build`, `bin`, `obj`, downloads, credentials or local app data. Remove the original app's business logic and domain-specific error messages. Keep each app independent; share runtime code only when actual duplication warrants it.
 
-Read the root and platform/app `AGENTS.md` files. Proactively adopt the latest verified toolchains, native APIs and dependencies, including validated previews and release candidates. Legacy compatibility must not delay upgrades; raise minimum requirements and remove obsolete fallbacks when needed. Verify current versions from official sources, update exact pins and lockfiles together, and validate affected builds before release. Windows UI builds run on Windows; app-local .NET logic can be developed on macOS.
+Read the root and platform/app `AGENTS.md` files. Use the toolchains pinned in `.swift-version` and `windows/global.json`; verify official releases when updating pins and refresh affected lockfiles. Windows UI builds run on Windows; app-local .NET logic can be developed on macOS.
 
 ## 2. Give it its own identity
 

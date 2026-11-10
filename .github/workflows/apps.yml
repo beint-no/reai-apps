@@ -8,7 +8,7 @@ on:
         type: choice
         options: [time-tracker, finder-vault, import, stripe, vipps, klarna, zettle, dintero, shipping, hybel, product-labels]
   pull_request:
-    paths: ['apple/**', 'tools/apple/**', 'apps.json', '.github/actions/**', '.github/workflows/apps.yml']
+    paths: ['apple/**', 'tools/apple/**', 'apps.json', '.swift-version', '.github/actions/**', '.github/workflows/apps.yml']
   # Not on push to main: the pull request already built the change. Tags still build
   # and release (path filters do not apply to tag pushes).
   push:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 concurrency:
   group: apple-${{ github.event_name == 'workflow_dispatch' && inputs.app || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
-          allow-prereleases: true
+          check-latest: true
       - id: apps
         run: python3 tools/apple/matrix.py
   build:
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
-          allow-prereleases: true
+          check-latest: true
       - name: Build Apple Silicon app
         env:
           APP_ID: ${{ matrix.id }}
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
-          allow-prereleases: true
+          check-latest: true
       - name: Sign and notarize
         env:
           APP_ID: ${{ matrix.id }}

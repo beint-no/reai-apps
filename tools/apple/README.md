@@ -16,7 +16,7 @@ gh workflow run apps.yml --repo beint-no/reai-apps --ref main -f app=time-tracke
 ```
 
 Use `finder-vault` for Finder Vault or `import` for ReAI Import. No local Apple credentials, version edits, or manual tags are needed.
-Pushes and pull requests run build checks; they do not publish downloads.
+Pull requests run build checks; they do not publish downloads.
 
 Release tags (`<app>/v<major>.<minor>.<patch>`) are the version source. Automatic releases increment the highest existing tag for that app.
 To deliberately change the major or minor version, push the corresponding tag at a commit merged into `main`; the same pipeline verifies it.
@@ -71,7 +71,7 @@ References: [Developer ID certificates](https://developer.apple.com/help/account
 
 ## Shipping in-app updates
 
-Shipping uses pinned Sparkle 2.10.1. The build embeds its framework with symlinks preserved; release signs Autoupdate, Updater.app, both XPC helpers and the framework inside-out before signing the host with hardened runtime. Other apps remain independent.
+Shipping uses the Sparkle version pinned in its Swift package. The build embeds its framework with symlinks preserved; release signs Autoupdate, Updater.app, both XPC helpers and the framework inside-out before signing the host with hardened runtime. Other apps remain independent.
 
 The `apple-release` secret `SHIPPING_SPARKLE_PRIVATE_KEY` signs the notarized DMG and appcast. Its public key is in Shipping's Info.plist; the private key is also retained in the operator's login Keychain under Sparkle account `no.reai.shipping`. To rotate, follow Sparkle's key-rotation guidance and preserve the Apple signing identity. Never print or commit the private key.
 
