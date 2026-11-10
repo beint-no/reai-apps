@@ -108,6 +108,8 @@ See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tra
 
 Monthly Dependabot PRs cover GitHub Actions, NuGet, Swift packages and the .NET SDK. CI selects the latest stable Python 3.15 patch. Swift compiler pins in `.swift-version`, Python minor versions, target frameworks and platform SDK properties need explicit updates. When Sparkle changes, update the release-tool download and checksum in `tools/apple/sparkle.py` together with the Swift package pins.
 
+For synthetic workloads, Instruments recordings and runtime-async comparisons, follow the [profiling guide](tools/profiling/README.md).
+
 ## Connect another app
 
 No registration or ReAI backend change is required:

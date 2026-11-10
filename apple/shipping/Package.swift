@@ -7,8 +7,11 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [.executable(name: "ReAIShipping", targets: ["ReAIShipping"])],
     // Sparkle supplies signed in-app updates and the privileged replacement/relaunch helpers.
-    dependencies: [.package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.1")],
-    targets: [.executableTarget(name: "ReAIShipping", dependencies: ["Sparkle"],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.1"),
+        .package(url: "https://github.com/swiftlang/swift-subprocess", exact: "1.0.2"),
+    ],
+    targets: [.executableTarget(name: "ReAIShipping", dependencies: ["Sparkle", .product(name: "Subprocess", package: "swift-subprocess")],
                                resources: [.process("Resources")],
                                linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])])],
     swiftLanguageModes: [.v6]

@@ -65,6 +65,18 @@ def build(app_id, version=None):
         shutil.copytree(resource, resources / resource.name)
     if (source / 'Resources').is_dir():
         shutil.copytree(source / 'Resources', resources, dirs_exist_ok=True)
+    lockfile = source / 'Package.resolved'
+    if lockfile.exists():
+        notices = resources / 'ThirdPartyNotices'
+        notices.mkdir()
+        checkouts = {path.name.casefold(): path for path in (source / '.build/checkouts').glob('*')}
+        for pin in json.loads(lockfile.read_text())['pins']:
+            checkout = checkouts.get(pin['identity'].casefold())
+            licenses = [path for path in checkout.glob('LICENSE*') if path.is_file()] if checkout else []
+            if not licenses:
+                raise ValueError(f"Missing dependency license: {pin['identity']}")
+            for license in licenses:
+                shutil.copy2(license, notices / f"{pin['identity']}-{license.name}")
     if output('lipo', '-archs', binary) != 'arm64':
         raise ValueError('Release executable must contain only arm64')
     info = plistlib.loads((source / 'Info.plist').read_bytes())

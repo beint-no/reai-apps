@@ -62,7 +62,7 @@ Pending operations, recent work and the last saved result are in `%LOCALAPPDATA%
 The SDK is pinned in [global.json](../global.json); this app’s [project](ReAI.TimeTracker.csproj) and lockfile record its Windows dependencies.
 
 On macOS, build the app-local logic from `windows/`: `dotnet build time-tracker/Core`.
-WinUI requires Windows. CI builds both apps for x64 and ARM64 and checks native x64 startup.
+WinUI requires Windows. CI builds both apps for x64 and ARM64 and checks native startup on both architectures.
 
 ```powershell
 ./tools/windows/build.ps1 -App time-tracker-windows -Architecture x64

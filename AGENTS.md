@@ -2,6 +2,8 @@
 
 Use current native toolchains and dependencies without preserving legacy compatibility.
 
+For profiling, follow tools/profiling/README.md. Use synthetic workloads, optimized builds and before/after evidence; keep traces and generated fixtures outside Git. Never optimize from an empty instrument lane or change accounting, print recovery or retry behavior to improve a benchmark.
+
 Use a dedicated worktree under ~/.r-worktrees and a descriptive codex/ branch. Read the app's AGENTS.md before changing its source.
 For a new app, follow CONTRIBUTING.md. Register identity in apps.json and reuse the platform build/release tooling.
 Keep user-facing copy concise and factual. Never commit credentials, private keys, signing files, build output, or customer data.

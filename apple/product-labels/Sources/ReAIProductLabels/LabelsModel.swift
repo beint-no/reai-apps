@@ -35,7 +35,10 @@ final class LabelsModel {
     private var started = false
     private var authorization: Task<Void, Never>?
     private let api = ReAIAPI(), credentials = Credentials(), printer = LabelPrinter()
-    private let file = URL.applicationSupportDirectory.appending(path: "ReAI Product Labels/state.json")
+    private let file: URL
+    init(storageURL: URL = URL.applicationSupportDirectory.appending(path: "ReAI Product Labels/state.json")) {
+        file = storageURL
+    }
     var priceSources: [PriceSource] {
         guard let company else { return [] }
         return [PriceSource(id: "base", name: t("Standard product price"), currency: company.currencyCode)] +

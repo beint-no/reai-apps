@@ -32,6 +32,8 @@ staples the ticket, and verifies the result. The temporary keychain is added to 
 No app-store listing, per-app certificate, provisioning profile, or installer certificate is required for these apps.
 Apps that add restricted Apple capabilities or embedded code need their signing requirements reviewed first.
 
+Builds copy licenses from every resolved Swift dependency into `Contents/Resources/ThirdPartyNotices`. A missing dependency license fails packaging.
+
 ## Credentials
 
 Use the GitHub environment **apple-release**, restricted to `main` and the app release tags. Store:
