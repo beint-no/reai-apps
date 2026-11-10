@@ -38,7 +38,7 @@ else:
         selected = list(apps)
     else:
         files = subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], cwd=root, text=True).splitlines()
-        shared = any(p == 'apps.json' or p.startswith(('tools/apple/', '.github/actions/', '.github/workflows/apps.yml')) for p in files)
+        shared = any(p in {'apps.json', '.swift-version'} or p.startswith(('tools/apple/', '.github/actions/', '.github/workflows/apps.yml')) for p in files)
         selected = [key for key, app in apps.items() if shared or any(p.startswith(app['path'] + '/') for p in files)]
 items = [dict(id=key, version=version, **apps[key]) for key in selected]
 with open(os.environ['GITHUB_OUTPUT'], 'a') as result:

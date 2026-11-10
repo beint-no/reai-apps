@@ -46,8 +46,9 @@ def build(app_id, version=None):
     app = configuration(app_id, version)
     source = ROOT / app['path']
     swift = os.environ.get('SWIFT_BIN', 'swift')
-    if not re.search(r'Swift version 6\.4(?:[ .]|$)', output(swift, '--version')):
-        raise ValueError('Swift 6.4 is required; set SWIFT_BIN to its executable')
+    swift_version = (ROOT / '.swift-version').read_text().strip()
+    if not re.search(r'Swift version ' + re.escape(swift_version) + r'(?:[ .]|$)', output(swift, '--version')):
+        raise ValueError(f'Swift {swift_version} is required; set SWIFT_BIN to its executable')
     run(swift, 'build', '-c', 'release', '--arch', 'arm64', cwd=source)
     binary_directory = Path(output(swift, 'build', '-c', 'release', '--arch', 'arm64', '--show-bin-path', cwd=source))
     destination = ROOT / 'dist' / app_id
