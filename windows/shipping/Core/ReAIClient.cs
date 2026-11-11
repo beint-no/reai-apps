@@ -69,7 +69,7 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
     public Task<List<Warehouse>> Warehouses(string token, int company) => Get<List<Warehouse>>("api/warehouses", token, company);
     public Task<List<Zone>> Zones(int warehouse, string token, int company) => Get<List<Zone>>($"api/warehouses/{warehouse}/zones", token, company);
     public Task<List<Location>> Locations(int warehouse, string token, int company) =>
-        Get<List<Location>>($"api/warehouses/{warehouse}/locations?includePartialCoordinates=true", token, company);
+        Get<List<Location>>($"api/warehouses/{warehouse}/locations", token, company);
 
     /// <summary>Downloads the stored label. ReAI answers 202 while the carrier is still producing it; this never books anything.</summary>
     public async Task<byte[]> Label(int shipment, string token, int company)

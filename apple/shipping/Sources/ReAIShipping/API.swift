@@ -260,8 +260,7 @@ extension ReAIAPI {
         try await json("api/warehouses", token: token, company: company)
     }
     func locations(warehouse: Int, token: String, company: Int) async throws -> [WarehouseLocation] {
-        try await json("api/warehouses/\(warehouse)/locations", token: token, company: company,
-                       query: [URLQueryItem(name: "includePartialCoordinates", value: "true")])
+        try await json("api/warehouses/\(warehouse)/locations", token: token, company: company)
     }
     func zones(warehouse: Int, token: String, company: Int) async throws -> [WarehouseZone] {
         try await json("api/warehouses/\(warehouse)/zones", token: token, company: company)
