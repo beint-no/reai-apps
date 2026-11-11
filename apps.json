@@ -95,7 +95,8 @@
     "path": "windows/shipping",
     "executable": "ReAI.Shipping.exe",
     "asset": "ReAI-Shipping-Windows-x64.zip",
-    "arm64_asset": "ReAI-Shipping-Windows-ARM64.zip"
+    "arm64_asset": "ReAI-Shipping-Windows-ARM64.zip",
+    "updates": true
   },
   "hybel": {
     "name": "ReAI Hybel Journal",

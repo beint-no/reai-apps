@@ -18,7 +18,7 @@ The app is self-contained: no .NET installation, developer tools or administrato
 
 The release includes `SHA256SUMS`. To check a download, run `Get-FileHash .\ReAI-Shipping-Windows-x64.zip -Algorithm SHA256` in PowerShell (use the ARM64 filename when applicable) and compare with the matching checksum. Checksums detect changed downloads; they are not a trusted publisher signature.
 
-To update, close the app and extract the new release into a new folder. Your connection, unresolved shipping requests and print receipts remain in your Windows user profile. To uninstall, close the app and delete the extracted folder. Disconnect/revoke access and remove the local data described below if you also want to remove your connection and history.
+To update, click **Check for updates** in the app: it downloads the new version, verifies it and restarts into it in the same folder. While running, the app also checks once a day on weekdays when idle, downloads a new version in the background and installs it when you close the app; **Restart to update** installs it immediately. Updates come from this repository's GitHub releases and replace only the app's own files; if the folder cannot be written, download the new version here instead. Version 0.1.0 has no updater and needs one manual download. Your connection, unresolved shipping requests and print receipts remain in your Windows user profile. To uninstall, close the app and delete the extracted folder. Disconnect/revoke access and remove the local data described below if you also want to remove your connection and history.
 
 [Windows security behavior](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions)
 

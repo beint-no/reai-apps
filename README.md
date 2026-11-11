@@ -26,7 +26,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 Download from the **[app page](https://beint-no.github.io/reai-apps/)**.
 
 - **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. Shipping and Product Labels offer signed in-app updates; for other apps, quit and replace the app in Applications.
-- **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. To update, close the app and extract the new version into a new folder.
+- **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. Shipping updates itself from **Check for updates** in the app; for the other apps, close the app and extract the new version into a new folder.
 
 **Windows downloads are unsigned.** Windows may warn or block them. If SmartScreen offers **More info → Run anyway**, you can choose it after confirming the download came from this repository and you trust it. Smart App Control, S mode and workplace policy may prevent running the app. Keep Windows security protections enabled. See the app README for details and checksum verification.
 

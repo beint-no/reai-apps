@@ -17,7 +17,7 @@ The action chooses the next independent patch version (starting at 0.1.0), build
 
 Release tags use `<app>/v<version>` and point to the main commit that was built. Only manual runs on main publish. Pull requests run build checks and keep temporary artifacts for seven days. No signing keys or Azure account are needed; releases use the workflow’s GitHub token. The two architectures must both pass before publishing. A published release is never overwritten by a rerun; run a new release for a new version.
 
-`apps.json` owns app identity and asset names. `matrix.py` chooses the app/version and rejects releases from other branches. `release.py` checks the final ZIP contents and produces checksums and installation notes. `site/build.py` offers Windows downloads only when both architecture assets and SHA256SUMS exist in a published release.
+`apps.json` owns app identity and asset names. `matrix.py` chooses the app/version and rejects releases from other branches. `release.py` checks the final ZIP contents and produces checksums and installation notes. `site/build.py` offers Windows downloads only when both architecture assets and SHA256SUMS exist in a published release. For apps with `"updates": true` it also writes `updates/<app>.json` (version, download URLs and checksums), which the app's built-in updater reads; a release reaches existing installations once Pages has redeployed.
 
 ## Build
 
