@@ -16,7 +16,7 @@ namespace ReAI.Shipping;
 public sealed class MainWindow : Window
 {
     private static readonly GridLength Auto = GridLength.Auto, Fill = new(1, GridUnitType.Star);
-    private readonly ReAIClient api = new(Environment.GetEnvironmentVariable("REAI_TMP_FAKE") == null ? null : new TmpFake()); // TEMPORARY
+    private readonly ReAIClient api = new();
     private readonly ShippingModel model;
     private readonly TextBlock subtitle = Text("", dim: true), approval = Text(""), age = Text("", 12, dim: true), empty = Text("", dim: true), count = Text("", 12, dim: true),
         caption = Text("", 12, dim: true), noPlaces = Text(T("No locations found. Create locations in ReAI, then refresh here."), dim: true), previewText = Text("", dim: true);
@@ -114,7 +114,6 @@ public sealed class MainWindow : Window
         root.Loaded += async (_, _) =>
         {
             model.Load();
-            if (Environment.GetEnvironmentVariable("REAI_TMP_FAKE") != null) { await model.Connect("fake"); return; } // TEMPORARY
             try { if (Credentials.Read() is { } token) await model.Connect(token); }
             catch (Exception e) { model.Error = e.Message; Render(); }
         };
@@ -137,7 +136,7 @@ public sealed class MainWindow : Window
         foreach (var (child, size) in cells)
         {
             if (rows) { Grid.SetRow(child, grid.RowDefinitions.Count); grid.RowDefinitions.Add(new() { Height = size }); }
-            else { Grid.SetColumn(child, grid.ColumnDefinitions.Count); grid.ColumnDefinitions.Add(new() { Width = size }); child.VerticalAlignment = child is TextBlock ? VerticalAlignment.Center : child.VerticalAlignment; }
+            else { Grid.SetColumn(child, grid.ColumnDefinitions.Count); grid.ColumnDefinitions.Add(new() { Width = size }); if (child is TextBlock or Button or ProgressRing && child.VerticalAlignment == VerticalAlignment.Stretch) child.VerticalAlignment = VerticalAlignment.Center; }
             grid.Children.Add(child);
         }
         return grid;
