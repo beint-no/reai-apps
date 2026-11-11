@@ -89,6 +89,14 @@
     "sparkle": true,
     "sparkle_key_secret": "SHIPPING_SPARKLE_PRIVATE_KEY"
   },
+  "shipping-windows": {
+    "name": "ReAI Shipping for Windows",
+    "platform": "windows",
+    "path": "windows/shipping",
+    "executable": "ReAI.Shipping.exe",
+    "asset": "ReAI-Shipping-Windows-x64.zip",
+    "arm64_asset": "ReAI-Shipping-Windows-ARM64.zip"
+  },
   "hybel": {
     "name": "ReAI Hybel Journal",
     "path": "apple/hybel",
