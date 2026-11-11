@@ -1,0 +1,45 @@
+name: Temporary print check
+on:
+  pull_request:
+    paths: ['windows/shipping/**', 'tmp-printcheck/**', '.github/workflows/tmp-printcheck.yml']
+permissions:
+  contents: read
+jobs:
+  print:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: windows/global.json
+      - name: Add file-backed test printers
+        run: |
+          New-Item -ItemType Directory C:\printcheck | Out-Null
+          Get-Service Spooler | Format-List Status, StartType
+          Start-Service Spooler -ErrorAction Continue
+          Get-PrinterDriver | Select-Object Name
+          Get-Printer | Select-Object Name, DriverName, PortName
+          foreach ($name in 'Label PDF', 'A4 PDF', 'Landscape PDF', 'Location PDF', 'ZDesigner Test') {
+            $port = "C:\printcheck\$($name -replace ' ', '-').pdf"
+            Add-PrinterPort -Name $port
+            Add-Printer -Name $name -DriverName 'Microsoft Print To PDF' -PortName $port
+          }
+      - name: Print
+        working-directory: windows
+        run: |
+          dotnet run --project ../tmp-printcheck/PrintCheck.csproj -r win-x64 -- C:\printcheck
+          $code = $LASTEXITCODE
+          Start-Sleep -Seconds 15
+          Get-Printer | ForEach-Object { Get-PrintJob -PrinterName $_.Name } | Format-Table PrinterName, DocumentName, JobStatus, TotalPages
+          Get-ChildItem C:\printcheck | Format-Table Name, Length
+          exit $code
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: printcheck
+          path: C:\printcheck
+          retention-days: 3
