@@ -17,10 +17,15 @@ public sealed class MainWindow : Window
     private static readonly GridLength Auto = GridLength.Auto, Fill = new(1, GridUnitType.Star);
     private readonly ReAIClient api = new();
     private readonly ShippingModel model;
+    private readonly Version version = typeof(MainWindow).Assembly.GetName().Version is { } assembly ? new(assembly.Major, assembly.Minor, assembly.Build) : new();
+    private readonly Updater updater;
+    private string? staged;
+    private bool updating;
+    private DateTime nextUpdateCheck;
     private readonly TextBlock subtitle = Text("", dim: true), approval = Text(""), age = Text("", 12, dim: true), empty = Text("", dim: true), count = Text("", 12, dim: true),
         caption = Text("", 12, dim: true), noPlaces = Text("No locations found. Create locations in ReAI, then refresh here.", dim: true), previewText = Text("", dim: true);
     private readonly ProgressRing progress = new() { Width = 20, Height = 20 };
-    private readonly Button connect = new() { Style = (Style)Application.Current.Resources["AccentButtonStyle"] }, disconnect, more;
+    private readonly Button connect = new() { Style = (Style)Application.Current.Resources["AccentButtonStyle"] }, disconnect, more, update;
     private readonly SelectorBar sections = new(), tabs = new();
     private readonly TextBox search = new(), find = new() { PlaceholderText = "Find a location", VerticalAlignment = VerticalAlignment.Bottom };
     private readonly CheckBox older = new() { Content = "Include older orders" };
@@ -47,10 +52,13 @@ public sealed class MainWindow : Window
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         AppWindow.Resize(new SizeInt32(Math.Min(1100, area.Width - 80), Math.Min(860, area.Height - 80)));
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "shipping.ico"));
-        model = new(api, new Store(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ReAI", "Shipping")), new Printing());
+        var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ReAI", "Shipping");
+        model = new(api, new Store(data), new Printing());
+        updater = new(Path.Combine(data, "update"), version, "ReAI.Shipping.exe");
         model.Changed += Render;
 
         disconnect = Command("Disconnect", Disconnect);
+        update = Command("", () => Update(manual: true));
         connect.Click += async (_, _) => await Connect();
         connectView = Stack(16, Text("Open orders, shipping and labels in one place.", 22), Text("Connect once and choose your company. Your password stays in the browser.", dim: true),
             connect, approval, Text("Add your Zebra in Windows Settings → Printers & scanners. A single Zebra is selected automatically.", dim: true));
@@ -101,7 +109,7 @@ public sealed class MainWindow : Window
 
         var views = new Grid();
         foreach (var view in new[] { connectView, shippingView, locationsView }) views.Children.Add(view);
-        var root = Table(true, (Table(false, (Stack(2, Text("ReAI Shipping", 24, bold: true), subtitle), Fill), (progress, Auto), (disconnect, Auto)), Auto), (sections, Auto), (views, Fill), (footer, Auto), (notice, Auto), (error, Auto));
+        var root = Table(true, (Table(false, (Stack(2, Text("ReAI Shipping", 24, bold: true), subtitle), Fill), (progress, Auto), (update, Auto), (disconnect, Auto)), Auto), (sections, Auto), (views, Fill), (footer, Auto), (notice, Auto), (error, Auto));
         root.Padding = new Thickness(24, 16, 24, 16);
         Content = root;
         AppWindow.Closing += (_, closing) =>
@@ -109,10 +117,30 @@ public sealed class MainWindow : Window
             if (!model.Busy) return;
             closing.Cancel = true; model.Notice = "Finishing the current request. Close the window once it completes."; Render();
         };
-        Closed += (_, _) => connecting?.Cancel();
+        Closed += (_, _) =>
+        {
+            connecting?.Cancel();
+            // A downloaded update installs quietly when the app closes.
+            try { if (staged != null) Updater.Apply(staged, relaunch: false); } catch { }
+        };
+        // Local builds have no version and never update. Releases check once a day on weekdays, while idle.
+        var checks = DispatcherQueue.CreateTimer();
+        checks.Interval = TimeSpan.FromHours(1);
+        checks.Tick += async (_, _) =>
+        {
+            if (staged != null || model.Busy || connecting != null || DateTime.UtcNow < nextUpdateCheck || DateTime.Now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) return;
+            nextUpdateCheck = DateTime.UtcNow.AddDays(1);
+            await Update(manual: false);
+        };
         root.Loaded += async (_, _) =>
         {
             model.Load();
+            if (version > new Version())
+            {
+                updater.Clean(); staged = updater.Staged; Render();
+                checks.Start();
+                if (staged == null && DateTime.Now.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday)) { nextUpdateCheck = DateTime.UtcNow.AddDays(1); _ = Update(manual: false); }
+            }
             try { if (Credentials.Read() is { } token) await model.Connect(token); }
             catch (Exception e) { model.Error = e.Message; Render(); }
         };
@@ -174,6 +202,26 @@ public sealed class MainWindow : Window
         try { Credentials.Clear(); model.Disconnect(); }
         catch (Exception e) { model.Error = e.Message; Render(); }
     }
+    /// <summary>The button checks for and downloads an update, then restarts into it. Automatic checks only download.</summary>
+    private async Task Update(bool manual)
+    {
+        if (updating || model.Busy) return;
+        if (staged != null)
+        {
+            if (!manual) return;
+            try { Updater.Apply(staged, relaunch: true); staged = null; Application.Current.Exit(); }
+            catch (Exception e) { model.Error = $"This folder cannot be updated ({e.Message}). Download the new version from the ReAI apps page."; Render(); }
+            return;
+        }
+        updating = true; Render();
+        try
+        {
+            if (await updater.Download()) staged = updater.Staged;
+            if (manual) model.Notice = staged == null ? $"You have the latest version ({version})." : "The update is ready. Restart to update now, or it installs when you close the app.";
+        }
+        catch (Exception e) { if (manual) model.Error = "Could not check for updates. " + e.Message; }
+        finally { updating = false; Render(); }
+    }
     /// <summary>A label that already has a receipt is only printed again after explicit confirmation.</summary>
     private async Task Reprint(int shipment)
     {
@@ -186,6 +234,8 @@ public sealed class MainWindow : Window
         subtitle.Text = model.Company?.CompanyName ?? "Connect once. Ship and print here.";
         progress.IsActive = busy || model.LoadingOrders || model.LoadingLocations || connecting != null;
         disconnect.Visibility = Shown(connected); disconnect.IsEnabled = !busy;
+        update.Visibility = Shown(version > new Version()); update.IsEnabled = !busy && !updating;
+        update.Content = staged != null ? "Restart to update" : updating ? "Checking for updates…" : "Check for updates";
         connect.Content = connecting == null ? "Connect to ReAI" : "Cancel"; connect.IsEnabled = !busy;
         approval.Visibility = Shown(approval.Text != "");
         connectView.Visibility = Shown(!connected); shippingView.Visibility = Shown(connected && !locations); locationsView.Visibility = Shown(connected && locations);

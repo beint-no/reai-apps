@@ -10,7 +10,7 @@ public partial class App : Application
     public App() => InitializeComponent();
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        if (!singleInstance.WaitOne(0)) { Exit(); return; }
+        if (Updater.Installed(Environment.GetCommandLineArgs()) || !singleInstance.WaitOne(0)) { Exit(); return; }
         window = new MainWindow();
         window.Activate();
     }

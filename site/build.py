@@ -58,6 +58,17 @@ for app_id, app in apps.items():
                 updates = destination / 'updates'
                 updates.mkdir(exist_ok=True)
                 (updates / f'{app_id}.xml').write_bytes(data)
+        if app.get('updates', False):
+            # The in-app updater reads this feed: the newest release, its downloads and their checksums.
+            sums = next(a for a in release['assets'] if a['name'] == 'SHA256SUMS')
+            request = urllib.request.Request(sums['browser_download_url'], headers={'User-Agent': 'reai-apps-site'})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                checksums = {name: digest for digest, name in (line.split() for line in response.read(65536).decode().splitlines())}
+            arm = next(a for a in release['assets'] if a['name'] == app['arm64_asset'])
+            updates = destination / 'updates'
+            updates.mkdir(exist_ok=True)
+            (updates / f'{app_id}.json').write_text(json.dumps({'version': '.'.join(map(str, version)), 'assets': {
+                architecture: {'url': item['browser_download_url'], 'sha256': checksums[item['name']]} for architecture, item in [('x64', asset), ('arm64', arm)]}}))
         label = 'Download for Windows (x64)' if app.get('platform') == 'windows' else 'Download for Mac'
         download = f'<a class="button primary" href="{html.escape(asset["browser_download_url"], quote=True)}">{label} <span aria-hidden="true">↓</span></a>'
         details = f'<a class="release-note" href="{html.escape(release["html_url"], quote=True)}">Version {".".join(map(str, version))} · Release notes ↗</a>'

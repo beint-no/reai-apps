@@ -55,7 +55,7 @@ notes = f'''Windows 11 25H2 or newer. Choose **x64** for Intel/AMD PCs or **ARM6
 3. Open **{app['executable']}**. No .NET installation, build tools or administrator access is needed.
 4. Click **Connect to ReAI**, compare the browser code, choose a company and approve.
 
-To update, close the app and extract the new version into a new folder. Account keys and app data stay in your Windows user profile. To remove the app, close it and delete its extracted folder; see the app README for stored data and access revocation.
+{"To update, click **Check for updates** in the app; it downloads the new version and restarts into it. Updates also download in the background and install when you close the app." if app.get('updates') else "To update, close the app and extract the new version into a new folder."} Account keys and app data stay in your Windows user profile. To remove the app, close it and delete its extracted folder; see the app README for stored data and access revocation.
 
 `SHA256SUMS` contains download checksums. These detect changed downloads; they are not a publisher signature or a way around Windows security policy.
 
