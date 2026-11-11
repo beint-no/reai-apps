@@ -203,7 +203,7 @@ import Observation
             defer { busy = false }
             do {
                 let marker = "Stripe subscription \(source)/\(subscription.id)"
-                let existing: [SubscriptionSummary] = try await reai.request("api/subscriptions", token: token, company: company.id,
+                let existing: [SubscriptionSummary] = try await reai.all("api/subscriptions", token: token, company: company.id,
                     query: [URLQueryItem(name: "customerId", value: String(customer.id))])
                 for row in existing {
                     guard let id = row.id else { continue }
