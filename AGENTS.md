@@ -2,6 +2,8 @@
 
 Use current native toolchains and dependencies without preserving legacy compatibility.
 
+Shipping (Mac and Windows) and Product Labels are the apps in daily use. The others are working examples of the same foundation: keep them building and current with shared tooling, but do not invest in features or refactors there unless asked. Model new apps on Shipping.
+
 For profiling, follow tools/profiling/README.md. Use synthetic workloads, optimized builds and before/after evidence; keep traces and generated fixtures outside Git. Never optimize from an empty instrument lane or change accounting, print recovery or retry behavior to improve a benchmark.
 
 Use a dedicated worktree under ~/.r-worktrees and a descriptive codex/ branch. Read the app's AGENTS.md before changing its source.
