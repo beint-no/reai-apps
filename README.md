@@ -9,6 +9,7 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 | [Hybel Journal for Mac](apple/hybel) | Preview a monthly Hybel CSV journal and create a ReAI voucher for accountant review. Experimental; no direct Hybel API sync. |
 | [Product Labels for Mac](apple/product-labels) | Create price, product and barcode labels; print variants in bulk. |
 | [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
+| [Shipping for Windows](windows/shipping) | Native Windows app to ship orders and print carrier labels. Unsigned ZIP download. |
 | [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
 | [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
@@ -48,6 +49,7 @@ apple/
   dintero/          Dintero payout fee app
 windows/
   import/           .NET 11 / WinUI 3 app and app-local import logic
+  shipping/         .NET 11 / WinUI 3 app and app-local shipping logic
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
   global.json       Pinned .NET SDK
 apps.json          App identities and download names
@@ -102,7 +104,7 @@ A failed verification publishes nothing.
 
 Windows apps use .NET and WinUI 3. The SDK is pinned in [windows/global.json](windows/global.json); app projects and lockfiles record dependencies. GitHub Windows runners build self-contained x64/ARM64 packages. App-local logic also builds on macOS.
 
-See [Windows Import](windows/import) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. Pull requests run build checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
+See [Windows Import](windows/import), [Windows Shipping](windows/shipping) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. Pull requests run build checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
 
 ## Dependency updates
 

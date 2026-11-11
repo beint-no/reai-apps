@@ -8,7 +8,7 @@ on:
         description: Windows app to release (unsigned, no signing fee)
         required: true
         type: choice
-        options: [import-windows, time-tracker-windows]
+        options: [import-windows, shipping-windows, time-tracker-windows]
 permissions:
   contents: read
 concurrency:

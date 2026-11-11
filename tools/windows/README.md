@@ -9,6 +9,7 @@ Merge the change, then open **[Actions → Windows apps](https://github.com/bein
 
 ```sh
 gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=import-windows
+gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=shipping-windows
 gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=time-tracker-windows
 ```
 
