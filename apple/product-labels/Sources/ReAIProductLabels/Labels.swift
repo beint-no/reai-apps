@@ -125,7 +125,7 @@ enum LabelRenderer {
             let textHeight = hasBarcode ? h * (0.77 - settings.barcodeFraction) : h
             let metadata = [item.sku.isEmpty ? "" : "SKU: " + item.sku,
                             settings.design == .product ? item.details : "",
-                            settings.design == .product && !item.origin.isEmpty ? t("Country of origin") + ": " + item.origin : ""].filter { !$0.isEmpty }.joined(separator: "\n")
+                            settings.design == .product && !item.origin.isEmpty ? "Country of origin" + ": " + item.origin : ""].filter { !$0.isEmpty }.joined(separator: "\n")
             try add(item.title, y: 0, height: textHeight * 0.45, maxSize: 12, minSize: 6, bold: true)
             try add(metadata, y: textHeight * 0.45, height: textHeight * 0.55, maxSize: 8, minSize: 5.5, bold: false)
             if hasBarcode { try add(item.barcode, y: h * 0.82, height: h * 0.18, maxSize: 8, minSize: 5.5, bold: false, centered: true) }

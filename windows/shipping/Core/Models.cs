@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ReAI.Shipping.Core;
@@ -31,6 +29,11 @@ public sealed record Shipment(int Id, int OrderId, string Status, bool CheckoutM
     bool LabelAvailable, List<string> Actions, bool CustomsInvoiceAvailable, bool InventoryRecordingPending, Charge CustomerCharge)
 {
     public bool Pending => Status is "capture_pending" or "booking";
+    public static string StatusTitle(string status) => status switch
+    {
+        "prepared" => "Prepared", "capture_pending" => "Waiting for payment", "booking" => "Booking", "booked" => "Booked",
+        "failed" => "Failed", "cancelled" => "Cancelled", "outcome_unknown" => "Outcome unknown", _ => status
+    };
 }
 public sealed record Warehouse(int Id, string Name);
 public sealed record Zone(int Id, string Name);
@@ -123,22 +126,4 @@ public interface IPrinting
     Printer[] Printers();
     Task<Func<Task<string>>> Label(byte[] pdf, string printer, string title);
     Func<Task<string>> Location(LocationLabel label, string printer);
-}
-
-public static class Texts
-{
-    public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
-    private static readonly Dictionary<string, string> Norwegian = Load();
-    public static string T(string english) => Norwegian.GetValueOrDefault(english, english);
-    public static string Status(string status) => T(status switch
-    {
-        "prepared" => "Prepared", "capture_pending" => "Waiting for payment", "booking" => "Booking", "booked" => "Booked",
-        "failed" => "Failed", "cancelled" => "Cancelled", "outcome_unknown" => "Outcome unknown", _ => status
-    });
-    private static Dictionary<string, string> Load()
-    {
-        if (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName is not ("nb" or "nn" or "no")) return [];
-        using var stream = typeof(Texts).Assembly.GetManifestResourceStream("ReAI.Shipping.Core.nb.json")!;
-        return JsonSerializer.Deserialize<Dictionary<string, string>>(stream)!;
-    }
 }

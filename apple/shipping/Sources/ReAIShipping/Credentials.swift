@@ -16,7 +16,7 @@ actor Credentials {
         if status == errSecItemNotFound { return nil }
         guard status == errSecSuccess, let data = item as? Data,
               let token = String(data: data, encoding: .utf8) else {
-            throw appError(t("Could not read the ReAI connection from Keychain.") + " (\(status))")
+            throw appError("Could not read the ReAI connection from Keychain." + " (\(status))")
         }
         return token
     }
@@ -30,13 +30,13 @@ actor Credentials {
             item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
             status = SecItemAdd(item as CFDictionary, nil)
         }
-        guard status == errSecSuccess else { throw appError(t("Could not save your connection in Keychain.") + " (\(status))") }
+        guard status == errSecSuccess else { throw appError("Could not save your connection in Keychain." + " (\(status))") }
     }
 
     func delete() throws {
         let status = SecItemDelete(identity as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw appError(t("Could not remove your connection from Keychain.") + " (\(status))")
+            throw appError("Could not remove your connection from Keychain." + " (\(status))")
         }
     }
 }

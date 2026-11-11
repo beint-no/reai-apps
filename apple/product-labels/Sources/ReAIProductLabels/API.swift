@@ -1,8 +1,7 @@
 import Foundation
 
-func t(_ key: String) -> String { NSLocalizedString(key, bundle: .module, comment: "") }
 func appError(_ text: String) -> NSError {
-    NSError(domain: "no.reai.productlabels", code: 0, userInfo: [NSLocalizedDescriptionKey: t(text)])
+    NSError(domain: "no.reai.productlabels", code: 0, userInfo: [NSLocalizedDescriptionKey: text])
 }
 enum AppEnvironment { static let origin = URL(string: "https://app.reai.no")! }
 final class RedirectBlocker: NSObject, URLSessionTaskDelegate, Sendable {
@@ -74,7 +73,7 @@ actor ReAIAPI {
         var request = URLRequest(url: AppEnvironment.origin.appending(path: path).appending(queryItems: query))
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(Locale.preferredLanguages.first ?? "en", forHTTPHeaderField: "Accept-Language")
+        request.setValue("en", forHTTPHeaderField: "Accept-Language")
         if let company { request.setValue(String(company), forHTTPHeaderField: "X-Tenant-Id") }
         let (data, raw) = try await session.data(for: request)
         guard let response = raw as? HTTPURLResponse else { throw appError("ReAI returned an invalid response.") }

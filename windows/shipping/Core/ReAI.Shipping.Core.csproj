@@ -5,7 +5,4 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="nb.json" />
-  </ItemGroup>
 </Project>

@@ -2,7 +2,7 @@
 
 Ship orders and print labels from a native Windows app. Connect to ReAI, choose an order, review its parcel and shipping price, then click **Ship & print**. ReAI books the carrier, handles payment capture where required, and records shipping, stock and fulfillment. The PC prints one copy of the resulting label. It works like [Shipping for Mac](../../apple/shipping).
 
-Native WinUI 3, Windows 11 25H2+, x64 or ARM64. English and Norwegian.
+Native WinUI 3, Windows 11 25H2+, x64 or ARM64.
 
 ## Download
 

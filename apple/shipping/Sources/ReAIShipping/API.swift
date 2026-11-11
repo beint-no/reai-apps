@@ -17,9 +17,12 @@ enum AppEnvironment {
 
 }
 
-func t(_ key: String) -> String { NSLocalizedString(key, bundle: .module, comment: "") }
+func statusTitle(_ status: String) -> String {
+    ["prepared": "Prepared", "capture_pending": "Waiting for payment", "booking": "Booking", "booked": "Booked",
+     "failed": "Failed", "cancelled": "Cancelled", "outcome_unknown": "Outcome unknown"][status] ?? status
+}
 func appError(_ text: String, code: Int = 0) -> NSError {
-    NSError(domain: "no.reai.shipping", code: code, userInfo: [NSLocalizedDescriptionKey: t(text)])
+    NSError(domain: "no.reai.shipping", code: code, userInfo: [NSLocalizedDescriptionKey: text])
 }
 
 actor ReAIAPI {
@@ -62,7 +65,7 @@ actor ReAIAPI {
         let url = AppEnvironment.origin.appending(path: path)
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(Locale.preferredLanguages.first ?? "en", forHTTPHeaderField: "Accept-Language")
+        request.setValue("en", forHTTPHeaderField: "Accept-Language")
         if let company { request.setValue(String(company), forHTTPHeaderField: "X-Tenant-Id") }
         let (data, raw) = try await session.data(for: request)
         guard let response = raw as? HTTPURLResponse else { throw appError("ReAI returned an invalid response.") }
@@ -236,7 +239,7 @@ extension ReAIAPI {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(String(company), forHTTPHeaderField: "X-Tenant-Id")
-        request.setValue(Locale.preferredLanguages.first ?? "en", forHTTPHeaderField: "Accept-Language")
+        request.setValue("en", forHTTPHeaderField: "Accept-Language")
         let (data, raw) = try await session.data(for: request)
         guard let response = raw as? HTTPURLResponse else { throw appError("ReAI returned an invalid response.") }
         guard (200..<300).contains(response.statusCode) else {

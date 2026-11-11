@@ -9,7 +9,6 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using ReAI.Shipping.Core;
 using Windows.Graphics;
 using Windows.System;
-using static ReAI.Shipping.Core.Texts;
 
 namespace ReAI.Shipping;
 
@@ -19,16 +18,16 @@ public sealed class MainWindow : Window
     private readonly ReAIClient api = new();
     private readonly ShippingModel model;
     private readonly TextBlock subtitle = Text("", dim: true), approval = Text(""), age = Text("", 12, dim: true), empty = Text("", dim: true), count = Text("", 12, dim: true),
-        caption = Text("", 12, dim: true), noPlaces = Text(T("No locations found. Create locations in ReAI, then refresh here."), dim: true), previewText = Text("", dim: true);
+        caption = Text("", 12, dim: true), noPlaces = Text("No locations found. Create locations in ReAI, then refresh here.", dim: true), previewText = Text("", dim: true);
     private readonly ProgressRing progress = new() { Width = 20, Height = 20 };
     private readonly Button connect = new() { Style = (Style)Application.Current.Resources["AccentButtonStyle"] }, disconnect, more;
     private readonly SelectorBar sections = new(), tabs = new();
-    private readonly TextBox search = new(), find = new() { PlaceholderText = T("Find a location"), VerticalAlignment = VerticalAlignment.Bottom };
-    private readonly CheckBox older = new() { Content = T("Include older orders") };
+    private readonly TextBox search = new(), find = new() { PlaceholderText = "Find a location", VerticalAlignment = VerticalAlignment.Bottom };
+    private readonly CheckBox older = new() { Content = "Include older orders" };
     private readonly ListView orders = new() { IsItemClickEnabled = true }, places = new() { IsItemClickEnabled = true };
     private readonly StackPanel details = new() { Spacing = 14, Padding = new Thickness(8, 0, 20, 20) };
-    private readonly ComboBox printers = new() { PlaceholderText = T("Choose a printer"), MinWidth = 260 }, warehouses = new() { Header = T("Warehouse"), PlaceholderText = T("Choose a warehouse"), MinWidth = 220 },
-        zones = new() { Header = T("Zone"), MinWidth = 180 }, sizes = new() { Header = T("Label size"), ItemsSource = LabelSize.All.Select(size => size.ToString()).ToList() };
+    private readonly ComboBox printers = new() { PlaceholderText = "Choose a printer", MinWidth = 260 }, warehouses = new() { Header = "Warehouse", PlaceholderText = "Choose a warehouse", MinWidth = 220 },
+        zones = new() { Header = "Zone", MinWidth = 180 }, sizes = new() { Header = "Label size", ItemsSource = LabelSize.All.Select(size => size.ToString()).ToList() };
     private readonly Image preview = new() { MaxWidth = 380, MaxHeight = 300, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly InfoBar notice = new() { Severity = InfoBarSeverity.Informational }, error = new() { Severity = InfoBarSeverity.Warning };
     private readonly FrameworkElement connectView, shippingView, locationsView, footer;
@@ -51,12 +50,12 @@ public sealed class MainWindow : Window
         model = new(api, new Store(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ReAI", "Shipping")), new Printing());
         model.Changed += Render;
 
-        disconnect = Command(T("Disconnect"), Disconnect);
+        disconnect = Command("Disconnect", Disconnect);
         connect.Click += async (_, _) => await Connect();
-        connectView = Stack(16, Text(T("Open orders, shipping and labels in one place."), 22), Text(T("Connect once and choose your company. Your password stays in the browser."), dim: true),
-            connect, approval, Text(T("Add your Zebra in Windows Settings → Printers & scanners. A single Zebra is selected automatically."), dim: true));
+        connectView = Stack(16, Text("Open orders, shipping and labels in one place.", 22), Text("Connect once and choose your company. Your password stays in the browser.", dim: true),
+            connect, approval, Text("Add your Zebra in Windows Settings → Printers & scanners. A single Zebra is selected automatically.", dim: true));
         foreach (var (bar, names) in new[] { (sections, new[] { "Shipping", "Locations" }), (tabs, ["Ready to ship", "History"]) })
-            foreach (var name in names) bar.Items.Add(new SelectorBarItem { Text = T(name) });
+            foreach (var name in names) bar.Items.Add(new SelectorBarItem { Text = name });
         sections.SelectionChanged += async (_, _) =>
         {
             if (sections.Items.IndexOf(sections.SelectedItem) == 1 == locations) return;
@@ -69,9 +68,9 @@ public sealed class MainWindow : Window
         search.TextChanged += (_, _) => model.Search = search.Text;
         search.KeyDown += async (_, key) => { if (key.Key == VirtualKey.Enter) await model.RefreshOrders(); };
         orders.ItemClick += async (_, click) => await model.Select((Order)((FrameworkElement)click.ClickedItem).Tag);
-        more = Command(T("Load more"), () => model.RefreshOrders(more: true));
-        var left = Table(true, (Table(false, (Text(T("Orders"), 16, bold: true), Fill), (Command(T("Refresh"), () => model.RefreshOrders()), Auto)), Auto), (tabs, Auto),
-            (Table(false, (search, Fill), (Command(T("Search"), () => model.RefreshOrders()), Auto)), Auto), (older, Auto), (age, Auto), (empty, Auto), (orders, Fill), (more, Auto), (count, Auto));
+        more = Command("Load more", () => model.RefreshOrders(more: true));
+        var left = Table(true, (Table(false, (Text("Orders", 16, bold: true), Fill), (Command("Refresh", () => model.RefreshOrders()), Auto)), Auto), (tabs, Auto),
+            (Table(false, (search, Fill), (Command("Search", () => model.RefreshOrders()), Auto)), Auto), (older, Auto), (age, Auto), (empty, Auto), (orders, Fill), (more, Auto), (count, Auto));
         shippingView = Table(false, (left, new GridLength(330)), (new ScrollViewer { Content = details }, Fill));
 
         warehouses.SelectionChanged += async (_, _) =>
@@ -88,15 +87,15 @@ public sealed class MainWindow : Window
         sizes.SelectionChanged += (_, _) => { if (sizes.SelectedIndex >= 0 && LabelSize.All[sizes.SelectedIndex] != model.LabelSize) model.ChooseLabelSize(LabelSize.All[sizes.SelectedIndex]); };
         find.TextChanged += (_, _) => Render();
         places.ItemClick += (_, click) => { chosen = (Location)((FrameworkElement)click.ClickedItem).Tag; Render(); };
-        var refresh = Command(T("Refresh"), () => model.RefreshLocations());
+        var refresh = Command("Refresh", () => model.RefreshLocations());
         refresh.VerticalAlignment = VerticalAlignment.Bottom;
         locationsView = Table(true, (Table(false, (warehouses, Auto), (zones, Auto), (find, Fill), (sizes, Auto), (refresh, Auto)), Auto),
-            (Text(T("Match the label size to the roll loaded in your printer. One location per label, at actual size."), 12, dim: true), Auto), (noPlaces, Auto),
-            (Table(false, (places, Fill), (Stack(12, Text(T("Preview"), 16, bold: true), preview, previewText), new GridLength(400))), Fill));
+            (Text("Match the label size to the roll loaded in your printer. One location per label, at actual size.", 12, dim: true), Auto), (noPlaces, Auto),
+            (Table(false, (places, Fill), (Stack(12, Text("Preview", 16, bold: true), preview, previewText), new GridLength(400))), Fill));
 
         printers.SelectionChanged += (_, _) => { if (printers.SelectedItem is string name && name != model.Printer) model.ChoosePrinter(name); };
-        footer = Table(false, (Text(T("Printer")), Auto), (printers, Auto), (Command(T("Refresh printers"), () => { model.RefreshPrinters(); return Task.CompletedTask; }), Auto),
-            (Command(T("Add printer"), () => { Open(new("ms-settings:printers")); return Task.CompletedTask; }), Auto), (caption, Fill));
+        footer = Table(false, (Text("Printer"), Auto), (printers, Auto), (Command("Refresh printers", () => { model.RefreshPrinters(); return Task.CompletedTask; }), Auto),
+            (Command("Add printer", () => { Open(new("ms-settings:printers")); return Task.CompletedTask; }), Auto), (caption, Fill));
         notice.CloseButtonClick += (_, _) => model.Notice = null;
         error.CloseButtonClick += (_, _) => model.Error = null;
 
@@ -108,7 +107,7 @@ public sealed class MainWindow : Window
         AppWindow.Closing += (_, closing) =>
         {
             if (!model.Busy) return;
-            closing.Cancel = true; model.Notice = T("Finishing the current request. Close the window once it completes."); Render();
+            closing.Cancel = true; model.Notice = "Finishing the current request. Close the window once it completes."; Render();
         };
         Closed += (_, _) => connecting?.Cancel();
         root.Loaded += async (_, _) =>
@@ -153,7 +152,7 @@ public sealed class MainWindow : Window
     private static void Open(Uri uri) => Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     private async Task<bool> Confirm(string title, string content, string action) => await new ContentDialog
     {
-        XamlRoot = Content.XamlRoot, Title = title, Content = content, PrimaryButtonText = action, CloseButtonText = T("Cancel"), DefaultButton = ContentDialogButton.Close
+        XamlRoot = Content.XamlRoot, Title = title, Content = content, PrimaryButtonText = action, CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Close
     }.ShowAsync() == ContentDialogResult.Primary;
 
     private async Task Connect()
@@ -162,8 +161,8 @@ public sealed class MainWindow : Window
         connecting = new(); model.Error = null; Render();
         try
         {
-            var token = await api.Connect((code, uri) => { approval.Text = string.Format(T("Compare {0} in your browser, choose a company and approve."), code); Open(uri); }, connecting.Token);
-            if (await model.Connect(token)) { Credentials.Save(token); model.Notice = T("Connected. Choose an order to ship."); }
+            var token = await api.Connect((code, uri) => { approval.Text = $"Compare {code} in your browser, choose a company and approve."; Open(uri); }, connecting.Token);
+            if (await model.Connect(token)) { Credentials.Save(token); model.Notice = "Connected. Choose an order to ship."; }
         }
         catch (OperationCanceledException) { }
         catch (Exception e) { model.Error = e.Message; }
@@ -171,23 +170,23 @@ public sealed class MainWindow : Window
     }
     private async Task Disconnect()
     {
-        if (model.Busy || !await Confirm(T("Disconnect this PC?"), T("This removes the access key from this PC. Revoke access in your ReAI profile to remove it from ReAI."), T("Disconnect"))) return;
+        if (model.Busy || !await Confirm("Disconnect this PC?", "This removes the access key from this PC. Revoke access in your ReAI profile to remove it from ReAI.", "Disconnect")) return;
         try { Credentials.Clear(); model.Disconnect(); }
         catch (Exception e) { model.Error = e.Message; Render(); }
     }
     /// <summary>A label that already has a receipt is only printed again after explicit confirmation.</summary>
     private async Task Reprint(int shipment)
     {
-        if (!model.HasReceipt(shipment) || await Confirm(T("Print again? Check the printer queue first."), "1 × " + T("Shipping label"), T("Print again"))) await model.Reprint(shipment);
+        if (!model.HasReceipt(shipment) || await Confirm("Print again? Check the printer queue first.", "1 × " + "Shipping label", "Print again")) await model.Reprint(shipment);
     }
 
     private void Render()
     {
         bool connected = model.Company != null, busy = model.Busy;
-        subtitle.Text = model.Company?.CompanyName ?? T("Connect once. Ship and print here.");
+        subtitle.Text = model.Company?.CompanyName ?? "Connect once. Ship and print here.";
         progress.IsActive = busy || model.LoadingOrders || model.LoadingLocations || connecting != null;
         disconnect.Visibility = Shown(connected); disconnect.IsEnabled = !busy;
-        connect.Content = T(connecting == null ? "Connect to ReAI" : "Cancel"); connect.IsEnabled = !busy;
+        connect.Content = connecting == null ? "Connect to ReAI" : "Cancel"; connect.IsEnabled = !busy;
         approval.Visibility = Shown(approval.Text != "");
         connectView.Visibility = Shown(!connected); shippingView.Visibility = Shown(connected && !locations); locationsView.Visibility = Shown(connected && locations);
         sections.Visibility = footer.Visibility = Shown(connected); sections.IsEnabled = !busy && !model.LoadingLocations;
@@ -197,7 +196,7 @@ public sealed class MainWindow : Window
         if (!connected) return;
         if (shownPrinters != model.Printers) printers.ItemsSource = (shownPrinters = model.Printers) is Printer[] queues ? queues.Select(queue => queue.Name).ToList() : null;
         printers.SelectedItem = model.Printer; printers.IsEnabled = !busy;
-        caption.Text = T(locations ? "One copy · Actual label size" : "One copy · Carrier PDF size");
+        caption.Text = locations ? "One copy · Actual label size" : "One copy · Carrier PDF size";
         if (locations) RenderLocations(); else RenderShipping();
     }
 
@@ -205,61 +204,61 @@ public sealed class MainWindow : Window
     {
         bool idle = !model.Busy && !model.LoadingOrders;
         tabs.SelectedItem = tabs.Items[model.History ? 1 : 0]; tabs.IsEnabled = older.IsEnabled = more.IsEnabled = idle;
-        search.PlaceholderText = T(model.History ? "Order number, ID or link" : "Order or customer");
+        search.PlaceholderText = model.History ? "Order number, ID or link" : "Order or customer";
         older.IsChecked = model.IncludeOlder; older.Visibility = age.Visibility = Shown(!model.History);
-        age.Text = T(model.IncludeOlder ? "All order dates" : "Orders from the last 14 days");
+        age.Text = model.IncludeOlder ? "All order dates" : "Orders from the last 14 days";
         if (shownOrders != model.Orders)
             orders.ItemsSource = ((List<Order>)(shownOrders = model.Orders)).Select(order =>
             {
-                var row = Stack(2, Text(order.OrderNumber + (order.PreparedShipmentId == null ? "" : " · " + Status("prepared")), bold: true), Text(order.CustomerName), Text(order.Date, 12, dim: true));
+                var row = Stack(2, Text(order.OrderNumber + (order.PreparedShipmentId == null ? "" : " · " + Shipment.StatusTitle("prepared")), bold: true), Text(order.CustomerName), Text(order.Date, 12, dim: true));
                 row.Padding = new Thickness(0, 6, 0, 6); row.Tag = order;
                 return row;
             }).ToList();
         orders.SelectedIndex = model.Orders.FindIndex(order => order.OrderId == model.Selected?.OrderId);
-        empty.Text = T(model.History ? "Search all past orders by number, ID or ReAI link." : "No orders ready to ship. Find past labels in History.");
+        empty.Text = model.History ? "Search all past orders by number, ID or ReAI link." : "No orders ready to ship. Find past labels in History.";
         empty.Visibility = Shown(model.Orders.Count == 0 && !model.LoadingOrders); more.Visibility = Shown(model.CanLoadMore);
-        count.Text = $"{model.TotalOrders} {T("orders")}";
+        count.Text = $"{model.TotalOrders} {"orders"}";
 
         details.Children.Clear();
         void Add(params UIElement?[] items) { foreach (var item in items) if (item != null) details.Children.Add(item); }
         if (model.Selected is { } order)
         {
             var shipment = model.Shipment;
-            Add(Stack(2, Text(order.OrderNumber, 28, bold: true), Text(order.CustomerName, 18, dim: true)), model.TestMode ? Warning(T("Carrier test mode")) : null,
+            Add(Stack(2, Text(order.OrderNumber, 28, bold: true), Text(order.CustomerName, 18, dim: true)), model.TestMode ? Warning("Carrier test mode") : null,
                 shipment != null ? Saved(shipment) : model.Draft is { } draft ? Proposal(draft) : model.Options?.UnavailableReason is { } reason ? Text(reason, dim: true) : null);
             actions = Stack(6); FillActions(); Add(actions);
-            if (shipment?.CustomsInvoiceAvailable == true) Add(Link(T("Open customs invoice in ReAI (A4)"), $"shipments/{shipment.Id}/customs-invoice/preview?tenantId={model.Company!.Id}"));
-            if (model.SavedShipments.Count > 0) Add(Text(T("Saved shipments"), 16, bold: true));
+            if (shipment?.CustomsInvoiceAvailable == true) Add(Link("Open customs invoice in ReAI (A4)", $"shipments/{shipment.Id}/customs-invoice/preview?tenantId={model.Company!.Id}"));
+            if (model.SavedShipments.Count > 0) Add(Text("Saved shipments", 16, bold: true));
             foreach (var saved in model.SavedShipments)
             {
-                var choice = new RadioButton { GroupName = "shipment", Content = $"#{saved.Id} · {Status(saved.Status)}", IsChecked = shipment?.Id == saved.Id, IsEnabled = !model.Busy };
+                var choice = new RadioButton { GroupName = "shipment", Content = $"#{saved.Id} · {Shipment.StatusTitle(saved.Status)}", IsChecked = shipment?.Id == saved.Id, IsEnabled = !model.Busy };
                 choice.Click += async (_, _) => await model.ChooseShipment(saved.Id);
                 Add(choice);
             }
-            Add(model.ShipmentBefore != null ? Command(T("Load more"), model.LoadMoreShipments, !model.Busy) : null, Link(T("Open order in ReAI"), $"order/{order.OrderId}?tenantId={model.Company!.Id}"));
+            Add(model.ShipmentBefore != null ? Command("Load more", model.LoadMoreShipments, !model.Busy) : null, Link("Open order in ReAI", $"order/{order.OrderId}?tenantId={model.Company!.Id}"));
         }
-        else Add(Text(T("Choose an order"), 22), Text(T("Review the parcel and price, then ship and print in one click."), dim: true));
+        else Add(Text("Choose an order", 22), Text("Review the parcel and price, then ship and print in one click.", dim: true));
 
         var unfinished = model.Unfinished.ToList();
-        if (unfinished.Count > 0) Add(Text(T("Shipping requests to check"), 16, bold: true));
+        if (unfinished.Count > 0) Add(Text("Shipping requests to check", 16, bold: true));
         foreach (var operation in unfinished)
-            Add(Table(false, (Text($"{T("Order")} #{operation.OrderId}"), Fill), (operation.State is "rejected" or "failed"
-                ? Command(T("Review parcel again"), () => model.Review(operation), !model.Busy) : Command(T("Resume safely"), () => model.Resume(operation), model.CanPrint), Auto)));
-        if (unfinished.Count > 0) Add(Text(T("Resume checks the saved request and shipment before continuing. It never creates a replacement after an uncertain response."), 12, dim: true));
+            Add(Table(false, (Text($"{"Order"} #{operation.OrderId}"), Fill), (operation.State is "rejected" or "failed"
+                ? Command("Review parcel again", () => model.Review(operation), !model.Busy) : Command("Resume safely", () => model.Resume(operation), model.CanPrint), Auto)));
+        if (unfinished.Count > 0) Add(Text("Resume checks the saved request and shipment before continuing. It never creates a replacement after an uncertain response.", 12, dim: true));
 
         var prints = model.Prints.Take(10).ToList();
-        Add(Text(T("Recent prints"), 16, bold: true), prints.Count == 0 ? Text(T("Printed documents will appear here."), dim: true) : null);
+        Add(Text("Recent prints", 16, bold: true), prints.Count == 0 ? Text("Printed documents will appear here.", dim: true) : null);
         foreach (var print in prints)
-            Add(Table(false, (Stack(2, Text($"{T("Shipment")} #{print.ShipmentId} · {T("Shipping label")}"), print.Printer == null ? null : Text(print.Printer, 12, dim: true),
-                Text(T(print.State == "queued" ? "In printer queue" : "Check before reprinting"), 12, dim: true)), Fill), (Command(T("Reprint"), () => Reprint(print.ShipmentId), model.CanPrint), Auto)));
+            Add(Table(false, (Stack(2, Text($"{"Shipment"} #{print.ShipmentId} · {"Shipping label"}"), print.Printer == null ? null : Text(print.Printer, 12, dim: true),
+                Text(print.State == "queued" ? "In printer queue" : "Check before reprinting", 12, dim: true)), Fill), (Command("Reprint", () => Reprint(print.ShipmentId), model.CanPrint), Auto)));
     }
 
-    private StackPanel Saved(Shipment shipment) => Stack(8, Text(Status(shipment.Status), 16, bold: true), Text(shipment.Recipient.Summary("\n")),
+    private StackPanel Saved(Shipment shipment) => Stack(8, Text(Shipment.StatusTitle(shipment.Status), 16, bold: true), Text(shipment.Recipient.Summary("\n")),
         Text($"{shipment.Parcel.WeightGrams} g · {shipment.Parcel.LengthCm:0.##} × {shipment.Parcel.WidthCm:0.##} × {shipment.Parcel.HeightCm:0.##} cm", dim: true),
-        shipment.CustomerCharge is { Amount: { } amount, CurrencyCode: { } currency } ? Text($"{T("Shipping price")}: {amount:N2} {currency}", 16, bold: true) : null,
+        shipment.CustomerCharge is { Amount: { } amount, CurrencyCode: { } currency } ? Text($"{"Shipping price"}: {amount:N2} {currency}", 16, bold: true) : null,
         shipment.Error == null ? null : Warning(shipment.Error),
-        !model.History && shipment.Actions.Contains("cancel") ? Command(T("Cancel preparation"), model.CancelPreparation, !model.Busy) : null,
-        shipment.InventoryRecordingPending || shipment.CustomerCharge.RecordingPending ? Warning(T("Booked shipment has pending recording in ReAI. Check its status before further action.")) : null);
+        !model.History && shipment.Actions.Contains("cancel") ? Command("Cancel preparation", model.CancelPreparation, !model.Busy) : null,
+        shipment.InventoryRecordingPending || shipment.CustomerCharge.RecordingPending ? Warning("Booked shipment has pending recording in ReAI. Check its status before further action.") : null);
 
     private StackPanel Proposal(Draft draft)
     {
@@ -268,7 +267,7 @@ public sealed class MainWindow : Window
         void Edited() { model.InvalidateQuote(); summary.Text = draft.Recipient.Summary(", "); FillRates(); FillActions(); }
         TextBox Field(string title, Func<string?> get, Action<string?> set)
         {
-            var box = new TextBox { Header = T(title), Text = get() ?? "", IsEnabled = enabled, MinWidth = 160 };
+            var box = new TextBox { Header = title, Text = get() ?? "", IsEnabled = enabled, MinWidth = 160 };
             box.TextChanged += (_, _) => { if ((box.Text == "" ? null : box.Text) is var value && value != get()) { set(value); Edited(); } };
             return box;
         }
@@ -285,22 +284,22 @@ public sealed class MainWindow : Window
         Recipient to = draft.Recipient; Parcel parcel = draft.Parcel;
         var recipient = new Expander
         {
-            Header = T("Recipient"), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Header = "Recipient", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Content = Stack(8, Field("Name", () => to.Name, value => to.Name = value), Field("Email", () => to.Email, value => to.Email = value), Field("Phone", () => to.Phone, value => to.Phone = value),
                 Field("Address", () => to.AddressPart1, value => to.AddressPart1 = value), Field("Address 2", () => to.AddressPart2, value => to.AddressPart2 = value),
                 Row(Field("Postal code", () => to.PostalCode, value => to.PostalCode = value), Field("City", () => to.City, value => to.City = value), Field("Country code", () => to.CountryCode, value => to.CountryCode = value)))
         };
         var items = new Expander
         {
-            Header = T("Items in this parcel"), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Header = "Items in this parcel", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Content = Stack(8, [.. draft.Lines.Select(line => Number(model.Options?.AvailableLines.FirstOrDefault(available => available.OrderLineId == line.OrderLineId)?.Name ?? $"#{line.OrderLineId}", () => line.Quantity, value => line.Quantity = value))])
         };
         summary = Text(to.Summary(", "), dim: true);
         rates = Stack(8); FillRates();
-        return Stack(14, recipient, summary, model.Options?.WeightEstimated == true ? Warning(T("Estimated weight. Weigh the actual parcel before shipping.")) : null,
-            Row(Number(T("Weight (g)"), () => parcel.WeightGrams, value => parcel.WeightGrams = (int)Math.Round(value)), Number(T("Length (cm)"), () => parcel.LengthCm, value => parcel.LengthCm = value),
-                Number(T("Width (cm)"), () => parcel.WidthCm, value => parcel.WidthCm = value), Number(T("Height (cm)"), () => parcel.HeightCm, value => parcel.HeightCm = value)),
-            items, Command(T("Refresh shipping rates"), model.RefreshRates, enabled), rates);
+        return Stack(14, recipient, summary, model.Options?.WeightEstimated == true ? Warning("Estimated weight. Weigh the actual parcel before shipping.") : null,
+            Row(Number("Weight (g)", () => parcel.WeightGrams, value => parcel.WeightGrams = (int)Math.Round(value)), Number("Length (cm)", () => parcel.LengthCm, value => parcel.LengthCm = value),
+                Number("Width (cm)", () => parcel.WidthCm, value => parcel.WidthCm = value), Number("Height (cm)", () => parcel.HeightCm, value => parcel.HeightCm = value)),
+            items, Command("Refresh shipping rates", model.RefreshRates, enabled), rates);
     }
 
     private void FillRates()
@@ -308,7 +307,7 @@ public sealed class MainWindow : Window
         bool enabled = !model.Busy && !model.Blocked;
         rates.Children.Clear();
         var quoted = model.Rates.Where(rate => rate is { Status: "quoted", BookingBlockedReason: null }).ToList();
-        if (quoted.Count > 0) rates.Children.Add(Text(T("Shipping service"), 16, bold: true));
+        if (quoted.Count > 0) rates.Children.Add(Text("Shipping service", 16, bold: true));
         foreach (var rate in quoted)
         {
             var service = model.Options?.Services.FirstOrDefault(service => service.CarrierCode + ":" + service.DeliveryMethod == rate.Service);
@@ -319,7 +318,7 @@ public sealed class MainWindow : Window
         }
         if (model.Pickups.Count == 0 || model.Draft is not { } draft) return;
         var pickups = model.Pickups;
-        var pickup = new ComboBox { Header = T("Pickup place"), PlaceholderText = T("Choose pickup place"), ItemsSource = pickups.Select(place => place.DisplayName).ToList(), IsEnabled = enabled, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var pickup = new ComboBox { Header = "Pickup place", PlaceholderText = "Choose pickup place", ItemsSource = pickups.Select(place => place.DisplayName).ToList(), IsEnabled = enabled, HorizontalAlignment = HorizontalAlignment.Stretch };
         pickup.SelectedIndex = pickups.FindIndex(place => place.ProviderId == draft.PickupProviderId);
         pickup.SelectionChanged += async (_, _) => { if (pickup.SelectedIndex >= 0 && pickups[pickup.SelectedIndex].ProviderId != draft.PickupProviderId) await model.ChoosePickup(pickups[pickup.SelectedIndex].ProviderId); };
         rates.Children.Add(pickup);
@@ -330,16 +329,16 @@ public sealed class MainWindow : Window
         actions.Children.Clear();
         if (model.Shipment is { Status: "booked", LabelAvailable: true } booked)
         {
-            actions.Children.Add(Command(T("Print label"), () => Reprint(booked.Id), model.CanPrint, primary: true));
-            actions.Children.Add(Text(T("Sends one label to your printer."), 12, dim: true));
+            actions.Children.Add(Command("Print label", () => Reprint(booked.Id), model.CanPrint, primary: true));
+            actions.Children.Add(Text("Sends one label to your printer.", 12, dim: true));
         }
         else if (!model.History && (model.Draft != null || model.Shipment?.Actions.Contains("book") == true))
         {
-            actions.Children.Add(Command(T("Ship & print") + (model.Quote == null ? "" : " · " + model.Quote.Display), model.ShipAndPrint, model.CanShip, primary: true));
-            actions.Children.Add(Text(T("Books this parcel, updates ReAI and sends one label to your printer."), 12, dim: true));
+            actions.Children.Add(Command("Ship & print" + (model.Quote == null ? "" : " · " + model.Quote.Display), model.ShipAndPrint, model.CanShip, primary: true));
+            actions.Children.Add(Text("Books this parcel, updates ReAI and sends one label to your printer.", 12, dim: true));
         }
         else return;
-        if (model.Printer == "") actions.Children.Add(Text(T("Choose a printer below to ship and print."), 12, dim: true));
+        if (model.Printer == "") actions.Children.Add(Text("Choose a printer below to ship and print.", 12, dim: true));
     }
 
     private void RenderLocations()
@@ -347,7 +346,7 @@ public sealed class MainWindow : Window
         bool idle = !model.Busy && !model.LoadingLocations;
         if (shownWarehouses != model.Warehouses) warehouses.ItemsSource = ((List<Warehouse>)(shownWarehouses = model.Warehouses)).Select(warehouse => warehouse.Name).ToList();
         warehouses.SelectedIndex = model.Warehouses.FindIndex(warehouse => warehouse.Id == model.WarehouseId);
-        if (shownZones != model.Zones) zones.ItemsSource = ((List<Zone>)(shownZones = model.Zones)).Select(zone => zone.Name).Prepend(T("All zones")).ToList();
+        if (shownZones != model.Zones) zones.ItemsSource = ((List<Zone>)(shownZones = model.Zones)).Select(zone => zone.Name).Prepend("All zones").ToList();
         if (model.Zones.All(candidate => candidate.Id != zone)) zone = 0;
         zones.SelectedIndex = model.Zones.FindIndex(candidate => candidate.Id == zone) + 1;
         sizes.SelectedIndex = Array.IndexOf(LabelSize.All, model.LabelSize);
@@ -367,14 +366,14 @@ public sealed class MainWindow : Window
                 {
                     chosen = location; Render();
                     if (model.LocationReceipt(location.Id) == null) await model.PrintLocation(location);
-                    else if (await Confirm(T("Print again? Check the printer queue first."), $"{location.Name} · {model.LabelSize}", T("Print again"))) await model.PrintLocation(location, confirmed: true);
+                    else if (await Confirm("Print again? Check the printer queue first.", $"{location.Name} · {model.LabelSize}", "Print again")) await model.PrintLocation(location, confirmed: true);
                 });
                 placeUpdates.Add(() =>
                 {
                     var receipt = model.LocationReceipt(location.Id);
-                    status.Text = receipt == null ? "" : $"{T(receipt.State == "queued" ? "In printer queue" : "Check before reprinting")} · {receipt.Result ?? receipt.Printer}";
+                    status.Text = receipt == null ? "" : $"{(receipt.State == "queued" ? "In printer queue" : "Check before reprinting")} · {receipt.Result ?? receipt.Printer}";
                     status.Visibility = Shown(receipt != null);
-                    print.Content = T(receipt == null ? "Print label" : "Print again"); print.IsEnabled = model.CanPrint && !model.LoadingLocations;
+                    print.Content = receipt == null ? "Print label" : "Print again"; print.IsEnabled = model.CanPrint && !model.LoadingLocations;
                 });
                 var row = Table(false, (Stack(2, Text(location.Name, bold: true), location.Description == null ? null : Text(location.Description, 12, dim: true), status), Fill), (print, Auto));
                 row.Padding = new Thickness(0, 6, 0, 6); row.Tag = location;
@@ -386,7 +385,7 @@ public sealed class MainWindow : Window
         if (chosen != null && !model.Locations.Contains(chosen)) chosen = null;
         if ((chosen, model.LabelSize).Equals(shownPreview)) return;
         shownPreview = (chosen, model.LabelSize); preview.Source = null;
-        previewText.Text = chosen == null ? T("Choose a location to preview its QR label.") : $"{chosen.Name} · {model.LabelSize}";
+        previewText.Text = chosen == null ? "Choose a location to preview its QR label." : $"{chosen.Name} · {model.LabelSize}";
         if (chosen == null) return;
         try
         {

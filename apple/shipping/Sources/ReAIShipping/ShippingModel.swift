@@ -104,19 +104,19 @@ final class ShippingModel {
             if FileManager.default.fileExists(atPath: journal.path) {
                 records = try JSONDecoder().decode([PrintRecord].self, from: Data(contentsOf: journal))
                 if records.contains(where: { $0.state == "submitting" }) {
-                    notice = t("A previous print was interrupted. Check the printer queue before reprinting.")
+                    notice = "A previous print was interrupted. Check the printer queue before reprinting."
                 }
             }
             if FileManager.default.fileExists(atPath: locationJournal.path) {
                 locationRecords = try JSONDecoder().decode([LocationPrintRecord].self, from: Data(contentsOf: locationJournal))
                 if locationRecords.contains(where: { $0.state == "submitting" }) {
-                    notice = t("A previous print was interrupted. Check the printer queue before reprinting.")
+                    notice = "A previous print was interrupted. Check the printer queue before reprinting."
                 }
             }
             if FileManager.default.fileExists(atPath: bookingJournal.path) {
                 operations = try JSONDecoder().decode([ShippingOperation].self, from: Data(contentsOf: bookingJournal))
             }
-        } catch { historyReadable = false; self.error = t("Shipping history could not be read. Shipping and printing are paused to prevent duplicates.") }
+        } catch { historyReadable = false; self.error = "Shipping history could not be read. Shipping and printing are paused to prevent duplicates." }
     }
 
     func start() async {
@@ -156,7 +156,7 @@ final class ShippingModel {
                 try Task.checkCancellation()
                 token = key
                 company = approved
-                notice = t("Connected. Choose an order to ship.")
+                notice = "Connected. Choose an order to ship."
                 await refreshOrders()
             } catch is CancellationError {
             } catch { self.error = error.localizedDescription }
@@ -253,12 +253,12 @@ final class ShippingModel {
             if showingHistory {
                 if let id = savedShipments.first(where: { $0.status == "booked" })?.id ?? savedShipments.first?.id {
                     shipment = try await api.shipment(id, token: token, company: company.id)
-                } else { notice = t("No saved shipping labels for this order.") }
+                } else { notice = "No saved shipping labels for this order." }
                 return
             }
             if let saved = unfinished.first(where: { $0.orderId == order.id }) {
                 if let id = saved.shipmentId { shipment = try await api.shipment(id, token: token, company: company.id) }
-                else { draft = saved.draft; notice = t("A saved shipping request needs checking. Use Resume below.") }
+                else { draft = saved.draft; notice = "A saved shipping request needs checking. Use Resume below." }
             } else if let id = order.preparedShipmentId {
                 shipment = try await api.shipment(id, token: token, company: company.id)
             } else {
@@ -308,7 +308,7 @@ final class ShippingModel {
         let preferred = UserDefaults.standard.string(forKey: "shipping.service")
         let choice = available.first { $0.id == preferred } ?? available.first { $0.service == preferred } ?? available.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) } ?? available.first
         if let choice { try await selectRate(choice.id, token: token, company: company) }
-        else { error = rates.compactMap { $0.bookingBlockedReason ?? $0.error }.first ?? t("No shipping rate is available for this parcel.") }
+        else { error = rates.compactMap { $0.bookingBlockedReason ?? $0.error }.first ?? "No shipping rate is available for this parcel." }
     }
 
     func chooseRate(_ id: String) async {
@@ -357,7 +357,7 @@ final class ShippingModel {
 
     func resume(_ operation: ShippingOperation) async {
         guard canPrint, operation.tenantId == company?.id, let token, let company else { return }
-        busy = true; error = nil; notice = t("Preparing shipment…")
+        busy = true; error = nil; notice = "Preparing shipment…"
         defer { busy = false }
         do {
             try saveOperations()
@@ -390,7 +390,7 @@ final class ShippingModel {
             }
             let deadline = ContinuousClock.now.advanced(by: .seconds(120))
             while current.pending && ContinuousClock.now < deadline {
-                notice = t("Waiting for payment and carrier confirmation…")
+                notice = "Waiting for payment and carrier confirmation…"
                 try await Task.sleep(for: .seconds(2))
                 current = try await api.shipment(current.id, token: token, company: company.id)
             }
@@ -405,7 +405,7 @@ final class ShippingModel {
             operations[index].state = "booked"; try saveOperations()
             let request = PrintRequest(tenantId: company.id, shipmentId: current.id)
             if records.contains(where: { $0.id == request.key }) {
-                notice = t("This label already has a print receipt. Check the queue and use Reprint if needed.")
+                notice = "This label already has a print receipt. Check the queue and use Reprint if needed."
             } else { await printLabel(request, token: token) }
             operations[index].state = "done"; try saveOperations()
             await refreshOrders()
@@ -426,7 +426,7 @@ final class ShippingModel {
                     try saveOperations()
                 }
                 shipment = existing
-                notice = t("The original shipment exists. Resume it instead of creating another.")
+                notice = "The original shipment exists. Resume it instead of creating another."
             } else {
                 try removeOperation(operation.id)
                 busy = false
@@ -472,7 +472,7 @@ final class ShippingModel {
 
     private func printLabel(_ request: PrintRequest, token: String) async {
         error = nil
-        notice = t("Preparing document…")
+        notice = "Preparing document…"
         do {
             let data = try await api.label(request, token: token)
             _ = try LabelPrinter.layout(for: data)
@@ -485,7 +485,7 @@ final class ShippingModel {
             records[0].state = "queued"
             records[0].queueResult = result
             try save()
-            notice = t("Sent to the printer queue.")
+            notice = "Sent to the printer queue."
         } catch {
             if let index = records.firstIndex(where: { $0.id == request.key }) {
                 records[index].state = "check_queue"
@@ -547,7 +547,7 @@ final class ShippingModel {
             let result = try await printer.submitLocation(data, printer: selectedPrinter, title: "ReAI · " + location.name)
             locationRecords[0].state = "queued"; locationRecords[0].queueResult = result
             try saveLocationPrints()
-            notice = t("Sent to the printer queue.")
+            notice = "Sent to the printer queue."
         } catch {
             if recorded { locationRecords[0].state = "check_queue"; try? saveLocationPrints() }
             self.error = error.localizedDescription

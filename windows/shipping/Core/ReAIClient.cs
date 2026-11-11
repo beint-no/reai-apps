@@ -4,15 +4,16 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
-using static ReAI.Shipping.Core.Texts;
 
 namespace ReAI.Shipping.Core;
 
 public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
 {
     public static readonly Uri Origin = new("https://app.reai.no/");
+    public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
     private readonly HttpClient http = new(handler ?? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false })
     { BaseAddress = Origin, Timeout = TimeSpan.FromSeconds(30), MaxResponseContentBufferSize = 16 * 1024 * 1024 };
     public void Dispose() => http.Dispose();
@@ -21,7 +22,7 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
     {
         using var request = new HttpRequestMessage(method, path);
         request.Headers.Authorization = new("Bearer", token);
-        request.Headers.AcceptLanguage.ParseAdd(CultureInfo.CurrentUICulture.Name is { Length: > 0 } language ? language : "en");
+        request.Headers.AcceptLanguage.ParseAdd("en");
         if (company is int id) request.Headers.Add("X-Tenant-Id", id.ToString(CultureInfo.InvariantCulture));
         if (method == HttpMethod.Post) request.Content = body == null ? new ByteArrayContent([]) : new StringContent(JsonSerializer.Serialize(body, Json), Encoding.UTF8, "application/json");
         var response = await http.SendAsync(request);
@@ -32,23 +33,23 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
             try { detail = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("detail").GetString(); } catch { }
             throw new HttpRequestException(response.StatusCode switch
             {
-                HttpStatusCode.Unauthorized => T("Your connection has expired. Disconnect and connect to ReAI again."),
-                HttpStatusCode.Forbidden => detail ?? T("You do not have permission for this shipping operation."),
-                HttpStatusCode.NotFound => detail ?? T("The shipment was not found, or shipping is disabled for this company."),
-                _ => detail ?? T("The shipping operation failed. Refresh to check the current state.")
+                HttpStatusCode.Unauthorized => "Your connection has expired. Disconnect and connect to ReAI again.",
+                HttpStatusCode.Forbidden => detail ?? "You do not have permission for this shipping operation.",
+                HttpStatusCode.NotFound => detail ?? "The shipment was not found, or shipping is disabled for this company.",
+                _ => detail ?? "The shipping operation failed. Refresh to check the current state."
             }, null, response.StatusCode);
         }
     }
     private async Task<TResult> Read<TResult>(HttpMethod method, string path, string token, int? company, object? body = null)
     {
         using var response = await Send(method, path, token, company, body);
-        return await response.Content.ReadFromJsonAsync<TResult>(Json) ?? throw new InvalidDataException(T("ReAI returned an invalid response."));
+        return await response.Content.ReadFromJsonAsync<TResult>(Json) ?? throw new InvalidDataException("ReAI returned an invalid response.");
     }
     private Task<TResult> Get<TResult>(string path, string token, int? company) => Read<TResult>(HttpMethod.Get, path, token, company);
     private Task<TResult> Post<TResult>(string path, string token, int company, object? body = null) => Read<TResult>(HttpMethod.Post, path, token, company, body);
 
     public async Task<Company> Account(string token) =>
-        (await Get<Account>("api/me", token, null)).Tenants is [{ Id: > 0 } company] ? company : throw new InvalidDataException(T("Connect again and choose one company in ReAI."));
+        (await Get<Account>("api/me", token, null)).Tenants is [{ Id: > 0 } company] ? company : throw new InvalidDataException("Connect again and choose one company in ReAI.");
     public Task<OrderPage> Orders(string token, int company, string search, int page, string from) =>
         Get<OrderPage>($"api/orders/shipping-ready?search={Uri.EscapeDataString(search)}&page={page}&from={from}", token, company);
     public Task<ShipmentPage> Shipments(int? order, int? beforeId, string token, int company) =>
@@ -79,10 +80,10 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
             if (response.StatusCode == HttpStatusCode.Accepted) continue;
             var pdf = await response.Content.ReadAsByteArrayAsync();
             if (response.Content.Headers.ContentType?.MediaType != "application/pdf" || pdf.Length > 10 * 1024 * 1024 || !pdf.AsSpan().StartsWith("%PDF-"u8))
-                throw new InvalidDataException(T("This document is not a supported PDF. Open the order in ReAI to print it manually."));
+                throw new InvalidDataException("This document is not a supported PDF. Open the order in ReAI to print it manually.");
             return pdf;
         }
-        throw new TimeoutException(T("The label is still being prepared. Try again here; the shipment will not be booked again."));
+        throw new TimeoutException("The label is still being prepared. Try again here; the shipment will not be booked again.");
     }
 
     /// <summary>Browses orders with saved shipments, or finds any order by number, ID or ReAI order link.</summary>
@@ -105,9 +106,9 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
         if (link != null)
         {
             if (link.Scheme != "https" || link.Host != Origin.Host || !link.AbsolutePath.StartsWith("/order/") || !int.TryParse(link.AbsolutePath["/order/".Length..], out orderId) || orderId <= 0)
-                throw new FormatException(T("Paste a ReAI order link, order number or order ID."));
+                throw new FormatException("Paste a ReAI order link, order number or order ID.");
             if (HttpUtility.ParseQueryString(link.Query)["tenantId"] is { } tenant && tenant != company.ToString(CultureInfo.InvariantCulture))
-                throw new InvalidOperationException(T("This order link belongs to another company. Connect to that company first."));
+                throw new InvalidOperationException("This order link belongs to another company. Connect to that company first.");
         }
         else int.TryParse(term, out orderId);
         if (orderId > 0)
@@ -125,13 +126,13 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
     {
         const string client = "shipping-windows";
         using var response = await http.PostAsync("oauth/device/authorize", new FormUrlEncodedContent(new Dictionary<string, string> { ["client_id"] = client, ["client_name"] = "ReAI Shipping for Windows" }), cancellation);
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException(T("ReAI could not start the connection. Please try again."));
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException("ReAI could not start the connection. Please try again.");
         var grant = await response.Content.ReadFromJsonAsync<JsonElement>(cancellation);
         var code = grant.GetProperty("user_code").GetString()!;
         int expiry = grant.GetProperty("expires_in").GetInt32(), delay = grant.GetProperty("interval").GetInt32();
-        if (!Regex.IsMatch(code, "^[A-Z2-9]{5}-[A-Z2-9]{5}$") || expiry is < 1 or > 600 || delay is < 1 or > 60) throw new InvalidDataException(T("ReAI returned an invalid approval request."));
+        if (!Regex.IsMatch(code, "^[A-Z2-9]{5}-[A-Z2-9]{5}$") || expiry is < 1 or > 600 || delay is < 1 or > 60) throw new InvalidDataException("ReAI returned an invalid approval request.");
         var expected = new Uri(Origin, "connect-app?user_code=" + Uri.EscapeDataString(code));
-        if (grant.GetProperty("verification_uri_complete").GetString() != expected.AbsoluteUri) throw new InvalidDataException(T("ReAI returned an unexpected approval address."));
+        if (grant.GetProperty("verification_uri_complete").GetString() != expected.AbsoluteUri) throw new InvalidDataException("ReAI returned an unexpected approval address.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deadline.CancelAfter(TimeSpan.FromSeconds(expiry));
         showCode(code, expected);
@@ -145,16 +146,16 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
             using (poll)
             {
                 if (poll.StatusCode == HttpStatusCode.TooManyRequests) { delay = Math.Max(delay, (int)(poll.Headers.RetryAfter?.Delta?.TotalSeconds ?? 60)); continue; }
-                if (poll.StatusCode is not (HttpStatusCode.OK or HttpStatusCode.BadRequest)) throw new HttpRequestException(T("ReAI could not finish connecting. Please try again."));
+                if (poll.StatusCode is not (HttpStatusCode.OK or HttpStatusCode.BadRequest)) throw new HttpRequestException("ReAI could not finish connecting. Please try again.");
                 var result = await poll.Content.ReadFromJsonAsync<JsonElement>(deadline.Token);
                 if (poll.IsSuccessStatusCode && result.TryGetProperty("token_type", out var type) && type.GetString() == "Bearer" && result.TryGetProperty("access_token", out var access) && access.GetString() is { Length: > 0 } token) return token;
                 switch (result.TryGetProperty("error", out var error) ? error.GetString() : null)
                 {
                     case "authorization_pending": break;
                     case "slow_down": delay += 5; break;
-                    case "access_denied": throw new InvalidOperationException(T("Connection declined in ReAI. You can connect again when ready."));
-                    case "expired_token": throw new InvalidOperationException(T("The approval code expired. Please connect again."));
-                    default: throw new InvalidOperationException(T("ReAI could not authorize this app. Please connect again."));
+                    case "access_denied": throw new InvalidOperationException("Connection declined in ReAI. You can connect again when ready.");
+                    case "expired_token": throw new InvalidOperationException("The approval code expired. Please connect again.");
+                    default: throw new InvalidOperationException("ReAI could not authorize this app. Please connect again.");
                 }
             }
         }

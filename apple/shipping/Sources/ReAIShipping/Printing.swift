@@ -60,7 +60,7 @@ actor LabelPrinter {
         guard !layout.fullPage || !queue.isZebra else {
             throw appError("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI.")
         }
-        return try await spool(data, printer: printer, title: "ReAI \(request.shipmentId) · \(t(request.document.title))", layout: layout, scale: true)
+        return try await spool(data, printer: printer, title: "ReAI \(request.shipmentId) · \(request.document.title)", layout: layout, scale: true)
     }
 
     func submitLocation(_ data: Data, printer: String, title: String) async throws -> String {
