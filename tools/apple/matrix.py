@@ -38,8 +38,12 @@ else:
         selected = list(apps)
     else:
         files = subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], cwd=root, text=True).splitlines()
-        shared = any(p in {'apps.json', '.swift-version'} or p.startswith(('tools/apple/', '.github/actions/', '.github/workflows/apps.yml')) for p in files)
-        selected = [key for key, app in apps.items() if shared or any(p.startswith(app['path'] + '/') for p in files)]
+        # A registry change rebuilds only the Apple apps whose own entry changed.
+        previous = subprocess.run(['git', 'show', f'{base}:apps.json'], cwd=root, text=True, capture_output=True)
+        before = json.loads(previous.stdout) if previous.returncode == 0 else {}
+        changed = {key for key, app in apps.items() if before.get(key) != app}
+        shared = any(p == '.swift-version' or p.startswith(('tools/apple/', '.github/actions/', '.github/workflows/apps.yml')) for p in files)
+        selected = [key for key, app in apps.items() if shared or key in changed or any(p.startswith(app['path'] + '/') for p in files)]
 items = [dict(id=key, version=version, **apps[key]) for key in selected]
 with open(os.environ['GITHUB_OUTPUT'], 'a') as result:
     result.write('matrix=' + json.dumps({'include': items}, separators=(',', ':')) + '\n')

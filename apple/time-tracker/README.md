@@ -71,4 +71,4 @@ The tracker uses `time-tracker` / `ReAI Time Tracker`. Names are self-declared, 
 Start and stop use `/api/project-timer/start` and `/api/project-timer/stop` with durable request/timer IDs.
 See the [public API contract](https://app.reai.no/openapi/public).
 
-[MIT license](LICENSE) · [ReAI Apps](https://github.com/beint-no/reai-apps) · [Issues](https://github.com/beint-no/reai-apps/issues)
+[MIT license](../../LICENSE) · [ReAI Apps](https://github.com/beint-no/reai-apps) · [Issues](https://github.com/beint-no/reai-apps/issues)

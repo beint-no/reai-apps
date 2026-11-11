@@ -70,6 +70,8 @@ Build matrices discover apps from `apps.json`. Add the ID to the matching workfl
 - Write its `AGENTS.md`: responsibilities, build command, API boundaries and any important recovery constraints.
 - Add it to the root README's app table.
 - Add a card, or a platform download on an existing card, in [site/index.html](site/index.html). Use `{{my-app.download}}` and `{{my-app.version}}` (or the Windows ID). Add the source/instructions link and icon in `site/assets/`. The site generates download URLs from published releases; never hardcode a release version.
+- Apps are English only; do not add localization resources.
+- Windows apps that should update themselves set `"updates": true` in `apps.json` and reuse [Shipping's updater](windows/shipping/Core/Updater.cs) with their own feed name and staging folder.
 - Keep dependency licenses and attribution with the app. Keep credentials and customer data outside Git.
 
 ## 5. Build, review and release
