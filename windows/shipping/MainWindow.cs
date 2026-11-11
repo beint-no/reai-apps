@@ -16,7 +16,7 @@ namespace ReAI.Shipping;
 public sealed class MainWindow : Window
 {
     private static readonly GridLength Auto = GridLength.Auto, Fill = new(1, GridUnitType.Star);
-    private readonly ReAIClient api = new();
+    private readonly ReAIClient api = new(Environment.GetEnvironmentVariable("REAI_TMP_FAKE") == null ? null : new TmpFake()); // TEMPORARY
     private readonly ShippingModel model;
     private readonly TextBlock subtitle = Text("", dim: true), approval = Text(""), age = Text("", 12, dim: true), empty = Text("", dim: true), count = Text("", 12, dim: true),
         caption = Text("", 12, dim: true), noPlaces = Text(T("No locations found. Create locations in ReAI, then refresh here."), dim: true), previewText = Text("", dim: true);
@@ -114,6 +114,7 @@ public sealed class MainWindow : Window
         root.Loaded += async (_, _) =>
         {
             model.Load();
+            if (Environment.GetEnvironmentVariable("REAI_TMP_FAKE") != null) { await model.Connect("fake"); return; } // TEMPORARY
             try { if (Credentials.Read() is { } token) await model.Connect(token); }
             catch (Exception e) { model.Error = e.Message; Render(); }
         };
@@ -188,6 +189,7 @@ public sealed class MainWindow : Window
         progress.IsActive = busy || model.LoadingOrders || model.LoadingLocations || connecting != null;
         disconnect.Visibility = Shown(connected); disconnect.IsEnabled = !busy;
         connect.Content = T(connecting == null ? "Connect to ReAI" : "Cancel"); connect.IsEnabled = !busy;
+        approval.Visibility = Shown(approval.Text != "");
         connectView.Visibility = Shown(!connected); shippingView.Visibility = Shown(connected && !locations); locationsView.Visibility = Shown(connected && locations);
         sections.Visibility = footer.Visibility = Shown(connected); sections.IsEnabled = !busy && !model.LoadingLocations;
         sections.SelectedItem = sections.Items[locations ? 1 : 0];
