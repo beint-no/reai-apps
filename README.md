@@ -4,12 +4,23 @@ Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/u
 
 **[Download apps](https://beint-no.github.io/reai-apps/)** — Mac: Apple Silicon, macOS 15+. Windows: Windows 11 25H2+, x64 or ARM64.
 
+### Maintained
+
+In daily use and actively developed.
+
 | App | What it does |
 | --- | --- |
-| [Hybel Journal for Mac](apple/hybel) | Preview a monthly Hybel CSV journal and create a ReAI voucher for accountant review. Experimental; no direct Hybel API sync. |
 | [Product Labels for Mac](apple/product-labels) | Create price, product and barcode labels; print variants in bulk. |
 | [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
 | [Shipping for Windows](windows/shipping) | Native Windows app to ship orders and print carrier labels. Unsigned ZIP download. |
+
+### Example apps
+
+Working apps built on the same foundation. They are kept building, but not actively developed.
+
+| App | What it does |
+| --- | --- |
+| [Hybel Journal for Mac](apple/hybel) | Preview a monthly Hybel CSV journal and create a ReAI voucher for accountant review. Experimental; no direct Hybel API sync. |
 | [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
 | [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
