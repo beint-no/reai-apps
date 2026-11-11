@@ -4,3 +4,4 @@
 
 .download-actions{display:flex;flex-wrap:wrap;gap:10px}.text-link+.download{margin-top:20px}.windows-install{max-width:780px;margin:0 0 32px}.windows-install h3{font-size:19px;font-weight:600}.windows-install p{font-size:14px;line-height:1.7;color:var(--muted)}
 .stripe-preview{background:#e6efec;background-image:radial-gradient(#c8dbd3 .8px,transparent .8px);background-size:14px 14px}
+.apps .section-intro h2{margin-top:12px}.apps .section-intro>p{margin:10px 0 0}.apps .examples{margin-top:56px}
