@@ -105,24 +105,24 @@ struct LocationLabelsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Picker(t("Warehouse"), selection: $model.warehouseId) {
-                    Text(t("Choose a warehouse")).tag(0)
+                Picker("Warehouse", selection: $model.warehouseId) {
+                    Text("Choose a warehouse").tag(0)
                     ForEach(model.warehouses) { Text($0.name).tag($0.id) }
                 }.frame(maxWidth: 280).onChange(of: model.warehouseId) { Task { await model.refreshLocations() }; selected = nil }
-                Picker(t("Zone"), selection: $model.locationZoneId) {
-                    Text(t("All zones")).tag(0)
+                Picker("Zone", selection: $model.locationZoneId) {
+                    Text("All zones").tag(0)
                     ForEach(model.locationZones) { Text($0.name).tag($0.id) }
                 }.frame(maxWidth: 240)
                 Spacer()
-                Button(t("Refresh")) { Task { await model.refreshLocations() } }
+                Button("Refresh") { Task { await model.refreshLocations() } }
             }.disabled(model.busy || model.loadingLocations)
             HStack {
-                TextField(t("Find a location"), text: $model.locationSearch)
-                Picker(t("Label size"), selection: $model.labelSize) {
+                TextField("Find a location", text: $model.locationSearch)
+                Picker("Label size", selection: $model.labelSize) {
                     ForEach(LocationLabelSize.allCases) { Text($0.rawValue).tag($0) }
                 }.frame(width: 235)
             }.disabled(model.busy)
-            Text(t("Match the label size to the roll loaded in your printer. One location per label, at actual size."))
+            Text("Match the label size to the roll loaded in your printer. One location per label, at actual size.")
                 .font(.caption).foregroundStyle(.secondary)
             if model.loadingLocations { ProgressView().controlSize(.small) }
             HSplitView {
@@ -133,12 +133,12 @@ struct LocationLabelsView: View {
                                 Text(location.name).fontWeight(.semibold)
                                 if let description = location.description { Text(description).font(.caption).foregroundStyle(.secondary) }
                                 if let record = model.locationRecord(location.id) {
-                                    Text(t(record.state == "queued" ? "In printer queue" : "Check before reprinting") + " · " + record.printerId).font(.caption).foregroundStyle(.secondary)
+                                    Text((record.state == "queued" ? "In printer queue" : "Check before reprinting") + " · " + record.printerId).font(.caption).foregroundStyle(.secondary)
                                     if let result = record.queueResult { Text(result).font(.caption).textSelection(.enabled) }
                                 }
                             }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                         }.buttonStyle(.plain)
-                        Button(t(model.locationRecord(location.id) == nil ? "Print label" : "Print again")) {
+                        Button(model.locationRecord(location.id) == nil ? "Print label" : "Print again") {
                             selected = location
                             if model.locationRecord(location.id) != nil { reprint = location }
                             else { Task { await model.printLocation(location) } }
@@ -146,22 +146,22 @@ struct LocationLabelsView: View {
                     }.padding(.vertical, 6)
                 }.frame(minWidth: 340)
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(t("Preview")).font(.headline)
+                    Text("Preview").font(.headline)
                     if let location = selected, model.locations.contains(where: { $0.id == location.id }) {
                         if let data = try? model.locationPDF(location), let pdf = PDFDocument(data: data), let page = pdf.page(at: 0) {
                             Image(nsImage: page.thumbnail(of: CGSize(width: 600, height: 400), for: .mediaBox))
                                 .resizable().aspectRatio(contentMode: .fit).frame(maxWidth: 380, maxHeight: 300)
-                        } else { Text(t("The location name is too long for this label. Choose a larger label size.")).foregroundStyle(.orange) }
-                    } else { Text(t("Choose a location to preview its QR label.")).foregroundStyle(.secondary) }
+                        } else { Text("The location name is too long for this label. Choose a larger label size.").foregroundStyle(.orange) }
+                    } else { Text("Choose a location to preview its QR label.").foregroundStyle(.secondary) }
                     Spacer()
                 }.padding(16).frame(minWidth: 260)
             }
             if visible.isEmpty && !model.loadingLocations {
-                Text(t("No locations found. Create locations in ReAI, then refresh here.")).foregroundStyle(.secondary)
+                Text("No locations found. Create locations in ReAI, then refresh here.").foregroundStyle(.secondary)
             }
         }.padding(20).task { await model.refreshLocations() }
-        .confirmationDialog(t("Print again? Check the printer queue first."), isPresented: Binding(get: { reprint != nil }, set: { if !$0 { reprint = nil } })) {
-            if let location = reprint { Button(t("Print again")) { Task { await model.printLocation(location, confirmed: true) }; reprint = nil } }
+        .confirmationDialog("Print again? Check the printer queue first.", isPresented: Binding(get: { reprint != nil }, set: { if !$0 { reprint = nil } })) {
+            if let location = reprint { Button("Print again") { Task { await model.printLocation(location, confirmed: true) }; reprint = nil } }
         } message: {
             if let location = reprint { Text(location.name + " · " + model.labelSize.rawValue) }
         }

@@ -3,7 +3,6 @@ import PackageDescription
 
 let package = Package(
     name: "ReAIShipping",
-    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     products: [.executable(name: "ReAIShipping", targets: ["ReAIShipping"])],
     // Sparkle supplies signed in-app updates and the privileged replacement/relaunch helpers.
@@ -12,7 +11,6 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-subprocess", exact: "1.0.2"),
     ],
     targets: [.executableTarget(name: "ReAIShipping", dependencies: ["Sparkle", .product(name: "Subprocess", package: "swift-subprocess")],
-                               resources: [.process("Resources")],
                                linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])])],
     swiftLanguageModes: [.v6]
 )

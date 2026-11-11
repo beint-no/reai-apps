@@ -6,7 +6,7 @@ For profiling, follow tools/profiling/README.md. Use synthetic workloads, optimi
 
 Use a dedicated worktree under ~/.r-worktrees and a descriptive codex/ branch. Read the app's AGENTS.md before changing its source.
 For a new app, follow CONTRIBUTING.md. Register identity in apps.json and reuse the platform build/release tooling.
-Keep user-facing copy concise and factual. Never commit credentials, private keys, signing files, build output, or customer data.
+Apps are English only: no localization resources, translation tables or language switching, and requests send `Accept-Language: en`. Keep user-facing copy concise and factual. Never commit credentials, private keys, signing files, build output, or customer data.
 
 Apple apps use Swift 6.4, SwiftUI, Observation, strict concurrency, macOS 15+, and arm64 only. No third-party dependencies unless justified.
 Keep each app independent. Share release tooling; introduce shared runtime code only when real duplication warrants it.

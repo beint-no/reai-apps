@@ -24,12 +24,12 @@ final class ShippingUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
         guard !model.busy, !model.loadingLocations, !model.connecting else {
             throw NSError(domain: "no.reai.shipping.updater", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: t("Updates wait until shipping, printing and sign-in finish.")])
+                          userInfo: [NSLocalizedDescriptionKey: "Updates wait until shipping, printing and sign-in finish."])
         }
         let weekday = Calendar(identifier: .gregorian).component(.weekday, from: Date())
         if updateCheck != .updates, !(2...6).contains(weekday) {
             throw NSError(domain: "no.reai.shipping.updater", code: 2,
-                          userInfo: [NSLocalizedDescriptionKey: t("Automatic update checks run on weekdays.")])
+                          userInfo: [NSLocalizedDescriptionKey: "Automatic update checks run on weekdays."])
         }
     }
 }

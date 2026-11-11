@@ -54,16 +54,12 @@ def profile(app, destination, template):
     pin = next(pin for pin in lock['pins'] if pin['identity'] == identity)
     dependency = f'.package(url: "{pin["location"]}", exact: "{pin["state"]["version"]}")'
     product = '.product(name: "Subprocess", package: "swift-subprocess")' if app == 'labels' else '.product(name: "ZIPFoundation", package: "ZIPFoundation")'
-    resources = ''
-    if app == 'labels':
-        shutil.copytree(original / 'Sources' / target / 'Resources', sources / 'Resources')
-        resources = ', resources: [.process("Resources")]'
     (package / 'Package.swift').write_text(f'''// swift-tools-version: 6.4
 import PackageDescription
-let package = Package(name: "ReAIProfile", defaultLocalization: "en", platforms: [.macOS(.v15)],
+let package = Package(name: "ReAIProfile", platforms: [.macOS(.v15)],
     products: [.executable(name: "ReAIProfile", targets: ["ReAIProfile"])],
     dependencies: [{dependency}],
-    targets: [.executableTarget(name: "ReAIProfile", dependencies: [{product}]{resources})],
+    targets: [.executableTarget(name: "ReAIProfile", dependencies: [{product}])],
     swiftLanguageModes: [.v6])
 ''')
     run(swift, 'build', '--package-path', package, '-c', 'release', '--arch', 'arm64', '-Xswiftc', '-g')

@@ -8,7 +8,6 @@ using QRCoder;
 using ReAI.Shipping.Core;
 using Windows.Data.Pdf;
 using Windows.Storage.Streams;
-using static ReAI.Shipping.Core.Texts;
 
 namespace ReAI.Shipping;
 
@@ -29,21 +28,21 @@ internal sealed class Printing : IPrinting
     {
         PdfDocument document;
         try { document = await PdfDocument.LoadFromStreamAsync(new MemoryStream(pdf).AsRandomAccessStream()); }
-        catch { throw new InvalidDataException(T("The shipping document PDF is invalid.")); }
-        if (document.IsPasswordProtected || document.PageCount is < 1 or > 20) throw new InvalidDataException(T("The shipping document PDF is invalid."));
+        catch { throw new InvalidDataException("The shipping document PDF is invalid."); }
+        if (document.IsPasswordProtected || document.PageCount is < 1 or > 20) throw new InvalidDataException("The shipping document PDF is invalid.");
         var pages = Enumerable.Range(0, (int)document.PageCount).Select(index => document.GetPage((uint)index)).ToArray();
         var size = pages[0].Size;
         if (pages.Any(page => Math.Abs(page.Size.Width - size.Width) >= 1 || Math.Abs(page.Size.Height - size.Height) >= 1))
-            throw new InvalidDataException(T("The PDF contains different page sizes. Print it manually from ReAI."));
+            throw new InvalidDataException("The PDF contains different page sizes. Print it manually from ReAI.");
         // PdfPage.Size is in 1/96 inch and already accounts for page rotation.
         var mm = new SizeF((float)(size.Width * 25.4 / 96), (float)(size.Height * 25.4 / 96));
         float shortSide = Math.Min(mm.Width, mm.Height), longSide = Math.Max(mm.Width, mm.Height);
         PaperKind? paper = Math.Abs(shortSide - 210) < 2 && Math.Abs(longSide - 297) < 2 ? PaperKind.A4
             : Math.Abs(shortSide - 215.9) < 2 && Math.Abs(longSide - 279.4) < 2 ? PaperKind.Letter
             : mm is { Width: >= 39.5f and <= 120.5f, Height: >= 39.5f and <= 220.5f } ? null
-            : throw new InvalidDataException(T("This PDF has an unsupported page size. Print it manually from ReAI."));
-        var queue = Printers().FirstOrDefault(candidate => candidate.Name == printer) ?? throw new InvalidOperationException(T(Unavailable));
-        if (paper != null && queue.IsZebra) throw new InvalidOperationException(T("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI."));
+            : throw new InvalidDataException("This PDF has an unsupported page size. Print it manually from ReAI.");
+        var queue = Printers().FirstOrDefault(candidate => candidate.Name == printer) ?? throw new InvalidOperationException(Unavailable);
+        if (paper != null && queue.IsZebra) throw new InvalidOperationException("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI.");
         return () => Spool(printer, title, mm, paper, pages.Length, (graphics, index) =>
         {
             // Fit the page inside the printable area and rasterize at the printer's own resolution so barcodes stay sharp.
@@ -63,7 +62,7 @@ internal sealed class Printing : IPrinting
     public Func<Task<string>> Location(LocationLabel label, string printer)
     {
         Preview(label);
-        if (Printers().All(candidate => candidate.Name != printer)) throw new InvalidOperationException(T(Unavailable));
+        if (Printers().All(candidate => candidate.Name != printer)) throw new InvalidOperationException(Unavailable);
         return () => Spool(printer, "ReAI · " + label.Name, new(label.Size.Width, label.Size.Height), null, 1, (graphics, _) => Draw(graphics, label));
     }
 
@@ -109,7 +108,7 @@ internal sealed class Printing : IPrinting
             graphics.DrawString(text, font, Brushes.Black, box);
             return;
         }
-        throw new InvalidOperationException(T("The location name is too long for this label. Choose a larger label size."));
+        throw new InvalidOperationException("The location name is too long for this label. Choose a larger label size.");
     }
 
     private static Task<string> Spool(string printer, string title, SizeF mm, PaperKind? paper, int pages, Action<Graphics, int> draw) => Task.Run(() =>
@@ -117,10 +116,10 @@ internal sealed class Printing : IPrinting
         using var document = new PrintDocument { DocumentName = title, PrintController = new StandardPrintController() };
         var settings = document.PrinterSettings;
         settings.PrinterName = printer;
-        if (!settings.IsValid) throw new InvalidOperationException(T(Unavailable));
+        if (!settings.IsValid) throw new InvalidOperationException(Unavailable);
         settings.Copies = 1; settings.Duplex = Duplex.Simplex;
         document.DefaultPageSettings.PaperSize = paper is { } kind
-            ? settings.PaperSizes.Cast<PaperSize>().FirstOrDefault(size => size.Kind == kind) ?? throw new InvalidOperationException(T("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI."))
+            ? settings.PaperSizes.Cast<PaperSize>().FirstOrDefault(size => size.Kind == kind) ?? throw new InvalidOperationException("This full-page label needs an A4 / Letter printer. Choose one below or print it from ReAI.")
             : new PaperSize("ReAI", (int)Math.Round(mm.Width / 0.254), (int)Math.Round(mm.Height / 0.254));
         document.DefaultPageSettings.Landscape = paper != null && mm.Width > mm.Height;
         int index = 0;
@@ -138,7 +137,7 @@ internal sealed class Printing : IPrinting
             catch (Exception e) { failure = e; page.Cancel = true; }
         };
         try { document.Print(); }
-        catch (Exception e) when (failure == null) { throw new InvalidOperationException(T("Windows could not send the document to the printer. Check the printer queue before trying again."), e); }
+        catch (Exception e) when (failure == null) { throw new InvalidOperationException("Windows could not send the document to the printer. Check the printer queue before trying again.", e); }
         if (failure != null) throw failure;
         return $"{printer} · {DateTime.Now:g}";
     });

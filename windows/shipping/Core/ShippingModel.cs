@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
-using static ReAI.Shipping.Core.Texts;
 
 namespace ReAI.Shipping.Core;
 
@@ -10,14 +9,14 @@ namespace ReAI.Shipping.Core;
 public sealed class Store(string directory)
 {
     private string FilePath => Path.Combine(directory, "shipping.json");
-    public LocalState Load() => File.Exists(FilePath) ? JsonSerializer.Deserialize<LocalState>(File.ReadAllBytes(FilePath), Json) ?? throw new InvalidDataException() : new();
+    public LocalState Load() => File.Exists(FilePath) ? JsonSerializer.Deserialize<LocalState>(File.ReadAllBytes(FilePath), ReAIClient.Json) ?? throw new InvalidDataException() : new();
     public void Save(LocalState state)
     {
         Directory.CreateDirectory(directory);
         var temporary = FilePath + ".tmp";
         using (var file = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
         {
-            JsonSerializer.Serialize(file, state, Json); file.Flush(true);
+            JsonSerializer.Serialize(file, state, ReAIClient.Json); file.Flush(true);
         }
         File.Move(temporary, FilePath, true);
     }
@@ -80,15 +79,15 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
         {
             state = store.Load(); Readable = true;
             if (state.Prints.Any(print => print.State == "submitting") || state.LocationPrints.Any(print => print.State == "submitting"))
-                Notice = T("A previous print was interrupted. Check the printer queue before reprinting.");
+                Notice = "A previous print was interrupted. Check the printer queue before reprinting.";
         }
-        catch { Error = T(Unreadable); }
+        catch { Error = Unreadable; }
         RefreshPrinters();
     }
     private void Save()
     {
         // Never replace a journal that could not be read: it may hold unresolved shipments and print receipts.
-        if (!Readable) throw new InvalidOperationException(T(Unreadable));
+        if (!Readable) throw new InvalidOperationException(Unreadable);
         store.Save(state);
     }
     private void Remember(Action change)
@@ -181,12 +180,12 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
         if (History)
         {
             if ((SavedShipments.FirstOrDefault(s => s.Status == "booked") ?? SavedShipments.FirstOrDefault()) is { } latest) Shipment = await api.Shipment(latest.Id, key, company);
-            else Notice = T("No saved shipping labels for this order.");
+            else Notice = "No saved shipping labels for this order.";
         }
         else if (Unfinished.FirstOrDefault(operation => operation.OrderId == order.OrderId) is { } unfinished)
         {
             if (unfinished.ShipmentId is int id) Shipment = await api.Shipment(id, key, company);
-            else { Draft = unfinished.Draft; Notice = T("A saved shipping request needs checking. Use Resume below."); }
+            else { Draft = unfinished.Draft; Notice = "A saved shipping request needs checking. Use Resume below."; }
         }
         else if (order.PreparedShipmentId is int prepared) Shipment = await api.Shipment(prepared, key, company);
         else
@@ -230,7 +229,7 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
         var choice = available.FirstOrDefault(rate => rate.Id == state.Service) ?? available.FirstOrDefault(rate => rate.Service == state.Service)
             ?? available.FirstOrDefault(rate => rate.DeliveryMethod is not ("pickup_point" or "parcel_locker")) ?? available.FirstOrDefault();
         if (choice != null) await SelectRate(choice, key, company);
-        else Error = Rates.Select(rate => rate.BookingBlockedReason ?? rate.Error).FirstOrDefault(reason => reason != null) ?? T("No shipping rate is available for this parcel.");
+        else Error = Rates.Select(rate => rate.BookingBlockedReason ?? rate.Error).FirstOrDefault(reason => reason != null) ?? "No shipping rate is available for this parcel.";
     }
     private async Task SelectRate(Rate rate, string key, int company)
     {
@@ -266,14 +265,14 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
     public Task Resume(Operation operation) => Run(async (key, company) =>
     {
         if (!Readable || state.Printer == "" || operation.TenantId != company) return;
-        Notice = T("Preparing shipment…"); Changed?.Invoke();
+        Notice = "Preparing shipment…"; Changed?.Invoke();
         try
         {
             Shipment current;
             if (operation.ShipmentId is int id) current = await api.Shipment(id, key, company);
             else
             {
-                var proposal = operation.Draft ?? throw new InvalidOperationException(T("The saved shipping request is incomplete. Contact ReAI support."));
+                var proposal = operation.Draft ?? throw new InvalidOperationException("The saved shipping request is incomplete. Contact ReAI support.");
                 var existing = await api.Find(proposal.RequestId, key, company);
                 if (existing == null)
                     try { existing = await api.Create(operation.OrderId, proposal, key, company); }
@@ -292,7 +291,7 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
             }
             for (var elapsed = Stopwatch.StartNew(); current.Pending && elapsed.Elapsed < TimeSpan.FromMinutes(2);)
             {
-                Notice = T("Waiting for payment and carrier confirmation…"); Changed?.Invoke();
+                Notice = "Waiting for payment and carrier confirmation…"; Changed?.Invoke();
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 current = await api.Shipment(current.Id, key, company);
             }
@@ -300,11 +299,11 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
             if (current.Status != "booked")
             {
                 if (current is { Status: "failed", CheckoutManaged: false } && !current.Actions.Contains("book")) { operation.State = "failed"; Save(); }
-                throw new InvalidOperationException(current.Error ?? T(current.Pending ? "Still processing. Resume checks this same shipment; it will not create another."
+                throw new InvalidOperationException(current.Error ?? (current.Pending ? "Still processing. Resume checks this same shipment; it will not create another."
                     : "This shipment needs review in ReAI. A replacement will not be booked automatically."));
             }
             operation.State = "booked"; Save();
-            if (HasReceipt(current.Id)) Notice = T("This label already has a print receipt. Check the queue and use Reprint if needed.");
+            if (HasReceipt(current.Id)) Notice = "This label already has a print receipt. Check the queue and use Reprint if needed.";
             else await PrintLabel(current.Id, key, company);
             state.Operations.Remove(operation); Save();
         }
@@ -321,11 +320,11 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
             if (operation.State is not ("rejected" or "failed") || operation.TenantId != company) return;
             var existing = operation.ShipmentId is int id ? await api.Shipment(id, key, company)
                 : operation.Draft is { } proposal ? await api.Find(proposal.RequestId, key, company)
-                : throw new InvalidOperationException(T("The saved shipping request is incomplete. Contact ReAI support."));
+                : throw new InvalidOperationException("The saved shipping request is incomplete. Contact ReAI support.");
             if (existing is { Status: not ("failed" or "cancelled") })
             {
                 operation.ShipmentId = existing.Id; operation.Draft = null; operation.State = "saved"; Save();
-                Shipment = existing; Notice = T("The original shipment exists. Resume it instead of creating another.");
+                Shipment = existing; Notice = "The original shipment exists. Resume it instead of creating another.";
             }
             else { Forget(operation); again = Orders.FirstOrDefault(order => order.OrderId == operation.OrderId); }
         });
@@ -338,7 +337,7 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
         {
             if (Shipment is not { } current || !current.Actions.Contains("cancel")) return;
             var result = await api.Cancel(current.Id, key, company);
-            if (result.Status != "cancelled") throw new InvalidOperationException(T("This shipment needs review in ReAI. A replacement will not be booked automatically."));
+            if (result.Status != "cancelled") throw new InvalidOperationException("This shipment needs review in ReAI. A replacement will not be booked automatically.");
             if (Unfinished.FirstOrDefault(operation => operation.ShipmentId == current.Id) is { } operation) Forget(operation);
             Shipment = result; cancelled = true;
         });
@@ -357,17 +356,17 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
     });
     private async Task PrintLabel(int shipment, string key, int company)
     {
-        Error = null; Notice = T("Preparing document…"); Changed?.Invoke();
+        Error = null; Notice = "Preparing document…"; Changed?.Invoke();
         PrintRecord? receipt = null;
         try
         {
-            var submit = await printing.Label(await api.Label(shipment, key, company), state.Printer, $"ReAI {shipment} · {T("Shipping label")}");
+            var submit = await printing.Label(await api.Label(shipment, key, company), state.Printer, $"ReAI {shipment} · {"Shipping label"}");
             state.Prints.RemoveAll(print => print.TenantId == company && print.ShipmentId == shipment);
             state.Prints.Insert(0, receipt = new() { TenantId = company, ShipmentId = shipment, State = "submitting", Printer = state.Printer });
             // Persist before handing off: a crash must never cause an automatic second print.
             Save();
             receipt.Result = await submit(); receipt.State = "queued"; Save();
-            Notice = T("Sent to the printer queue.");
+            Notice = "Sent to the printer queue.";
         }
         catch (Exception e)
         {
@@ -399,9 +398,9 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
     }
     public LocationLabel Label(Location location)
     {
-        if (!Locations.Contains(location) || Warehouses.FirstOrDefault(w => w.Id == location.WarehouseId) is not { } warehouse) throw new InvalidOperationException(T("Refresh locations before printing."));
+        if (!Locations.Contains(location) || Warehouses.FirstOrDefault(w => w.Id == location.WarehouseId) is not { } warehouse) throw new InvalidOperationException("Refresh locations before printing.");
         if (location.ScanCode is not { } code || !code.StartsWith("reai:location:") || !Guid.TryParse(code["reai:location:".Length..], out _))
-            throw new InvalidDataException(T("This location has no QR code. Refresh locations or update ReAI."));
+            throw new InvalidDataException("This location has no QR code. Refresh locations or update ReAI.");
         return new(code, location.Name, string.Join('\n', new[] { warehouse.Name, Zones.FirstOrDefault(zone => zone.Id == location.ZoneId)?.Name }.Where(line => line != null)), LabelSize);
     }
     /// <summary>Prints one QR label. A location that already has a receipt needs explicit confirmation; nothing is retried automatically.</summary>
@@ -417,7 +416,7 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
         try
         {
             receipt.Result = await submit(); receipt.State = "queued"; Save();
-            Notice = T("Sent to the printer queue.");
+            Notice = "Sent to the printer queue.";
         }
         catch
         {

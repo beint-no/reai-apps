@@ -41,7 +41,7 @@ final class LabelsModel {
     }
     var priceSources: [PriceSource] {
         guard let company else { return [] }
-        return [PriceSource(id: "base", name: t("Standard product price"), currency: company.currencyCode)] +
+        return [PriceSource(id: "base", name: "Standard product price", currency: company.currencyCode)] +
             priceLists.map { PriceSource(id: $0.id.uuidString, name: $0.name, currency: $0.currency) }
     }
     var chosenSources: [String] { saved.selectedPriceSources.flatMap { $0.isEmpty ? nil : $0 } ?? ["base"] }
@@ -56,7 +56,7 @@ final class LabelsModel {
         guard !started else { return }; started = true
         do {
             if FileManager.default.fileExists(atPath: file.path) { saved = try JSONDecoder().decode(SavedLabels.self, from: Data(contentsOf: file)) }
-        } catch { storageFailed = true; self.error = t("Could not read saved labels. Your file has been preserved; fix it before printing."); return }
+        } catch { storageFailed = true; self.error = "Could not read saved labels. Your file has been preserved; fix it before printing."; return }
         await refreshPrinters()
         do {
             if let token = try await credentials.load() {
@@ -162,7 +162,7 @@ final class LabelsModel {
             chosen.removeAll { id in priceSources.contains { $0.id == id && $0.currency == source.currency } }
             chosen.append(source.id)
         }
-        guard chosen.count <= 4 else { error = t("Choose up to four different currencies per label."); return }
+        guard chosen.count <= 4 else { error = "Choose up to four different currencies per label."; return }
         await applyPriceSources(chosen)
     }
     func updateCatalogPrices() async { await applyPriceSources(chosenSources) }
@@ -182,7 +182,7 @@ final class LabelsModel {
     }
     func addProducts(allResults: Bool = false) async {
         let items = allResults ? results : results.filter { selected.contains($0.id) }
-        guard total + items.count <= 1000 else { error = t("A batch must contain 1–1000 labels."); return }
+        guard total + items.count <= 1000 else { error = "A batch must contain 1–1000 labels."; return }
         busy = true; error = nil; defer { busy = false }
         do {
             if saved.settings.design == .price { try await loadChosenPrices(chosenSources) }
@@ -236,10 +236,10 @@ final class LabelsModel {
             if test { var sample = preview; sample.copies = 1; items = [sample] } else { items = saved.batch }
             let data = try LabelRenderer.pdf(items, settings: saved.settings)
             guard !saved.settings.printer.isEmpty else { throw appError("Choose an available printer in System Settings.") }
-            saved.printStatus = t("Print submission started. Check the macOS printer queue before printing again.") + " · \(items.reduce(0) { $0 + $1.copies }) × · \(saved.settings.printer) · \(Date.now.formatted())"
+            saved.printStatus = "Print submission started. Check the macOS printer queue before printing again." + " · \(items.reduce(0) { $0 + $1.copies }) × · \(saved.settings.printer) · \(Date.now.formatted())"
             try writeState()
             let result = try await printer.submit(data, printer: saved.settings.printer, width: saved.settings.width, height: saved.settings.height)
-            saved.printStatus = t("Sent to the printer queue") + ": " + result
+            saved.printStatus = "Sent to the printer queue" + ": " + result
             try writeState(); notice = saved.printStatus
         } catch { self.error = error.localizedDescription }
     }
