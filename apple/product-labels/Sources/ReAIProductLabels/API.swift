@@ -26,7 +26,10 @@ struct CatalogItem: Identifiable, Sendable {
         vatCode = product.vatCode; price = variant.sellingPrice
     }
 }
-struct PriceList: Decodable, Identifiable, Sendable { let id: UUID; let name: String; let currency: String }
+struct PriceList: Decodable, Identifiable, Sendable {
+    let id: UUID; let name: String; let currency: String
+    enum CodingKeys: String, CodingKey { case id, name, currency = "currencyCode" }
+}
 struct VatCode: Decodable, Sendable { let code: String; let rate: Decimal }
 struct VariantPrice: Decodable, Sendable { let productVariantId: UUID; let sellingPrice: Decimal }
 struct PriceSource: Identifiable {

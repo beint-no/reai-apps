@@ -8,10 +8,14 @@ func appError(_ message: String, code: Int = 0) -> NSError {
 enum AppEnvironment { static let origin = URL(string: "https://app.reai.no")! }
 struct Company: Decodable, Identifiable, Hashable, Sendable { let id: Int; let companyName: String; let currencyCode: String }
 struct Account: Decodable, Sendable { let tenants: [Company] }
-struct CompanyBank: Decodable, Identifiable, Sendable { let id: Int; let displayName: String; let currency: String; let archived: Bool }
+struct CompanyBank: Decodable, Identifiable, Sendable {
+    let id: Int; let displayName: String; let currency: String; let archived: Bool
+    enum CodingKeys: String, CodingKey { case id, displayName, currency = "currencyCode", archived }
+}
 struct BankTransaction: Decodable, Identifiable, Sendable {
     let id: Int; let amount: Double; let currency: String; let transactionDate: String
     let description: String?; let paymentReference: String?
+    enum CodingKeys: String, CodingKey { case id, amount, currency = "currencyCode", transactionDate, description, paymentReference }
 }
 struct Reconciliation: Decodable, Sendable { let pendingTransactions: [BankTransaction]? }
 struct Payout: Identifiable, Sendable {
@@ -213,9 +217,9 @@ struct ReviewRow: Identifiable {
                 guard companyID == selectedCompany, AppDates.month(month) == selectedMonth else { return }
                 let postings: [[String: Any]] = [
                     ["accountNumber": expense, "postingDate": AppDates.lastDay(month),
-                     "currency": currency, "amount": amount, "vatCode": "0", "rowNumber": 0, "description": marker],
+                     "currencyCode": currency, "amount": amount, "vatCode": "0", "rowNumber": 0, "description": marker],
                     ["accountNumber": clearing, "postingDate": AppDates.lastDay(month),
-                     "currency": currency, "amount": -amount, "vatCode": "0", "rowNumber": 0, "description": marker]
+                     "currencyCode": currency, "amount": -amount, "vatCode": "0", "rowNumber": 0, "description": marker]
                 ]
                 let body = try JSONSerialization.data(withJSONObject: [
                     "date": AppDates.lastDay(month), "description": marker,
