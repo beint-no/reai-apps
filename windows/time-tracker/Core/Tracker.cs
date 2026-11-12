@@ -66,7 +66,13 @@ public sealed class Tracker(ReAIClient api, TrackerStore store)
     {
         try
         {
-            var projects = await api.Get<List<Project>>("api/projects?hierarchy=all", token!, Company!.Id);
+            var projects = new List<Project>();
+            for (var page = 1; ; page++)
+            {
+                var result = await api.Get<ProjectPage>($"api/projects?hierarchy=all&page={page}&pageSize=200", token!, Company!.Id);
+                projects.AddRange(result.Items);
+                if (!result.HasNext) break;
+            }
             Projects = projects.Where(p => !p.Archived && (p.ParentId == null || projects.Any(parent => parent.Id == p.ParentId && !parent.Archived))).OrderBy(p => p.Name).ToList();
             Activities = await api.Get<List<Activity>>("api/projects/activities", token!, Company.Id);
             ProjectNotice = null;

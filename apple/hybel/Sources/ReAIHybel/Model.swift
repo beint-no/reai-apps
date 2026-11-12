@@ -11,7 +11,10 @@ struct LedgerAccount: Decodable, Sendable {
     let subsidiaryLedger: Subsidiary?
     struct Subsidiary: Decodable, Sendable { let type: String; let id: Int }
 }
-struct Bank: Decodable, Sendable { let id: Int; let ledgerAccountNumber: String; let currency: String; let archived: Bool }
+struct Bank: Decodable, Sendable {
+    let id: Int; let ledgerAccountNumber: String; let currency: String; let archived: Bool
+    enum CodingKeys: String, CodingKey { case id, ledgerAccountNumber, currency = "currencyCode", archived }
+}
 struct Voucher: Decodable, Sendable { let id: Int; let number: String; let description: String? }
 struct Attempt: Codable { let marker: String; let fingerprint: String; var voucherID: Int? }
 

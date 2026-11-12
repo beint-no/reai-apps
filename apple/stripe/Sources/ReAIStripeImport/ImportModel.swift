@@ -180,7 +180,7 @@ import Observation
                     "dueDate": Dates.day(invoice.due_date ?? paidAt), "accounting": "none",
                     "automaticRemindersEnabled": false, "customerId": customer.id,
                     "comment": "Historical Stripe invoice \(invoice.id). Revenue and VAT were not posted by this import.",
-                    "orderItems": [["productId": selectedProduct, "quantity": 1, "price": amount, "currency": company.currencyCode]],
+                    "orderItems": [["productId": selectedProduct, "quantity": 1, "price": amount, "currencyCode": company.currencyCode]],
                     "payments": [["date": Dates.day(paidAt), "paidAmount": amount, "receivedAmount": amount]]
                 ]
                 let data = try JSONSerialization.data(withJSONObject: body)

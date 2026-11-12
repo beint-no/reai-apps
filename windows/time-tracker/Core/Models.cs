@@ -6,6 +6,7 @@ namespace ReAI.TimeTracker.Core;
 public sealed record Company(int Id, string CompanyName);
 public sealed record Account(string Email, Company[] Tenants);
 public sealed record Project(int Id, string Name, bool Archived, int? ParentId, int[] ActivityIds);
+public sealed record ProjectPage(List<Project> Items, bool HasNext);
 public sealed record Activity(int Id, string Code);
 public sealed record RunningTimer(int TimerId, Guid RequestId, DateTimeOffset StartedAt, DateTimeOffset? StoppedAt, int? ProjectId, string? ProjectName, int? ActivityId);
 public sealed record TimerStatus(RunningTimer? Timer);

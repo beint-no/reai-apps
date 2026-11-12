@@ -115,7 +115,16 @@ final class TrackerModel {
         guard let token, let companyID else { return }
         try await loadTimer(token: token, company: companyID)
         do {
-            let list: [Project] = try await api.request("api/projects", token: token, company: companyID, query: [URLQueryItem(name: "hierarchy", value: "all")])
+            var list: [Project] = []
+            var page = 1
+            while true {
+                let result: ProjectPage = try await api.request("api/projects", token: token, company: companyID, query: [
+                    URLQueryItem(name: "hierarchy", value: "all"), URLQueryItem(name: "page", value: String(page)),
+                    URLQueryItem(name: "pageSize", value: "200")])
+                list += result.items
+                guard result.hasNext else { break }
+                page += 1
+            }
             projects = list.filter { project in !project.archived && (project.parentId == nil || list.contains { $0.id == project.parentId && !$0.archived }) }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             activities = try await api.request("api/projects/activities", token: token, company: companyID)
             projectNotice = nil

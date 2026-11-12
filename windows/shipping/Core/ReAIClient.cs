@@ -51,7 +51,7 @@ public sealed class ReAIClient(HttpMessageHandler? handler = null) : IDisposable
     public async Task<Company> Account(string token) =>
         (await Get<Account>("api/me", token, null)).Tenants is [{ Id: > 0 } company] ? company : throw new InvalidDataException("Connect again and choose one company in ReAI.");
     public Task<OrderPage> Orders(string token, int company, string search, int page, string from) =>
-        Get<OrderPage>($"api/orders/shipping-ready?search={Uri.EscapeDataString(search)}&page={page}&from={from}", token, company);
+        Get<OrderPage>($"api/orders/shipping-ready?query={Uri.EscapeDataString(search)}&page={page + 1}&startDate={from}", token, company);
     public Task<ShipmentPage> Shipments(int? order, int? beforeId, string token, int company) =>
         Get<ShipmentPage>("api/shipments?limit=50" + (order is int o ? "&orderId=" + o : "") + (beforeId is int b ? "&beforeId=" + b : ""), token, company);
     public Task<Options> Options(int order, string token, int company) => Get<Options>($"api/orders/{order}/shipping-options", token, company);

@@ -149,7 +149,7 @@ struct Journal: Sendable {
                 let amount = min(debitLeft, creditLeft)
                 let description = "Hybel \(rows[0].reference): " + Array(Set([debits[d].description, credits[c].description])).sorted().filter { !$0.isEmpty }.joined(separator: " / ")
                 for (entry, signed) in [(debits[d], amount), (credits[c], -amount)] {
-                    var posting: [String: Any] = ["accountNumber": entry.account, "postingDate": entry.date, "currency": "NOK", "amount": NSDecimalNumber(value: signed).dividing(by: 100), "vatCode": "0", "rowNumber": rowNumber, "description": String(description.prefix(1000))]
+                    var posting: [String: Any] = ["accountNumber": entry.account, "postingDate": entry.date, "currencyCode": "NOK", "amount": NSDecimalNumber(value: signed).dividing(by: 100), "vatCode": "0", "rowNumber": rowNumber, "description": String(description.prefix(1000))]
                     if let bank = bankAccounts[entry.account] { posting["companyBankId"] = bank }
                     result.append(posting)
                 }

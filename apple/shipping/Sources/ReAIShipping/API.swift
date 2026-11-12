@@ -145,8 +145,8 @@ struct Shipment: Decodable, Sendable {
 extension ReAIAPI {
     func orders(token: String, company: Int, search: String, page: Int, from: String) async throws -> ReadyPage {
         try await json("api/orders/shipping-ready", token: token, company: company, query: [
-            URLQueryItem(name: "search", value: search), URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "from", value: from)])
+            URLQueryItem(name: "query", value: search), URLQueryItem(name: "page", value: String(page + 1)),
+            URLQueryItem(name: "startDate", value: from)])
     }
     func history(token: String, company: Int, search: String, beforeId: Int?) async throws -> HistoryPage {
         let term = search.trimmingCharacters(in: .whitespacesAndNewlines)

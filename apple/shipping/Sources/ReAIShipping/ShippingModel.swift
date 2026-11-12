@@ -236,7 +236,7 @@ final class ShippingModel {
                 let known = Set(orders.map(\.id))
                 orders += result.items.filter { !known.contains($0.id) }
             } else { orders = result.items }
-            page = result.page; totalPages = result.totalPages; totalOrders = result.totalItems
+            page = result.page - 1; totalPages = result.totalPages; totalOrders = result.totalItems
         } catch { self.error = error.localizedDescription }
     }
 
