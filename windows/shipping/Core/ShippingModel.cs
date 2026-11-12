@@ -156,7 +156,7 @@ public sealed class ShippingModel(ReAIClient api, Store store, IPrinting printin
                 // Keep the date cutoff stable while paging.
                 if (!more) readyFrom = IncludeOlder ? "1900-01-01" : DateTime.Today.AddDays(-14).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 var result = await api.Orders(key, company, Search, more ? page + 1 : 0, readyFrom);
-                items = result.Items; page = result.Page; totalPages = result.TotalPages; TotalOrders = result.TotalItems;
+                items = result.Items; page = result.Page - 1; totalPages = result.TotalPages; TotalOrders = result.TotalItems;
             }
             if (Company?.Id != company) return;
             Orders = more ? [.. Orders, .. items.Where(item => Orders.All(order => order.OrderId != item.OrderId))] : items;

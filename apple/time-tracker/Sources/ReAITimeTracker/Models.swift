@@ -18,6 +18,11 @@ struct Project: Decodable, Identifiable, Sendable {
     let activityIds: [Int]
 }
 
+struct ProjectPage: Decodable, Sendable {
+    let items: [Project]
+    let hasNext: Bool
+}
+
 struct Activity: Decodable, Identifiable, Sendable {
     let id: Int
     let code: String
