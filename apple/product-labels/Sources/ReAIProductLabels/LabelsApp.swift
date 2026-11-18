@@ -4,9 +4,15 @@ import SwiftUI
 
 @main
 struct LabelsApp: App {
-    @State private var model = LabelsModel()
-    @StateObject private var updater = LabelsUpdater()
+    @State private var model: LabelsModel
+    @StateObject private var updater: LabelsUpdater
     @Environment(\.openWindow) private var openWindow
+    init() {
+        let model = LabelsModel()
+        _model = State(initialValue: model)
+        _updater = StateObject(wrappedValue: LabelsUpdater(model: model))
+    }
+
     var body: some Scene {
         Window("ReAI Product Labels", id: "labels") {
             LabelsView(model: model).disabled(updater.inProgress).frame(minWidth: 1040, minHeight: 730)
@@ -95,11 +101,11 @@ struct LabelsView: View {
             Text("Create a label").font(.headline)
             Text("Works without connecting to ReAI.").font(.caption).foregroundStyle(.secondary)
             Form {
-                TextField("Product title", text: $model.saved.draft.title)
+                if model.saved.settings.design != .barsOnly { TextField("Product title", text: $model.saved.draft.title) }
                 if model.saved.settings.design == .price {
                     TextField("Customer price", text: $model.saved.draft.price)
                 } else {
-                    TextField("SKU", text: $model.saved.draft.sku)
+                    if model.saved.settings.design != .barsOnly { TextField("SKU", text: $model.saved.draft.sku) }
                     TextField("Barcode value", text: $model.saved.draft.barcode)
                     if model.saved.settings.design == .product {
                         TextField("Country of origin", text: $model.saved.draft.origin)
@@ -110,7 +116,7 @@ struct LabelsView: View {
             }.textFieldStyle(.roundedBorder)
             if model.saved.settings.design == .price {
                 Text("Enter the final customer price. No tax or currency conversion is applied.").font(.caption).foregroundStyle(.secondary)
-            } else {
+            } else if model.saved.settings.design != .barsOnly {
                 Text("Barcodes use Code 128. Leave the value empty for a text-only product label.").font(.caption).foregroundStyle(.secondary)
             }
             Button("Add to batch", systemImage: "plus") { model.addDraft() }.buttonStyle(.borderedProminent)
@@ -177,6 +183,11 @@ struct LabelsView: View {
                     ForEach(Array(LabelSettings.sizes.enumerated()), id: \.offset) { index, text in Text(text).tag(index) }
                     Text("Custom size").tag(-1)
                 }.frame(width: 210)
+                if model.saved.settings.design != .barsOnly {
+                    Picker("Text size", selection: Binding(get: { model.saved.settings.textScale ?? 1 }, set: { model.saved.settings.textScale = $0 })) {
+                        Text("Small").tag(0.75); Text("Standard").tag(1.0); Text("Large").tag(1.25)
+                    }.frame(width: 168)
+                }
                 Spacer()
             }
             HStack {
@@ -191,7 +202,7 @@ struct LabelsView: View {
                         if !["en_US", "nb_NO"].contains(model.saved.settings.locale) { Text(Locale(identifier: model.saved.settings.locale).localizedString(forIdentifier: model.saved.settings.locale) ?? model.saved.settings.locale).tag(model.saved.settings.locale) }
                     }.frame(width: 170)
                 }
-                if model.saved.settings.design != .price {
+                if [.product, .barcode].contains(model.saved.settings.design) {
                     Picker("Barcode height", selection: Binding(get: { model.saved.settings.barcodeFraction }, set: { model.saved.settings.barcodeHeight = $0 })) {
                         ForEach([0.25, 0.35, 0.40, 0.50], id: \.self) { value in
                             Text(value, format: .percent.precision(.fractionLength(0))).tag(value)
@@ -246,9 +257,15 @@ struct LabelsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach($model.saved.batch) { $item in
-                            BatchRow(item: $item, settings: model.saved.settings, previewed: model.previewId == item.id,
-                                     preview: { model.previewId = item.id }, remove: { model.saved.batch.removeAll { $0.id == item.id } })
+                        ForEach(model.saved.batch) { row in
+                            let binding = Binding(get: { model.saved.batch.first { $0.id == row.id } ?? row }, set: { value in
+                                if let index = model.saved.batch.firstIndex(where: { $0.id == row.id }) { model.saved.batch[index] = value }
+                            })
+                            BatchRow(item: binding, settings: model.saved.settings, previewed: model.previewId == row.id,
+                                     preview: { model.previewId = row.id }, remove: {
+                                         if model.previewId == row.id { model.previewId = nil }
+                                         model.saved.batch.removeAll { $0.id == row.id }
+                                     })
                         }
                     }
                 }
@@ -303,7 +320,7 @@ struct BatchRow: View {
             Button(action: preview) { Image(systemName: previewed ? "eye.fill" : "eye") }.help("Preview label")
             VStack(spacing: 6) {
                 HStack {
-                    TextField("Product title", text: $item.title)
+                    if settings.design != .barsOnly { TextField("Product title", text: $item.title) }
                     if settings.design == .price {
                         TextField("Customer price", text: $item.price).frame(width: 85)
                         Text(item.currencyCode ?? settings.currency).font(.caption).frame(width: 35)
@@ -317,7 +334,10 @@ struct BatchRow: View {
                         }
                     }
                 } else {
-                    HStack { TextField("SKU", text: $item.sku); TextField("Barcode value", text: $item.barcode) }
+                    HStack {
+                        if settings.design != .barsOnly { TextField("SKU", text: $item.sku) }
+                        TextField("Barcode value", text: $item.barcode)
+                    }
                     if settings.design == .product {
                         HStack {
                             TextField("Country of origin", text: $item.origin).frame(width: 110)
