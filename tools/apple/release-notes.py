@@ -12,6 +12,8 @@ connection = ('Open the app, paste a ReAI user access token and the provider cre
               'Open the app, click **Connect to ReAI**, choose a company, and approve in your browser.')
 updating = ("While running, ReAI Shipping checks for signed updates every 24 hours on Monday–Friday in your Mac’s local time, downloads them automatically and installs them when you quit. Checks wait for the next daily cycle on weekends or while shipping, printing, loading locations or signing in. Manual **ReAI Shipping → Check for Updates…** works any day when idle. Existing installations need one manual update to this version to enable automatic updates."
             if sys.argv[1] == 'shipping' else
+            "Choose **ReAI Product Labels → Check for Updates…** once on an older installation. After updating, the app checks for signed updates every 24 hours on weekdays while running and idle, downloads them automatically and installs them when you quit."
+            if sys.argv[1] == 'product-labels' else
             f"After this initial installation, use **{app['name']} → Check for Updates…** to download and install future updates in the app. No scheduled checks or automatic updates."
             if app.get('sparkle', False) else 'To update, quit the app and replace it in Applications.')
 print(f'''Requires Apple Silicon (M1 or newer) and macOS 15 or newer.
