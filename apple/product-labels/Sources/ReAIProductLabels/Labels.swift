@@ -93,6 +93,7 @@ enum LabelRenderer {
     }
     static func barcodeImage(_ value: String, width: CGFloat) throws -> CGImage {
         guard value.utf8.allSatisfy({ (32...126).contains($0) }), !value.isEmpty else { throw appError("Code 128 barcodes support printable ASCII characters only.") }
+        if let retail = try RetailBarcode.image(for: value, width: width) { return retail }
         let filter = CIFilter.code128BarcodeGenerator()
         filter.message = Data(value.utf8); filter.quietSpace = 10
         guard let output = filter.outputImage, width / output.extent.width >= 0.72 else {

@@ -116,8 +116,8 @@ struct LabelsView: View {
             }.textFieldStyle(.roundedBorder)
             if model.saved.settings.design == .price {
                 Text("Enter the final customer price. No tax or currency conversion is applied.").font(.caption).foregroundStyle(.secondary)
-            } else if model.saved.settings.design != .barsOnly {
-                Text("Barcodes use Code 128. Leave the value empty for a text-only product label.").font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("Use the product’s EAN or UPC for ReAI POS. Other values print as Code 128.").font(.caption).foregroundStyle(.secondary)
             }
             Button("Add to batch", systemImage: "plus") { model.addDraft() }.buttonStyle(.borderedProminent)
             Button("Preview draft") { model.previewId = nil }
