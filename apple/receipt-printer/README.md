@@ -10,7 +10,7 @@ Look up a completed POS sale and print a custom store message on a thermal roll,
 
 Use the original POS workflow for fiscal receipts. If a print outcome is uncertain, check the macOS printer queue before printing again.
 
-The app stores the connection in Keychain. Receipt data and the current message stay in memory. Select **Disconnect** to remove the local token, and use [your ReAI profile](https://app.reai.no/user/profile#user-access-tokens) to revoke it in ReAI.
+The app stores the connection in Keychain. Receipt data and the current message stay in memory. Select **Change company…** to replace the local connection, and use [your ReAI profile](https://app.reai.no/user/profile#user-access-tokens) to revoke it in ReAI.
 
 ## Build and distribution
 

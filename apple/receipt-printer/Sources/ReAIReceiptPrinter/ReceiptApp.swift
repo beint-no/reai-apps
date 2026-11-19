@@ -51,7 +51,7 @@ struct ReceiptWindow: View {
                     Label("Connect to ReAI", systemImage: "printer")
                 } description: {
                     if let code = model.code { Text("Approve this code in your browser: \(code)").textSelection(.enabled) }
-                    else { Text("Choose the company whose sales you want to look up.") }
+                    else { Text("Sign in in your browser and select the company whose receipts you want to find.") }
                 } actions: {
                     if model.connecting {
                         Button("Cancel") { authorization?.cancel() }
@@ -78,17 +78,23 @@ struct ReceiptWindow: View {
     private func connected(_ company: Company) -> some View {
         HSplitView {
             VStack(alignment: .leading, spacing: 12) {
-                Text(company.companyName).font(.headline)
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Connected company", systemImage: "building.2").font(.caption).foregroundStyle(.secondary)
+                    Text(company.companyName).font(.headline)
+                }
+                Divider()
+                Text("Find a POS receipt").font(.headline)
                 DatePicker("Business date", selection: $day, displayedComponents: .date)
                     .environment(\.calendar, ReceiptSearch.calendar).environment(\.timeZone, ReceiptSearch.oslo)
                 TextField("Receipt number (optional)", text: $number).onSubmit { Task { await find() } }
-                TextField("Register ID (optional)", text: $register).onSubmit { Task { await find() } }
+                TextField("Cash register ID (optional)", text: $register).onSubmit { Task { await find() } }
                 HStack {
                     Button("Find receipts") { Task { await find() } }.buttonStyle(.borderedProminent)
                     if model.busy { ProgressView().controlSize(.small) }
                 }
                 .disabled(model.busy)
                 Divider()
+                Text("Receipts").font(.headline)
                 List(selection: $selected) {
                     ForEach(model.receipts) { receipt in
                         VStack(alignment: .leading, spacing: 3) {
@@ -101,18 +107,20 @@ struct ReceiptWindow: View {
                 }
                 .overlay {
                     if model.receipts.isEmpty && model.attemptedSearch && !model.busy && model.error == nil {
-                        ContentUnavailableView("No receipts found", systemImage: "doc.text.magnifyingglass")
+                        ContentUnavailableView("No receipts found", systemImage: "doc.text.magnifyingglass",
+                            description: Text("Try another business date or clear the receipt number and register filters."))
                     }
                 }
                 HStack {
                     Button("Load more") { Task { await model.more() } }
                         .disabled(model.busy || !model.hasNext)
                     Spacer()
-                    Button("Disconnect") {
+                    Button("Change company…") {
                         Task {
                             await model.disconnect()
                             if model.company == nil {
                                 selected = nil; number = ""; register = ""; note = ""; submitted = false
+                                authorization = Task { await model.connect() }
                             }
                         }
                     }.disabled(model.busy)
@@ -123,7 +131,8 @@ struct ReceiptWindow: View {
             if let receipt = model.receipts.first(where: { $0.id == selected }) {
                 detail(company: company, receipt: receipt)
             } else {
-                ContentUnavailableView("Select a receipt", systemImage: "doc.text")
+                ContentUnavailableView("Select a receipt", systemImage: "doc.text",
+                    description: Text("Choose a row on the left to view its purchase and print a store message."))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -161,7 +170,7 @@ struct ReceiptWindow: View {
                 }
                 TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
                     .textFieldStyle(.roundedBorder).lineLimit(3...5)
-                Text("Print this message to hand out with the original receipt.")
+                Text("Print this separate message to hand out with the original POS receipt.")
                     .foregroundStyle(.secondary)
 
                 if let document {
