@@ -42,11 +42,22 @@ struct ReceiptWindow: View {
     @State private var note = ""
     @State private var paper: PaperWidth = .wide
     @State private var submitted = false
+    @State private var refresh = 0
+
+    private struct SearchTrigger: Equatable {
+        let companyID: Int
+        let start: Date
+        let end: Date
+        let refresh: Int
+    }
 
     var body: some View {
         Group {
             if let company = model.company {
-                connected(company).task(id: company.id) { await find() }
+                connected(company)
+                    .task(id: SearchTrigger(companyID: company.id, start: start, end: end, refresh: refresh)) {
+                        await find()
+                    }
             } else {
                 ContentUnavailableView {
                     Label("Connect to ReAI", systemImage: "printer")
@@ -90,10 +101,10 @@ struct ReceiptWindow: View {
                     DatePicker("Through", selection: $end, displayedComponents: .date)
                 }
                 .environment(\.calendar, ReceiptSearch.calendar).environment(\.timeZone, ReceiptSearch.oslo)
-                TextField("Receipt number (optional)", text: $number).onSubmit { Task { await find() } }
-                TextField("Cash register ID (optional)", text: $register).onSubmit { Task { await find() } }
+                TextField("Receipt number (optional)", text: $number).onSubmit { refresh += 1 }
+                TextField("Cash register ID (optional)", text: $register).onSubmit { refresh += 1 }
                 HStack {
-                    Button("Find receipts") { Task { await find() } }.buttonStyle(.borderedProminent)
+                    Button("Find receipts") { refresh += 1 }.buttonStyle(.borderedProminent)
                     if model.busy { ProgressView().controlSize(.small) }
                 }
                 .disabled(model.busy)
@@ -180,7 +191,7 @@ struct ReceiptWindow: View {
                 }
                 TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
                     .textFieldStyle(.roundedBorder).lineLimit(3...5)
-                Text("Print this separate message to hand out with the original POS receipt.")
+                Text("Give this message with the original receipt. Verify returns in ReAI.")
                     .foregroundStyle(.secondary)
 
                 if let document {
@@ -206,8 +217,14 @@ struct ReceiptWindow: View {
     }
 
     private func find() async {
-        guard !model.busy else { return }
         selected = nil
-        await model.search(start: start, end: end, number: number, register: register)
+        do {
+            try await Task.sleep(for: .milliseconds(250))
+            while model.busy { try await Task.sleep(for: .milliseconds(50)) }
+            try Task.checkCancellation()
+            await model.search(start: start, end: end, number: number, register: register)
+        } catch {
+            // Selecting another date cancels this search.
+        }
     }
 }

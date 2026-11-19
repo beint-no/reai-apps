@@ -4,11 +4,11 @@ Look up a completed POS sale and print a custom store message on a thermal roll,
 
 1. Install a compatible Star or other thermal printer on the Mac in **System Settings → Printers & Scanners**. Confirm the manufacturer supports your printer model and macOS version.
 2. Open ReAI Receipt Printer and choose **Connect to ReAI**. Approve the correct company in the browser with a user who can read its cash register sales.
-3. Choose a date range. The initial search covers the last seven business dates, including today. Use **Load older** to see earlier rows in the selected period. Optionally enter an exact receipt number and register ID. Select the receipt to see its stored line items and prices.
+3. Choose a date range. The initial search covers the last seven business dates, including today. Changing either date reloads the results automatically. Use **Load older** to see earlier rows in the selected period. Optionally enter an exact receipt number and register ID. Select the receipt to see its stored line items and prices.
 4. Enter the store message, choose the width of the roll, and check the preview.
 5. Choose **Print store message…**. Verify the queue, paper size and one-copy setting in the macOS dialog. Hand out the message with the original POS receipt.
 
-Use the original POS workflow for fiscal receipts. If a print outcome is uncertain, check the macOS printer queue before printing again.
+The store message shows the original line items, quantities and prices. Verify returns against the recorded sale in ReAI and use the original POS workflow for fiscal receipts. If a print outcome is uncertain, check the macOS printer queue before printing again.
 
 The app stores the connection in Keychain. Receipt data and the current message stay in memory. Select **Change company…** to replace the local connection, and use [your ReAI profile](https://app.reai.no/user/profile#user-access-tokens) to revoke it in ReAI.
 

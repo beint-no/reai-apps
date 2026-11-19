@@ -105,13 +105,15 @@ final class ReceiptModel {
             let displayed = requestedPage == nil && page > 1
                 ? try await api.receipts(filters, page: page, token: token, company: company.id)
                 : result
+            try Task.checkCancellation()
             let known = Set(receipts.map(\.id))
             receipts += displayed.items.reversed().filter { !known.contains($0.id) }
             self.page = page
             query = filters
             totalItems = displayed.totalItems
-        } catch is CancellationError {
-        } catch { self.error = error.localizedDescription }
+        } catch {
+            if !Task.isCancelled { self.error = error.localizedDescription }
+        }
     }
 
     func printNote(_ document: NoteDocument) -> Bool {

@@ -30,10 +30,19 @@ struct NoteDocument {
         }
 
         append("Store message\n", font: .boldSystemFont(ofSize: 12))
+        append("NOT PROOF OF PURCHASE\n", font: .boldSystemFont(ofSize: 9))
         append(company.companyName + "\n", font: .systemFont(ofSize: 10))
         append("Receipt \(receipt.receiptNumber) · Register \(receipt.cashPointId)\n\(receipt.displayDate)\n",
                font: .systemFont(ofSize: 9))
-        append("\n" + message + "\n\nPlease keep your original receipt.", font: .systemFont(ofSize: 10))
+        append("\nItems\n", font: .boldSystemFont(ofSize: 10))
+        for line in receipt.lines {
+            append("\(line.quantity.formatted()) × \(line.productText)\n\(receipt.amount(line.grossAmount))\n",
+                   font: .systemFont(ofSize: 9))
+        }
+        append("Total: \(receipt.amount(receipt.grossAmount))\n", font: .boldSystemFont(ofSize: 10))
+        append("\n" + message + "\n", font: .systemFont(ofSize: 10))
+        append("\nKeep the original receipt. For returns, staff should look up the sale in ReAI.",
+               font: .boldSystemFont(ofSize: 9))
 
         let framesetter = CTFramesetterCreateWithAttributedString(content)
         let capacity = CGSize(width: contentWidth, height: .greatestFiniteMagnitude)
