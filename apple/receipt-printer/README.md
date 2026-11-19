@@ -6,11 +6,11 @@ Look up an existing POS sale and print the ReAI receipt copy on an 80 mm thermal
 2. Open ReAI Receipt Printer and choose **Connect to ReAI**. Approve the correct company in the browser with a user who can read and operate its cash register.
 3. Choose a date range. The initial search covers the last seven business dates, including today. Changing either date reloads the results automatically. Use **Load older** to see earlier rows in the selected period. Optionally enter an exact receipt number and register ID. Select the receipt to see its stored line items and prices.
 4. Enter an optional store message and select the installed printer with an 80 mm roll.
-5. Choose **Print receipt copy…** and confirm. ReAI records the copy before the app sends the PDF to the selected queue.
+5. Choose **Print receipt copy…** and confirm. Give the original to the purchaser. The copy can go with the gift and shows the same prices. ReAI records the copy before the app sends the PDF to the selected queue.
 
-The copy is marked **KOPI**. Its QR opens the original sale in ReAI, where staff can verify returns. The original sale receipt is issued at checkout. ReAI permits one issuance of the copy per sale. If the outcome is uncertain, check the printer queue and the ReAI journal. The app never retries issuance automatically. This feature requires a ReAI server with the receipt-copy endpoint.
+The copy is marked **KOPI**. Its QR opens the original sale in ReAI, where staff can verify returns. The original sale receipt is issued at checkout. ReAI permits one issuance of the copy per sale. If the printer jams or the API response is lost, first check the paper and cancel any stuck job in the macOS queue. Select **Resume same copy…** only if the complete copy did not print. ReAI returns the same PDF and keeps one journal entry. After checking the paper, choose **Mark as printed** to close recovery on this Mac. Nothing is printed automatically. This feature requires a ReAI server with the receipt-copy endpoint.
 
-The app stores the connection in Keychain. Receipt data and the current message stay in memory. Select **Change company…** to replace the local connection, and use [your ReAI profile](https://app.reai.no/user/profile#user-access-tokens) to revoke it in ReAI.
+The app stores the connection in Keychain. Receipt data stays in memory. The request ID, store message and print status are saved under Application Support in the app’s local history so the same attempt can be resumed after restart. Select **Change company…** to replace the local connection, and use [your ReAI profile](https://app.reai.no/user/profile#user-access-tokens) to revoke it in ReAI.
 
 ## Build and distribution
 

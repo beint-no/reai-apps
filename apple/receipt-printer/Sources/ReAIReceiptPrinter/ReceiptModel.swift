@@ -6,6 +6,8 @@ final class ReceiptModel {
     private let api = ReAIAPI()
     private let connection = Connection()
     private let credentials = Credentials()
+    private var copies: CopyAttempts?
+    var copyPrintingAvailable: Bool { copies != nil }
     private var token: String?
     private var query: ReceiptSearch?
     private var page = 0
@@ -18,6 +20,11 @@ final class ReceiptModel {
     private(set) var code: String?
     private(set) var attemptedSearch = false
     var error: String?
+
+    init() {
+        do { copies = try CopyAttempts() }
+        catch { self.error = "Could not open the local copy history. Printing is unavailable." }
+    }
 
     func restore() async {
         guard !busy, !connecting, company == nil else { return }
@@ -116,17 +123,40 @@ final class ReceiptModel {
         }
     }
 
-    func printCopy(receipt: Receipt, message: String, printer: String) async -> Bool {
-        guard !busy, let company, let token, receipt.isSale, receipts.contains(where: { $0.id == receipt.id }) else { return false }
+    func copyAttempt(for receipt: Receipt) -> CopyAttempt? {
+        guard let company else { return nil }
+        return copies?.find(company: company.id, receipt: receipt.id)
+    }
+
+    func markPrinted(_ receipt: Receipt) {
+        guard !busy, let company, var attempt = copyAttempt(for: receipt), attempt.status == .sentToQueue else { return }
+        attempt.status = .printed
+        do { try copies?.save(attempt, company: company.id, receipt: receipt.id) }
+        catch { self.error = "Could not save the print confirmation." }
+    }
+
+    func printCopy(receipt: Receipt, message: String, printer: String, resume: Bool) async {
+        guard !busy, let company, let token, var copies, receipt.isSale,
+              receipts.contains(where: { $0.id == receipt.id }) else { return }
+        let existing = copies.find(company: company.id, receipt: receipt.id)
+        guard resume == (existing != nil), existing?.status != .printed else { return }
         busy = true
         error = nil
         defer { busy = false }
         do {
             let output = try ReceiptPrinting(printerName: printer)
-            let data = try await api.issueCopy(receipt: receipt.id, message: message, token: token, company: company.id)
-            if try output.printCopy(data) { return true }
-            error = "ReAI issued the copy, but macOS did not confirm queuing it. Check the printer queue."
+            var attempt = existing ?? CopyAttempt(requestID: UUID(), message: message, status: .checkQueue)
+            attempt.status = .checkQueue
+            try copies.save(attempt, company: company.id, receipt: receipt.id)
+            self.copies = copies
+            let data = try await api.issueCopy(receipt: receipt.id, attempt: attempt, token: token, company: company.id)
+            if try output.printCopy(data) {
+                attempt.status = .sentToQueue
+                try copies.save(attempt, company: company.id, receipt: receipt.id)
+                self.copies = copies
+            } else {
+                error = "macOS did not confirm queuing the copy. Check the printer queue before resuming."
+            }
         } catch { self.error = error.localizedDescription }
-        return false
     }
 }

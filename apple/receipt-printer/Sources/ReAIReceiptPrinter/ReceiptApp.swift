@@ -44,7 +44,6 @@ struct ReceiptWindow: View {
     @State private var printer = ""
     @State private var printers: [String] = []
     @State private var confirmingPrint = false
-    @State private var submitted = false
     @State private var refresh = 0
 
     private struct SearchTrigger: Equatable {
@@ -144,7 +143,7 @@ struct ReceiptWindow: View {
                         Task {
                             await model.disconnect()
                             if model.company == nil {
-                                selected = nil; number = ""; register = ""; note = ""; submitted = false
+                                selected = nil; number = ""; register = ""; note = ""
                                 authorization = Task { await model.connect() }
                             }
                         }
@@ -161,11 +160,12 @@ struct ReceiptWindow: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onChange(of: selected) { _, _ in submitted = false }
     }
 
     private func detail(receipt: Receipt) -> some View {
-        let message = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attempt = model.copyAttempt(for: receipt)
+        let message = attempt?.message ?? note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resuming = attempt != nil
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -185,8 +185,12 @@ struct ReceiptWindow: View {
 
             if receipt.isSale {
                 Text("Store message (optional)").font(.headline)
-                TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
-                    .textFieldStyle(.roundedBorder).lineLimit(3...5)
+                if let attempt {
+                    Text(attempt.message.isEmpty ? "No store message on this copy." : attempt.message)
+                } else {
+                    TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
+                        .textFieldStyle(.roundedBorder).lineLimit(3...5)
+                }
                 Text("ReAI prints the original sale details and QR, marked KOPI, with this message at the bottom.")
                     .foregroundStyle(.secondary)
                 if message.utf16.count > 500 { Text("Use at most 500 characters.").foregroundStyle(.red) }
@@ -199,18 +203,30 @@ struct ReceiptWindow: View {
                     Button("Refresh printers", action: refreshPrinters)
                 }
                 HStack {
-                    Button("Print receipt copy…") { confirmingPrint = true }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(printer.isEmpty || message.utf16.count > 500 || model.busy || submitted)
-                    if submitted { Text("Sent to the printer queue.").foregroundStyle(.secondary) }
+                    if attempt?.status == .printed {
+                        Text("Printing confirmed.").foregroundStyle(.secondary)
+                    } else {
+                        Button(resuming ? "Resume same copy…" : "Print receipt copy…") { confirmingPrint = true }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(printer.isEmpty || message.utf16.count > 500 || model.busy || !model.copyPrintingAvailable)
+                    }
+                    if attempt?.status == .sentToQueue {
+                        Button("Mark as printed") { model.markPrinted(receipt) }.disabled(model.busy)
+                    }
                 }
-                .confirmationDialog("Issue and print one receipt copy?", isPresented: $confirmingPrint, titleVisibility: .visible) {
-                    Button("Issue and print copy") {
-                        Task { submitted = await model.printCopy(receipt: receipt, message: message, printer: printer) }
+                .confirmationDialog(resuming ? "Resume the same receipt copy?" : "Print one receipt copy?", isPresented: $confirmingPrint, titleVisibility: .visible) {
+                    Button(resuming ? "Confirmed incomplete — resume" : "Issue and print copy") {
+                        Task { await model.printCopy(receipt: receipt, message: message, printer: printer, resume: resuming) }
                     }
                 } message: {
-                    Text("Confirm the printer has an 80 mm roll. ReAI records the single allowed copy before macOS prints it.")
+                    if resuming {
+                        Text("Check the paper and the macOS queue first. Cancel any stuck job. Continue only if the complete copy did not print.")
+                    } else {
+                        Text("Confirm the printer has an 80 mm roll. Keep the original with the purchaser. This KOPI can go with the gift.")
+                    }
                 }
+                if attempt?.status == .sentToQueue { Text("In printer queue. Confirm after checking the paper.").foregroundStyle(.secondary) }
+                if attempt?.status == .checkQueue { Text("Print outcome uncertain. Check the printer queue.").foregroundStyle(.secondary) }
             } else {
                 Text("Receipt copies are available for sales.").foregroundStyle(.secondary)
             }
