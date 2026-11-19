@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -40,7 +41,9 @@ struct ReceiptWindow: View {
     @State private var register = ""
     @State private var selected: Receipt.ID?
     @State private var note = ""
-    @State private var paper: PaperWidth = .wide
+    @State private var printer = ""
+    @State private var printers: [String] = []
+    @State private var confirmingPrint = false
     @State private var submitted = false
     @State private var refresh = 0
 
@@ -76,6 +79,7 @@ struct ReceiptWindow: View {
             }
         }
         .disabled(updating)
+        .onAppear { refreshPrinters() }
         .safeAreaInset(edge: .bottom) {
             if let error = model.error {
                 Label(error, systemImage: "exclamationmark.circle")
@@ -150,21 +154,19 @@ struct ReceiptWindow: View {
             .padding().frame(minWidth: 310, idealWidth: 340, maxWidth: 420)
 
             if let receipt = model.receipts.first(where: { $0.id == selected }) {
-                detail(company: company, receipt: receipt)
+                detail(receipt: receipt)
             } else {
                 ContentUnavailableView("Select a receipt", systemImage: "doc.text",
-                    description: Text("Choose a row on the left to view its purchase and print a store message."))
+                    description: Text("Choose a row on the left to view its purchase and print a receipt copy."))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .onChange(of: selected) { _, _ in submitted = false }
     }
 
-    private func detail(company: Company, receipt: Receipt) -> some View {
+    private func detail(receipt: Receipt) -> some View {
         let message = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        let document = receipt.isSale && !message.isEmpty && message.utf16.count <= NoteDocument.maxLength
-            ? try? NoteDocument(company: company, receipt: receipt, message: message, paper: paper)
-            : nil
+
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(receipt.receiptNumber).font(.title2.bold())
@@ -182,38 +184,44 @@ struct ReceiptWindow: View {
             }.frame(minHeight: 95, idealHeight: 130, maxHeight: 160)
 
             if receipt.isSale {
-                HStack {
-                    Text("Store message").font(.headline)
-                    Spacer()
-                    Picker("Paper width", selection: $paper) {
-                        ForEach(PaperWidth.allCases) { Text($0.label).tag($0) }
-                    }.fixedSize()
-                }
+                Text("Store message (optional)").font(.headline)
                 TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
                     .textFieldStyle(.roundedBorder).lineLimit(3...5)
-                Text("Give this message with the original receipt. Verify returns in ReAI.")
+                Text("ReAI prints the original sale details and QR, marked KOPI, with this message at the bottom.")
                     .foregroundStyle(.secondary)
+                if message.utf16.count > 500 { Text("Use at most 500 characters.").foregroundStyle(.red) }
 
-                if let document {
-                    NotePreview(document: document).frame(minHeight: 115, maxHeight: .infinity)
-                } else if !message.isEmpty {
-                    Text("Shorten the message or select a wider roll (maximum \(NoteDocument.maxLength) characters).")
-                        .foregroundStyle(.secondary)
+                HStack {
+                    Picker("Printer", selection: $printer) {
+                        Text("Select an 80 mm printer").tag("")
+                        ForEach(printers, id: \.self) { Text($0).tag($0) }
+                    }
+                    Button("Refresh printers", action: refreshPrinters)
                 }
                 HStack {
-                    Button("Print store message…") {
-                        if let document { submitted = model.printNote(document) }
+                    Button("Print receipt copy…") { confirmingPrint = true }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(printer.isEmpty || message.utf16.count > 500 || model.busy || submitted)
+                    if submitted { Text("Sent to the printer queue.").foregroundStyle(.secondary) }
+                }
+                .confirmationDialog("Issue and print one receipt copy?", isPresented: $confirmingPrint, titleVisibility: .visible) {
+                    Button("Issue and print copy") {
+                        Task { submitted = await model.printCopy(receipt: receipt, message: message, printer: printer) }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(document == nil || model.busy)
-                    if submitted { Text("Print dialog completed. Check the printer queue.").foregroundStyle(.secondary) }
+                } message: {
+                    Text("Confirm the printer has an 80 mm roll. ReAI records the single allowed copy before macOS prints it.")
                 }
             } else {
-                Text("Store messages are available for sales receipts.").foregroundStyle(.secondary)
+                Text("Receipt copies are available for sales.").foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
         .padding().frame(minWidth: 465, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func refreshPrinters() {
+        printers = NSPrinter.printerNames.sorted()
+        if !printers.contains(printer) { printer = "" }
     }
 
     private func find() async {

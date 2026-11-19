@@ -116,12 +116,17 @@ final class ReceiptModel {
         }
     }
 
-    func printNote(_ document: NoteDocument) -> Bool {
-        guard !busy else { return false }
+    func printCopy(receipt: Receipt, message: String, printer: String) async -> Bool {
+        guard !busy, let company, let token, receipt.isSale, receipts.contains(where: { $0.id == receipt.id }) else { return false }
         busy = true
         error = nil
         defer { busy = false }
-        do { return try document.printNote() }
-        catch { self.error = error.localizedDescription; return false }
+        do {
+            let output = try ReceiptPrinting(printerName: printer)
+            let data = try await api.issueCopy(receipt: receipt.id, message: message, token: token, company: company.id)
+            if try output.printCopy(data) { return true }
+            error = "ReAI issued the copy, but macOS did not confirm queuing it. Check the printer queue."
+        } catch { self.error = error.localizedDescription }
+        return false
     }
 }

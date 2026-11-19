@@ -101,6 +101,36 @@ actor ReAIAPI {
         try await get("api/kassasystem/sales", token: token, company: company, query: search.parameters(page: page))
     }
 
+    func issueCopy(receipt: Int64, message: String, token: String, company: Int) async throws -> Data {
+        struct CopyRequest: Encodable { let storeMessage: String? }
+        var request = URLRequest(url: AppEnvironment.origin.appending(path: "api/kassasystem/sales/\(receipt)/receipt-copy"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/pdf", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("en", forHTTPHeaderField: "Accept-Language")
+        request.setValue(String(company), forHTTPHeaderField: "X-Tenant-Id")
+        request.httpBody = try JSONEncoder().encode(CopyRequest(storeMessage: message.isEmpty ? nil : message))
+        let result: (Data, URLResponse)
+        do {
+            result = try await session.data(for: request)
+        } catch {
+            throw appError("ReAI may have issued the copy. Check the receipt journal before taking further action.")
+        }
+        let (data, raw) = result
+        guard let response = raw as? HTTPURLResponse else {
+            throw appError("The copy outcome is unknown. Check the receipt journal.")
+        }
+        switch response.statusCode {
+        case 200 where response.mimeType == "application/pdf": return data
+        case 401: throw appError("Reconnect to ReAI to print a receipt copy.")
+        case 403: throw appError("You need permission to operate the cash register to issue a copy.")
+        case 404: throw appError("This sale or the receipt-copy API is unavailable.")
+        case 409: throw appError("A copy has already been issued for this sale.")
+        default: throw appError("The copy outcome is unknown. Check the receipt journal.")
+        }
+    }
+
     private func get<T: Decodable>(_ path: String, token: String, company: Int? = nil, query: [URLQueryItem] = []) async throws -> T {
         var request = URLRequest(url: AppEnvironment.origin.appending(path: path).appending(queryItems: query))
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
