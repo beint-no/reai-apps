@@ -6,7 +6,7 @@ on:
         description: App to release
         required: true
         type: choice
-        options: [time-tracker, finder-vault, import, stripe, vipps, klarna, zettle, dintero, shipping, hybel, product-labels]
+        options: [time-tracker, finder-vault, import, stripe, vipps, klarna, zettle, dintero, shipping, hybel, product-labels, receipt-printer]
   pull_request:
     paths: ['apple/**', 'tools/apple/**', 'apps.json', '.swift-version', '.github/actions/**', '.github/workflows/apps.yml']
   # Not on push to main: the pull request already built the change. Tags still build
@@ -92,6 +92,7 @@ jobs:
           APPLE_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
           PRODUCT_LABELS_SPARKLE_PRIVATE_KEY: ${{ secrets.PRODUCT_LABELS_SPARKLE_PRIVATE_KEY }}
+          RECEIPT_PRINTER_SPARKLE_PRIVATE_KEY: ${{ secrets.RECEIPT_PRINTER_SPARKLE_PRIVATE_KEY }}
           SHIPPING_SPARKLE_PRIVATE_KEY: ${{ secrets.SHIPPING_SPARKLE_PRIVATE_KEY }}
         run: python3 tools/apple/release.py "$APP_ID" --version "$APP_VERSION"
       - name: Preserve notarization diagnostics
