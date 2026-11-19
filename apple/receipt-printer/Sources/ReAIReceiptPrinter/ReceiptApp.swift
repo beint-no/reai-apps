@@ -34,7 +34,8 @@ struct ReceiptWindow: View {
     let model: ReceiptModel
     let updating: Bool
     @State private var authorization: Task<Void, Never>?
-    @State private var day = Date()
+    @State private var end = Date()
+    @State private var start = ReceiptSearch.calendar.date(byAdding: .day, value: -6, to: Date()) ?? Date()
     @State private var number = ""
     @State private var register = ""
     @State private var selected: Receipt.ID?
@@ -84,8 +85,11 @@ struct ReceiptWindow: View {
                 }
                 Divider()
                 Text("Find a POS receipt").font(.headline)
-                DatePicker("Business date", selection: $day, displayedComponents: .date)
-                    .environment(\.calendar, ReceiptSearch.calendar).environment(\.timeZone, ReceiptSearch.oslo)
+                VStack(alignment: .leading, spacing: 6) {
+                    DatePicker("From", selection: $start, displayedComponents: .date)
+                    DatePicker("Through", selection: $end, displayedComponents: .date)
+                }
+                .environment(\.calendar, ReceiptSearch.calendar).environment(\.timeZone, ReceiptSearch.oslo)
                 TextField("Receipt number (optional)", text: $number).onSubmit { Task { await find() } }
                 TextField("Cash register ID (optional)", text: $register).onSubmit { Task { await find() } }
                 HStack {
@@ -94,7 +98,13 @@ struct ReceiptWindow: View {
                 }
                 .disabled(model.busy)
                 Divider()
-                Text("Receipts").font(.headline)
+                HStack {
+                    Text("Receipts").font(.headline)
+                    Spacer()
+                    if let total = model.totalItems {
+                        Text("\(model.receipts.count) of \(total)").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 List(selection: $selected) {
                     ForEach(model.receipts) { receipt in
                         VStack(alignment: .leading, spacing: 3) {
@@ -108,12 +118,12 @@ struct ReceiptWindow: View {
                 .overlay {
                     if model.receipts.isEmpty && model.attemptedSearch && !model.busy && model.error == nil {
                         ContentUnavailableView("No receipts found", systemImage: "doc.text.magnifyingglass",
-                            description: Text("Try another business date or clear the receipt number and register filters."))
+                            description: Text("Try a different date range or clear the receipt number and register filters."))
                     }
                 }
                 HStack {
-                    Button("Load more") { Task { await model.more() } }
-                        .disabled(model.busy || !model.hasNext)
+                    Button("Load older") { Task { await model.more() } }
+                        .disabled(model.busy || !model.hasOlder)
                     Spacer()
                     Button("Change company…") {
                         Task {
@@ -198,6 +208,6 @@ struct ReceiptWindow: View {
     private func find() async {
         guard !model.busy else { return }
         selected = nil
-        await model.search(day: day, number: number, register: register)
+        await model.search(start: start, end: end, number: number, register: register)
     }
 }

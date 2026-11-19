@@ -54,17 +54,19 @@ struct ReceiptSearch: Equatable, Sendable {
         calendar.timeZone = oslo
         return calendar
     }
-    let day: Date
+    let start: Date
+    let end: Date
     let number: String
     let cashPoint: Int?
 
     func parameters(page: Int) -> [URLQueryItem] {
-        let interval = Self.calendar.dateInterval(of: .day, for: day)!
+        let startAt = Self.calendar.startOfDay(for: start)
+        let endAt = Self.calendar.dateInterval(of: .day, for: end)!.end
         var result = [
-            URLQueryItem(name: "startAt", value: interval.start.ISO8601Format()),
-            URLQueryItem(name: "endAt", value: interval.end.ISO8601Format()),
+            URLQueryItem(name: "startAt", value: startAt.ISO8601Format()),
+            URLQueryItem(name: "endAt", value: endAt.ISO8601Format()),
             URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "pageSize", value: "50"),
+            URLQueryItem(name: "pageSize", value: "100"),
         ]
         if !number.isEmpty { result.append(URLQueryItem(name: "receiptNumber", value: number)) }
         if let cashPoint { result.append(URLQueryItem(name: "cashPointId", value: String(cashPoint))) }
@@ -74,7 +76,8 @@ struct ReceiptSearch: Equatable, Sendable {
 
 struct ReceiptPage: Decodable, Sendable {
     let items: [Receipt]
-    let hasNext: Bool
+    let totalItems: Int
+    let totalPages: Int
 }
 
 actor ReAIAPI {

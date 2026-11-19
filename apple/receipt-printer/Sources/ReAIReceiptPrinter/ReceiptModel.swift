@@ -11,7 +11,8 @@ final class ReceiptModel {
     private var page = 0
     private(set) var company: Company?
     private(set) var receipts: [Receipt] = []
-    private(set) var hasNext = false
+    private(set) var totalItems: Int?
+    var hasOlder: Bool { page > 1 }
     private(set) var busy = false
     private(set) var connecting = false
     private(set) var code: String?
@@ -60,13 +61,13 @@ final class ReceiptModel {
             query = nil
             receipts = []
             page = 0
-            hasNext = false
+            totalItems = nil
             attemptedSearch = false
             error = nil
         } catch { self.error = error.localizedDescription }
     }
 
-    func search(day: Date, number: String, register: String) async {
+    func search(start: Date, end: Date, number: String, register: String) async {
         guard !busy else { return }
         let number = number.trimmingCharacters(in: .whitespacesAndNewlines)
         let register = register.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -75,30 +76,40 @@ final class ReceiptModel {
             error = "Enter a valid receipt number and a positive register ID."
             return
         }
-        let filters = ReceiptSearch(day: day, number: number, cashPoint: cashPoint)
+        guard ReceiptSearch.calendar.startOfDay(for: start) <= ReceiptSearch.calendar.startOfDay(for: end) else {
+            error = "The start date must be on or before the end date."
+            return
+        }
+        let filters = ReceiptSearch(start: start, end: end, number: number, cashPoint: cashPoint)
         receipts = []
-        hasNext = false
+        totalItems = nil
+        page = 0
         attemptedSearch = true
-        await load(filters, page: 1)
+        await load(filters, page: nil)
     }
 
     func more() async {
-        guard hasNext, !busy, let query else { return }
-        await load(query, page: page + 1)
+        guard hasOlder, !busy, let query else { return }
+        await load(query, page: page - 1)
     }
 
-    private func load(_ filters: ReceiptSearch, page: Int) async {
+    private func load(_ filters: ReceiptSearch, page requestedPage: Int?) async {
         guard let company, let token else { return }
         busy = true
         error = nil
         defer { busy = false }
         do {
-            let result = try await api.receipts(filters, page: page, token: token, company: company.id)
+            let result = try await api.receipts(filters, page: requestedPage ?? 1, token: token, company: company.id)
+            // ReAI returns pages by journal ID ascending. Start at the newest page for a fresh search.
+            let page = requestedPage ?? max(1, result.totalPages)
+            let displayed = requestedPage == nil && page > 1
+                ? try await api.receipts(filters, page: page, token: token, company: company.id)
+                : result
             let known = Set(receipts.map(\.id))
-            receipts += result.items.filter { !known.contains($0.id) }
+            receipts += displayed.items.reversed().filter { !known.contains($0.id) }
             self.page = page
             query = filters
-            hasNext = result.hasNext
+            totalItems = displayed.totalItems
         } catch is CancellationError {
         } catch { self.error = error.localizedDescription }
     }
