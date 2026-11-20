@@ -66,6 +66,9 @@ def release(app_id, version):
                 raise ValueError('Only Apple Silicon releases are supported')
             framework = bundle / 'Contents' / 'Frameworks' / 'Sparkle.framework'
             if app.get('sparkle', False):
+                public_key = info.get('SUPublicEDKey')
+                if not isinstance(public_key, str) or len(base64.b64decode(public_key, validate=True)) != 32:
+                    raise ValueError('Sparkle release requires a valid SUPublicEDKey in the app Info.plist')
                 from sparkle import sign_framework
                 sign_framework(framework, identity, keychain)
             elif (bundle / 'Contents' / 'Frameworks').exists():

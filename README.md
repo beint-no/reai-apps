@@ -10,6 +10,7 @@ In daily use and actively developed.
 
 | App | What it does |
 | --- | --- |
+| [Receipt Printer for Mac](apple/receipt-printer) | Look up POS sales and print receipt copies with optional store messages. |
 | [Product Labels for Mac](apple/product-labels) | Create price, product and barcode labels; print variants in bulk. |
 | [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
 | [Shipping for Windows](windows/shipping) | Native Windows app to ship orders and print carrier labels. Unsigned ZIP download. |

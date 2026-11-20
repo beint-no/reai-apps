@@ -115,5 +115,15 @@
     "asset": "ReAI-Product-Labels-Apple-Silicon.dmg",
     "sparkle": true,
     "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
+  },
+  "receipt-printer": {
+    "name": "ReAI Receipt Printer",
+    "path": "apple/receipt-printer",
+    "executable": "ReAIReceiptPrinter",
+    "bundle_id": "no.reai.receiptprinter",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-Receipt-Printer-Apple-Silicon.dmg",
+    "sparkle": true,
+    "sparkle_key_secret": "RECEIPT_PRINTER_SPARKLE_PRIVATE_KEY"
   }
 }
