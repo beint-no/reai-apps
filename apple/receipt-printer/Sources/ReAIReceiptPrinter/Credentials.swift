@@ -4,7 +4,7 @@ import Security
 actor Credentials {
     private let identity: [String: String] = [
         kSecClass as String: kSecClassGenericPassword as String,
-        kSecAttrService as String: "no.reai.receiptprinter",
+        kSecAttrService as String: Bundle.main.bundleIdentifier ?? "no.reai.receiptprinter",
         kSecAttrAccount as String: "reai-access-token"
     ]
 
