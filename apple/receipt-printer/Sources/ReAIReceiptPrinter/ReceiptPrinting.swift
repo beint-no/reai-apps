@@ -7,19 +7,25 @@ struct ReceiptPrinting {
 
     init(printerName: String) throws {
         guard NSPrinter.printerNames.contains(printerName), let printer = NSPrinter(name: printerName) else {
-            throw appError("Select an installed printer before issuing a copy.")
+            throw appError("Select an installed printer before printing.")
         }
         self.printer = printer
     }
 
-    func printCopy(_ data: Data) throws -> Bool {
-        guard let document = PDFDocument(data: data), let first = document.page(at: 0) else {
-            throw appError("ReAI issued a copy but returned an unreadable PDF. Check the receipt journal.")
+    func printReceipt(_ data: Data, message: String, receiptNumber: String) throws -> Bool {
+        guard let source = PDFDocument(data: data) else {
+            throw appError("ReAI returned an unreadable receipt PDF.")
+        }
+        let document = try ReceiptPDF.withStoreMessage(message, in: source)
+        guard let first = document.page(at: 0) else {
+            throw appError("ReAI returned an empty receipt PDF.")
         }
         let info = NSPrintInfo(dictionary: [.copies: 1])
         info.printer = printer
         info.jobDisposition = .spool
-        info.paperSize = first.bounds(for: .mediaBox).size
+        info.paperSize = document.pageCount == 1
+            ? first.bounds(for: .mediaBox).size
+            : document.page(at: document.pageCount - 1)?.bounds(for: .mediaBox).size ?? first.bounds(for: .mediaBox).size
         info.topMargin = 0
         info.bottomMargin = 0
         info.leftMargin = 0
@@ -27,9 +33,9 @@ struct ReceiptPrinting {
         info.isHorizontallyCentered = true
         info.isVerticallyCentered = false
         guard let operation = document.printOperation(for: info, scalingMode: .pageScaleNone, autoRotate: false) else {
-            throw appError("ReAI issued the copy, but macOS could not prepare it for printing.")
+            throw appError("macOS could not prepare the receipt for printing.")
         }
-        operation.jobTitle = "ReAI receipt copy"
+        operation.jobTitle = "ReAI \(receiptNumber)"
         operation.showsPrintPanel = false
         return operation.run()
     }

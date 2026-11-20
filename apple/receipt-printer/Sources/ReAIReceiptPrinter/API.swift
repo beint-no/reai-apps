@@ -35,7 +35,6 @@ struct Receipt: Decodable, Identifiable, Sendable {
     let grossAmount: Decimal
     let lines: [Line]
 
-    var isSale: Bool { type == "sale" }
     var displayDate: String {
         var format = Date.FormatStyle(date: .abbreviated, time: .shortened)
         format.timeZone = ReceiptSearch.oslo
@@ -59,14 +58,14 @@ struct ReceiptSearch: Equatable, Sendable {
     let number: String
     let cashPoint: Int?
 
-    func parameters(page: Int) -> [URLQueryItem] {
+    func parameters(page: Int, pageSize: Int) -> [URLQueryItem] {
         let startAt = Self.calendar.startOfDay(for: start)
         let endAt = Self.calendar.dateInterval(of: .day, for: end)!.end
         var result = [
             URLQueryItem(name: "startAt", value: startAt.ISO8601Format()),
             URLQueryItem(name: "endAt", value: endAt.ISO8601Format()),
             URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "pageSize", value: "100"),
+            URLQueryItem(name: "pageSize", value: String(pageSize)),
         ]
         if !number.isEmpty { result.append(URLQueryItem(name: "receiptNumber", value: number)) }
         if let cashPoint { result.append(URLQueryItem(name: "cashPointId", value: String(cashPoint))) }
@@ -97,37 +96,26 @@ actor ReAIAPI {
         return company
     }
 
-    func receipts(_ search: ReceiptSearch, page: Int, token: String, company: Int) async throws -> ReceiptPage {
-        try await get("api/kassasystem/sales", token: token, company: company, query: search.parameters(page: page))
+    func receipts(_ search: ReceiptSearch, page: Int, pageSize: Int = 100, token: String, company: Int) async throws -> ReceiptPage {
+        try await get("api/kassasystem/sales", token: token, company: company, query: search.parameters(page: page, pageSize: pageSize))
     }
 
-    func issueCopy(receipt: Int64, attempt: CopyAttempt, token: String, company: Int) async throws -> Data {
-        struct CopyRequest: Encodable { let requestId: UUID; let storeMessage: String }
-        var request = URLRequest(url: AppEnvironment.origin.appending(path: "api/kassasystem/sales/\(receipt)/receipt-copy"))
-        request.httpMethod = "POST"
+    func receiptPDF(id: Int64, token: String, company: Int) async throws -> Data {
+        var request = URLRequest(url: AppEnvironment.origin.appending(path: "api/kassasystem/sales/\(id)/receipt.pdf"))
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/pdf", forHTTPHeaderField: "Accept")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("en", forHTTPHeaderField: "Accept-Language")
         request.setValue(String(company), forHTTPHeaderField: "X-Tenant-Id")
-        request.httpBody = try JSONEncoder().encode(CopyRequest(requestId: attempt.requestID, storeMessage: attempt.message))
-        let result: (Data, URLResponse)
-        do {
-            result = try await session.data(for: request)
-        } catch {
-            throw appError("ReAI may have issued the copy. Check the printer queue before using Resume same copy.")
-        }
-        let (data, raw) = result
+        let (data, raw) = try await session.data(for: request)
         guard let response = raw as? HTTPURLResponse else {
-            throw appError("The copy outcome is unknown. Check the receipt journal.")
+            throw appError("ReAI returned an invalid receipt response.")
         }
         switch response.statusCode {
         case 200 where response.mimeType == "application/pdf": return data
-        case 401: throw appError("Reconnect to ReAI to print a receipt copy.")
-        case 403: throw appError("You need permission to operate the cash register to issue a copy.")
-        case 404: throw appError("This sale or the receipt-copy API is unavailable.")
-        case 409: throw appError("ReAI found a different copy request for this sale. Check the receipt journal.")
-        default: throw appError("The copy outcome is unknown. Check the receipt journal.")
+        case 401: throw appError("Reconnect to ReAI to print a receipt.")
+        case 403: throw appError("You need permission to read cash register receipts.")
+        case 404: throw appError("ReAI could not find the receipt PDF.")
+        default: throw appError("Could not download the receipt PDF. Try again.")
         }
     }
 

@@ -1,16 +1,13 @@
 # ReAI Receipt Printer for Mac
 
-Look up an existing POS sale and print the ReAI receipt copy on an 80 mm thermal roll. The copy preserves the original sale details and QR. An optional store message, such as seasonal returns information, goes below the QR.
+Use a Mac as the printer for ReAI POS sales. The app loads the receipt from ReAI, preserves its items, prices, VAT and QR, and can add your store message at the bottom.
 
-1. Install a compatible Star or other thermal printer on the Mac in **System Settings → Printers & Scanners**. Confirm the manufacturer supports your printer model and macOS version.
-2. Open ReAI Receipt Printer and choose **Connect to ReAI**. Approve the correct company in the browser with a user who can read and operate its cash register.
-3. Choose a date range. The initial search covers the last seven business dates, including today. Changing either date reloads the results automatically. Use **Load older** to see earlier rows in the selected period. Optionally enter an exact receipt number and register ID. Select the receipt to see its stored line items and prices.
-4. Enter an optional store message and select the installed printer with an 80 mm roll.
-5. Choose **Print receipt copy…** and confirm. Give the original to the purchaser. The copy can go with the gift and shows the same prices. ReAI records the copy before the app sends the PDF to the selected queue.
+1. Install a compatible thermal printer on the Mac in **System Settings → Printers & Scanners**. Configure the printer for an 80 mm roll.
+2. Open **ReAI Receipt Printer → Connect to ReAI**. Sign in in the browser and choose the company whose receipts you want to print.
+3. Complete the sale in ReAI POS. Keep Receipt Printer open to see new receipts. The app refreshes every ten seconds when the date range includes today. Browse earlier sales by date, exact receipt number or cash register ID.
+4. Select the sale, enter an optional **Store message**, choose the printer and click **Print receipt…**. Confirm and check the paper or macOS printer queue. Use the Mac as the printer when giving the customer their receipt at checkout.
 
-The copy is marked **KOPI**. Its QR opens the original sale in ReAI, where staff can verify returns. The original sale receipt is issued at checkout. ReAI permits one issuance of the copy per sale. If the printer jams or the API response is lost, first check the paper and cancel any stuck job in the macOS queue. Select **Resume same copy…** only if the complete copy did not print. ReAI returns the same PDF and keeps one journal entry. After checking the paper, choose **Mark as printed** to close recovery on this Mac. Nothing is printed automatically. This feature requires a ReAI server with the receipt-copy endpoint.
-
-The app stores the connection in Keychain. Receipt data stays in memory. The request ID, store message and print status are saved under Application Support in the app’s local history so the same attempt can be resumed after restart. Select **Change company…** to replace the local connection, and use [your ReAI profile](https://app.reai.no/user/profile#user-access-tokens) to revoke it in ReAI.
+The app stores its company connection in Keychain. Receipt data and the store message stay in memory. **Change company…** lets you approve a different company. The app requires the fiscal receipt PDF endpoint in ReAI.
 
 ## Build and distribution
 

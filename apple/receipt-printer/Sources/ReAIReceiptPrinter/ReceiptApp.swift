@@ -59,6 +59,7 @@ struct ReceiptWindow: View {
                 connected(company)
                     .task(id: SearchTrigger(companyID: company.id, start: start, end: end, refresh: refresh)) {
                         await find()
+                        await watchForNewReceipts()
                     }
             } else {
                 ContentUnavailableView {
@@ -156,16 +157,14 @@ struct ReceiptWindow: View {
                 detail(receipt: receipt)
             } else {
                 ContentUnavailableView("Select a receipt", systemImage: "doc.text",
-                    description: Text("Choose a row on the left to view its purchase and print a receipt copy."))
+                    description: Text("Choose a row on the left to view its purchase and print its receipt."))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
 
     private func detail(receipt: Receipt) -> some View {
-        let attempt = model.copyAttempt(for: receipt)
-        let message = attempt?.message ?? note.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resuming = attempt != nil
+        let message = note.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -183,52 +182,34 @@ struct ReceiptWindow: View {
                 }
             }.frame(minHeight: 95, idealHeight: 130, maxHeight: 160)
 
-            if receipt.isSale {
-                Text("Store message (optional)").font(.headline)
-                if let attempt {
-                    Text(attempt.message.isEmpty ? "No store message on this copy." : attempt.message)
-                } else {
-                    TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
-                        .textFieldStyle(.roundedBorder).lineLimit(3...5)
-                }
-                Text("ReAI prints the original sale details and QR, marked KOPI, with this message at the bottom.")
-                    .foregroundStyle(.secondary)
-                if message.utf16.count > 500 { Text("Use at most 500 characters.").foregroundStyle(.red) }
+            Text("Store message (optional)").font(.headline)
+            TextField("e.g. Holiday returns accepted through 15 January", text: $note, axis: .vertical)
+                .textFieldStyle(.roundedBorder).lineLimit(3...5)
+            if message.utf16.count > ReceiptPDF.maximumMessageLength {
+                Text("Use at most 500 characters.").foregroundStyle(.red)
+            }
 
-                HStack {
-                    Picker("Printer", selection: $printer) {
-                        Text("Select an 80 mm printer").tag("")
-                        ForEach(printers, id: \.self) { Text($0).tag($0) }
-                    }
-                    Button("Refresh printers", action: refreshPrinters)
+            HStack {
+                Picker("Printer", selection: $printer) {
+                    Text("Select an 80 mm printer").tag("")
+                    ForEach(printers, id: \.self) { Text($0).tag($0) }
                 }
-                HStack {
-                    if attempt?.status == .printed {
-                        Text("Printing confirmed.").foregroundStyle(.secondary)
-                    } else {
-                        Button(resuming ? "Resume same copy…" : "Print receipt copy…") { confirmingPrint = true }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(printer.isEmpty || message.utf16.count > 500 || model.busy || !model.copyPrintingAvailable)
-                    }
-                    if attempt?.status == .sentToQueue {
-                        Button("Mark as printed") { model.markPrinted(receipt) }.disabled(model.busy)
-                    }
+                Button("Refresh printers", action: refreshPrinters)
+            }
+            HStack {
+                Button("Print receipt…") { confirmingPrint = true }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(printer.isEmpty || message.utf16.count > ReceiptPDF.maximumMessageLength || model.busy)
+                if model.queuedReceiptID == receipt.id {
+                    Text("Sent to printer.").foregroundStyle(.secondary)
                 }
-                .confirmationDialog(resuming ? "Resume the same receipt copy?" : "Print one receipt copy?", isPresented: $confirmingPrint, titleVisibility: .visible) {
-                    Button(resuming ? "Confirmed incomplete — resume" : "Issue and print copy") {
-                        Task { await model.printCopy(receipt: receipt, message: message, printer: printer, resume: resuming) }
-                    }
-                } message: {
-                    if resuming {
-                        Text("Check the paper and the macOS queue first. Cancel any stuck job. Continue only if the complete copy did not print.")
-                    } else {
-                        Text("Confirm the printer has an 80 mm roll. Keep the original with the purchaser. This KOPI can go with the gift.")
-                    }
+            }
+            .confirmationDialog("Print receipt \(receipt.receiptNumber)?", isPresented: $confirmingPrint, titleVisibility: .visible) {
+                Button("Print") {
+                    Task { await model.printReceipt(receipt, message: message, printer: printer) }
                 }
-                if attempt?.status == .sentToQueue { Text("In printer queue. Confirm after checking the paper.").foregroundStyle(.secondary) }
-                if attempt?.status == .checkQueue { Text("Print outcome uncertain. Check the printer queue.").foregroundStyle(.secondary) }
-            } else {
-                Text("Receipt copies are available for sales.").foregroundStyle(.secondary)
+            } message: {
+                Text("Use this printer for the receipt you will give the customer at checkout.")
             }
             Spacer(minLength: 0)
         }
@@ -237,7 +218,10 @@ struct ReceiptWindow: View {
 
     private func refreshPrinters() {
         printers = NSPrinter.printerNames.sorted()
-        if !printers.contains(printer) { printer = "" }
+        if !printers.contains(printer) {
+            let defaultPrinter = NSPrintInfo.shared.printer.name
+            printer = printers.contains(defaultPrinter) ? defaultPrinter : (printers.count == 1 ? printers[0] : "")
+        }
     }
 
     private func find() async {
@@ -249,6 +233,22 @@ struct ReceiptWindow: View {
             await model.search(start: start, end: end, number: number, register: register)
         } catch {
             // Selecting another date cancels this search.
+        }
+    }
+
+    private func watchForNewReceipts() async {
+        let calendar = ReceiptSearch.calendar
+        let today = calendar.startOfDay(for: Date())
+        guard calendar.startOfDay(for: start) <= today, today <= calendar.startOfDay(for: end) else { return }
+        let followsToday = calendar.isDateInToday(end)
+        while !Task.isCancelled {
+            do { try await Task.sleep(for: .seconds(10)) }
+            catch { return }
+            if followsToday, !calendar.isDateInToday(end) {
+                end = Date()
+                return
+            }
+            await model.refreshLatest()
         }
     }
 }
