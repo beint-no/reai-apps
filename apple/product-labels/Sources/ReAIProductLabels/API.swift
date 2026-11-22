@@ -70,7 +70,7 @@ actor ReAIAPI {
     }
     func vatCodes(token: String, company: Int, salesOnly: Bool = false) async throws -> [VatCode] {
         try await get("api/vat-codes", token: token, company: company,
-                      query: salesOnly ? [URLQueryItem(name: "usage", value: "customer-invoice")] : [])
+                      query: salesOnly ? [URLQueryItem(name: "usage", value: "customer_invoice")] : [])
     }
     private func get<T: Decodable>(_ path: String, token: String, company: Int? = nil, query: [URLQueryItem] = []) async throws -> T {
         var request = URLRequest(url: AppEnvironment.origin.appending(path: path).appending(queryItems: query))
