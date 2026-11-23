@@ -175,6 +175,14 @@ struct CommercePickingOrder: Decodable, Identifiable, Equatable, Sendable {
 struct CommercePickingPage: Decodable, Sendable {
     let items: [CommercePickingOrder]; let page: Int; let totalPages: Int; let totalItems: Int
 }
+struct CommercePickupHistoryOrder: Decodable, Identifiable, Equatable, Sendable {
+    let id: Int; let number: String; let customerName: String; let date: String
+    let orderedAt: String?; let collectedAt: String
+    let email: String?; let phone: String?; let pickupInstructions: String?
+}
+struct CommercePickupHistoryPage: Decodable, Sendable {
+    let items: [CommercePickupHistoryOrder]; let page: Int; let totalPages: Int; let totalItems: Int
+}
 struct CommercePickingLine: Decodable, Equatable, Sendable {
     let orderLineId: Int; let variantId: Int; let title: String; let sku: String?; let quantity: Decimal
     let bundleTitle: String?; let locations: [ItemLocation]; let pick: PickLine?
@@ -332,6 +340,13 @@ extension ReAIAPI {
     func pickupOrders(token: String, company: Int, search: String, page: Int) async throws -> CommercePickingPage {
         try await json("api/app-commerce/orders", token: token, company: company, query: [
             URLQueryItem(name: "delivery", value: "pickup"),
+            URLQueryItem(name: "query", value: search),
+            URLQueryItem(name: "page", value: String(page + 1)),
+            URLQueryItem(name: "pageSize", value: "50"),
+        ])
+    }
+    func pickupHistory(token: String, company: Int, search: String, page: Int) async throws -> CommercePickupHistoryPage {
+        try await json("api/app-commerce/pickup-history", token: token, company: company, query: [
             URLQueryItem(name: "query", value: search),
             URLQueryItem(name: "page", value: String(page + 1)),
             URLQueryItem(name: "pageSize", value: "50"),

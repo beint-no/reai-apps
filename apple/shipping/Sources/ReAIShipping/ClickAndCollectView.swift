@@ -21,8 +21,8 @@ struct ClickAndCollectView: View {
                 Task { await model.printPickupLabel(markReady: false, confirmedReprint: true) }
             }
         } message: {
-            if let order = model.selectedPickupOrder {
-                Text("1 × Click & Collect label · \(order.number) (does not resend customer email)")
+            if let number = model.showingPickupHistory ? model.selectedPickupHistoryOrder?.number : model.selectedPickupOrder?.number {
+                Text("1 × Click & Collect label · \(number) (does not resend customer email)")
             }
         }
         .confirmationDialog(resendDialogTitle, isPresented: $confirmResendEmail) {
@@ -49,12 +49,20 @@ struct ClickAndCollectView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text("Click & Collect").font(.subheadline.weight(.semibold))
-                Text("\(model.pickupTotalOrders)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Text("\(model.showingPickupHistory ? model.pickupHistoryTotalOrders : model.pickupTotalOrders)")
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 Spacer()
                 if model.loadingPickups { ProgressView().controlSize(.mini) }
                 Button { Task { await model.refreshPickups() } } label: { Image(systemName: "arrow.clockwise") }
                     .buttonStyle(.borderless).help("Refresh Click & Collect orders").disabled(model.busy)
             }.padding(.horizontal, 10).padding(.top, 8)
+            Picker("Click & Collect", selection: Binding(get: { model.showingPickupHistory }, set: { history in
+                Task { await model.changePickupView(history: history) }
+            })) {
+                Text("Ready").tag(false)
+                Text("History").tag(true)
+            }.pickerStyle(.segmented).labelsHidden().controlSize(.small).frame(maxWidth: .infinity).padding(.horizontal, 10)
+                .disabled(model.busy || model.loadingPickups)
             HStack(spacing: 4) {
                 TextField("Order or customer", text: $model.pickupSearch)
                     .textFieldStyle(.roundedBorder).controlSize(.small)
@@ -62,47 +70,99 @@ struct ClickAndCollectView: View {
                 Button { Task { await model.refreshPickups() } } label: { Image(systemName: "magnifyingglass") }
                     .controlSize(.small).help("Search Click & Collect orders").disabled(model.loadingPickups)
             }.padding(.horizontal, 10).disabled(model.busy)
-            if model.pickupOrders.isEmpty && !model.loadingPickups {
-                Text("No pending Click & Collect orders.")
-                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 10).padding(.top, 4)
-            }
-            List {
-                ForEach(model.pickupOrders) { order in
-                    let isReady = order.pickupReadiness?.ready == true
-                    let isPrinted = model.pickupRecord(order.id) != nil
-                    Button { Task { await model.selectPickup(order) } } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 4) {
-                                Text(order.number).font(.callout.weight(.semibold)).lineLimit(1)
-                                if isReady {
-                                    Text("Ready")
-                                        .font(.caption2.weight(.semibold))
+            if model.showingPickupHistory {
+                if model.pickupHistoryOrders.isEmpty && !model.loadingPickups {
+                    Text("No collected Click & Collect orders yet.")
+                        .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 10).padding(.top, 4)
+                }
+                List {
+                    ForEach(model.pickupHistoryOrders) { order in
+                        Button { Task { await model.selectPickupHistory(order) } } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 4) {
+                                    Text(order.number).font(.callout.weight(.semibold)).lineLimit(1)
+                                    Text("Collected")
+                                        .font(.caption2.weight(.medium))
                                         .padding(.horizontal, 5).padding(.vertical, 1)
-                                        .background(Color.teal.opacity(0.16), in: Capsule())
-                                        .foregroundStyle(.teal)
-                                } else if isPrinted {
-                                    Image(systemName: "printer.fill").font(.caption2).foregroundStyle(.secondary)
+                                        .background(Color.secondary.opacity(0.14), in: Capsule())
+                                        .foregroundStyle(.secondary)
+                                    Spacer(minLength: 4)
+                                    Text(Self.shortDate(order.collectedAt) ?? order.date)
+                                        .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                                 }
-                                Spacer(minLength: 4)
-                                Text(order.date).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
-                            }
-                            Text(order.customerName).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                        }.padding(.vertical, 2).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                    }.buttonStyle(.plain)
-                        .listRowBackground(model.selectedPickupOrder?.id == order.id ? Color.accentColor.opacity(0.14) : Color.clear)
-                        .disabled(model.busy)
+                                Text(order.customerName).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            }.padding(.vertical, 2).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                            .listRowBackground(model.selectedPickupHistoryOrder?.id == order.id ? Color.accentColor.opacity(0.14) : Color.clear)
+                            .disabled(model.busy)
+                    }
+                    if model.canLoadMorePickups {
+                        Button("Load more") { Task { await model.refreshPickups(more: true) } }
+                            .controlSize(.small).disabled(model.busy || model.loadingPickups)
+                    }
+                }.listStyle(.sidebar)
+            } else {
+                if model.pickupOrders.isEmpty && !model.loadingPickups {
+                    Text("No Click & Collect orders to handle.")
+                        .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 10).padding(.top, 4)
                 }
-                if model.canLoadMorePickups {
-                    Button("Load more") { Task { await model.refreshPickups(more: true) } }
-                        .controlSize(.small).disabled(model.busy || model.loadingPickups)
-                }
-            }.listStyle(.sidebar)
+                List {
+                    ForEach(model.pickupOrders) { order in
+                        let isReady = order.pickupReadiness?.ready == true
+                        let isPrinted = model.pickupRecord(order.id) != nil
+                        Button { Task { await model.selectPickup(order) } } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 4) {
+                                    Text(order.number).font(.callout.weight(.semibold)).lineLimit(1)
+                                    if isReady {
+                                        Text("Ready")
+                                            .font(.caption2.weight(.semibold))
+                                            .padding(.horizontal, 5).padding(.vertical, 1)
+                                            .background(Color.teal.opacity(0.16), in: Capsule())
+                                            .foregroundStyle(.teal)
+                                    } else if isPrinted {
+                                        Image(systemName: "printer.fill").font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                    Spacer(minLength: 4)
+                                    Text(order.date).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                                }
+                                Text(order.customerName).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            }.padding(.vertical, 2).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                            .listRowBackground(model.selectedPickupOrder?.id == order.id ? Color.accentColor.opacity(0.14) : Color.clear)
+                            .disabled(model.busy)
+                    }
+                    if model.canLoadMorePickups {
+                        Button("Load more") { Task { await model.refreshPickups(more: true) } }
+                            .controlSize(.small).disabled(model.busy || model.loadingPickups)
+                    }
+                }.listStyle(.sidebar)
+            }
         }
     }
 
     @ViewBuilder private var pickupDetails: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let order = model.selectedPickupOrder {
+            if model.showingPickupHistory {
+                if let order = model.selectedPickupHistoryOrder {
+                    pickupHistoryHeader(order)
+                    OrderItemsCardView(items: model.pickupHistoryDisplayedItems, loading: model.busy)
+                    if let notes = model.pickupHistoryNotes {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "note.text").foregroundStyle(.secondary)
+                            Text(notes).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    pickupHistoryInfoAndActions(order)
+                } else {
+                    ContentUnavailableView("Choose a collected order", systemImage: "clock.arrow.circlepath",
+                                           description: Text("Pick a collected Click & Collect order on the left to view its items, handover time, or reprint a label."))
+                        .padding(.vertical, 24)
+                }
+            } else if let order = model.selectedPickupOrder {
                 pickupHeader(order)
                 OrderItemsCardView(items: model.pickupDisplayedItems, loading: model.busy)
                 if let notes = model.selectedPickupDetail?.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
@@ -122,6 +182,113 @@ struct ClickAndCollectView: View {
                     .padding(.vertical, 24)
             }
         }
+    }
+
+    private func pickupHistoryHeader(_ order: CommercePickupHistoryOrder) -> some View {
+        let collectedLabel = Self.shortDateTime(order.collectedAt).map { "Collected · \($0)" } ?? "Collected"
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(order.number).font(.title2.bold())
+            Text(order.customerName).font(.headline).foregroundStyle(.secondary).lineLimit(1)
+            Text(collectedLabel)
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 7).padding(.vertical, 2)
+                .background(Color.teal.opacity(0.14), in: Capsule())
+                .foregroundStyle(.teal)
+            Spacer(minLength: 8)
+            if let company = model.company {
+                Link("Open in ReAI", destination: AppEnvironment.origin.appending(path: "order/\(order.id)")
+                    .appending(queryItems: [URLQueryItem(name: "tenantId", value: String(company.id))]))
+                    .font(.caption)
+            }
+        }
+    }
+
+    private func pickupHistoryInfoAndActions(_ order: CommercePickupHistoryOrder) -> some View {
+        let hasReceipt = model.pickupRecord(order.id) != nil
+        let contactParts = [order.customerName, order.phone, order.email]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Button {
+                    if hasReceipt {
+                        confirmReprint = true
+                    } else {
+                        Task { await model.printPickupLabel(markReady: false) }
+                    }
+                } label: {
+                    Label(hasReceipt ? "Print \"Will be collected\" label again" : "Print \"Will be collected\" label", systemImage: "printer")
+                }
+                .buttonStyle(.bordered)
+                .disabled(!model.canPrint || model.loadingPickups || model.selectedPickupHistoryDetail == nil)
+                Spacer(minLength: 8)
+            }
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "person").font(.caption).foregroundStyle(.secondary)
+                        Text(contactParts.joined(separator: " · ")).font(.callout).textSelection(.enabled)
+                    }
+                    if let instructions = order.pickupInstructions?.trimmingCharacters(in: .whitespacesAndNewlines), !instructions.isEmpty {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "storefront").font(.caption).foregroundStyle(.secondary).padding(.top, 2)
+                            Text(instructions).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                    }
+                    if let receipt = model.pickupRecord(order.id) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "printer").font(.caption).foregroundStyle(.secondary)
+                            Text((receipt.state == "queued" ? "Label sent to queue" : "Check printer queue") + " · " + receipt.printerId.replacingOccurrences(of: "_", with: " "))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.08)))
+
+                if model.selectedPickupHistoryDetail != nil,
+                   let data = try? model.pickupLabelPDF(),
+                   let pdf = PDFDocument(data: data),
+                   let page = pdf.page(at: 0) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Label preview · 100 × 150 mm").font(.caption2).foregroundStyle(.secondary)
+                        Image(nsImage: page.thumbnail(of: CGSize(width: 240, height: 360), for: .mediaBox))
+                            .resizable().aspectRatio(contentMode: .fit)
+                            .frame(width: 120, height: 180)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.primary.opacity(0.15)))
+                    }
+                }
+            }
+        }
+    }
+
+    private static func parseISO(_ value: String) -> Date? {
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let parsed = withFractional.date(from: value) { return parsed }
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        return plain.date(from: value)
+    }
+
+    private static func shortDate(_ iso: String) -> String? {
+        guard let date = parseISO(iso) else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private static func shortDateTime(_ iso: String) -> String? {
+        guard let date = parseISO(iso) else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter.string(from: date)
     }
 
     private func pickupHeader(_ order: CommercePickingOrder) -> some View {

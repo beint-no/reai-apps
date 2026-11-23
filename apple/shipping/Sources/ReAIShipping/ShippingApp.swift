@@ -109,6 +109,9 @@ struct ShippingView: View {
         }
         .onChange(of: model.selectedOrder?.id) { _, _ in editingRecipient = false }
         .onChange(of: model.section) { _, _ in Task { await model.refreshPickupSummary() } }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await model.refreshOnAppActivate() }
+        }
         .confirmationDialog("Print again? Check the printer queue first.", isPresented: Binding(get: { reprint != nil }, set: { if !$0 { reprint = nil } })) {
             if let record = reprint { Button("Print again") { Task { await model.reprint(record) }; reprint = nil } }
         } message: {
