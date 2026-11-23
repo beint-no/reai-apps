@@ -157,12 +157,35 @@ struct PickOption: Decodable, Equatable, Sendable {
 struct PickLine: Decodable, Equatable, Sendable {
     let variantId: Int; let selectedLocationId: Int?; let suggestedLocationId: Int?; let options: [PickOption]
 }
+struct StorePickupReadiness: Decodable, Equatable, Sendable {
+    let eligible: Bool
+    let revision: String
+    let emailStatus: String?
+    let ready: Bool
+    let allowsNotification: Bool
+}
+struct CommercePickingSummary: Decodable, Equatable, Sendable {
+    let shipping: Int; let pickup: Int
+}
+struct CommercePickingOrder: Decodable, Identifiable, Equatable, Sendable {
+    let id: Int; let number: String; let customerName: String; let date: String
+    let delivery: String; let orderedAt: String?
+    let pickupReadiness: StorePickupReadiness?
+}
+struct CommercePickingPage: Decodable, Sendable {
+    let items: [CommercePickingOrder]; let page: Int; let totalPages: Int; let totalItems: Int
+}
 struct CommercePickingLine: Decodable, Equatable, Sendable {
     let orderLineId: Int; let variantId: Int; let title: String; let sku: String?; let quantity: Decimal
     let bundleTitle: String?; let locations: [ItemLocation]; let pick: PickLine?
 }
 struct CommercePickingDetail: Decodable, Equatable, Sendable {
-    let notes: String?; let pickupInstructions: String?; let lines: [CommercePickingLine]
+    let order: CommercePickingOrder?
+    let email: String?; let phone: String?
+    let notes: String?; let pickupInstructions: String?
+    let canFulfillPickup: Bool?
+    let lines: [CommercePickingLine]
+    let pickupReadiness: StorePickupReadiness?
 }
 struct OrderDetailLine: Decodable, Equatable, Sendable {
     let id: Int; let itemName: String; let variantId: Int?; let variantTitle: String?; let sku: String?; let quantity: Decimal; let comment: String?
@@ -301,6 +324,26 @@ extension ReAIAPI {
     func pickingDetail(order: Int, token: String, company: Int) async throws -> CommercePickingDetail? {
         do { return try await json("api/app-commerce/orders/\(order)", token: token, company: company) }
         catch let error as NSError where error.code == 403 || error.code == 404 { return nil }
+    }
+    func pickingSummary(token: String, company: Int) async throws -> CommercePickingSummary? {
+        do { return try await json("api/app-commerce/summary", token: token, company: company) }
+        catch let error as NSError where error.code == 403 || error.code == 404 { return nil }
+    }
+    func pickupOrders(token: String, company: Int, search: String, page: Int) async throws -> CommercePickingPage {
+        try await json("api/app-commerce/orders", token: token, company: company, query: [
+            URLQueryItem(name: "delivery", value: "pickup"),
+            URLQueryItem(name: "query", value: search),
+            URLQueryItem(name: "page", value: String(page + 1)),
+            URLQueryItem(name: "pageSize", value: "50"),
+        ])
+    }
+    func markPickupReady(order: Int, expectedRevision: String, token: String, company: Int) async throws -> CommercePickingDetail {
+        struct Request: Encodable { let expectedRevision: String }
+        return try await json("api/app-commerce/orders/\(order)/pickup-ready", token: token, company: company,
+                              body: JSONEncoder().encode(Request(expectedRevision: expectedRevision)))
+    }
+    func fulfillPickup(order: Int, token: String, company: Int) async throws -> CommercePickingSummary {
+        try await json("api/app-commerce/orders/\(order)/fulfill-pickup", token: token, company: company, body: Data())
     }
     func orderDetail(order: Int, token: String, company: Int) async throws -> OrderDetail? {
         do { return try await json("api/orders/\(order)", token: token, company: company) }

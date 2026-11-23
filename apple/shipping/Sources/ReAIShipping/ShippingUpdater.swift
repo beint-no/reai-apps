@@ -22,7 +22,7 @@ final class ShippingUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
-        guard !model.busy, !model.loadingLocations, !model.connecting else {
+        guard !model.busy, !model.loadingLocations, !model.loadingPickups, !model.connecting else {
             throw NSError(domain: "no.reai.shipping.updater", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "Updates wait until shipping, printing and sign-in finish."])
         }

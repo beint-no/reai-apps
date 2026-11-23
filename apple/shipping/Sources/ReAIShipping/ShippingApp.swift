@@ -29,13 +29,13 @@ struct ShippingApp: App {
         .commands {
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") { updater.check() }
-                    .disabled(model.busy || model.loadingLocations || model.connecting || !updater.canCheck)
+                    .disabled(model.busy || model.loadingLocations || model.loadingPickups || model.connecting || !updater.canCheck)
             }
         }
         MenuBarExtra("ReAI Shipping", systemImage: "shippingbox") {
             Button("Open ReAI Shipping") { openWindow(id: "shipping"); NSApp.activate() }
             Button("Check for Updates…") { updater.check() }
-                .disabled(model.busy || model.loadingLocations || model.connecting || !updater.canCheck)
+                .disabled(model.busy || model.loadingLocations || model.loadingPickups || model.connecting || !updater.canCheck)
             Divider()
             Button("Quit") { NSApp.terminate(nil) }.disabled(model.busy)
         }
@@ -59,11 +59,12 @@ struct ShippingView: View {
                 }
                 Spacer()
                 if model.company != nil {
-                    Picker("Section", selection: $model.showingLocations) {
-                        Text("Shipping").tag(false)
-                        Text("Locations").tag(true)
-                    }.pickerStyle(.segmented).labelsHidden().frame(width: 184)
-                        .disabled(model.busy || model.loadingLocations)
+                    Picker("Section", selection: $model.section) {
+                        Text("Shipping").tag(AppSection.shipping)
+                        Text(model.pickupCount > 0 ? "Click & Collect (\(model.pickupCount))" : "Click & Collect").tag(AppSection.pickup)
+                        Text("Locations").tag(AppSection.locations)
+                    }.pickerStyle(.segmented).labelsHidden().fixedSize()
+                        .disabled(model.busy || model.loadingLocations || model.loadingPickups)
                 }
                 if model.busy { ProgressView().controlSize(.small) }
                 if model.company != nil { Button("Disconnect") { disconnect = true }.controlSize(.small).disabled(model.busy) }
@@ -71,8 +72,12 @@ struct ShippingView: View {
             Divider()
             if model.company == nil { connection.padding(32); Spacer() }
             else {
-                if model.showingLocations { LocationLabelsView(model: model) }
-                else {
+                switch model.section {
+                case .locations:
+                    LocationLabelsView(model: model)
+                case .pickup:
+                    ClickAndCollectView(model: model)
+                case .shipping:
                     HSplitView {
                         orderList.frame(minWidth: 190, idealWidth: 225, maxWidth: 270)
                         ScrollView { details.padding(16).frame(maxWidth: .infinity, alignment: .leading) }.frame(minWidth: 520)
@@ -95,7 +100,7 @@ struct ShippingView: View {
                         }.controlSize(.small)
                     }
                     Spacer()
-                    Text(model.showingLocations ? "One copy · Actual label size" : "One copy · Carrier PDF size").font(.caption).foregroundStyle(.secondary)
+                    Text(footerCaption).font(.caption).foregroundStyle(.secondary)
                 }.padding(.horizontal, 14).padding(.vertical, 8)
             }
             if let notice = model.notice { Label(notice, systemImage: "info.circle").font(.caption).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 14).padding(.bottom, 8) }
@@ -250,51 +255,16 @@ struct ShippingView: View {
             .foregroundStyle(color)
     }
 
-    private func itemsCard(_ items: [OrderItem]) -> some View {
-        let totalUnits = items.reduce(Decimal(0)) { $0 + $1.quantity }
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Label("Items & locations", systemImage: "list.bullet.clipboard").font(.subheadline.weight(.semibold))
-                Spacer()
-                if !items.isEmpty {
-                    Text("\(formatQuantity(totalUnits)) \(totalUnits == 1 ? "pc" : "pcs") · \(items.count) \(items.count == 1 ? "line" : "lines")")
-                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.primary.opacity(0.03))
-            Divider()
-            if items.isEmpty {
-                Text(model.busy ? "Loading items and locations…" : "No items listed for this order.")
-                    .font(.callout).foregroundStyle(.secondary)
-                    .padding(.horizontal, 12).padding(.vertical, 10)
-            } else {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    if index > 0 { Divider().padding(.leading, 12) }
-                    HStack(alignment: .top, spacing: 10) {
-                        Text("\(formatQuantity(item.quantity))×")
-                            .font(.headline.monospacedDigit())
-                            .frame(minWidth: 36, alignment: .trailing)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.title).font(.body.weight(.semibold)).textSelection(.enabled)
-                            HStack(spacing: 8) {
-                                if let sku = item.sku, !sku.isEmpty {
-                                    Text(sku).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
-                                }
-                                if let bundle = item.bundleTitle, !bundle.isEmpty {
-                                    Text("Bundle: \(bundle)").font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        Spacer(minLength: 10)
-                        locationBadges(item.locations)
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                }
-            }
+    private var footerCaption: String {
+        switch model.section {
+        case .locations: "One copy · Actual label size"
+        case .pickup: "One copy · 100 × 150 mm Click & Collect label"
+        case .shipping: "One copy · Carrier PDF size"
         }
-        .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.09)))
+    }
+
+    private func itemsCard(_ items: [OrderItem]) -> some View {
+        OrderItemsCardView(items: items, loading: model.busy)
     }
 
     @ViewBuilder private var orderNotesBanner: some View {
@@ -310,33 +280,7 @@ struct ShippingView: View {
     }
 
     private func locationBadges(_ locations: [OrderItemLocation]) -> some View {
-        VStack(alignment: .trailing, spacing: 3) {
-            if locations.isEmpty {
-                Text("No location").font(.caption).foregroundStyle(.secondary)
-            } else {
-                ForEach(Array(locations.enumerated()), id: \.offset) { _, location in
-                    if location.isPrimary {
-                        HStack(spacing: 4) {
-                            Image(systemName: "mappin.and.ellipse").font(.caption).foregroundStyle(.teal)
-                            Text(location.label).font(.callout.weight(.semibold))
-                            if let stock = location.stockText {
-                                Text("(\(stock))").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.teal.opacity(0.13), in: RoundedRectangle(cornerRadius: 6))
-                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.teal.opacity(0.32)))
-                    } else {
-                        HStack(spacing: 4) {
-                            Text(location.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                            if let stock = location.stockText {
-                                Text("(\(stock))").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        LocationBadgesView(locations: locations)
     }
 
     @ViewBuilder private var primaryActionBar: some View {
@@ -689,5 +633,91 @@ struct ShippingView: View {
     private func customsInvoiceURL(shipmentId: Int, tenantId: Int) -> URL {
         AppEnvironment.origin.appending(path: "shipments/\(shipmentId)/customs-invoice/preview")
             .appending(queryItems: [URLQueryItem(name: "tenantId", value: String(tenantId))])
+    }
+}
+
+struct OrderItemsCardView: View {
+    let items: [OrderItem]
+    let loading: Bool
+
+    var body: some View {
+        let totalUnits = items.reduce(Decimal(0)) { $0 + $1.quantity }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("Items & locations", systemImage: "list.bullet.clipboard").font(.subheadline.weight(.semibold))
+                Spacer()
+                if !items.isEmpty {
+                    Text("\(NSDecimalNumber(decimal: totalUnits).stringValue) \(totalUnits == 1 ? "pc" : "pcs") · \(items.count) \(items.count == 1 ? "line" : "lines")")
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Color.primary.opacity(0.03))
+            Divider()
+            if items.isEmpty {
+                Text(loading ? "Loading items and locations…" : "No items listed for this order.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+            } else {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 { Divider().padding(.leading, 12) }
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("\(NSDecimalNumber(decimal: item.quantity).stringValue)×")
+                            .font(.headline.monospacedDigit())
+                            .frame(minWidth: 36, alignment: .trailing)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title).font(.body.weight(.semibold)).textSelection(.enabled)
+                            HStack(spacing: 8) {
+                                if let sku = item.sku, !sku.isEmpty {
+                                    Text(sku).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
+                                }
+                                if let bundle = item.bundleTitle, !bundle.isEmpty {
+                                    Text("Bundle: \(bundle)").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        Spacer(minLength: 10)
+                        LocationBadgesView(locations: item.locations)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                }
+            }
+        }
+        .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.09)))
+    }
+}
+
+struct LocationBadgesView: View {
+    let locations: [OrderItemLocation]
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 3) {
+            if locations.isEmpty {
+                Text("No location").font(.caption).foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(locations.enumerated()), id: \.offset) { _, location in
+                    if location.isPrimary {
+                        HStack(spacing: 4) {
+                            Image(systemName: "mappin.and.ellipse").font(.caption).foregroundStyle(.teal)
+                            Text(location.label).font(.callout.weight(.semibold))
+                            if let stock = location.stockText {
+                                Text("(\(stock))").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.teal.opacity(0.13), in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.teal.opacity(0.32)))
+                    } else {
+                        HStack(spacing: 4) {
+                            Text(location.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                            if let stock = location.stockText {
+                                Text("(\(stock))").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
