@@ -20,6 +20,35 @@ struct ShippingOperation: Codable, Identifiable {
     var state: String
 }
 
+struct OrderItemLocation: Equatable, Hashable, Sendable {
+    let label: String
+    let stockText: String?
+    let isPrimary: Bool
+}
+
+struct OrderItem: Identifiable, Equatable, Sendable {
+    let id: String
+    let orderLineId: Int?
+    let title: String
+    let sku: String?
+    let bundleTitle: String?
+    let quantity: Decimal
+    let locations: [OrderItemLocation]
+}
+
+struct DraftLineInfo: Sendable {
+    let title: String
+    let sku: String?
+    let locations: [OrderItemLocation]
+    let bundleComponents: [OrderItem]
+}
+
+private struct OrderItemContext: Sendable {
+    let picking: CommercePickingDetail?
+    let order: OrderDetail?
+    let stockByVariant: [Int: [ItemLocation]]
+}
+
 @MainActor @Observable
 final class ShippingModel {
     var showingLocations = false
@@ -72,6 +101,9 @@ final class ShippingModel {
     var pickups: [Pickup] = []
     var quote: Quote?
     var shipment: Shipment?
+    var pickingDetail: CommercePickingDetail?
+    var orderDetail: OrderDetail?
+    var stockByVariant: [Int: [ItemLocation]] = [:]
     var operations: [ShippingOperation] = []
     private var bookingJournal: URL { journal.deletingLastPathComponent().appending(path: "shipping-operations.json") }
     var unfinished: [ShippingOperation] { operations.filter { $0.tenantId == company?.id && $0.state != "done" } }
@@ -173,6 +205,7 @@ final class ShippingModel {
             warehouses = []; warehouseId = 0; locations = []; locationZones = []; locationZoneId = 0; locationSearch = ""
             savedShipments = []; historyBeforeId = nil; shipmentBeforeId = nil
             orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; quote = nil
+            pickingDetail = nil; orderDetail = nil; stockByVariant = [:]
             notice = nil
         } catch { self.error = error.localizedDescription }
     }
@@ -192,6 +225,7 @@ final class ShippingModel {
         showingHistory = history
         historyBeforeId = nil; shipmentBeforeId = nil; error = nil; notice = nil
         orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; savedShipments = []; quote = nil
+        pickingDetail = nil; orderDetail = nil; stockByVariant = [:]
         await refreshOrders()
     }
 
@@ -246,7 +280,11 @@ final class ShippingModel {
         defer { busy = false }
         savedShipments = []; shipmentBeforeId = nil
         selectedOrder = order; options = nil; draft = nil; rates = []; pickups = []; quote = nil; shipment = nil
+        pickingDetail = nil; orderDetail = nil; stockByVariant = [:]
         error = nil; notice = nil
+        let isHistory = showingHistory
+        let api = self.api
+        async let itemContext = Self.loadOrderItems(api: api, orderId: order.id, isHistory: isHistory, token: token, company: company.id)
         do {
             let history = try await api.shipments(order: order.id, token: token, company: company.id)
             savedShipments = history.items; shipmentBeforeId = history.nextBeforeId
@@ -254,9 +292,7 @@ final class ShippingModel {
                 if let id = savedShipments.first(where: { $0.status == "booked" })?.id ?? savedShipments.first?.id {
                     shipment = try await api.shipment(id, token: token, company: company.id)
                 } else { notice = "No saved shipping labels for this order." }
-                return
-            }
-            if let saved = unfinished.first(where: { $0.orderId == order.id }) {
+            } else if let saved = unfinished.first(where: { $0.orderId == order.id }) {
                 if let id = saved.shipmentId { shipment = try await api.shipment(id, token: token, company: company.id) }
                 else { draft = saved.draft; notice = "A saved shipping request needs checking. Use Resume below." }
             } else if let id = order.preparedShipmentId {
@@ -266,12 +302,18 @@ final class ShippingModel {
                 options = result
                 if let id = result.existingShipments.items.first(where: { $0.status == "prepared" })?.id {
                     shipment = try await api.shipment(id, token: token, company: company.id)
-                    return
+                } else {
+                    draft = result.defaults
+                    if draft != nil { try await loadRates(token: token, company: company.id) }
                 }
-                draft = result.defaults
-                if draft != nil { try await loadRates(token: token, company: company.id) }
             }
         } catch { self.error = error.localizedDescription }
+        let context = await itemContext
+        guard selectedOrder?.id == order.id else { return }
+        pickingDetail = context.picking
+        orderDetail = context.order
+        stockByVariant = context.stockByVariant
+        await ensureFallbackOrderItemsIfNeeded(orderId: order.id, token: token, company: company.id)
     }
 
     func loadMoreShipments() async {
@@ -289,8 +331,226 @@ final class ShippingModel {
         guard !busy, let token, let company else { return }
         busy = true; defer { busy = false }
         error = nil; notice = nil
-        do { shipment = try await api.shipment(id, token: token, company: company.id); draft = nil; quote = nil }
-        catch { self.error = error.localizedDescription }
+        do {
+            shipment = try await api.shipment(id, token: token, company: company.id); draft = nil; quote = nil
+            if let orderId = selectedOrder?.id {
+                await ensureFallbackOrderItemsIfNeeded(orderId: orderId, token: token, company: company.id)
+            }
+        } catch { self.error = error.localizedDescription }
+    }
+
+    private func ensureFallbackOrderItemsIfNeeded(orderId: Int, token: String, company: Int) async {
+        guard orderDetail == nil, let picking = pickingDetail else { return }
+        let pickedLineIds = Set(picking.lines.map(\.orderLineId))
+        let referencedIds: [Int] = if let shipment {
+            shipment.lines.compactMap(\.orderLineId)
+        } else if let draft {
+            draft.lines.map(\.orderLineId)
+        } else { [] }
+        guard referencedIds.contains(where: { !pickedLineIds.contains($0) }) else { return }
+        let fallback = await Self.loadFallbackOrderItems(api: api, orderId: orderId, token: token, company: company)
+        guard selectedOrder?.id == orderId else { return }
+        orderDetail = fallback.order
+        stockByVariant = fallback.stockByVariant
+    }
+
+    private nonisolated static func loadOrderItems(api: ReAIAPI, orderId: Int, isHistory: Bool, token: String, company: Int) async -> OrderItemContext {
+        if !isHistory, let picking = try? await api.pickingDetail(order: orderId, token: token, company: company) {
+            return OrderItemContext(picking: picking, order: nil, stockByVariant: [:])
+        }
+        return await loadFallbackOrderItems(api: api, orderId: orderId, token: token, company: company)
+    }
+
+    private nonisolated static func loadFallbackOrderItems(api: ReAIAPI, orderId: Int, token: String, company: Int) async -> OrderItemContext {
+        guard let order = try? await api.orderDetail(order: orderId, token: token, company: company) else {
+            return OrderItemContext(picking: nil, order: nil, stockByVariant: [:])
+        }
+        let variantIds = order.lines.compactMap(\.variantId)
+        let items = (try? await api.warehouseItems(variantIds: variantIds, token: token, company: company)) ?? []
+        let byVariant = Dictionary(uniqueKeysWithValues: items.map { ($0.variantId, $0.locations) })
+        return OrderItemContext(picking: nil, order: order, stockByVariant: byVariant)
+    }
+
+    var orderNotes: String? {
+        if let notes = pickingDetail?.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
+            return notes
+        }
+        let parts = [orderDetail?.comment, orderDetail?.internalComment]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        var seen = Set<String>()
+        let unique = parts.filter { seen.insert($0).inserted }
+        return unique.isEmpty ? nil : unique.joined(separator: " · ")
+    }
+
+    var displayedItems: [OrderItem] {
+        if let shipment, !shipment.lines.isEmpty {
+            var rows: [OrderItem] = []
+            for (index, line) in shipment.lines.enumerated() {
+                if let orderLineId = line.orderLineId,
+                   let pickingLines = pickingDetail?.lines.filter({ $0.orderLineId == orderLineId }),
+                   !pickingLines.isEmpty {
+                    if pickingLines.count == 1, pickingLines[0].bundleTitle == nil {
+                        let pickLine = pickingLines[0]
+                        rows.append(OrderItem(
+                            id: "\(orderLineId)-\(pickLine.variantId)-\(index)",
+                            orderLineId: orderLineId,
+                            title: pickLine.title,
+                            sku: pickLine.sku,
+                            bundleTitle: nil,
+                            quantity: line.quantity,
+                            locations: Self.formatLocations(pick: pickLine.pick, raw: pickLine.locations)
+                        ))
+                    } else {
+                        for (componentIndex, pickLine) in pickingLines.enumerated() {
+                            rows.append(OrderItem(
+                                id: "\(orderLineId)-\(pickLine.variantId)-\(index)-\(componentIndex)",
+                                orderLineId: orderLineId,
+                                title: pickLine.title,
+                                sku: pickLine.sku,
+                                bundleTitle: pickLine.bundleTitle,
+                                quantity: pickLine.quantity,
+                                locations: Self.formatLocations(pick: pickLine.pick, raw: pickLine.locations)
+                            ))
+                        }
+                    }
+                } else {
+                    let orderLine = line.orderLineId.flatMap { id in orderDetail?.lines.first(where: { $0.id == id }) }
+                    let rawLocations = orderLine?.variantId.flatMap { stockByVariant[$0] } ?? []
+                    rows.append(OrderItem(
+                        id: "\(line.orderLineId ?? 0)-\(index)",
+                        orderLineId: line.orderLineId,
+                        title: line.name,
+                        sku: orderLine?.sku,
+                        bundleTitle: nil,
+                        quantity: line.quantity,
+                        locations: Self.formatLocations(pick: nil, raw: rawLocations)
+                    ))
+                }
+            }
+            return rows
+        }
+        if let picking = pickingDetail, !picking.lines.isEmpty {
+            return picking.lines.enumerated().map { index, line in
+                OrderItem(
+                    id: "\(line.orderLineId)-\(line.variantId)-\(index)",
+                    orderLineId: line.orderLineId,
+                    title: line.title,
+                    sku: line.sku,
+                    bundleTitle: line.bundleTitle,
+                    quantity: line.quantity,
+                    locations: Self.formatLocations(pick: line.pick, raw: line.locations)
+                )
+            }
+        }
+        if let order = orderDetail {
+            let positive = order.lines.filter { $0.quantity > 0 }
+            let stockLines = positive.filter { $0.variantId != nil }
+            let source = stockLines.isEmpty ? positive : stockLines
+            return source.enumerated().map { index, line in
+                let rawLocations = line.variantId.flatMap { stockByVariant[$0] } ?? []
+                return OrderItem(
+                    id: "\(line.id)-\(index)",
+                    orderLineId: line.id,
+                    title: line.itemName,
+                    sku: line.sku,
+                    bundleTitle: nil,
+                    quantity: line.quantity,
+                    locations: Self.formatLocations(pick: nil, raw: rawLocations)
+                )
+            }
+        }
+        return []
+    }
+
+    func draftLineInfo(for line: ShipmentLine) -> DraftLineInfo {
+        let fallbackName = options?.availableLines.first(where: { $0.orderLineId == line.orderLineId })?.name
+            ?? orderDetail?.lines.first(where: { $0.id == line.orderLineId })?.itemName
+            ?? "#\(line.orderLineId)"
+        if let pickingLines = pickingDetail?.lines.filter({ $0.orderLineId == line.orderLineId }), !pickingLines.isEmpty {
+            if pickingLines.count == 1, pickingLines[0].bundleTitle == nil {
+                let pickLine = pickingLines[0]
+                return DraftLineInfo(
+                    title: pickLine.title,
+                    sku: pickLine.sku,
+                    locations: Self.formatLocations(pick: pickLine.pick, raw: pickLine.locations),
+                    bundleComponents: []
+                )
+            }
+            let components = pickingLines.enumerated().map { index, pickLine in
+                OrderItem(
+                    id: "\(line.orderLineId)-\(pickLine.variantId)-\(index)",
+                    orderLineId: line.orderLineId,
+                    title: pickLine.title,
+                    sku: pickLine.sku,
+                    bundleTitle: pickLine.bundleTitle,
+                    quantity: pickLine.quantity,
+                    locations: Self.formatLocations(pick: pickLine.pick, raw: pickLine.locations)
+                )
+            }
+            return DraftLineInfo(title: pickingLines[0].bundleTitle ?? fallbackName, sku: nil, locations: [], bundleComponents: components)
+        }
+        let orderLine = orderDetail?.lines.first(where: { $0.id == line.orderLineId })
+        let rawLocations = orderLine?.variantId.flatMap { stockByVariant[$0] } ?? []
+        return DraftLineInfo(
+            title: fallbackName,
+            sku: orderLine?.sku,
+            locations: Self.formatLocations(pick: nil, raw: rawLocations),
+            bundleComponents: []
+        )
+    }
+
+    static func formatLocations(pick: PickLine?, raw: [ItemLocation]) -> [OrderItemLocation] {
+        if let pick, !pick.options.isEmpty {
+            let effectiveId = pick.selectedLocationId ?? pick.suggestedLocationId
+            var formatted: [OrderItemLocation] = []
+            if let effective = pick.options.first(where: { $0.locationId == effectiveId }) {
+                formatted.append(OrderItemLocation(label: effective.label, stockText: effective.quantity.map(String.init), isPrimary: true))
+                let others = pick.options.filter { $0.locationId != effective.locationId && ($0.quantity ?? 0) > 0 }.prefix(2)
+                formatted += others.map { OrderItemLocation(label: $0.label, stockText: $0.quantity.map(String.init), isPrimary: false) }
+            } else {
+                let ordered = pick.options.sorted { ($0.quantity ?? 0) > ($1.quantity ?? 0) }.prefix(3)
+                formatted = ordered.enumerated().map { idx, option in
+                    OrderItemLocation(label: option.label, stockText: option.quantity.map(String.init), isPrimary: idx == 0)
+                }
+            }
+            return formatted
+        }
+        guard !raw.isEmpty else { return [] }
+        var seen = Set<String>()
+        let unique = raw.filter { seen.insert("\($0.warehouseId)-\($0.zoneId ?? -1)-\($0.locationId ?? -1)").inserted }
+        let hasNamed = unique.contains { !($0.locationName?.isEmpty ?? true) || !($0.zoneName?.isEmpty ?? true) }
+        let filtered = hasNamed
+            ? unique.filter { !($0.locationId == nil && $0.zoneId == nil && $0.quantityOnHand <= 0) }
+            : unique
+        let sorted = filtered.sorted { lhs, rhs in
+            let lNamed = !((lhs.locationName ?? "").isEmpty)
+            let rNamed = !((rhs.locationName ?? "").isEmpty)
+            if lNamed != rNamed { return lNamed }
+            let lStock = lhs.locationQuantity ?? lhs.quantityOnHand
+            let rStock = rhs.locationQuantity ?? rhs.quantityOnHand
+            if (lStock > 0) != (rStock > 0) { return lStock > 0 }
+            if lStock != rStock { return lStock > rStock }
+            return (lhs.warehouseName, lhs.zoneName ?? "", lhs.locationName ?? "") < (rhs.warehouseName, rhs.zoneName ?? "", rhs.locationName ?? "")
+        }
+        let distinctWarehouses = Set(sorted.map(\.warehouseId)).count
+        return sorted.prefix(3).enumerated().map { index, loc in
+            let cleanZone = loc.zoneName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanLoc = loc.locationName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let parts: [String]
+            if let cleanLoc, !cleanLoc.isEmpty {
+                parts = [distinctWarehouses > 1 ? loc.warehouseName : nil, cleanZone?.isEmpty == false ? cleanZone : nil, cleanLoc].compactMap { $0 }
+            } else if let cleanZone, !cleanZone.isEmpty {
+                parts = [distinctWarehouses > 1 ? loc.warehouseName : nil, cleanZone].compactMap { $0 }
+            } else {
+                parts = [loc.warehouseName]
+            }
+            let stockText: String? = (loc.locationId != nil || loc.zoneId != nil)
+                ? loc.locationQuantity.map(String.init)
+                : "\(loc.quantityOnHand) in warehouse"
+            let hasPlace = !(cleanLoc?.isEmpty ?? true) || !(cleanZone?.isEmpty ?? true)
+            return OrderItemLocation(label: parts.joined(separator: " / "), stockText: stockText, isPrimary: index == 0 && hasPlace)
+        }
     }
 
     func refreshRates() async {
@@ -300,29 +560,47 @@ final class ShippingModel {
         catch { self.error = error.localizedDescription }
     }
 
+    static func defaultRate(from rates: [Rate], preferred: String?) -> Rate? {
+        let cheapest = rates
+            .filter { $0.status == "quoted" && $0.bookingBlockedReason == nil && $0.quote != nil }
+            .sorted { $0.quote!.customerPriceAmount < $1.quote!.customerPriceAmount }
+        let preferredService = preferred.map { $0.split(separator: ":").prefix(2).joined(separator: ":") }
+        return cheapest.first { $0.service == preferredService }
+            ?? cheapest.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) }
+            ?? cheapest.first
+    }
+
     private func loadRates(token: String, company: Int) async throws {
         guard var value = draft, let order = selectedOrder else { return }
         quote = nil; pickups = []; value.acceptedQuote = nil; value.pickupProviderId = nil; value.productCode = nil; draft = value
-        rates = try await api.rates(order: order.id, draft: value, token: token, company: company)
-        let available = rates.filter { $0.status == "quoted" && $0.bookingBlockedReason == nil && $0.quote != nil }
+        let fetched = try await api.rates(order: order.id, draft: value, token: token, company: company)
+        rates = fetched.sorted { lhs, rhs in
+            switch (lhs.quote?.customerPriceAmount, rhs.quote?.customerPriceAmount) {
+            case let (l?, r?): l < r
+            case (_?, nil): true
+            default: false
+            }
+        }
         let preferred = UserDefaults.standard.string(forKey: "shipping.service")
-        let choice = available.first { $0.id == preferred } ?? available.first { $0.service == preferred } ?? available.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) } ?? available.first
-        if let choice { try await selectRate(choice.id, token: token, company: company) }
-        else { error = rates.compactMap { $0.bookingBlockedReason ?? $0.error }.first ?? "No shipping rate is available for this parcel." }
+        if let choice = Self.defaultRate(from: rates, preferred: preferred) {
+            try await selectRate(choice.id, remember: false, token: token, company: company)
+        } else {
+            error = rates.compactMap { $0.bookingBlockedReason ?? $0.error }.first ?? "No shipping rate is available for this parcel."
+        }
     }
 
     func chooseRate(_ id: String) async {
         guard !busy, let token, let company else { return }
         busy = true; defer { busy = false }
-        do { try await selectRate(id, token: token, company: company.id) }
+        do { try await selectRate(id, remember: true, token: token, company: company.id) }
         catch { self.error = error.localizedDescription }
     }
-    private func selectRate(_ id: String, token: String, company: Int) async throws {
+    private func selectRate(_ id: String, remember: Bool, token: String, company: Int) async throws {
         guard let rate = rates.first(where: { $0.id == id }), var value = draft else { return }
         selectedRate = id; quote = nil; pickups = []; error = nil
         value.carrierCode = rate.carrierCode; value.deliveryMethod = rate.deliveryMethod; value.productCode = rate.quote?.productCode
         value.pickupProviderId = nil; value.acceptedQuote = nil; draft = value
-        UserDefaults.standard.set(id, forKey: "shipping.service")
+        if remember { UserDefaults.standard.set(rate.service, forKey: "shipping.service") }
         try await loadQuote(token: token, company: company)
     }
     func choosePickup(_ id: String) async {
