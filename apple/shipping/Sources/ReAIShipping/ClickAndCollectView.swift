@@ -148,47 +148,88 @@ struct ClickAndCollectView: View {
         let isReady = readiness?.ready == true
         let hasReceipt = model.pickupRecord(order.id) != nil
         let canMarkAndPrint = !isReady && readiness?.allowsNotification == true
-        return VStack(alignment: .leading, spacing: 8) {
-            Button {
-                if hasReceipt {
-                    confirmReprint = true
-                } else {
-                    Task { await model.printPickupLabel(markReady: canMarkAndPrint) }
-                }
-            } label: {
-                Label(
-                    canMarkAndPrint
-                        ? "Print \"Will be collected\" label & mark ready"
-                        : (hasReceipt ? "Print \"Will be collected\" label again" : "Print \"Will be collected\" label"),
-                    systemImage: "printer.fill"
-                ).frame(maxWidth: .infinity)
+        let canFulfill = model.selectedPickupDetail?.canFulfillPickup == true
+        let printLabelTitle = canMarkAndPrint
+            ? "Print \"Will be collected\" label & mark ready"
+            : (hasReceipt ? "Print \"Will be collected\" label again" : "Print \"Will be collected\" label")
+        let triggerPrint: () -> Void = {
+            if hasReceipt {
+                confirmReprint = true
+            } else {
+                Task { await model.printPickupLabel(markReady: canMarkAndPrint) }
             }
-            .buttonStyle(.borderedProminent).controlSize(.large)
-            .disabled(!model.canPrint || model.loadingPickups || model.selectedPickupDetail == nil)
-
-            Text(primaryCaption(canMarkAndPrint: canMarkAndPrint))
-                .font(.caption).foregroundStyle(.secondary)
-
-            HStack(spacing: 8) {
-                if let readiness, readiness.ready {
-                    HStack(spacing: 5) {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.teal)
-                        Text("Pickup email: \(emailStatusLabel(readiness.emailStatus))")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    if readiness.allowsNotification {
-                        Button(resendButtonLabel) { confirmResendEmail = true }
-                            .controlSize(.small).disabled(model.busy)
-                    }
-                } else if let readiness, !readiness.ready, readiness.allowsNotification {
-                    Button("Mark ready without printing") {
-                        Task { await model.notifyPickupReady() }
-                    }.controlSize(.small).disabled(model.busy)
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            if isReady && canFulfill {
+                Button { confirmHandover = true } label: {
+                    Label("Mark handed over", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
                 }
-                Spacer(minLength: 8)
-                if model.selectedPickupDetail?.canFulfillPickup == true {
-                    Button("Mark handed over") { confirmHandover = true }
-                        .controlSize(.small).disabled(model.busy)
+                .buttonStyle(.borderedProminent).controlSize(.large)
+                .disabled(model.busy)
+
+                Text("Confirm when the customer collects this order in store. Completes the order and removes it from Click & Collect.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Button(action: triggerPrint) {
+                        Label(printLabelTitle, systemImage: "printer")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(!model.canPrint || model.loadingPickups || model.selectedPickupDetail == nil)
+
+                    if let readiness, readiness.allowsNotification {
+                        Button(resendButtonLabel) { confirmResendEmail = true }
+                            .buttonStyle(.bordered)
+                            .disabled(model.busy)
+                    }
+                    Spacer(minLength: 8)
+                    if let readiness {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.teal)
+                            Text("Pickup email: \(emailStatusLabel(readiness.emailStatus))")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } else {
+                Button(action: triggerPrint) {
+                    Label(printLabelTitle, systemImage: "printer.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).controlSize(.large)
+                .disabled(!model.canPrint || model.loadingPickups || model.selectedPickupDetail == nil)
+
+                Text(primaryCaption(canMarkAndPrint: canMarkAndPrint))
+                    .font(.caption).foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    if canFulfill {
+                        Button { confirmHandover = true } label: {
+                            Label("Mark handed over", systemImage: "checkmark.circle")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(model.busy)
+                    }
+                    if let readiness, !readiness.ready, readiness.allowsNotification {
+                        Button("Mark ready without printing") {
+                            Task { await model.notifyPickupReady() }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(model.busy)
+                    } else if let readiness, readiness.ready {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.teal)
+                            Text("Pickup email: \(emailStatusLabel(readiness.emailStatus))")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        if readiness.allowsNotification {
+                            Button(resendButtonLabel) { confirmResendEmail = true }
+                                .buttonStyle(.bordered)
+                                .disabled(model.busy)
+                        }
+                    }
+                    Spacer(minLength: 8)
                 }
             }
         }
