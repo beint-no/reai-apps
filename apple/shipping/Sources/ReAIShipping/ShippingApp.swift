@@ -64,6 +64,7 @@ struct ShippingView: View {
                         Text(model.pickupCount > 0 ? "Click & Collect (\(model.pickupCount))" : "Click & Collect").tag(AppSection.pickup)
                         Text("Locations").tag(AppSection.locations)
                     }.pickerStyle(.segmented).labelsHidden().fixedSize()
+                        .id(model.pickupCount)
                         .disabled(model.busy || model.loadingLocations || model.loadingPickups)
                 }
                 if model.busy { ProgressView().controlSize(.small) }
@@ -107,6 +108,7 @@ struct ShippingView: View {
             if let error = model.error { Label(error, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 14).padding(.bottom, 8) }
         }
         .onChange(of: model.selectedOrder?.id) { _, _ in editingRecipient = false }
+        .onChange(of: model.section) { _, _ in Task { await model.refreshPickupSummary() } }
         .confirmationDialog("Print again? Check the printer queue first.", isPresented: Binding(get: { reprint != nil }, set: { if !$0 { reprint = nil } })) {
             if let record = reprint { Button("Print again") { Task { await model.reprint(record) }; reprint = nil } }
         } message: {

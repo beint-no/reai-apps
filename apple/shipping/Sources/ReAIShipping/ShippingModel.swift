@@ -304,6 +304,7 @@ final class ShippingModel {
             guard self.company?.id == company.id else { return }
             orders = Self.uniqueOrders(result.items, existing: more ? orders : [])
             page = result.page - 1; totalPages = result.totalPages; totalOrders = result.totalItems
+            if !more { await refreshPickupSummary() }
         } catch {
             Diagnostics.recordError(operation: "refresh-orders", error: error)
             self.error = error.localizedDescription
@@ -974,6 +975,11 @@ final class ShippingModel {
                     selectedPickupOrder = updated
                 }
             } else {
+                pickupOrders.removeAll { $0.id == order.id }
+                pickupTotalOrders = max(0, pickupTotalOrders - 1)
+                selectedPickupOrder = nil
+                selectedPickupDetail = nil
+                await refreshPickupSummary()
                 notice = "This Click & Collect order is no longer pending."
             }
         } catch {
