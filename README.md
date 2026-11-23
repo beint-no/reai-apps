@@ -20,6 +20,7 @@ Working apps built on the same foundation. They are kept building, but not activ
 
 | App | What it does |
 | --- | --- |
+| [ReAI RecMan for Mac](apple/recman) | Local proof of concept for employee, invoice and draft payroll imports from synthetic RecMan data. |
 | [Hybel Journal for Mac](apple/hybel) | Preview a monthly Hybel CSV journal and create a ReAI voucher for accountant review. Experimental; no direct Hybel API sync. |
 | [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
@@ -48,6 +49,7 @@ Most apps use **Connect to ReAI** with browser approval. The Vipps, Klarna, Zett
 ```text
 apple/
   hybel/            Hybel monthly journal bridge
+  recman/           RecMan local import proof of concept
   product-labels/   Product, price and barcode labels
   shipping/         Shipment booking and label printing
   time-tracker/     Swift package and app source

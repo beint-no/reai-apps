@@ -6,7 +6,7 @@ on:
         description: App to release
         required: true
         type: choice
-        options: [time-tracker, finder-vault, import, stripe, vipps, klarna, zettle, dintero, shipping, hybel, product-labels]
+        options: [time-tracker, finder-vault, import, stripe, vipps, klarna, zettle, dintero, shipping, hybel, recman, product-labels]
   pull_request:
     paths: ['apple/**', 'tools/apple/**', 'apps.json', '.swift-version', '.github/actions/**', '.github/workflows/apps.yml']
   # Not on push to main: the pull request already built the change. Tags still build

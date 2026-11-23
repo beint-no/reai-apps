@@ -98,6 +98,14 @@
     "arm64_asset": "ReAI-Shipping-Windows-ARM64.zip",
     "updates": true
   },
+  "recman": {
+    "name": "ReAI RecMan",
+    "path": "apple/recman",
+    "executable": "ReAIRecMan",
+    "bundle_id": "no.reai.recman",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-RecMan-Apple-Silicon.dmg"
+  },
   "hybel": {
     "name": "ReAI Hybel Journal",
     "path": "apple/hybel",
