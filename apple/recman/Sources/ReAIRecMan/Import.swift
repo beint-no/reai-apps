@@ -107,6 +107,7 @@ struct PreviewRow: Equatable, Identifiable {
 
 struct ImportPreview: Equatable {
     let rows: [PreviewRow]
+    let payrollPeriodOccupied: Bool
     fileprivate let customer: Customer?
     fileprivate let product: Product?
     fileprivate let employees: [Int: Employee]
@@ -142,6 +143,7 @@ struct RecManImport {
         for document in demo.documents where current.invoiceIDs[document.externalId] == nil {
             try await importDocument(document, customerID: customer.id, productID: product.id, journal: journal)
         }
+        guard !current.payrollPeriodOccupied else { return }
         guard let demoEmployeeID, let wage = demo.wages.first,
               demo.wageReview(for: wage.candidateId) == nil, let specification = wage.specification else {
             throw appError("The sample has no validated wage line.")
@@ -220,11 +222,12 @@ struct RecManImport {
                                    action: id == nil ? "Import and book" : "Imported"))
         }
 
-        let runs: [SalaryRun] = try await read("/api/salary-payments")
+        let runs: [SalaryRun] = try await api.request("/api/salary-payments", token: token, tenant: tenant.id, query: [
+            URLQueryItem(name: "startDate", value: demo.issueDate),
+            URLQueryItem(name: "endDate", value: demo.issueDate)
+        ])
         let salaryID = journal.result(for: salaryKey)
-        guard !runs.contains(where: { $0.period == demo.period && $0.id != salaryID }) else {
-            throw appError("This period already has a salary payment outside the sample. Choose another period in the disposable company.")
-        }
+        let payrollPeriodOccupied = runs.contains { $0.period == demo.period && $0.id != salaryID }
         let wageID = journal.result(for: wageKey)
         if let salaryID {
             guard let wage = demo.wages.first, let employee = employees[wage.candidateId] else {
@@ -235,14 +238,26 @@ struct RecManImport {
         }
         for employee in demo.employees {
             let wages = demo.wages.filter { $0.candidateId == employee.candidateId }
-            let review = demo.wageReview(for: employee.candidateId)
+            let detail: String
+            let action: String
+            let needsReview: Bool
+            if let review = demo.wageReview(for: employee.candidateId) {
+                detail = "\(review) · \(wages.map(\.municipality).joined(separator: ", "))"
+                action = "Hold for review"
+                needsReview = true
+            } else if payrollPeriodOccupied {
+                detail = "\(demo.period) already has a salary payment. Choose a sample date in another month to test payroll."
+                action = "Skip payroll"
+                needsReview = true
+            } else {
+                detail = "\(demo.period) · \(wages.first?.hours ?? 0) h × NOK \(wages.first?.rate ?? 0) · Hourly salary"
+                action = wageID == nil ? "Add to draft" : "Draft saved"
+                needsReview = false
+            }
             rows.append(PreviewRow(id: "payroll-\(employee.candidateId)", group: "Payroll", title: employee.name,
-                                   detail: review.map { "\($0) · \(wages.map(\.municipality).joined(separator: ", "))" }
-                                       ?? "\(demo.period) · \(wages.first?.hours ?? 0) h × NOK \(wages.first?.rate ?? 0) · Hourly salary",
-                                   action: review != nil ? "Hold for review" : wageID == nil ? "Add to draft" : "Draft saved",
-                                   needsReview: review != nil))
+                                   detail: detail, action: action, needsReview: needsReview))
         }
-        return ImportPreview(rows: rows, customer: customer, product: product, employees: employees,
+        return ImportPreview(rows: rows, payrollPeriodOccupied: payrollPeriodOccupied, customer: customer, product: product, employees: employees,
                              invoiceIDs: invoiceIDs, salaryID: salaryID, wageID: wageID)
     }
 

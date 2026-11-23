@@ -65,7 +65,7 @@ struct Demo {
         let municipality: String
         let hours: Int
         let rate: Int
-        var specification: String? { articleCode == "DEMO-HOURS" ? "HOURLY_SALARY" : nil }
+        var specification: String? { articleCode == "DEMO-HOURS" ? "hourly_salary" : nil }
     }
 
     let issueDate: String

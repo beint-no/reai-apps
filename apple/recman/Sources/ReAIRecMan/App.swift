@@ -86,7 +86,9 @@ private final class ImportModel {
             let importer = try self.importer()
             try await importer.perform(reviewed)
             self.preview = try await importer.preview()
-            self.message = "Sample verified in localhost ReAI."
+            self.message = reviewed.payrollPeriodOccupied
+                ? "Employee and invoice imports verified. Payroll skipped."
+                : "Sample verified in localhost ReAI."
         }
     }
 
@@ -144,7 +146,11 @@ private struct ImportView: View {
             Button("Import Sample") { model.apply() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This may create employees, book two issued documents and save a draft payroll in the local company.")
+            if model.preview?.payrollPeriodOccupied == true {
+                Text("This may create employees and book two issued documents in the local company. Payroll will be skipped.")
+            } else {
+                Text("This may create employees, book two issued documents and save a draft payroll in the local company.")
+            }
         }
     }
 
