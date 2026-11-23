@@ -148,7 +148,11 @@ final class ShippingModel {
             if FileManager.default.fileExists(atPath: bookingJournal.path) {
                 operations = try JSONDecoder().decode([ShippingOperation].self, from: Data(contentsOf: bookingJournal))
             }
-        } catch { historyReadable = false; self.error = "Shipping history could not be read. Shipping and printing are paused to prevent duplicates." }
+        } catch {
+            Diagnostics.recordError(operation: "read-journals", error: error)
+            historyReadable = false
+            self.error = "Shipping history could not be read. Shipping and printing are paused to prevent duplicates."
+        }
     }
 
     func start() async {
@@ -237,13 +241,18 @@ final class ShippingModel {
 
     static func readyOrderStart(includeOlder: Bool, now: Date = .now, calendar: Calendar = .current) -> String {
         if includeOlder { return "1900-01-01" }
-        let cutoff = calendar.date(byAdding: .day, value: -14, to: now)!
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: now) ?? now
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: cutoff)
+    }
+
+    private static func uniqueOrders(_ items: [ReadyOrder], existing: [ReadyOrder] = []) -> [ReadyOrder] {
+        var seen = Set(existing.map(\.id))
+        return existing + items.filter { seen.insert($0.id).inserted }
     }
 
     func refreshOrders(more: Bool = false) async {
@@ -254,10 +263,7 @@ final class ShippingModel {
             if showingHistory {
                 let result = try await api.history(token: token, company: company.id, search: search, beforeId: more ? historyBeforeId : nil)
                 guard self.company?.id == company.id else { return }
-                if more {
-                    let known = Set(orders.map(\.id))
-                    orders += result.items.filter { !known.contains($0.id) }
-                } else { orders = result.items }
+                orders = Self.uniqueOrders(result.items, existing: more ? orders : [])
                 historyBeforeId = result.nextBeforeId
                 totalOrders = orders.count
                 return
@@ -266,12 +272,12 @@ final class ShippingModel {
             let result = try await api.orders(token: token, company: company.id, search: search,
                                               page: more ? page + 1 : 0, from: readyFromDate)
             guard self.company?.id == company.id else { return }
-            if more {
-                let known = Set(orders.map(\.id))
-                orders += result.items.filter { !known.contains($0.id) }
-            } else { orders = result.items }
+            orders = Self.uniqueOrders(result.items, existing: more ? orders : [])
             page = result.page - 1; totalPages = result.totalPages; totalOrders = result.totalItems
-        } catch { self.error = error.localizedDescription }
+        } catch {
+            Diagnostics.recordError(operation: "refresh-orders", error: error)
+            self.error = error.localizedDescription
+        }
     }
 
     func select(_ order: ReadyOrder) async {
@@ -307,7 +313,10 @@ final class ShippingModel {
                     if draft != nil { try await loadRates(token: token, company: company.id) }
                 }
             }
-        } catch { self.error = error.localizedDescription }
+        } catch {
+            Diagnostics.recordError(operation: "select-order", error: error)
+            self.error = error.localizedDescription
+        }
         let context = await itemContext
         guard selectedOrder?.id == order.id else { return }
         pickingDetail = context.picking
@@ -367,7 +376,7 @@ final class ShippingModel {
         }
         let variantIds = order.lines.compactMap(\.variantId)
         let items = (try? await api.warehouseItems(variantIds: variantIds, token: token, company: company)) ?? []
-        let byVariant = Dictionary(uniqueKeysWithValues: items.map { ($0.variantId, $0.locations) })
+        let byVariant = Dictionary(items.map { ($0.variantId, $0.locations) }, uniquingKeysWith: { first, _ in first })
         return OrderItemContext(picking: nil, order: order, stockByVariant: byVariant)
     }
 
@@ -562,8 +571,12 @@ final class ShippingModel {
 
     static func defaultRate(from rates: [Rate], preferred: String?) -> Rate? {
         let cheapest = rates
-            .filter { $0.status == "quoted" && $0.bookingBlockedReason == nil && $0.quote != nil }
-            .sorted { $0.quote!.customerPriceAmount < $1.quote!.customerPriceAmount }
+            .compactMap { rate -> (Rate, Decimal)? in
+                guard rate.status == "quoted", rate.bookingBlockedReason == nil, let amount = rate.quote?.customerPriceAmount else { return nil }
+                return (rate, amount)
+            }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
         let preferredService = preferred.map { $0.split(separator: ":").prefix(2).joined(separator: ":") }
         return cheapest.first { $0.service == preferredService }
             ?? cheapest.first { !["pickup_point", "parcel_locker"].contains($0.deliveryMethod) }
@@ -620,6 +633,33 @@ final class ShippingModel {
         quote = result.quote
     }
     func invalidateQuote() { quote = nil; rates = []; pickups = []; selectedRate = ""; draft?.acceptedQuote = nil }
+
+    func updateDraftRecipient(_ update: (inout Recipient) -> Void) {
+        guard var current = draft else { return }
+        let previous = current.recipient
+        update(&current.recipient)
+        guard current.recipient != previous else { return }
+        draft = current
+        invalidateQuote()
+    }
+
+    func updateDraftParcel(_ update: (inout Parcel) -> Void) {
+        guard var current = draft else { return }
+        let previous = current.parcel
+        update(&current.parcel)
+        guard current.parcel != previous else { return }
+        draft = current
+        invalidateQuote()
+    }
+
+    func updateDraftLineQuantity(orderLineId: Int, quantity: Decimal) {
+        guard var current = draft,
+              let index = current.lines.firstIndex(where: { $0.orderLineId == orderLineId }),
+              current.lines[index].quantity != quantity else { return }
+        current.lines[index].quantity = quantity
+        draft = current
+        invalidateQuote()
+    }
 
     func shipAndPrint() async {
         guard canShip, let company, let order = selectedOrder else { return }
@@ -687,7 +727,11 @@ final class ShippingModel {
             } else { await printLabel(request, token: token) }
             operations[index].state = "done"; try saveOperations()
             await refreshOrders()
-        } catch { self.error = error.localizedDescription; notice = nil }
+        } catch {
+            Diagnostics.recordError(operation: "resume-shipment", error: error)
+            self.error = error.localizedDescription
+            notice = nil
+        }
     }
 
     func review(_ operation: ShippingOperation) async {
@@ -760,11 +804,14 @@ final class ShippingModel {
             // Persist before handing off: a crash must never cause an automatic second print.
             try save()
             let result = try await printer.submit(data, printer: selectedPrinter, request: request)
-            records[0].state = "queued"
-            records[0].queueResult = result
+            if let index = records.firstIndex(where: { $0.id == request.key }) {
+                records[index].state = "queued"
+                records[index].queueResult = result
+            }
             try save()
             notice = "Sent to the printer queue."
         } catch {
+            Diagnostics.recordError(operation: "print-label", error: error)
             if let index = records.firstIndex(where: { $0.id == request.key }) {
                 records[index].state = "check_queue"
             } else {
@@ -823,11 +870,18 @@ final class ShippingModel {
                 name: location.name, state: "submitting", printerId: selectedPrinter, size: labelSize.rawValue), at: 0)
             do { try saveLocationPrints() } catch { historyReadable = false; throw error }; recorded = true
             let result = try await printer.submitLocation(data, printer: selectedPrinter, title: "ReAI · " + location.name)
-            locationRecords[0].state = "queued"; locationRecords[0].queueResult = result
+            if let index = locationRecords.firstIndex(where: { $0.tenantId == company.id && $0.locationId == location.id }) {
+                locationRecords[index].state = "queued"
+                locationRecords[index].queueResult = result
+            }
             try saveLocationPrints()
             notice = "Sent to the printer queue."
         } catch {
-            if recorded { locationRecords[0].state = "check_queue"; try? saveLocationPrints() }
+            Diagnostics.recordError(operation: "print-location", error: error)
+            if recorded, let index = locationRecords.firstIndex(where: { $0.tenantId == company.id && $0.locationId == location.id }) {
+                locationRecords[index].state = "check_queue"
+                try? saveLocationPrints()
+            }
             self.error = error.localizedDescription
         }
     }

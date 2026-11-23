@@ -1,8 +1,18 @@
 import AppKit
 import SwiftUI
 
+final class ShippingAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        Diagnostics.startSession()
+    }
+    func applicationWillTerminate(_ notification: Notification) {
+        Diagnostics.endSession()
+    }
+}
+
 @main
 struct ShippingApp: App {
+    @NSApplicationDelegateAdaptor(ShippingAppDelegate.self) private var appDelegate
     @State private var model: ShippingModel
     @StateObject private var updater: ShippingUpdater
     @Environment(\.openWindow) private var openWindow
@@ -78,8 +88,11 @@ struct ShippingView: View {
                     Button { Task { await model.refreshPrinters() } } label: { Image(systemName: "arrow.clockwise") }
                         .controlSize(.small).help("Refresh printers")
                     if model.printers.isEmpty {
-                        Button("Add printer") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Print-Scan-Settings.extension")!) }
-                            .controlSize(.small)
+                        Button("Add printer") {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.Print-Scan-Settings.extension") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }.controlSize(.small)
                     }
                     Spacer()
                     Text(model.showingLocations ? "One copy · Actual label size" : "One copy · Carrier PDF size").font(.caption).foregroundStyle(.secondary)
@@ -177,8 +190,8 @@ struct ShippingView: View {
                     orderNotesBanner
                     primaryActionBar
                     savedShipmentCard(shipment)
-                } else if let draft = Binding($model.draft) {
-                    draftSection(draft)
+                } else if let draft = model.draft {
+                    draftSection(draft).id(order.id)
                 } else {
                     itemsCard(model.displayedItems)
                     orderNotesBanner
@@ -389,31 +402,32 @@ struct ShippingView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.08)))
     }
 
-    private func draftSection(_ value: Binding<Draft>) -> some View {
+    private func draftSection(_ draft: Draft) -> some View {
         let disabled = model.busy || model.unfinished.contains { $0.orderId == model.selectedOrder?.id }
-        let recipientSummary = [value.wrappedValue.recipient.name, value.wrappedValue.recipient.addressPart1,
-                                [value.wrappedValue.recipient.postalCode, value.wrappedValue.recipient.city].compactMap { $0 }.joined(separator: " ")]
+        let recipientSummary = [draft.recipient.name, draft.recipient.addressPart1,
+                                [draft.recipient.postalCode, draft.recipient.city].compactMap { $0 }.joined(separator: " ")]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
-        let totalUnits = value.wrappedValue.lines.reduce(Decimal(0)) { $0 + $1.quantity }
+        let totalUnits = draft.lines.reduce(Decimal(0)) { $0 + $1.quantity }
+        let quoted = model.rates.filter { $0.status == "quoted" && $0.bookingBlockedReason == nil }
         return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Label("Items & locations", systemImage: "list.bullet.clipboard").font(.subheadline.weight(.semibold))
                     Spacer()
-                    Text("\(formatQuantity(totalUnits)) \(totalUnits == 1 ? "pc" : "pcs") · \(value.wrappedValue.lines.count) \(value.wrappedValue.lines.count == 1 ? "line" : "lines")")
+                    Text("\(formatQuantity(totalUnits)) \(totalUnits == 1 ? "pc" : "pcs") · \(draft.lines.count) \(draft.lines.count == 1 ? "line" : "lines")")
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color.primary.opacity(0.03))
                 Divider()
-                ForEach(Array(value.lines.enumerated()), id: \.element.id) { index, line in
-                    let info = model.draftLineInfo(for: line.wrappedValue)
+                ForEach(Array(draft.lines.enumerated()), id: \.offset) { index, line in
+                    let info = model.draftLineInfo(for: line)
                     if index > 0 { Divider().padding(.leading, 12) }
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .center, spacing: 8) {
-                            TextField("Qty", value: line.quantity, format: .number)
+                            TextField("Qty", value: lineQuantityBinding(for: line), format: .number)
                                 .textFieldStyle(.roundedBorder).controlSize(.small)
                                 .multilineTextAlignment(.trailing).frame(width: 52)
                             Text("×").font(.callout.weight(.semibold)).foregroundStyle(.secondary)
@@ -469,17 +483,28 @@ struct ShippingView: View {
                 }
                 if editingRecipient {
                     VStack(spacing: 6) {
-                        HStack(spacing: 6) { optionalField("Name", value.recipient.name); optionalField("Email", value.recipient.email); optionalField("Phone", value.recipient.phone) }
-                        HStack(spacing: 6) { optionalField("Address", value.recipient.addressPart1); optionalField("Address 2", value.recipient.addressPart2) }
-                        HStack(spacing: 6) { optionalField("Postal code", value.recipient.postalCode); optionalField("City", value.recipient.city); optionalField("Country", value.recipient.countryCode).frame(maxWidth: 80) }
+                        HStack(spacing: 6) {
+                            recipientField("Name", \.name, fallback: draft.recipient.name)
+                            recipientField("Email", \.email, fallback: draft.recipient.email)
+                            recipientField("Phone", \.phone, fallback: draft.recipient.phone)
+                        }
+                        HStack(spacing: 6) {
+                            recipientField("Address", \.addressPart1, fallback: draft.recipient.addressPart1)
+                            recipientField("Address 2", \.addressPart2, fallback: draft.recipient.addressPart2)
+                        }
+                        HStack(spacing: 6) {
+                            recipientField("Postal code", \.postalCode, fallback: draft.recipient.postalCode)
+                            recipientField("City", \.city, fallback: draft.recipient.city)
+                            recipientField("Country", \.countryCode, fallback: draft.recipient.countryCode).frame(maxWidth: 80)
+                        }
                     }.controlSize(.small)
                 }
                 Divider()
                 HStack(spacing: 8) {
-                    compactNumber("Weight (g)", value: value.parcel.weightGrams)
-                    compactDecimal("Length (cm)", value: value.parcel.lengthCm)
-                    compactDecimal("Width (cm)", value: value.parcel.widthCm)
-                    compactDecimal("Height (cm)", value: value.parcel.heightCm)
+                    compactNumber("Weight (g)", value: parcelIntBinding(\.weightGrams, fallback: draft.parcel.weightGrams))
+                    compactDecimal("Length (cm)", value: parcelDecimalBinding(\.lengthCm, fallback: draft.parcel.lengthCm))
+                    compactDecimal("Width (cm)", value: parcelDecimalBinding(\.widthCm, fallback: draft.parcel.widthCm))
+                    compactDecimal("Height (cm)", value: parcelDecimalBinding(\.heightCm, fallback: draft.parcel.heightCm))
                 }.textFieldStyle(.roundedBorder).controlSize(.small)
                 if model.options?.weightEstimated == true {
                     Label("Estimated weight. Weigh the actual parcel before shipping.", systemImage: "scalemass")
@@ -496,8 +521,7 @@ struct ShippingView: View {
                     Spacer()
                     Button("Refresh rates") { Task { await model.refreshRates() } }.controlSize(.small)
                 }
-                let quoted = model.rates.filter { $0.status == "quoted" && $0.bookingBlockedReason == nil }
-                ForEach(quoted) { rate in
+                ForEach(Array(quoted.enumerated()), id: \.offset) { _, rate in
                     Button { Task { await model.chooseRate(rate.id) } } label: {
                         HStack(spacing: 6) {
                             Image(systemName: model.selectedRate == rate.id ? "largecircle.fill.circle" : "circle")
@@ -510,7 +534,10 @@ struct ShippingView: View {
                     }.buttonStyle(.plain)
                 }
                 if !model.pickups.isEmpty {
-                    Picker("Pickup place", selection: Binding(get: { value.wrappedValue.pickupProviderId ?? "" }, set: { id in Task { await model.choosePickup(id) } })) {
+                    Picker("Pickup place", selection: Binding(
+                        get: { model.draft?.pickupProviderId ?? draft.pickupProviderId ?? "" },
+                        set: { id in Task { await model.choosePickup(id) } }
+                    )) {
                         Text("Choose pickup place").tag("")
                         ForEach(model.pickups) { Text($0.displayName).tag($0.id) }
                     }.controlSize(.small)
@@ -523,9 +550,39 @@ struct ShippingView: View {
             primaryActionBar
         }
         .disabled(disabled)
-        .onChange(of: value.wrappedValue.recipient) { _, _ in model.invalidateQuote() }
-        .onChange(of: value.wrappedValue.parcel) { _, _ in model.invalidateQuote() }
-        .onChange(of: value.wrappedValue.lines) { _, _ in model.invalidateQuote() }
+    }
+
+    private func lineQuantityBinding(for line: ShipmentLine) -> Binding<Decimal> {
+        let lineId = line.orderLineId
+        let fallback = line.quantity
+        return Binding(
+            get: { model.draft?.lines.first(where: { $0.orderLineId == lineId })?.quantity ?? fallback },
+            set: { model.updateDraftLineQuantity(orderLineId: lineId, quantity: $0) }
+        )
+    }
+
+    private func recipientField(_ title: String, _ keyPath: WritableKeyPath<Recipient, String?>, fallback: String?) -> some View {
+        TextField(title, text: Binding(
+            get: { (model.draft?.recipient[keyPath: keyPath] ?? fallback) ?? "" },
+            set: { newValue in
+                let value = newValue.isEmpty ? nil : newValue
+                model.updateDraftRecipient { $0[keyPath: keyPath] = value }
+            }
+        )).textFieldStyle(.roundedBorder)
+    }
+
+    private func parcelIntBinding(_ keyPath: WritableKeyPath<Parcel, Int>, fallback: Int) -> Binding<Int> {
+        Binding(
+            get: { model.draft?.parcel[keyPath: keyPath] ?? fallback },
+            set: { newValue in model.updateDraftParcel { $0[keyPath: keyPath] = newValue } }
+        )
+    }
+
+    private func parcelDecimalBinding(_ keyPath: WritableKeyPath<Parcel, Decimal>, fallback: Decimal) -> Binding<Decimal> {
+        Binding(
+            get: { model.draft?.parcel[keyPath: keyPath] ?? fallback },
+            set: { newValue in model.updateDraftParcel { $0[keyPath: keyPath] = newValue } }
+        )
     }
 
     private var savedShipmentsBar: some View {
@@ -632,9 +689,5 @@ struct ShippingView: View {
     private func customsInvoiceURL(shipmentId: Int, tenantId: Int) -> URL {
         AppEnvironment.origin.appending(path: "shipments/\(shipmentId)/customs-invoice/preview")
             .appending(queryItems: [URLQueryItem(name: "tenantId", value: String(tenantId))])
-    }
-
-    private func optionalField(_ title: String, _ value: Binding<String?>) -> some View {
-        TextField(title, text: Binding(get: { value.wrappedValue ?? "" }, set: { value.wrappedValue = $0.isEmpty ? nil : $0 })).textFieldStyle(.roundedBorder)
     }
 }
