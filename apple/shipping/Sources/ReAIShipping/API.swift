@@ -132,8 +132,12 @@ struct QuoteResult: Decodable, Sendable {
     let status: String; let quote: Quote?; let pickupRequired: Bool; let pickupPlaces: [Pickup]
     let selectedPickupProviderId: String?; let bookingBlockedReason: String?; let error: String?
 }
+struct ShipmentSnapshotLine: Decodable, Equatable, Sendable {
+    let orderLineId: Int?; let name: String; let quantity: Decimal
+}
 struct Shipment: Decodable, Sendable {
     let id: Int; let orderId: Int; let status: String; let checkoutManaged: Bool; let carrierCode: String; let recipient: Recipient; let parcel: Parcel
+    let lines: [ShipmentSnapshotLine]
     let error: String?; let errorCode: String?; let labelAvailable: Bool; let actions: [String]
     let customsInvoiceAvailable: Bool?
     let inventoryRecordingPending: Bool
@@ -141,6 +145,35 @@ struct Shipment: Decodable, Sendable {
     let customerCharge: Charge
     var pending: Bool { status == "capture_pending" || status == "booking" }
 }
+struct ItemLocation: Decodable, Equatable, Sendable {
+    let variantId: Int; let warehouseId: Int; let warehouseName: String
+    let zoneId: Int?; let zoneName: String?; let locationId: Int?; let locationName: String?
+    let locationQuantity: Int?; let quantityOnHand: Int
+}
+struct PickOption: Decodable, Equatable, Sendable {
+    let warehouseId: Int; let warehouseName: String; let locationId: Int; let locationName: String
+    let zoneName: String?; let quantity: Int?; let label: String
+}
+struct PickLine: Decodable, Equatable, Sendable {
+    let variantId: Int; let selectedLocationId: Int?; let suggestedLocationId: Int?; let options: [PickOption]
+}
+struct CommercePickingLine: Decodable, Equatable, Sendable {
+    let orderLineId: Int; let variantId: Int; let title: String; let sku: String?; let quantity: Decimal
+    let bundleTitle: String?; let locations: [ItemLocation]; let pick: PickLine?
+}
+struct CommercePickingDetail: Decodable, Equatable, Sendable {
+    let notes: String?; let pickupInstructions: String?; let lines: [CommercePickingLine]
+}
+struct OrderDetailLine: Decodable, Equatable, Sendable {
+    let id: Int; let itemName: String; let variantId: Int?; let variantTitle: String?; let sku: String?; let quantity: Decimal; let comment: String?
+}
+struct OrderDetail: Decodable, Equatable, Sendable {
+    let id: Int?; let number: String; let comment: String?; let internalComment: String?; let lines: [OrderDetailLine]
+}
+struct WarehouseItem: Decodable, Equatable, Sendable {
+    let variantId: Int; let sku: String; let title: String; let variantOptionValues: [String]; let locations: [ItemLocation]
+}
+struct WarehouseItemPage: Decodable, Sendable { let items: [WarehouseItem] }
 
 extension ReAIAPI {
     func orders(token: String, company: Int, search: String, page: Int, from: String) async throws -> ReadyPage {
@@ -264,5 +297,30 @@ extension ReAIAPI {
     }
     func zones(warehouse: Int, token: String, company: Int) async throws -> [WarehouseZone] {
         try await json("api/warehouses/\(warehouse)/zones", token: token, company: company)
+    }
+    func pickingDetail(order: Int, token: String, company: Int) async throws -> CommercePickingDetail? {
+        do { return try await json("api/app-commerce/orders/\(order)", token: token, company: company) }
+        catch let error as NSError where error.code == 403 || error.code == 404 { return nil }
+    }
+    func orderDetail(order: Int, token: String, company: Int) async throws -> OrderDetail? {
+        do { return try await json("api/orders/\(order)", token: token, company: company) }
+        catch let error as NSError where error.code == 403 || error.code == 404 { return nil }
+    }
+    func warehouseItems(variantIds: [Int], token: String, company: Int) async throws -> [WarehouseItem] {
+        let unique = Array(Set(variantIds)).sorted()
+        guard !unique.isEmpty else { return [] }
+        var result: [WarehouseItem] = []
+        for offset in stride(from: 0, to: unique.count, by: 100) {
+            let chunk = Array(unique[offset..<min(offset + 100, unique.count)])
+            var query = chunk.map { URLQueryItem(name: "variantIds", value: String($0)) }
+            query.append(URLQueryItem(name: "pageSize", value: String(chunk.count)))
+            do {
+                let page: WarehouseItemPage = try await json("api/warehouses/items", token: token, company: company, query: query)
+                result += page.items
+            } catch let error as NSError where error.code == 403 || error.code == 404 {
+                return result
+            }
+        }
+        return result
     }
 }
