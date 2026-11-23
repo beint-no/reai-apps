@@ -61,14 +61,24 @@ final class ShippingModel {
     var showingLocations: Bool { section == .locations }
     var pickupCount = 0
     var loadingPickups = false
+    var showingPickupHistory = false
     var pickupOrders: [CommercePickingOrder] = []
+    var pickupHistoryOrders: [CommercePickupHistoryOrder] = []
     var pickupSearch = ""
     var pickupPage = 0
     var pickupTotalPages = 0
     var pickupTotalOrders = 0
-    var canLoadMorePickups: Bool { pickupPage + 1 < pickupTotalPages }
+    var pickupHistoryPage = 0
+    var pickupHistoryTotalPages = 0
+    var pickupHistoryTotalOrders = 0
+    var canLoadMorePickups: Bool {
+        showingPickupHistory ? pickupHistoryPage + 1 < pickupHistoryTotalPages : pickupPage + 1 < pickupTotalPages
+    }
     var selectedPickupOrder: CommercePickingOrder?
     var selectedPickupDetail: CommercePickingDetail?
+    var selectedPickupHistoryOrder: CommercePickupHistoryOrder?
+    var selectedPickupHistoryDetail: OrderDetail?
+    var selectedPickupHistoryStock: [Int: [ItemLocation]] = [:]
     var pickupRecords: [PickupPrintRecord] = []
     private var pickupJournal: URL { journal.deletingLastPathComponent().appending(path: "pickup-print-history.json") }
     var warehouses: [Warehouse] = []
@@ -234,8 +244,12 @@ final class ShippingModel {
             token = nil
             company = nil
             section = .shipping
-            pickupCount = 0; pickupOrders = []; pickupSearch = ""; pickupPage = 0; pickupTotalPages = 0; pickupTotalOrders = 0
+            pickupCount = 0; showingPickupHistory = false
+            pickupOrders = []; pickupHistoryOrders = []; pickupSearch = ""
+            pickupPage = 0; pickupTotalPages = 0; pickupTotalOrders = 0
+            pickupHistoryPage = 0; pickupHistoryTotalPages = 0; pickupHistoryTotalOrders = 0
             selectedPickupOrder = nil; selectedPickupDetail = nil
+            selectedPickupHistoryOrder = nil; selectedPickupHistoryDetail = nil; selectedPickupHistoryStock = [:]
             warehouses = []; warehouseId = 0; locations = []; locationZones = []; locationZoneId = 0; locationSearch = ""
             savedShipments = []; historyBeforeId = nil; shipmentBeforeId = nil
             orders = []; selectedOrder = nil; options = nil; draft = nil; shipment = nil; quote = nil
@@ -931,30 +945,130 @@ final class ShippingModel {
         }
     }
 
+    func refreshOnAppActivate() async {
+        guard company != nil, !busy, !connecting else { return }
+        await refreshPickupSummary()
+        if section == .pickup && !loadingPickups && !showingPickupHistory {
+            await refreshPickups()
+        }
+    }
+
+    func changePickupView(history: Bool) async {
+        guard !busy, !loadingPickups else { return }
+        showingPickupHistory = history
+        error = nil
+        notice = nil
+        selectedPickupOrder = nil
+        selectedPickupDetail = nil
+        selectedPickupHistoryOrder = nil
+        selectedPickupHistoryDetail = nil
+        selectedPickupHistoryStock = [:]
+        await refreshPickups()
+    }
+
     func refreshPickups(more: Bool = false) async {
         guard !loadingPickups, let token, let company else { return }
         loadingPickups = true
         defer { loadingPickups = false }
+        let isHistory = showingPickupHistory
         do {
+            if isHistory {
+                let result = try await api.pickupHistory(token: token, company: company.id, search: pickupSearch, page: more ? pickupHistoryPage + 1 : 0)
+                guard self.company?.id == company.id, self.showingPickupHistory == isHistory else { return }
+                if more {
+                    var seen = Set(pickupHistoryOrders.map(\.id))
+                    pickupHistoryOrders += result.items.filter { seen.insert($0.id).inserted }
+                } else {
+                    var seen = Set<Int>()
+                    pickupHistoryOrders = result.items.filter { seen.insert($0.id).inserted }
+                    if let current = selectedPickupHistoryOrder {
+                        if let match = pickupHistoryOrders.first(where: { $0.id == current.id }) {
+                            selectedPickupHistoryOrder = match
+                        } else {
+                            selectedPickupHistoryOrder = nil
+                            selectedPickupHistoryDetail = nil
+                            selectedPickupHistoryStock = [:]
+                        }
+                    }
+                }
+                pickupHistoryPage = result.page - 1
+                pickupHistoryTotalPages = result.totalPages
+                pickupHistoryTotalOrders = result.totalItems
+                if !more { await refreshPickupSummary() }
+                return
+            }
             let result = try await api.pickupOrders(token: token, company: company.id, search: pickupSearch, page: more ? pickupPage + 1 : 0)
-            guard self.company?.id == company.id else { return }
+            guard self.company?.id == company.id, self.showingPickupHistory == isHistory else { return }
             if more {
                 var seen = Set(pickupOrders.map(\.id))
                 pickupOrders += result.items.filter { seen.insert($0.id).inserted }
             } else {
                 var seen = Set<Int>()
                 pickupOrders = result.items.filter { seen.insert($0.id).inserted }
+                if let current = selectedPickupOrder {
+                    if let match = pickupOrders.first(where: { $0.id == current.id }) {
+                        selectedPickupOrder = match
+                    } else {
+                        selectedPickupOrder = nil
+                        selectedPickupDetail = nil
+                    }
+                }
             }
             pickupPage = result.page - 1
             pickupTotalPages = result.totalPages
             pickupTotalOrders = result.totalItems
             if pickupSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 pickupCount = result.totalItems
+            } else if !more {
+                await refreshPickupSummary()
             }
         } catch {
-            Diagnostics.recordError(operation: "refresh-pickups", error: error)
+            Diagnostics.recordError(operation: isHistory ? "refresh-pickup-history" : "refresh-pickups", error: error)
             self.error = error.localizedDescription
         }
+    }
+
+    func selectPickupHistory(_ order: CommercePickupHistoryOrder) async {
+        guard !busy, let token, let company else { return }
+        busy = true
+        defer { busy = false }
+        selectedPickupHistoryOrder = order
+        selectedPickupHistoryDetail = nil
+        selectedPickupHistoryStock = [:]
+        error = nil
+        notice = nil
+        let context = await Self.loadFallbackOrderItems(api: api, orderId: order.id, token: token, company: company.id)
+        guard selectedPickupHistoryOrder?.id == order.id else { return }
+        selectedPickupHistoryDetail = context.order
+        selectedPickupHistoryStock = context.stockByVariant
+    }
+
+    var pickupHistoryDisplayedItems: [OrderItem] {
+        guard let order = selectedPickupHistoryDetail else { return [] }
+        let positive = order.lines.filter { $0.quantity > 0 }
+        let stockLines = positive.filter { $0.variantId != nil }
+        let source = stockLines.isEmpty ? positive : stockLines
+        return source.enumerated().map { index, line in
+            let rawLocations = line.variantId.flatMap { selectedPickupHistoryStock[$0] } ?? []
+            return OrderItem(
+                id: "\(line.id)-\(index)",
+                orderLineId: line.id,
+                title: line.itemName,
+                sku: line.sku,
+                bundleTitle: nil,
+                quantity: line.quantity,
+                locations: Self.formatLocations(pick: nil, raw: rawLocations)
+            )
+        }
+    }
+
+    var pickupHistoryNotes: String? {
+        let parts = [selectedPickupHistoryDetail?.comment, selectedPickupHistoryDetail?.internalComment]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        var seen = Set<String>()
+        let unique = parts.filter { seen.insert($0).inserted }
+        return unique.isEmpty ? nil : unique.joined(separator: " · ")
     }
 
     func selectPickup(_ order: CommercePickingOrder) async {
@@ -1012,7 +1126,23 @@ final class ShippingModel {
     }
 
     func pickupLabelPDF() throws -> Data {
-        guard let company, let order = selectedPickupOrder else {
+        guard let company else {
+            throw appError("Choose a Click & Collect order before printing.")
+        }
+        if showingPickupHistory, let order = selectedPickupHistoryOrder {
+            return try PickupLabel.pdf(
+                orderNumber: order.number,
+                customerName: order.customerName,
+                phone: order.phone,
+                email: order.email,
+                items: pickupHistoryDisplayedItems,
+                pickupInstructions: order.pickupInstructions,
+                notes: pickupHistoryNotes,
+                companyName: company.companyName,
+                date: order.date
+            )
+        }
+        guard let order = selectedPickupOrder else {
             throw appError("Choose a Click & Collect order before printing.")
         }
         let detail = selectedPickupDetail
@@ -1030,17 +1160,25 @@ final class ShippingModel {
     }
 
     func printPickupLabel(markReady: Bool, confirmedReprint: Bool = false) async {
-        guard canPrint, !loadingPickups, let token, let company, let order = selectedPickupOrder else { return }
-        guard pickupRecord(order.id) == nil || confirmedReprint else { return }
+        guard canPrint, !loadingPickups, let token, let company else { return }
+        let target: (id: Int, number: String)
+        if showingPickupHistory, let historyOrder = selectedPickupHistoryOrder {
+            target = (historyOrder.id, historyOrder.number)
+        } else if let order = selectedPickupOrder {
+            target = (order.id, order.number)
+        } else {
+            return
+        }
+        guard pickupRecord(target.id) == nil || confirmedReprint else { return }
         busy = true
         error = nil
         notice = nil
         defer { busy = false }
         var markedReady = false
-        if markReady, let readiness = pickupReadiness, !readiness.ready, readiness.allowsNotification {
+        if !showingPickupHistory, markReady, let readiness = pickupReadiness, !readiness.ready, readiness.allowsNotification {
             do {
-                let updated = try await api.markPickupReady(order: order.id, expectedRevision: readiness.revision, token: token, company: company.id)
-                applyPickupDetail(updated, orderId: order.id)
+                let updated = try await api.markPickupReady(order: target.id, expectedRevision: readiness.revision, token: token, company: company.id)
+                applyPickupDetail(updated, orderId: target.id)
                 markedReady = true
             } catch {
                 Diagnostics.recordError(operation: "pickup-mark-ready", error: error)
@@ -1052,15 +1190,15 @@ final class ShippingModel {
         do {
             let data = try pickupLabelPDF()
             let selectedPrinter = printerId
-            pickupRecords.removeAll { $0.tenantId == company.id && $0.orderId == order.id }
+            pickupRecords.removeAll { $0.tenantId == company.id && $0.orderId == target.id }
             pickupRecords.insert(PickupPrintRecord(
-                tenantId: company.id, orderId: order.id, orderNumber: order.number,
+                tenantId: company.id, orderId: target.id, orderNumber: target.number,
                 state: "submitting", printerId: selectedPrinter
             ), at: 0)
             do { try savePickupPrints() } catch { historyReadable = false; throw error }
             recorded = true
-            let result = try await printer.submitLocation(data, printer: selectedPrinter, title: "ReAI Pickup · " + order.number)
-            if let index = pickupRecords.firstIndex(where: { $0.tenantId == company.id && $0.orderId == order.id }) {
+            let result = try await printer.submitLocation(data, printer: selectedPrinter, title: "ReAI Pickup · " + target.number)
+            if let index = pickupRecords.firstIndex(where: { $0.tenantId == company.id && $0.orderId == target.id }) {
                 pickupRecords[index].state = "queued"
                 pickupRecords[index].queueResult = result
             }
@@ -1070,7 +1208,7 @@ final class ShippingModel {
                 : "Click & Collect label sent to the printer queue."
         } catch {
             Diagnostics.recordError(operation: "print-pickup-label", error: error)
-            if recorded, let index = pickupRecords.firstIndex(where: { $0.tenantId == company.id && $0.orderId == order.id }) {
+            if recorded, let index = pickupRecords.firstIndex(where: { $0.tenantId == company.id && $0.orderId == target.id }) {
                 pickupRecords[index].state = "check_queue"
                 try? savePickupPrints()
             }
