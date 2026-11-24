@@ -128,7 +128,9 @@ struct InvoiceImport {
                                           "\($0.description) · \($0.qty) × NOK \($0.price) · total \($0.sumInclVat * multiplier)"
                                       }))
         }
-        return InvoiceBatch(rows: rows, mappings: mappings.values.sorted { $0.label < $1.label },
+        let requiredMappings = Set(rows.filter { $0.problem == nil }.flatMap(\.requirements))
+        let reviewMappings = mappings.values.filter { requiredMappings.contains($0.id) }.sorted { $0.label < $1.label }
+        return InvoiceBatch(rows: rows, mappings: reviewMappings,
                             documents: documents, companies: companies, customers: customers, products: products,
                             vat: vat, start: start)
     }
@@ -244,7 +246,10 @@ struct InvoiceImport {
         }.sorted { $0.label < $1.label }
         return AccountingMapping(id: productKey(source.productId, rate: rate),
                                  label: "\(source.name) · RecMan account \(source.creditAccount), VAT \(source.vatCode) (\(rate)%)",
-                                 options: options, suggestion: nil)
+                                 options: options, suggestion: nil,
+                                 unavailableReason: options.isEmpty
+                                     ? "Set up a non-stock ReAI product with an explicit revenue account and a VAT code for \(rate)%, then reload."
+                                     : nil)
     }
 
     private func documentProblem(_ document: RecManInvoice) -> String? {

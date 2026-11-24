@@ -541,12 +541,19 @@ private struct ImportView: View {
                 if let issue = model.payrollIssue {
                     Text("Payroll could not be reviewed. \(issue)").font(.callout).foregroundStyle(.orange)
                 }
-            } else if model.invoiceBatch != nil {
+            } else if let batch = model.invoiceBatch {
                 HStack {
                     Button("Select All Ready") { model.selectedAccountingIDs = model.readyAccountingIDs }
                         .disabled(model.selectedAccountingIDs == model.readyAccountingIDs)
                     Button("Select None") { model.selectedAccountingIDs.removeAll() }
                         .disabled(model.selectedAccountingIDs.isEmpty)
+                    if batch.mappings.contains(where: { $0.id.hasPrefix("product-") && $0.options.isEmpty }),
+                       let company = model.company {
+                        Spacer()
+                        Link("Open ReAI Products",
+                             destination: model.server.url.appending(path: "/product")
+                                .appending(queryItems: [URLQueryItem(name: "tenantId", value: String(company.id))]))
+                    }
                 }
             }
         }
@@ -610,6 +617,7 @@ private struct ImportView: View {
 
     private func accountingPreview(rows: [AccountingRow], mappings: [AccountingMapping], isPayroll: Bool) -> some View {
         let ready = isPayroll ? Set(model.payrollApproval?.rows.map(\.id) ?? []) : model.readyAccountingIDs
+        let unavailableProducts = Set(mappings.filter { $0.id.hasPrefix("product-") && $0.options.isEmpty }.map(\.id))
         return HSplitView {
             List {
                 Section(isPayroll ? "Payroll for selected employees" : "Records") {
@@ -642,7 +650,9 @@ private struct ImportView: View {
                                     ].compactMap { $0 }
                                     Text(reasons.joined(separator: " · ")).foregroundStyle(.orange)
                                 } else if !ready.contains(row.id) {
-                                    Text("Mapping required").foregroundStyle(.orange)
+                                    Text(unavailableProducts.isDisjoint(with: row.requirements)
+                                         ? "Mapping required" : "No compatible ReAI product")
+                                        .foregroundStyle(.orange)
                                 } else if isPayroll {
                                     Text("Included in draft payroll").foregroundStyle(.secondary)
                                 }
@@ -718,7 +728,8 @@ private struct ImportView: View {
                 .labelsHidden()
                 .disabled(mapping.options.isEmpty || model.isBusy)
                 if mapping.options.isEmpty && !isPayroll {
-                    Text("No compatible ReAI record. Update ReAI and reload.").foregroundStyle(.secondary)
+                    Text(mapping.unavailableReason ?? "No compatible ReAI customer. Update customers in ReAI and reload.")
+                        .foregroundStyle(.secondary)
                 }
             }
         }

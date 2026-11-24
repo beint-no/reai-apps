@@ -149,6 +149,7 @@ struct AccountingMapping: Identifiable, Sendable {
     let suggestion: String?
     var municipalityInput = false
     var municipalitySuggestion: AccountingOption?
+    var unavailableReason: String?
 
     func accepts(_ choice: String?) -> Bool {
         guard let choice else { return false }
