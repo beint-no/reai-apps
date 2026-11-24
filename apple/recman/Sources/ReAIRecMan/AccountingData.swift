@@ -147,12 +147,19 @@ struct AccountingMapping: Identifiable, Sendable {
     let label: String
     let options: [AccountingOption]
     let suggestion: String?
+    var municipalityInput = false
+
+    func accepts(_ choice: String?) -> Bool {
+        guard let choice else { return false }
+        return municipalityInput
+            ? choice.range(of: #"^[0-9]{4}$"#, options: .regularExpression) != nil && choice != "0000"
+            : options.contains(where: { $0.id == choice })
+    }
 }
 
 enum AccountingScope: String, CaseIterable {
-    case employees = "Employees"
+    case employees = "Employees & Payroll"
     case invoices = "Invoices"
-    case payroll = "Payroll"
 }
 
 func roundedMoney(_ value: Decimal) -> Decimal {
@@ -174,25 +181,6 @@ func accountingDate(_ text: String) -> Bool {
     formatter.formatOptions = [.withFullDate]
     guard let date = formatter.date(from: text) else { return false }
     return formatter.string(from: date) == text
-}
-
-enum AccountingBatch {
-    case invoices(InvoiceBatch)
-    case payroll(PayrollBatch)
-
-    var rows: [AccountingRow] {
-        switch self {
-        case .invoices(let batch): batch.rows
-        case .payroll(let batch): batch.rows
-        }
-    }
-
-    var mappings: [AccountingMapping] {
-        switch self {
-        case .invoices(let batch): batch.mappings
-        case .payroll(let batch): batch.mappings
-        }
-    }
 }
 
 func osloDate(_ date: Date) -> String {

@@ -314,11 +314,10 @@ struct InvoiceImport {
 }
 
 func validateChoices(_ rows: [AccountingRow], mappings: [AccountingMapping], choices: [String: String]) throws {
-    let valid = Dictionary(uniqueKeysWithValues: mappings.map { ($0.id, Set($0.options.map(\.id))) })
+    let valid = Dictionary(uniqueKeysWithValues: mappings.map { ($0.id, $0) })
     guard rows.allSatisfy({ row in
         row.problem == nil && row.requirements.allSatisfy { required in
-            guard let choice = choices[required] else { return false }
-            return valid[required]?.contains(choice) == true
+            valid[required]?.accepts(choices[required]) == true
         }
     }) else { throw appError("Review the required mappings before importing.") }
 }

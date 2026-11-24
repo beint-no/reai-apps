@@ -6,11 +6,18 @@ private struct EmployeeSummary: Decodable {
     let email: String?
 }
 
-private struct Employee: Decodable, Equatable {
+struct Employee: Decodable, Equatable {
+    struct Bank: Decodable, Equatable {
+        let accountNumber: String
+        let bankCode: String?
+        let countryCode: String?
+    }
+
     struct Relation: Decodable, Equatable {
         struct Line: Decodable, Equatable {
             let startDate: String
             let percentage: Decimal?
+            let municipality: String?
         }
         let startDate: String
         let endDate: String?
@@ -20,6 +27,20 @@ private struct Employee: Decodable, Equatable {
     let name: String
     let email: String?
     let employmentRelations: [Relation]
+    let bankAccount: Bank?
+
+    func municipality(on start: String, through end: String) -> String? {
+        let eligible = employmentRelations.filter {
+            $0.startDate <= start && ($0.endDate.map { $0 >= end } ?? true)
+        }
+        guard eligible.count == 1, let relation = eligible.first else { return nil }
+        let first = relation.employmentLines.filter { $0.startDate <= start }.max { $0.startDate < $1.startDate }
+        guard let code = normalizedIdentity(first?.municipality),
+              !relation.employmentLines.contains(where: {
+                  $0.startDate > start && $0.startDate <= end && $0.municipality != code
+              }) else { return nil }
+        return code
+    }
 }
 
 struct PreviewRow: Equatable, Identifiable {
@@ -30,7 +51,7 @@ struct PreviewRow: Equatable, Identifiable {
     var needsReview = false
 }
 
-fileprivate struct EmployeePlan: Equatable {
+struct EmployeePlan: Equatable {
     let receiptKey: String
     let name: String
     let email: String
@@ -48,7 +69,7 @@ fileprivate struct EmployeePlan: Equatable {
 struct ImportPreview: Equatable {
     let source: [RecManEmployee]
     let employeeRows: [PreviewRow]
-    fileprivate let plans: [Int: EmployeePlan]
+    let plans: [Int: EmployeePlan]
 
     var selectableEmployeeIDs: Set<Int> { Set(plans.keys) }
 }
@@ -57,6 +78,7 @@ struct EmployeeImportResult {
     var added: [String] = []
     var employmentAdded: [String] = []
     var alreadyMatched: [String] = []
+    var employees: [Int: Employee] = [:]
 
     var message: String {
         var lines: [String] = []
@@ -71,6 +93,11 @@ struct EmployeeImportResult {
     }
 }
 
+struct EmployeePayrollSetup: Equatable {
+    let bankAccount: String?
+    let municipality: String
+}
+
 @MainActor
 struct RecManImport {
     let api: ReAIAPI
@@ -82,23 +109,23 @@ struct RecManImport {
         try await prepare(employees: employees, journal: Journal(server: api.server, tenant: tenant, directory: journalDirectory))
     }
 
-    func perform(_ reviewed: ImportPreview, selectedEmployeeIDs: Set<Int>) async throws -> EmployeeImportResult {
+    func perform(_ reviewed: ImportPreview, selectedEmployeeIDs: Set<Int>,
+                 payrollSetup: [Int: EmployeePayrollSetup] = [:]) async throws -> EmployeeImportResult {
         guard !selectedEmployeeIDs.isEmpty, selectedEmployeeIDs.isSubset(of: reviewed.selectableEmployeeIDs) else {
             throw appError("Select at least one employee who is ready to import.")
         }
         let journal = try Journal(server: api.server, tenant: tenant, directory: journalDirectory)
         let current = try await prepare(employees: reviewed.source, journal: journal)
-        let plans = reviewed.employeeRows.filter { selectedEmployeeIDs.contains($0.id) }.compactMap { row in
-            reviewed.plans[row.id]
-        }
+        let orderedIDs = reviewed.employeeRows.map(\.id).filter { selectedEmployeeIDs.contains($0) }
         guard selectedEmployeeIDs.allSatisfy({ reviewed.plans[$0] == current.plans[$0] }) else {
             throw appError("The selected employees changed in ReAI. Reload and review them before importing.")
         }
 
         var result = EmployeeImportResult()
-        for plan in plans {
+        for id in orderedIDs {
+            guard let plan = reviewed.plans[id] else { throw appError("An employee preview is missing.") }
             do {
-                try await importEmployee(plan, journal: journal)
+                result.employees[id] = try await importEmployee(plan, setup: payrollSetup[id], journal: journal)
             } catch {
                 let failure = "Could not complete the import for \(plan.name). \(error.localizedDescription)"
                 let details = [failure, result.message].filter { !$0.isEmpty }
@@ -226,15 +253,16 @@ struct RecManImport {
         }
     }
 
-    private func importEmployee(_ plan: EmployeePlan, journal: Journal) async throws {
-        let employmentLine: [String: Any] = [
+    private func importEmployee(_ plan: EmployeePlan, setup: EmployeePayrollSetup?, journal: Journal) async throws -> Employee {
+        var employmentLine: [String: Any] = [
             "startDate": plan.startDate, "percentage": NSDecimalNumber(decimal: plan.percentage)
         ]
+        if let setup { employmentLine["municipality"] = setup.municipality }
         var fields: [String: Any] = ["employmentLines": [employmentLine]]
         let endpoint: String
         let key: String
         if let existing = plan.existing {
-            guard existing.employmentRelations.isEmpty else { return }
+            guard existing.employmentRelations.isEmpty else { return existing }
             endpoint = "/api/employees/\(existing.id)/employment-relations"
             key = "\(plan.receiptKey)-employment"
             fields["startDate"] = plan.startDate
@@ -246,6 +274,10 @@ struct RecManImport {
             fields["email"] = plan.email
             fields["dateOfEmployment"] = plan.startDate
             if let end = plan.endDate { fields["endDateOfEmployment"] = end }
+            if let bank = setup?.bankAccount {
+                fields["accountNumber"] = bank
+                fields["bankCountryCode"] = "NO"
+            }
         }
 
         try Task.checkCancellation()
@@ -255,5 +287,6 @@ struct RecManImport {
         try validateIdentity(employee, plan: plan)
         try validateEmployment(employee, plan: plan)
         try journal.complete(key, id: employee.id)
+        return employee
     }
 }

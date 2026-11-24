@@ -31,10 +31,12 @@ private final class ImportModel {
     var company: Company?
     var scope = AccountingScope.employees
     var sourceDate = Date.now
-    var paymentDate = Date.now
     var confirmedNOK = false
     var preview: ImportPreview?
-    var accountingBatch: AccountingBatch?
+    var invoiceBatch: InvoiceBatch?
+    var payrollBatch: PayrollBatch?
+    var payrollIssue: String?
+    var reviewedEmployeeIDs: Set<Int> = []
     var selectedAccountingIDs: Set<String> = []
     var mappingChoices: [String: String] = [:]
     var selectedEmployeeIDs: Set<Int> = []
@@ -124,9 +126,9 @@ private final class ImportModel {
 
     func clearPreview() {
         preview = nil
-        accountingBatch = nil
+        invoiceBatch = nil
         selectedAccountingIDs = []
-        mappingChoices = [:]
+        resetPayrollReview()
         selectedEmployeeIDs = []
         message = nil
         hasError = false
@@ -178,26 +180,51 @@ private final class ImportModel {
             case .invoices:
                 let importer = InvoiceImport(source: self.recMan, key: key, target: try self.accountingTarget())
                 let batch = try await importer.load(from: osloDate(self.sourceDate))
-                self.setAccountingBatch(.invoices(batch))
-            case .payroll:
-                let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
-                let batch = try await importer.load(periodDate: osloDate(self.sourceDate),
-                                                    paymentDate: osloDate(self.paymentDate))
-                self.setAccountingBatch(.payroll(batch))
+                self.invoiceBatch = batch
+                for mapping in batch.mappings { self.mappingChoices[mapping.id] = mapping.suggestion }
+                if batch.rows.isEmpty { self.message = "No new records for this date selection." }
             }
         }
     }
 
-    private func setAccountingBatch(_ batch: AccountingBatch) {
-        accountingBatch = batch
-        for item in batch.mappings { mappingChoices[item.id] = item.suggestion }
-        if batch.rows.isEmpty { message = "No new records for this date selection." }
+    func updateEmployeeSelection(_ ids: Set<Int>) {
+        selectedEmployeeIDs = ids
+        resetPayrollReview()
+    }
+
+    private func resetPayrollReview() {
+        payrollBatch = nil
+        payrollIssue = nil
+        reviewedEmployeeIDs = []
+        mappingChoices = [:]
+        if scope == .employees { confirmedNOK = false }
+    }
+
+    func reviewPayroll() {
+        guard let preview, !isBusy, !selectedEmployeeIDs.isEmpty else { return }
+        let ids = selectedEmployeeIDs
+        resetPayrollReview()
+        run {
+            do {
+                let key = try await self.sourceKey()
+                let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
+                self.payrollBatch = try await importer.load(employeePreview: preview, selection: ids)
+                if self.payrollBatch?.rows.isEmpty == true { self.message = "No new paychecks for the selected employees." }
+            } catch {
+                self.payrollIssue = error.localizedDescription
+            }
+            self.reviewedEmployeeIDs = ids
+        }
     }
 
     var readyAccountingIDs: Set<String> {
-        Set((accountingBatch?.rows ?? []).filter { row in
+        Set((invoiceBatch?.rows ?? []).filter { row in
             row.problem == nil && row.requirements.allSatisfy { mappingChoices[$0] != nil }
         }.map(\.id))
+    }
+
+    var payrollApproval: PayrollImportApproval? {
+        payrollBatch?.approval(choices: mappingChoices, confirmedNOK: confirmedNOK)
     }
 
     func changeMapping(_ id: String, choice: String?) {
@@ -207,22 +234,15 @@ private final class ImportModel {
 
     func applyAccounting() {
         let selection = selectedAccountingIDs
-        guard !isBusy, confirmedNOK, let reviewed = accountingBatch, !selection.isEmpty,
+        guard !isBusy, confirmedNOK, let reviewed = invoiceBatch, !selection.isEmpty,
               selection.isSubset(of: readyAccountingIDs) else { return }
         let choices = mappingChoices
         run {
             do {
                 let key = try await self.sourceKey()
                 let target = try self.accountingTarget()
-                let message: String
-                switch reviewed {
-                case .invoices(let batch):
-                    message = try await InvoiceImport(source: self.recMan, key: key, target: target)
-                        .perform(batch, selection: selection, choices: choices)
-                case .payroll(let batch):
-                    message = try await PayrollImport(source: self.recMan, key: key, target: target)
-                        .perform(batch, selection: selection, choices: choices)
-                }
+                let message = try await InvoiceImport(source: self.recMan, key: key, target: target)
+                    .perform(reviewed, selection: selection, choices: choices)
                 self.clearPreview()
                 self.importFeedback = ImportFeedback(title: "Import Complete", message: message)
             } catch {
@@ -233,22 +253,48 @@ private final class ImportModel {
     }
 
     func apply() {
-        guard let reviewed = preview, !selectedEmployeeIDs.isEmpty else { return }
+        guard let reviewed = preview, !isBusy, !selectedEmployeeIDs.isEmpty,
+              selectedEmployeeIDs == reviewedEmployeeIDs else { return }
         let selection = selectedEmployeeIDs
+        let batch = payrollBatch
+        let choices = mappingChoices
+        let approval = payrollApproval
+        let issue = payrollIssue
         clearPreview()
         run {
             let importer: RecManImport
+            let result: EmployeeImportResult
             do {
                 importer = try self.importer()
-                let result = try await importer.perform(reviewed, selectedEmployeeIDs: selection)
-                self.importFeedback = ImportFeedback(
-                    title: result.added.isEmpty ? "Employee Import Complete" : "Employees Added",
-                    message: result.message
-                )
+                result = try await importer.perform(reviewed, selectedEmployeeIDs: selection,
+                                                    payrollSetup: approval?.employeeSetup ?? [:])
             } catch {
                 self.importFeedback = ImportFeedback(title: "Employee Import Failed", message: error.localizedDescription)
                 return
             }
+
+            var summary = [result.message]
+            var payrollFailed = false
+            if let batch, let approval {
+                if !approval.rows.isEmpty {
+                    do {
+                        let key = try await self.sourceKey()
+                        let payroll = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
+                        summary.append(try await payroll.perform(batch, approval: approval, choices: choices,
+                                                                 employees: result.employees))
+                    } catch {
+                        payrollFailed = true
+                        summary.append("Payroll import incomplete. \(error.localizedDescription)")
+                    }
+                }
+                if approval.heldCount > 0 {
+                    summary.append("Held \(approval.heldCount) paychecks for review.")
+                }
+            } else if let issue {
+                summary.append("Payroll could not be reviewed. \(issue)")
+            }
+            self.importFeedback = ImportFeedback(title: payrollFailed ? "Employees Imported · Payroll Incomplete" : "Import Result",
+                                                 message: summary.filter { !$0.isEmpty }.joined(separator: "\n\n"))
             self.preview = try await importer.preview(employees: reviewed.source)
         }
     }
@@ -292,9 +338,17 @@ private struct ImportView: View {
             employeeControls
             Divider()
             if let preview = model.preview {
-                previewList(preview)
-            } else if let batch = model.accountingBatch {
-                accountingPreview(batch)
+                if let payroll = model.payrollBatch, !payroll.rows.isEmpty {
+                    VSplitView {
+                        previewList(preview).frame(minHeight: 130, idealHeight: 210)
+                        accountingPreview(rows: payroll.rows, mappings: payroll.mappings, isPayroll: true)
+                            .frame(minHeight: 170)
+                    }
+                } else {
+                    previewList(preview)
+                }
+            } else if let batch = model.invoiceBatch {
+                accountingPreview(rows: batch.rows, mappings: batch.mappings, isPayroll: false)
             } else {
                 ContentUnavailableView {
                     Label(model.scope.rawValue, systemImage: model.scope == .employees ? "person.2" : "doc.text")
@@ -435,17 +489,11 @@ private struct ImportView: View {
                 Button(model.scope == .employees ? "Load Employees" : "Load Records") { model.load() }
                     .disabled(model.company == nil || !model.hasRecManKey)
             }
-            if model.scope != .employees {
+            if model.scope == .invoices {
                 HStack {
-                    DatePicker(model.scope == .invoices ? "On or after" : "Payroll month", selection: $model.sourceDate,
-                               displayedComponents: .date)
+                    DatePicker("On or after", selection: $model.sourceDate, displayedComponents: .date)
                         .fixedSize()
                         .onChange(of: model.sourceDate) { model.clearPreview() }
-                    if model.scope == .payroll {
-                        DatePicker("Payment date", selection: $model.paymentDate, displayedComponents: .date)
-                            .fixedSize()
-                            .onChange(of: model.paymentDate) { model.clearPreview() }
-                    }
                     Spacer()
                     Toggle("RecMan amounts are in NOK", isOn: $model.confirmedNOK)
                         .toggleStyle(.checkbox)
@@ -453,12 +501,22 @@ private struct ImportView: View {
             }
             if let preview = model.preview {
                 HStack {
-                    Button("Select All") { model.selectedEmployeeIDs = preview.selectableEmployeeIDs }
+                    Button("Select All") { model.updateEmployeeSelection(preview.selectableEmployeeIDs) }
                         .disabled(model.selectedEmployeeIDs == preview.selectableEmployeeIDs)
-                    Button("Select None") { model.selectedEmployeeIDs.removeAll() }
+                    Button("Select None") { model.updateEmployeeSelection([]) }
                         .disabled(model.selectedEmployeeIDs.isEmpty)
+                    Spacer()
+                    Button("Review Import") { model.reviewPayroll() }
+                        .disabled(model.selectedEmployeeIDs.isEmpty || model.selectedEmployeeIDs == model.reviewedEmployeeIDs && model.payrollIssue == nil)
+                    if model.payrollBatch?.rows.isEmpty == false {
+                        Toggle("Payroll amounts are in NOK", isOn: $model.confirmedNOK)
+                            .toggleStyle(.checkbox)
+                    }
                 }
-            } else if model.accountingBatch != nil {
+                if let issue = model.payrollIssue {
+                    Text("Payroll could not be reviewed. \(issue)").font(.callout).foregroundStyle(.orange)
+                }
+            } else if model.invoiceBatch != nil {
                 HStack {
                     Button("Select All Ready") { model.selectedAccountingIDs = model.readyAccountingIDs }
                         .disabled(model.selectedAccountingIDs == model.readyAccountingIDs)
@@ -472,29 +530,33 @@ private struct ImportView: View {
         .padding(.vertical, 12)
     }
 
-    private func accountingPreview(_ batch: AccountingBatch) -> some View {
-        let ready = model.readyAccountingIDs
+    private func accountingPreview(rows: [AccountingRow], mappings: [AccountingMapping], isPayroll: Bool) -> some View {
+        let ready = isPayroll ? Set(model.payrollApproval?.rows.map(\.id) ?? []) : model.readyAccountingIDs
         return HSplitView {
             List {
-                Section("Records") {
-                    ForEach(batch.rows) { row in
+                Section(isPayroll ? "Payroll for selected employees" : "Records") {
+                    ForEach(rows) { row in
                         HStack(alignment: .top, spacing: 10) {
-                            Toggle(row.title, isOn: Binding {
-                                model.selectedAccountingIDs.contains(row.id)
-                            } set: { selected in
-                                if selected { model.selectedAccountingIDs.insert(row.id) }
-                                else { model.selectedAccountingIDs.remove(row.id) }
-                            })
-                            .toggleStyle(.checkbox)
-                            .labelsHidden()
-                            .disabled(!ready.contains(row.id) || model.isBusy)
+                            if !isPayroll {
+                                Toggle(row.title, isOn: Binding {
+                                    model.selectedAccountingIDs.contains(row.id)
+                                } set: { selected in
+                                    if selected { model.selectedAccountingIDs.insert(row.id) }
+                                    else { model.selectedAccountingIDs.remove(row.id) }
+                                })
+                                .toggleStyle(.checkbox)
+                                .labelsHidden()
+                                .disabled(!ready.contains(row.id) || model.isBusy)
+                            }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(row.title).fontWeight(.medium)
                                 Text(row.detail).foregroundStyle(.secondary)
                                 if let problem = row.problem {
                                     Text(problem).foregroundStyle(.orange)
                                 } else if !ready.contains(row.id) {
-                                    Text("Mapping required").foregroundStyle(.orange)
+                                    Text(isPayroll ? "Payroll review required" : "Mapping required").foregroundStyle(.orange)
+                                } else if isPayroll {
+                                    Text("Included in draft payroll").foregroundStyle(.secondary)
                                 }
                                 if !row.lineDetails.isEmpty {
                                     DisclosureGroup("\(row.lineDetails.count) lines") {
@@ -515,21 +577,30 @@ private struct ImportView: View {
             .frame(minWidth: 300)
             List {
                 Section("Mappings") {
-                    ForEach(batch.mappings) { mapping in
+                    ForEach(mappings) { mapping in
                         VStack(alignment: .leading, spacing: 6) {
                             Text(mapping.label).fontWeight(.medium)
-                            Picker(mapping.label, selection: Binding {
-                                model.mappingChoices[mapping.id]
-                            } set: { choice in
-                                model.changeMapping(mapping.id, choice: choice)
-                            }) {
-                                Text("Choose a mapping").tag(nil as String?)
-                                ForEach(mapping.options) { option in Text(option.label).tag(Optional(option.id)) }
-                            }
-                            .labelsHidden()
-                            .disabled(mapping.options.isEmpty || model.isBusy)
-                            if mapping.options.isEmpty {
-                                Text("No compatible ReAI record. Update ReAI and reload.").foregroundStyle(.secondary)
+                            if mapping.municipalityInput {
+                                TextField("Four-digit municipality code", text: Binding {
+                                    model.mappingChoices[mapping.id] ?? ""
+                                } set: { choice in
+                                    model.changeMapping(mapping.id, choice: choice.isEmpty ? nil : choice)
+                                })
+                                .disabled(model.isBusy)
+                            } else {
+                                Picker(mapping.label, selection: Binding {
+                                    model.mappingChoices[mapping.id]
+                                } set: { choice in
+                                    model.changeMapping(mapping.id, choice: choice)
+                                }) {
+                                    Text("Choose a mapping").tag(nil as String?)
+                                    ForEach(mapping.options) { option in Text(option.label).tag(Optional(option.id)) }
+                                }
+                                .labelsHidden()
+                                .disabled(mapping.options.isEmpty || model.isBusy)
+                                if mapping.options.isEmpty {
+                                    Text("No compatible ReAI record. Update ReAI and reload.").foregroundStyle(.secondary)
+                                }
                             }
                         }
                         .font(.callout)
@@ -562,11 +633,10 @@ private struct ImportView: View {
         Binding {
             model.selectedEmployeeIDs.contains(id)
         } set: { selected in
-            if selected {
-                model.selectedEmployeeIDs.insert(id)
-            } else {
-                model.selectedEmployeeIDs.remove(id)
-            }
+            var ids = model.selectedEmployeeIDs
+            if selected { ids.insert(id) }
+            else { ids.remove(id) }
+            model.updateEmployeeSelection(ids)
         }
     }
 
@@ -589,22 +659,24 @@ private struct ImportView: View {
     }
 
     private var confirmationMessage: String {
-        if model.scope != .employees {
+        if model.scope == .invoices {
             let count = model.selectedAccountingIDs.count
-            if model.scope == .invoices {
-                return "\(model.server.displayName)\n\nBook \(count) selected issued documents in NOK."
-            }
-            let period = osloDate(model.sourceDate).prefix(7)
-            return "\(model.server.displayName)\n\nAdd \(count) selected paychecks to draft payroll for \(period), with payment date \(osloDate(model.paymentDate))."
+            return "\(model.server.displayName)\n\nBook \(count) selected issued documents in NOK."
         }
         let names = model.preview?.employeeRows.compactMap { row -> String? in
             guard model.selectedEmployeeIDs.contains(row.id) else { return nil }
             return row.title
         }.joined(separator: ", ") ?? ""
+        let ready = model.payrollApproval?.rows.count ?? 0
+        let held = model.payrollApproval?.heldCount ?? 0
+        let payroll = model.payrollIssue == nil
+            ? "\(ready) paychecks will be added to draft payroll. \(held) held for review."
+            : "Payroll could not be reviewed and will be held."
         return """
             \(model.server.displayName)
 
-            This imports \(names). For new employment relations, ReAI applies its defaults to fields this import leaves unset.
+            Import \(names). \(payroll)
+            For new employment relations, ReAI applies its defaults to fields left unset.
             """
     }
 
@@ -619,13 +691,13 @@ private struct ImportView: View {
                 Text("Live RecMan").foregroundStyle(.secondary)
             }
             Spacer()
-            Button(model.scope == .employees ? "Import Selected Employees…" : "Import Selected Records…") {
+            Button(model.scope == .employees ? "Import Employees & Payroll…" : "Import Selected Records…") {
                 confirmImport = true
             }
             .buttonStyle(.borderedProminent)
             .disabled(model.isBusy || (model.scope == .employees
-                ? model.preview == nil || model.selectedEmployeeIDs.isEmpty
-                : model.accountingBatch == nil || model.selectedAccountingIDs.isEmpty || !model.confirmedNOK))
+                ? model.preview == nil || model.selectedEmployeeIDs.isEmpty || model.selectedEmployeeIDs != model.reviewedEmployeeIDs
+                : model.invoiceBatch == nil || model.selectedAccountingIDs.isEmpty || !model.confirmedNOK))
             .confirmationDialog("Import into \(model.company?.companyName ?? "ReAI")?",
                                 isPresented: $confirmImport, titleVisibility: .visible) {
                 Button("Import") {
