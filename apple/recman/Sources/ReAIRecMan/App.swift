@@ -18,8 +18,6 @@ struct RecManApp: App {
 private final class ImportModel {
     let api = ReAIAPI()
     let credentials = Credentials()
-    var date = Date()
-    var scope = ImportScope.employees
     var company: Company?
     var preview: ImportPreview?
     var selectedEmployeeIDs: Set<Int> = []
@@ -73,10 +71,10 @@ private final class ImportModel {
 
     private func importer() throws -> RecManImport {
         guard let token, let company else { throw appError("Connect to localhost ReAI first.") }
-        return RecManImport(api: api, token: token, tenant: company, demo: Demo(date: date))
+        return RecManImport(api: api, token: token, tenant: company, demo: Demo(date: .now))
     }
 
-    func clearPreview() {
+    private func clearPreview() {
         preview = nil
         selectedEmployeeIDs = []
         message = nil
@@ -85,7 +83,7 @@ private final class ImportModel {
 
     func load() {
         clearPreview()
-        run { self.preview = try await self.importer().preview(scope: self.scope) }
+        run { self.preview = try await self.importer().preview(scope: .employees) }
     }
 
     func apply() {
@@ -95,10 +93,8 @@ private final class ImportModel {
         run {
             let importer = try self.importer()
             try await importer.perform(reviewed, selectedEmployeeIDs: selection)
-            self.preview = try await importer.preview(scope: self.scope)
-            self.message = self.scope == .employees
-                ? "Selected employee records verified in localhost ReAI."
-                : "Full sample verified in localhost ReAI."
+            self.preview = try await importer.preview(scope: .employees)
+            self.message = "Selected employee records verified in localhost ReAI."
         }
     }
 
@@ -176,21 +172,17 @@ private struct ImportView: View {
     }
 
     private var sampleControls: some View {
-        @Bindable var model = model
-        return HStack {
-            Picker("Mode", selection: $model.scope) {
-                ForEach(ImportScope.allCases, id: \.self) { scope in
-                    Text(scope.rawValue).tag(scope)
+        HStack {
+            if let preview = model.preview {
+                Button("Select All") {
+                    model.selectedEmployeeIDs = preview.selectableEmployeeIDs
                 }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .onChange(of: model.scope) { model.clearPreview() }
-            if model.scope == .fullSample {
-                DatePicker("Sample date", selection: $model.date, displayedComponents: .date)
-                    .fixedSize()
-                    .onChange(of: model.date) { model.clearPreview() }
+                .disabled(model.selectedEmployeeIDs == preview.selectableEmployeeIDs)
+
+                Button("Select None") {
+                    model.selectedEmployeeIDs.removeAll()
+                }
+                .disabled(model.selectedEmployeeIDs.isEmpty)
             }
             Spacer()
             Button("Load Sample") { model.load() }.disabled(model.company == nil)
@@ -210,15 +202,6 @@ private struct ImportView: View {
                                 .toggleStyle(.checkbox)
                                 .labelsHidden()
                                 .disabled(row.needsReview || model.isBusy)
-                            previewRow(row)
-                        }
-                    }
-                }
-            }
-            if model.scope == .fullSample {
-                ForEach(["Invoicing", "Payroll"], id: \.self) { group in
-                    Section(group) {
-                        ForEach(preview.rows.filter { $0.group == group }) { row in
                             previewRow(row)
                         }
                     }
@@ -250,9 +233,6 @@ private struct ImportView: View {
             if row.needsReview {
                 Label(row.action, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
-            } else if row.group == "Payroll", row.action == "Add to draft",
-                      let candidateID = row.candidateID, !model.selectedEmployeeIDs.contains(candidateID) {
-                Text("Employee not selected").foregroundStyle(.secondary)
             } else {
                 Text(row.action).foregroundStyle(.secondary)
             }
@@ -266,11 +246,7 @@ private struct ImportView: View {
             guard let id = row.candidateID, model.selectedEmployeeIDs.contains(id) else { return nil }
             return row.title
         }.joined(separator: ", ") ?? ""
-        if model.scope == .employees { return "This imports \(names)." }
-        let payroll = model.preview?.includesDraftPayroll(selectedEmployeeIDs: model.selectedEmployeeIDs) == true
-            ? " This also saves a draft payroll."
-            : ""
-        return "This imports \(names) and books the sample invoice and credit note.\(payroll)"
+        return "This imports \(names)."
     }
 
     private var footer: some View {
@@ -284,7 +260,7 @@ private struct ImportView: View {
                 Text("localhost:8080 · Synthetic data").foregroundStyle(.secondary)
             }
             Spacer()
-            Button(model.scope == .employees ? "Import Selected Employees…" : "Import Full Sample…") {
+            Button("Import Selected Employees…") {
                 confirmImport = true
             }
             .buttonStyle(.borderedProminent)
