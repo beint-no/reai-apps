@@ -14,6 +14,11 @@ struct RecManApp: App {
     }
 }
 
+private struct ImportFeedback {
+    let title: String
+    let message: String
+}
+
 @MainActor @Observable
 private final class ImportModel {
     let api = ReAIAPI()
@@ -24,6 +29,7 @@ private final class ImportModel {
     var approvalCode: String?
     var isBusy = false
     var message: String?
+    var importFeedback: ImportFeedback?
     var hasError = false
     private var token: String?
     private var action: Task<Void, Never>?
@@ -91,10 +97,19 @@ private final class ImportModel {
         let selection = selectedEmployeeIDs
         clearPreview()
         run {
-            let importer = try self.importer()
-            try await importer.perform(reviewed, selectedEmployeeIDs: selection)
+            let importer: RecManImport
+            do {
+                importer = try self.importer()
+                let result = try await importer.perform(reviewed, selectedEmployeeIDs: selection)
+                self.importFeedback = ImportFeedback(
+                    title: result.added.isEmpty ? "Employee Import Complete" : "Employees Added",
+                    message: result.message
+                )
+            } catch {
+                self.importFeedback = ImportFeedback(title: "Employee Import Failed", message: error.localizedDescription)
+                return
+            }
             self.preview = try await importer.preview(scope: .employees)
-            self.message = "Selected employee records verified in localhost ReAI."
         }
     }
 
@@ -147,6 +162,20 @@ private struct ImportView: View {
             footer
         }
         .task { model.restore() }
+        .alert(model.importFeedback?.title ?? "", isPresented: isImportFeedbackPresented,
+               presenting: model.importFeedback) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { feedback in
+            Text(feedback.message)
+        }
+    }
+
+    private var isImportFeedbackPresented: Binding<Bool> {
+        Binding {
+            model.importFeedback != nil
+        } set: { isPresented in
+            if !isPresented { model.importFeedback = nil }
+        }
     }
 
     private var header: some View {

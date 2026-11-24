@@ -139,6 +139,24 @@ struct ImportPreview: Equatable {
     }
 }
 
+struct EmployeeImportResult {
+    var added: [String] = []
+    var employmentAdded: [String] = []
+    var alreadyMatched: [String] = []
+
+    var message: String {
+        var lines: [String] = []
+        if !added.isEmpty { lines.append("Added \(added.joined(separator: ", ")).") }
+        if !employmentAdded.isEmpty {
+            lines.append("Added employment for \(employmentAdded.joined(separator: ", ")).")
+        }
+        if !alreadyMatched.isEmpty {
+            lines.append("Matched existing records for \(alreadyMatched.joined(separator: ", ")).")
+        }
+        return lines.joined(separator: "\n")
+    }
+}
+
 @MainActor
 struct RecManImport {
     let api: ReAIAPI
@@ -151,7 +169,7 @@ struct RecManImport {
         try await prepare(scope: scope, journal: Journal(tenant: tenant, directory: journalDirectory))
     }
 
-    func perform(_ reviewed: ImportPreview, selectedEmployeeIDs: Set<Int>) async throws {
+    func perform(_ reviewed: ImportPreview, selectedEmployeeIDs: Set<Int>) async throws -> EmployeeImportResult {
         guard !selectedEmployeeIDs.isEmpty, selectedEmployeeIDs.isSubset(of: reviewed.selectableEmployeeIDs) else {
             throw appError("Select at least one employee who is ready to import.")
         }
@@ -161,13 +179,31 @@ struct RecManImport {
         let current = try await prepare(scope: scope, journal: journal)
         guard current == reviewed else { throw appError("Local records changed. Load and review the sample again.") }
 
+        var result = EmployeeImportResult()
         var importedEmployeeIDs: [Int: Int] = [:]
         for candidate in demo.employees where selectedEmployeeIDs.contains(candidate.candidateId) {
-            let employee = try await importEmployee(candidate, existing: current.employees[candidate.candidateId], journal: journal)
-            importedEmployeeIDs[candidate.candidateId] = employee.id
+            let existing = current.employees[candidate.candidateId]
+            do {
+                let employee = try await importEmployee(candidate, existing: existing, journal: journal)
+                importedEmployeeIDs[candidate.candidateId] = employee.id
+            } catch {
+                let failure = "Could not complete the import for \(candidate.name). \(error.localizedDescription)"
+                let details = [failure, result.message].filter { !$0.isEmpty }
+                throw appError(details.joined(separator: "\n\n"))
+            }
+
+            if let existing {
+                if existing.employmentRelations.isEmpty {
+                    result.employmentAdded.append(candidate.name)
+                } else {
+                    result.alreadyMatched.append(candidate.name)
+                }
+            } else {
+                result.added.append(candidate.name)
+            }
         }
 
-        guard let fullSample = current.fullSample else { return }
+        guard let fullSample = current.fullSample else { return result }
         let customer = try await importCustomer(existing: fullSample.customer, journal: journal)
         let product = try await importProduct(existing: fullSample.product, journal: journal)
         for document in demo.documents where fullSample.invoiceIDs[document.externalId] == nil {
@@ -175,9 +211,10 @@ struct RecManImport {
         }
         guard current.includesDraftPayroll(selectedEmployeeIDs: selectedEmployeeIDs),
               let wage = demo.wages.first, let employeeID = importedEmployeeIDs[wage.candidateId],
-              let specification = wage.specification else { return }
+              let specification = wage.specification else { return result }
         try await importPayroll(employeeID: employeeID, wage: wage, specification: specification,
                                 current: fullSample, journal: journal)
+        return result
     }
 
     private func prepare(scope: ImportScope, journal: Journal) async throws -> ImportPreview {
