@@ -39,6 +39,18 @@ enum WorkplaceMunicipalities {
         guard let street = normalizedIdentity(address.address1), street.count <= 150,
               let postcode = normalizedIdentity(address.postalCode),
               postcode.range(of: #"^[0-9]{4}$"#, options: .regularExpression) != nil else { return nil }
+        guard let exact = await matches(street: street, postcode: postcode, session: session) else { return nil }
+        if !exact.isEmpty { return municipality(exact) }
+
+        // Some workplace addresses use a unit suffix that is absent from the registered house number.
+        guard let unitAddress = street.wholeMatch(of: #/^(.*\s[0-9]+)\s*[A-Za-z]$/#),
+              let building = await matches(street: String(unitAddress.1), postcode: postcode, session: session) else {
+            return nil
+        }
+        return municipality(building)
+    }
+
+    private static func matches(street: String, postcode: String, session: URLSession) async -> [Response.Address]? {
         let url = URL(string: "https://api.kartverket.no/adresser/v1/sok")!.appending(queryItems: [
             URLQueryItem(name: "adressetekst", value: street),
             URLQueryItem(name: "postnummer", value: postcode),
@@ -51,10 +63,13 @@ enum WorkplaceMunicipalities {
               let http = response as? HTTPURLResponse, http.statusCode == 200, data.count <= 250_000,
               let result = try? JSONDecoder().decode(Response.self, from: data),
               result.metadata.totaltAntallTreff == result.adresser.count else { return nil }
-        let exact = result.adresser.filter {
+        return result.adresser.filter {
             $0.postnummer == postcode && $0.adressetekst.caseInsensitiveCompare(street) == .orderedSame
         }
-        guard let match = exact.first, Set(exact.map(\.kommunenummer)).count == 1 else { return nil }
+    }
+
+    private static func municipality(_ addresses: [Response.Address]) -> AccountingOption? {
+        guard let match = addresses.first, Set(addresses.map(\.kommunenummer)).count == 1 else { return nil }
         return AccountingOption(id: match.kommunenummer, label: "\(match.kommunenavn) (\(match.kommunenummer))")
     }
 }
