@@ -4,7 +4,7 @@ import Security
 actor Credentials {
     private let identity: [String: String]
 
-    init(account: String = "reai-access-token") {
+    init(account: String) {
         identity = [
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrService as String: "no.reai.recman",

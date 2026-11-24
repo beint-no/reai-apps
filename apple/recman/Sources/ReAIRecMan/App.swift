@@ -21,9 +21,11 @@ private struct ImportFeedback {
 
 @MainActor @Observable
 private final class ImportModel {
-    let api = ReAIAPI()
+    private static let serverPreference = "reaiServerURL"
+
+    private(set) var server: ReAIServer
+    private var api: ReAIAPI
     let recMan = RecManAPI()
-    let credentials = Credentials()
     let recManCredentials = Credentials(account: "recman-read-only-key")
     var hasRecManKey = false
     var company: Company?
@@ -37,17 +39,45 @@ private final class ImportModel {
     private var token: String?
     private var action: Task<Void, Never>?
 
+    private var credentials: Credentials { Credentials(account: server.credentialAccount) }
+
+    init() {
+        let savedURL = UserDefaults.standard.string(forKey: Self.serverPreference)
+        let server = savedURL.flatMap { try? ReAIServer($0) } ?? .localDefault
+        self.server = server
+        api = ReAIAPI(server: server)
+    }
+
     func restore() {
         run {
             self.hasRecManKey = try await self.recManCredentials.load() != nil
-            guard let saved = try await self.credentials.load() else { return }
-            try await self.use(saved)
+            try await self.restoreConnection()
         }
+    }
+
+    private func restoreConnection() async throws {
+        guard let saved = try await credentials.load() else { return }
+        try await use(saved)
+    }
+
+    func setReAIServer(_ value: String) throws {
+        guard !isBusy else { throw appError("Wait for the current operation to finish.") }
+        let next = try ReAIServer(value)
+        guard next != server else { return }
+
+        clearPreview()
+        importFeedback = nil
+        token = nil
+        company = nil
+        server = next
+        api = ReAIAPI(server: next)
+        UserDefaults.standard.set(next.url.absoluteString, forKey: Self.serverPreference)
+        run { try await self.restoreConnection() }
     }
 
     func connect() {
         run {
-            let token = try await Connection().authorize { code in
+            let token = try await Connection(server: self.server).authorize { code in
                 await self.showApproval(code)
             }
             try await self.use(token)
@@ -73,14 +103,14 @@ private final class ImportModel {
     private func use(_ token: String) async throws {
         let account = try await api.account(token: token)
         guard account.tenants.count == 1, let approved = account.tenants.first else {
-            throw appError("Approve one disposable company in localhost ReAI.")
+            throw appError("Approve one company on the selected ReAI server.")
         }
         self.token = token
         company = approved
     }
 
     private func importer() throws -> RecManImport {
-        guard let token, let company else { throw appError("Connect to localhost ReAI first.") }
+        guard let token, let company else { throw appError("Connect to ReAI first.") }
         return RecManImport(api: api, token: token, tenant: company)
     }
 
@@ -165,6 +195,9 @@ private final class ImportModel {
 private struct ImportView: View {
     @ViewState private var model = ImportModel()
     @ViewState private var confirmImport = false
+    @ViewState private var editingReAIServer = false
+    @ViewState private var reaiURLInput = ""
+    @ViewState private var reaiURLError: String?
     @ViewState private var editingRecManKey = false
     @ViewState private var recManKeyInput = ""
 
@@ -181,7 +214,7 @@ private struct ImportView: View {
                     Label("RecMan employees", systemImage: "person.2")
                 } description: {
                     if model.company == nil {
-                        Text("Connect to a disposable ReAI company at localhost:8080.")
+                        Text("Set the ReAI URL and connect to a company.")
                     } else if !model.hasRecManKey {
                         Text("Set the read-only RecMan API key to load employees.")
                     } else {
@@ -194,6 +227,36 @@ private struct ImportView: View {
             footer
         }
         .task { model.restore() }
+        .sheet(isPresented: $editingReAIServer) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("ReAI URL").font(.title2.bold())
+                TextField("ReAI root URL", text: $reaiURLInput, prompt: Text("http://localhost:8080"))
+                    .onChange(of: reaiURLInput) { reaiURLError = nil }
+                HStack {
+                    Button("Use Localhost") { reaiURLInput = ReAIServer.localDefault.url.absoluteString }
+                    Button("Use Production") { reaiURLInput = "https://app.reai.no" }
+                }
+                if let reaiURLError {
+                    Text(reaiURLError).foregroundStyle(.red)
+                }
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) { editingReAIServer = false }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Save URL") {
+                        do {
+                            try model.setReAIServer(reaiURLInput)
+                            editingReAIServer = false
+                        } catch {
+                            reaiURLError = error.localizedDescription
+                        }
+                    }
+                    .keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(24)
+            .frame(width: 440)
+        }
         .sheet(isPresented: $editingRecManKey, onDismiss: { recManKeyInput = "" }) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("RecMan API Key").font(.title2.bold())
@@ -234,10 +297,20 @@ private struct ImportView: View {
         HStack {
             VStack(alignment: .leading, spacing: 5) {
                 Text("ReAI RecMan").font(.title2.bold())
-                Text(model.company?.companyName ?? "Local proof of concept")
+                if let company = model.company {
+                    Text(company.companyName).fontWeight(.medium)
+                }
+                Text(model.server.displayName)
                     .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
             Spacer()
+            Button("ReAI URL…") {
+                reaiURLInput = model.server.url.absoluteString
+                reaiURLError = nil
+                editingReAIServer = true
+            }
+            .disabled(model.isBusy)
             if let code = model.approvalCode {
                 Text(code).font(.body.monospaced()).textSelection(.enabled)
                 Button("Cancel Connection") { model.cancelConnection() }
@@ -329,7 +402,11 @@ private struct ImportView: View {
             guard model.selectedEmployeeIDs.contains(row.id) else { return nil }
             return row.title
         }.joined(separator: ", ") ?? ""
-        return "This imports \(names). For new employment relations, ReAI applies its defaults to fields this import leaves unset."
+        return """
+            \(model.server.displayName)
+
+            This imports \(names). For new employment relations, ReAI applies its defaults to fields this import leaves unset.
+            """
     }
 
     private var footer: some View {
@@ -340,7 +417,7 @@ private struct ImportView: View {
                     .foregroundStyle(model.hasError ? Color.red : Color.secondary)
                     .textSelection(.enabled)
             } else {
-                Text("localhost:8080 · Live RecMan").foregroundStyle(.secondary)
+                Text("Live RecMan").foregroundStyle(.secondary)
             }
             Spacer()
             Button("Import Selected Employees…") {
@@ -348,7 +425,7 @@ private struct ImportView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(model.preview == nil || model.selectedEmployeeIDs.isEmpty || model.isBusy)
-            .confirmationDialog("Import into \(model.company?.companyName ?? "localhost ReAI")?",
+            .confirmationDialog("Import into \(model.company?.companyName ?? "ReAI")?",
                                 isPresented: $confirmImport, titleVisibility: .visible) {
                 Button("Import") { model.apply() }
                 Button("Cancel", role: .cancel) {}

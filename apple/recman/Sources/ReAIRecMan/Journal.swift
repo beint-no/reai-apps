@@ -13,11 +13,13 @@ final class Journal {
     private let file: URL
     private var receipts: [String: Receipt]
 
-    init(tenant: Company, directory: URL? = nil) throws {
+    init(server: ReAIServer, tenant: Company, directory: URL? = nil) throws {
         let root = directory ?? URL.applicationSupportDirectory.appending(path: "ReAIRecMan", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true,
                                                 attributes: [.posixPermissions: 0o700])
-        let identity = Data("\(tenant.id):\(tenant.slug)".utf8)
+        // The original journal namespace was used exclusively by the default local server.
+        let serverPrefix = server == .localDefault ? "" : "\(server.url.absoluteString):"
+        let identity = Data("\(serverPrefix)\(tenant.id):\(tenant.slug)".utf8)
         let name = SHA256.hash(data: identity).description.replacingOccurrences(of: "SHA256 digest: ", with: "")
         file = root.appending(path: "\(name).json")
         let descriptor = open(root.appending(path: "\(name).lock").path, O_WRONLY | O_CREAT | O_NOFOLLOW, 0o600)
@@ -32,7 +34,7 @@ final class Journal {
             receipts = [:]
         }
         if let pending = receipts.first(where: { $0.value.resultID == nil }) {
-            throw appError("Unverified write (\(pending.key)). Reconcile it in localhost ReAI before continuing.")
+            throw appError("Unverified write (\(pending.key)). Reconcile it on the selected ReAI server before continuing.")
         }
     }
 

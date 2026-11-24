@@ -1,7 +1,47 @@
 import Foundation
 
-enum AppEnvironment {
-    static let origin = URL(string: "http://localhost:8080")!
+struct ReAIServer: Equatable, Sendable {
+    static let localDefault = ReAIServer(url: URL(string: "http://localhost:8080")!, isProduction: false)
+
+    let url: URL
+    let isProduction: Bool
+
+    var displayName: String { isProduction ? "Production · \(url.absoluteString)" : url.absoluteString }
+    var credentialAccount: String {
+        self == Self.localDefault ? "reai-access-token" : "reai-access-token:\(url.absoluteString)"
+    }
+
+    private init(url: URL, isProduction: Bool) {
+        self.url = url
+        self.isProduction = isProduction
+    }
+
+    init(_ input: String) throws {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parts = URLComponents(string: text), let scheme = parts.scheme?.lowercased(),
+              let host = parts.host?.lowercased(), parts.user == nil, parts.password == nil,
+              parts.query == nil, parts.fragment == nil, ["", "/"].contains(parts.percentEncodedPath) else {
+            throw appError("Enter a ReAI root URL, such as http://localhost:8080 or https://app.reai.no.")
+        }
+
+        let isProduction = host == "app.reai.no" && scheme == "https" && (parts.port == nil || parts.port == 443)
+        let isLocal = ["localhost", "127.0.0.1", "::1", "[::1]"].contains(host) &&
+            ["https", "http"].contains(scheme)
+        guard isProduction || isLocal else {
+            throw appError("Use a local loopback URL or https://app.reai.no.")
+        }
+        if let port = parts.port, !(1...65535).contains(port) {
+            throw appError("Enter a port between 1 and 65535.")
+        }
+
+        let hostname = host == "::1" ? "[::1]" : host
+        let defaultPort = scheme == "https" ? 443 : 80
+        let port = parts.port.flatMap { $0 == defaultPort ? nil : ":\($0)" } ?? ""
+        guard let url = URL(string: "\(scheme)://\(hostname)\(port)") else {
+            throw appError("Enter a valid ReAI root URL.")
+        }
+        self.init(url: url, isProduction: isProduction)
+    }
 }
 
 struct AppError: LocalizedError {
@@ -30,9 +70,11 @@ struct Account: Decodable, Sendable { let tenants: [Company] }
 
 actor ReAIAPI {
     private struct Problem: Decodable { let detail: String? }
+    nonisolated let server: ReAIServer
     private let session: URLSession
 
-    init() {
+    init(server: ReAIServer) {
+        self.server = server
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 20
         configuration.timeoutIntervalForResource = 30
@@ -50,7 +92,7 @@ actor ReAIAPI {
     }
 
     private func response(_ path: String, token: String, tenant: Int?, body: Data?) async throws -> Data {
-        let url = AppEnvironment.origin.appending(path: path)
+        let url = server.url.appending(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = body == nil ? "GET" : "POST"
         request.httpBody = body
@@ -61,11 +103,11 @@ actor ReAIAPI {
         if let tenant { request.setValue(String(tenant), forHTTPHeaderField: "X-Tenant-Id") }
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, data.count <= 10_000_000 else {
-            throw appError("Invalid or oversized response from localhost ReAI.")
+            throw appError("Invalid or oversized response from ReAI.")
         }
         guard (200..<300).contains(http.statusCode) else {
             let detail = (try? JSONDecoder().decode(Problem.self, from: data))?.detail
-            throw appError(detail ?? "Local ReAI returned HTTP \(http.statusCode) for \(path).")
+            throw appError(detail ?? "ReAI returned HTTP \(http.statusCode) for \(path).")
         }
         return data
     }

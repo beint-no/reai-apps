@@ -2,6 +2,10 @@ import AppKit
 import Foundation
 
 actor Connection {
+    let server: ReAIServer
+
+    init(server: ReAIServer) { self.server = server }
+
     func authorize(showCode: @escaping @Sendable (String) async -> Void) async throws -> String {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 20
@@ -26,10 +30,10 @@ actor Connection {
               grant.userCode.range(of: "^[A-Z2-9]{5}-[A-Z2-9]{5}$", options: .regularExpression) != nil else {
             throw appError("ReAI returned an invalid approval request.")
         }
-        let expected = AppEnvironment.origin.appending(path: "connect-app")
+        let expected = server.url.appending(path: "connect-app")
             .appending(queryItems: [URLQueryItem(name: "user_code", value: grant.userCode)])
         guard URL(string: grant.verificationUriComplete) == expected else {
-            throw appError("ReAI returned an unexpected approval address.")
+            throw appError("ReAI’s approval URL does not match the selected ReAI root.")
         }
         let deadline = ContinuousClock.now.advanced(by: .seconds(grant.expiresIn))
         await showCode(grant.userCode)
@@ -79,7 +83,7 @@ actor Connection {
     }
 
     private func form(_ action: String, _ fields: [String: String]) -> URLRequest {
-        var request = URLRequest(url: AppEnvironment.origin.appending(path: "oauth/device/\(action)"))
+        var request = URLRequest(url: server.url.appending(path: "oauth/device/\(action)"))
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")

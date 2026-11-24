@@ -79,14 +79,14 @@ struct RecManImport {
     var journalDirectory: URL? = nil
 
     func preview(employees: [RecManEmployee]) async throws -> ImportPreview {
-        try await prepare(employees: employees, journal: Journal(tenant: tenant, directory: journalDirectory))
+        try await prepare(employees: employees, journal: Journal(server: api.server, tenant: tenant, directory: journalDirectory))
     }
 
     func perform(_ reviewed: ImportPreview, selectedEmployeeIDs: Set<Int>) async throws -> EmployeeImportResult {
         guard !selectedEmployeeIDs.isEmpty, selectedEmployeeIDs.isSubset(of: reviewed.selectableEmployeeIDs) else {
             throw appError("Select at least one employee who is ready to import.")
         }
-        let journal = try Journal(tenant: tenant, directory: journalDirectory)
+        let journal = try Journal(server: api.server, tenant: tenant, directory: journalDirectory)
         let current = try await prepare(employees: reviewed.source, journal: journal)
         let plans = reviewed.employeeRows.filter { selectedEmployeeIDs.contains($0.id) }.compactMap { row in
             reviewed.plans[row.id]
@@ -118,7 +118,7 @@ struct RecManImport {
     }
 
     private func prepare(employees: [RecManEmployee], journal: Journal) async throws -> ImportPreview {
-        guard tenant.currencyCode == "NOK" else { throw appError("Choose a disposable NOK company.") }
+        guard tenant.currencyCode == "NOK" else { throw appError("Choose a ReAI company using NOK.") }
         let people: [EmployeeSummary] = try await api.request("/api/employees", token: token, tenant: tenant.id)
         let sourceEmails = Dictionary(grouping: employees.compactMap(\.contactEmail), by: { $0.lowercased() })
         let sourceNames = Dictionary(grouping: employees.map(\.name), by: { $0.lowercased() })
