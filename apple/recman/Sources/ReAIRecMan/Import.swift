@@ -1,42 +1,16 @@
 import Foundation
 
-private struct Customer: Decodable, Equatable {
-    let id: Int
-    let name: String?
-    let number: String?
-    let archived: Bool
-}
-
-private struct Product: Decodable, Equatable {
-    struct Variant: Decodable, Equatable { let sku: String? }
-    let id: Int
-    let title: String
-    let archived: Bool
-    let stockItem: Bool
-    let revenueAccountCode: String?
-    let vatCode: String?
-    let variants: [Variant]
-}
-
 private struct EmployeeSummary: Decodable {
     let id: Int
     let name: String
-    let email: String
+    let email: String?
 }
 
 private struct Employee: Decodable, Equatable {
-    struct Bank: Decodable, Equatable {
-        let bankCode: String
-        let accountNumber: String
-        let countryCode: String
-        var localNumber: String { bankCode + accountNumber }
-    }
-
     struct Relation: Decodable, Equatable {
         struct Line: Decodable, Equatable {
             let startDate: String
-            let municipality: String?
-            let remunerationType: String?
+            let percentage: Decimal?
         }
         let startDate: String
         let endDate: String?
@@ -45,98 +19,38 @@ private struct Employee: Decodable, Equatable {
     let id: Int
     let name: String
     let email: String?
-    let bankAccount: Bank?
     let employmentRelations: [Relation]
 }
 
-private struct ImportedInvoice: Decodable {
-    let id: Int
-    let externalId: String?
-    let importSource: String?
-    let importSourceInstance: String?
-    let number: String
-    let paymentReference: String?
-    let issueDate: String
-    let creditNote: Bool
-    let currencyCode: String
-    let totalAmount: Decimal
-    let totalExclVatAmount: Decimal
-    let totalVatAmount: Decimal
-    let originalAttachmentId: Int?
-    let voucherId: Int?
-    let automaticRemindersEnabled: Bool
-}
-
-private struct SalaryRun: Decodable {
-    let id: Int
-    let status: String
-    let periodYear: Int
-    let periodMonth: Int
-    var period: String { String(format: "%04d-%02d", periodYear, periodMonth) }
-}
-
-private struct SalaryDetail: Decodable {
-    struct Payee: Decodable {
-        struct Spec: Decodable {
-            let id: Int
-            let specificationCode: String
-            let quantity: Decimal
-            let rate: Decimal
-            let comment: String?
-        }
-        let employeeId: Int
-        let wageSpecs: [Spec]
-    }
-
-    let id: Int
-    let status: String
-    let voucherId: Int?
-    let imported: Bool
-    let paymentDate: String?
-    let employees: [Payee]
-}
-
-enum ImportScope: String, CaseIterable {
-    case employees = "Employees"
-    case fullSample = "Full Sample"
-}
-
 struct PreviewRow: Equatable, Identifiable {
-    let id: String
-    let group: String
+    let id: Int
     let title: String
     let detail: String
     let action: String
     var needsReview = false
-    var candidateID: Int?
 }
 
-fileprivate struct FullSamplePreview: Equatable {
-    let rows: [PreviewRow]
-    let payrollPeriodOccupied: Bool
-    let customer: Customer?
-    let product: Product?
-    let invoiceIDs: [String: Int]
-    let salaryID: Int?
-    let wageID: Int?
-    let payrollCandidateID: Int?
+fileprivate struct EmployeePlan: Equatable {
+    let receiptKey: String
+    let name: String
+    let email: String
+    let startDate: String
+    let endDate: String?
+    let percentage: Decimal
+    let existing: Employee?
+
+    var displayEmployment: String {
+        let end = endDate.map { " to \($0)" } ?? ""
+        return "\(startDate)\(end) · \(percentage)% · \(email)"
+    }
 }
 
 struct ImportPreview: Equatable {
+    let source: [RecManEmployee]
     let employeeRows: [PreviewRow]
-    fileprivate let employees: [Int: Employee]
-    fileprivate let fullSample: FullSamplePreview?
+    fileprivate let plans: [Int: EmployeePlan]
 
-    var rows: [PreviewRow] { employeeRows + (fullSample?.rows ?? []) }
-    var selectableEmployeeIDs: Set<Int> {
-        Set(employeeRows.filter { !$0.needsReview }.compactMap(\.candidateID))
-    }
-
-    func includesDraftPayroll(selectedEmployeeIDs: Set<Int>) -> Bool {
-        guard let fullSample, let candidateID = fullSample.payrollCandidateID else { return false }
-        return !fullSample.payrollPeriodOccupied && fullSample.wageID == nil &&
-            selectedEmployeeIDs.contains(candidateID)
-    }
+    var selectableEmployeeIDs: Set<Int> { Set(plans.keys) }
 }
 
 struct EmployeeImportResult {
@@ -162,383 +76,184 @@ struct RecManImport {
     let api: ReAIAPI
     let token: String
     let tenant: Company
-    let demo: Demo
     var journalDirectory: URL? = nil
 
-    func preview(scope: ImportScope) async throws -> ImportPreview {
-        try await prepare(scope: scope, journal: Journal(tenant: tenant, directory: journalDirectory))
+    func preview(employees: [RecManEmployee]) async throws -> ImportPreview {
+        try await prepare(employees: employees, journal: Journal(tenant: tenant, directory: journalDirectory))
     }
 
     func perform(_ reviewed: ImportPreview, selectedEmployeeIDs: Set<Int>) async throws -> EmployeeImportResult {
         guard !selectedEmployeeIDs.isEmpty, selectedEmployeeIDs.isSubset(of: reviewed.selectableEmployeeIDs) else {
             throw appError("Select at least one employee who is ready to import.")
         }
-
         let journal = try Journal(tenant: tenant, directory: journalDirectory)
-        let scope: ImportScope = reviewed.fullSample == nil ? .employees : .fullSample
-        let current = try await prepare(scope: scope, journal: journal)
-        guard current == reviewed else { throw appError("Local records changed. Load and review the sample again.") }
+        let current = try await prepare(employees: reviewed.source, journal: journal)
+        let plans = reviewed.employeeRows.filter { selectedEmployeeIDs.contains($0.id) }.compactMap { row in
+            reviewed.plans[row.id]
+        }
+        guard selectedEmployeeIDs.allSatisfy({ reviewed.plans[$0] == current.plans[$0] }) else {
+            throw appError("The selected employees changed in ReAI. Reload and review them before importing.")
+        }
 
         var result = EmployeeImportResult()
-        var importedEmployeeIDs: [Int: Int] = [:]
-        for candidate in demo.employees where selectedEmployeeIDs.contains(candidate.candidateId) {
-            let existing = current.employees[candidate.candidateId]
+        for plan in plans {
             do {
-                let employee = try await importEmployee(candidate, existing: existing, journal: journal)
-                importedEmployeeIDs[candidate.candidateId] = employee.id
+                try await importEmployee(plan, journal: journal)
             } catch {
-                let failure = "Could not complete the import for \(candidate.name). \(error.localizedDescription)"
+                let failure = "Could not complete the import for \(plan.name). \(error.localizedDescription)"
                 let details = [failure, result.message].filter { !$0.isEmpty }
                 throw appError(details.joined(separator: "\n\n"))
             }
-
-            if let existing {
+            if let existing = plan.existing {
                 if existing.employmentRelations.isEmpty {
-                    result.employmentAdded.append(candidate.name)
+                    result.employmentAdded.append(plan.name)
                 } else {
-                    result.alreadyMatched.append(candidate.name)
+                    result.alreadyMatched.append(plan.name)
                 }
             } else {
-                result.added.append(candidate.name)
+                result.added.append(plan.name)
             }
         }
-
-        guard let fullSample = current.fullSample else { return result }
-        let customer = try await importCustomer(existing: fullSample.customer, journal: journal)
-        let product = try await importProduct(existing: fullSample.product, journal: journal)
-        for document in demo.documents where fullSample.invoiceIDs[document.externalId] == nil {
-            try await importDocument(document, customerID: customer.id, productID: product.id, journal: journal)
-        }
-        guard current.includesDraftPayroll(selectedEmployeeIDs: selectedEmployeeIDs),
-              let wage = demo.wages.first, let employeeID = importedEmployeeIDs[wage.candidateId],
-              let specification = wage.specification else { return result }
-        try await importPayroll(employeeID: employeeID, wage: wage, specification: specification,
-                                current: fullSample, journal: journal)
         return result
     }
 
-    private func prepare(scope: ImportScope, journal: Journal) async throws -> ImportPreview {
+    private func prepare(employees: [RecManEmployee], journal: Journal) async throws -> ImportPreview {
         guard tenant.currencyCode == "NOK" else { throw appError("Choose a disposable NOK company.") }
-        let (employees, rows) = try await prepareEmployees(scope: scope, journal: journal)
-        let fullSample = scope == .fullSample ? try await prepareFullSample(employees: employees, journal: journal) : nil
-        return ImportPreview(employeeRows: rows, employees: employees, fullSample: fullSample)
-    }
+        let people: [EmployeeSummary] = try await api.request("/api/employees", token: token, tenant: tenant.id)
+        let sourceEmails = Dictionary(grouping: employees.compactMap(\.contactEmail), by: { $0.lowercased() })
+        let sourceNames = Dictionary(grouping: employees.map(\.name), by: { $0.lowercased() })
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
 
-    private func prepareEmployees(scope: ImportScope, journal: Journal) async throws -> ([Int: Employee], [PreviewRow]) {
-        let people: [EmployeeSummary] = try await read("/api/employees")
-        var employees: [Int: Employee] = [:]
         var rows: [PreviewRow] = []
-        for candidate in demo.employees {
-            let matches = people.filter {
-                $0.email.caseInsensitiveCompare(candidate.email) == .orderedSame ||
-                $0.name.caseInsensitiveCompare(candidate.name) == .orderedSame
+        var plans: [Int: EmployeePlan] = [:]
+        for candidate in employees {
+            guard let id = candidate.candidateId.positiveID else {
+                throw appError("RecMan returned an invalid candidate ID.")
             }
-            let key = employeeKey(candidate)
+            let name = candidate.name
+            let email = candidate.contactEmail
+            let matches = people.filter {
+                (!name.isEmpty && $0.name.caseInsensitiveCompare(name) == .orderedSame) ||
+                    (email != nil && $0.email?.caseInsensitiveCompare(email ?? "") == .orderedSame)
+            }
             let existing: Employee? = if matches.count == 1, let summary = matches.first {
-                try await read("/api/employees/\(summary.id)")
+                try await api.request("/api/employees/\(summary.id)", token: token, tenant: tenant.id)
             } else { nil }
             do {
-                guard matches.count <= 1 else { throw appError("Multiple employees match this name or email.") }
-                try checkReceipt(journal, key: key, existingID: existing?.id)
-                var action = "Create employee and employment"
-                if let existing {
-                    try validateIdentity(existing, candidate: candidate)
-                    if scope == .fullSample { try validateBank(existing, candidate: candidate) }
-                    if existing.employmentRelations.isEmpty {
-                        try checkReceipt(journal, key: "\(key)-employment", existingID: nil)
-                        action = "Add employment"
-                    } else {
-                        try validateEmployment(existing, candidate: candidate)
-                        try checkReceipt(journal, key: "\(key)-employment", existingID: existing.id)
-                        action = "Match employee and employment"
-                    }
-                    employees[candidate.candidateId] = existing
+                guard matches.count <= 1 else { throw appError("Multiple ReAI employees match this name or email.") }
+                guard let email, sourceEmails[email.lowercased()]?.count == 1 else {
+                    throw appError("A unique employee email is required.")
                 }
-                rows.append(PreviewRow(id: key, group: "Employees", title: candidate.name,
-                                       detail: "Employment starts \(demo.employmentStart)", action: action,
-                                       candidateID: candidate.candidateId))
+                guard sourceNames[name.lowercased()]?.count == 1 else {
+                    throw appError("Multiple RecMan employees have this name.")
+                }
+                let plan = try makePlan(candidate, id: id, email: email, existing: existing, formatter: formatter)
+                if let existing {
+                    try validateIdentity(existing, plan: plan)
+                    if !existing.employmentRelations.isEmpty { try validateEmployment(existing, plan: plan) }
+                }
+                try checkReceipt(journal, key: plan.receiptKey, existingID: existing?.id)
+                try checkReceipt(journal, key: "\(plan.receiptKey)-employment",
+                                 existingID: existing?.employmentRelations.isEmpty == false ? existing?.id : nil)
+                let action: String
+                if let existing {
+                    action = existing.employmentRelations.isEmpty ? "Add employment" : "Match employee and employment"
+                } else {
+                    action = "Create employee and employment"
+                }
+                plans[id] = plan
+                rows.append(PreviewRow(id: id, title: plan.name, detail: plan.displayEmployment, action: action))
             } catch let error as AppError {
-                rows.append(PreviewRow(id: key, group: "Employees", title: candidate.name,
-                                       detail: error.message, action: "Review required", needsReview: true,
-                                       candidateID: candidate.candidateId))
+                rows.append(PreviewRow(id: id, title: name.isEmpty ? "Unnamed employee" : name,
+                                       detail: error.message, action: "Review required", needsReview: true))
             }
         }
-        return (employees, rows)
+        return ImportPreview(source: employees, employeeRows: rows, plans: plans)
     }
 
-    private func prepareFullSample(employees: [Int: Employee], journal: Journal) async throws -> FullSamplePreview {
-        guard demo.issueDate >= demo.employmentStart else { throw appError("Choose a sample date in 2026 or later.") }
-
-        let archivedFilter = [URLQueryItem(name: "archived", value: "true")]
-        let activeCustomers: [Customer] = try await api.list("/api/customers", token: token, tenant: tenant.id)
-        let archivedCustomers: [Customer] = try await api.list("/api/customers", token: token, tenant: tenant.id,
-                                                              query: archivedFilter)
-        let customers = activeCustomers + archivedCustomers
-        let customerMatches = customers.filter { $0.number == demo.customerNumber || $0.name == demo.customerName }
-        guard customerMatches.count <= 1 else { throw appError("Multiple customers match the synthetic name or customer number.") }
-        let customer = customerMatches.first
-        if let customer { try validateCustomer(customer) }
-        try checkReceipt(journal, key: "customer", existingID: customer?.id)
-
-        let activeProducts: [Product] = try await api.list("/api/products", token: token, tenant: tenant.id)
-        let archivedProducts: [Product] = try await api.list("/api/products", token: token, tenant: tenant.id,
-                                                            query: archivedFilter)
-        let products = activeProducts + archivedProducts
-        let productMatches = products.filter { $0.title == demo.productName || $0.variants.contains { $0.sku == demo.productSKU } }
-        guard productMatches.count <= 1 else { throw appError("Multiple products match the synthetic name or SKU.") }
-        let product = productMatches.first
-        if let product { try validateProduct(product) }
-        try checkReceipt(journal, key: "product", existingID: product?.id)
-
-        var rows: [PreviewRow] = []
-        rows.append(PreviewRow(id: "customer", group: "Invoicing", title: demo.customerName,
-                               detail: "Customer number \(demo.customerNumber)", action: customer == nil ? "Create customer" : "Match customer"))
-        rows.append(PreviewRow(id: "product", group: "Invoicing", title: demo.productName,
-                               detail: "Revenue account 3000 · 25% VAT", action: product == nil ? "Create product" : "Match product"))
-        var invoiceIDs: [String: Int] = [:]
-        for document in demo.documents {
-            let id = journal.result(for: document.externalId)
-            if let id { try await verifyDocument(document, id: id) }
-            invoiceIDs[document.externalId] = id
-            rows.append(PreviewRow(id: document.externalId, group: "Invoicing",
-                                   title: "\(document.isCredit ? "Credit note" : "Invoice") \(document.number)",
-                                   detail: "NOK \(document.total) · VAT \(document.vat) · Original PDF",
-                                   action: id == nil ? "Import and book" : "Imported"))
+    private func makePlan(_ candidate: RecManEmployee, id: Int, email: String, existing: Employee?,
+                          formatter: ISO8601DateFormatter) throws -> EmployeePlan {
+        guard let corporation = candidate.corporationId?.positiveID else {
+            throw appError("Missing RecMan corporation ID.")
         }
-
-        let runs: [SalaryRun] = try await api.request("/api/salary-payments", token: token, tenant: tenant.id, query: [
-            URLQueryItem(name: "startDate", value: demo.issueDate),
-            URLQueryItem(name: "endDate", value: demo.issueDate)
-        ])
-        let salaryID = journal.result(for: salaryKey)
-        let payrollPeriodOccupied = runs.contains { $0.period == demo.period && $0.id != salaryID }
-        let wageID = journal.result(for: wageKey)
-        if let salaryID {
-            guard let wage = demo.wages.first, let employee = employees[wage.candidateId] else {
-                throw appError("The saved draft could not be matched to the sample employee.")
-            }
-            let salary: SalaryDetail = try await read("/api/salary-payments/\(salaryID)")
-            try verifyPayroll(salary, employeeID: employee.id, wage: wage, wageID: wageID)
+        guard !candidate.name.isEmpty, candidate.name.count <= 75,
+              email.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil else {
+            throw appError("A valid name and email are required.")
         }
-        for employee in demo.employees {
-            let wages = demo.wages.filter { $0.candidateId == employee.candidateId }
-            let detail: String
-            let action: String
-            let needsReview: Bool
-            if let review = demo.wageReview(for: employee.candidateId) {
-                detail = "\(review) · \(wages.map(\.municipality).joined(separator: ", "))"
-                action = "Hold for review"
-                needsReview = true
-            } else if payrollPeriodOccupied {
-                detail = "\(demo.period) already has a salary payment. Choose a sample date in another month to test payroll."
-                action = "Skip payroll"
-                needsReview = true
-            } else {
-                detail = "\(demo.period) · \(wages.first?.hours ?? 0) h × NOK \(wages.first?.rate ?? 0) · Hourly salary"
-                action = wageID == nil ? "Add to draft" : "Draft saved"
-                needsReview = false
-            }
-            rows.append(PreviewRow(id: "payroll-\(employee.candidateId)", group: "Payroll", title: employee.name,
-                                   detail: detail, action: action, needsReview: needsReview,
-                                   candidateID: employee.candidateId))
+        guard let relations = candidate.employment, relations.count == 1, let relation = relations.first else {
+            throw appError("Exactly one RecMan employment relation is required.")
         }
-        let payrollCandidateID = demo.wages.first.flatMap { wage in
-            demo.wageReview(for: wage.candidateId) == nil && wage.specification != nil ? wage.candidateId : nil
+        guard let start = relation.startDate, isDate(start, formatter: formatter) else {
+            throw appError("Missing or invalid employment start date.")
         }
-        return FullSamplePreview(rows: rows, payrollPeriodOccupied: payrollPeriodOccupied, customer: customer,
-                                 product: product, invoiceIDs: invoiceIDs, salaryID: salaryID, wageID: wageID,
-                                 payrollCandidateID: payrollCandidateID)
+        let rawEnd = relation.endDate?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let end = if let rawEnd, !rawEnd.isEmpty, rawEnd != "ongoing" { rawEnd } else { nil as String? }
+        if let end, !isDate(end, formatter: formatter) || end < start {
+            throw appError("Invalid employment end date.")
+        }
+        guard let percentage = relation.positionPercent?.value, (0...100).contains(percentage) else {
+            throw appError("Missing or invalid employment percentage.")
+        }
+        return EmployeePlan(receiptKey: "recman-\(corporation)-employee-\(id)", name: candidate.name,
+                            email: email, startDate: start, endDate: end, percentage: percentage, existing: existing)
     }
 
-    private var salaryKey: String { "salary-\(demo.period)" }
-    private var wageKey: String { "\(salaryKey)-wage-101" }
-
-    private func employeeKey(_ candidate: Demo.Candidate) -> String { "employee-\(candidate.candidateId)" }
+    private func isDate(_ text: String, formatter: ISO8601DateFormatter) -> Bool {
+        guard let date = formatter.date(from: text) else { return false }
+        return formatter.string(from: date) == text
+    }
 
     private func checkReceipt(_ journal: Journal, key: String, existingID: Int?) throws {
         if let saved = journal.result(for: key), saved != existingID {
-            throw appError("The saved receipt for \(key) differs from local ReAI. Reconcile before importing.")
+            throw appError("The saved import receipt differs from ReAI. Reconcile before importing.")
         }
     }
 
-    private func validateIdentity(_ employee: Employee, candidate: Demo.Candidate) throws {
-        guard employee.email?.caseInsensitiveCompare(candidate.email) == .orderedSame,
-              employee.name.caseInsensitiveCompare(candidate.name) == .orderedSame else {
-            throw appError("The employee name and email disagree for \(candidate.name).")
+    private func validateIdentity(_ employee: Employee, plan: EmployeePlan) throws {
+        guard employee.email?.caseInsensitiveCompare(plan.email) == .orderedSame,
+              employee.name.caseInsensitiveCompare(plan.name) == .orderedSame else {
+            throw appError("The employee name and email do not both match ReAI.")
         }
     }
 
-    private func validateBank(_ employee: Employee, candidate: Demo.Candidate) throws {
-        if employmentMunicipality(candidate) != nil,
-           employee.bankAccount?.localNumber != demo.payrollBankAccount || employee.bankAccount?.countryCode != "NO" {
-            throw appError("The matched sample employee requires the synthetic Norwegian bank account for draft payroll.")
-        }
-    }
-
-    private func validateEmployment(_ employee: Employee, candidate: Demo.Candidate) throws {
+    private func validateEmployment(_ employee: Employee, plan: EmployeePlan) throws {
         guard employee.employmentRelations.count == 1, let relation = employee.employmentRelations.first,
-              relation.startDate == demo.employmentStart, relation.endDate == nil,
+              relation.startDate == plan.startDate, relation.endDate == plan.endDate,
               relation.employmentLines.count == 1, let line = relation.employmentLines.first,
-              line.startDate == demo.employmentStart, line.remunerationType == "hourly_wage",
-              line.municipality == employmentMunicipality(candidate) else {
-            throw appError("Review the existing employment details for \(candidate.name) in localhost ReAI.")
+              line.startDate == plan.startDate, line.percentage == plan.percentage else {
+            throw appError("Review the existing employment dates and percentage in ReAI.")
         }
     }
 
-    private func employmentMunicipality(_ candidate: Demo.Candidate) -> String? {
-        guard demo.wageReview(for: candidate.candidateId) == nil else { return nil }
-        return demo.wages.first { $0.candidateId == candidate.candidateId }?.municipality
-    }
-
-    private func importEmployee(_ candidate: Demo.Candidate, existing: Employee?, journal: Journal) async throws -> Employee {
-        var line: [String: Any] = [
-            "startDate": demo.employmentStart, "remunerationType": "hourly_wage",
-            "formOfEmployment": "temporary_hired_out", "percentage": 100
+    private func importEmployee(_ plan: EmployeePlan, journal: Journal) async throws {
+        let employmentLine: [String: Any] = [
+            "startDate": plan.startDate, "percentage": NSDecimalNumber(decimal: plan.percentage)
         ]
-        if let municipality = employmentMunicipality(candidate) { line["municipality"] = municipality }
-        let key = employeeKey(candidate)
-        let employee: Employee
-        if let existing {
-            guard existing.employmentRelations.isEmpty else { return existing }
-            employee = try await post("/api/employees/\(existing.id)/employment-relations",
-                                      fields: ["startDate": demo.employmentStart, "employmentLines": [line]],
-                                      key: "\(key)-employment", journal: journal)
-            try validateEmployment(employee, candidate: candidate)
-            try journal.complete("\(key)-employment", id: employee.id)
+        var fields: [String: Any] = ["employmentLines": [employmentLine]]
+        let endpoint: String
+        let key: String
+        if let existing = plan.existing {
+            guard existing.employmentRelations.isEmpty else { return }
+            endpoint = "/api/employees/\(existing.id)/employment-relations"
+            key = "\(plan.receiptKey)-employment"
+            fields["startDate"] = plan.startDate
+            if let end = plan.endDate { fields["endDate"] = end }
         } else {
-            var fields: [String: Any] = [
-                "name": candidate.name, "email": candidate.email,
-                "dateOfEmployment": demo.employmentStart, "employmentLines": [line]
-            ]
-            if employmentMunicipality(candidate) != nil {
-                fields["accountNumber"] = demo.payrollBankAccount
-                fields["bankCountryCode"] = "NO"
-            }
-            employee = try await post("/api/employees", fields: fields, key: key, journal: journal)
-            try validateIdentity(employee, candidate: candidate)
-            try validateBank(employee, candidate: candidate)
-            try validateEmployment(employee, candidate: candidate)
-            try journal.complete(key, id: employee.id)
+            endpoint = "/api/employees"
+            key = plan.receiptKey
+            fields["name"] = plan.name
+            fields["email"] = plan.email
+            fields["dateOfEmployment"] = plan.startDate
+            if let end = plan.endDate { fields["endDateOfEmployment"] = end }
         }
-        return employee
-    }
 
-    private func validateCustomer(_ customer: Customer) throws {
-        guard customer.number == demo.customerNumber, customer.name == demo.customerName, !customer.archived else {
-            throw appError("The synthetic customer number or name conflicts with a local customer.")
-        }
-    }
-
-    private func importCustomer(existing: Customer?, journal: Journal) async throws -> Customer {
-        if let existing { return existing }
-        let customer: Customer = try await post("/api/customers", fields: [
-            "name": demo.customerName, "number": demo.customerNumber, "skipRegistryLookup": true, "countryCode": "NO"
-        ], key: "customer", journal: journal)
-        try validateCustomer(customer)
-        try journal.complete("customer", id: customer.id)
-        return customer
-    }
-
-    private func validateProduct(_ product: Product) throws {
-        guard product.title == demo.productName, product.variants.map(\.sku) == [demo.productSKU],
-              product.revenueAccountCode == "3000", product.vatCode == "3", !product.archived, !product.stockItem else {
-            throw appError("The synthetic product mapping differs from the local product. Review its SKU, revenue account and VAT.")
-        }
-    }
-
-    private func importProduct(existing: Product?, journal: Journal) async throws -> Product {
-        if let existing { return existing }
-        let product: Product = try await post("/api/products", fields: [
-            "title": demo.productName, "stockItem": false, "revenueAccountCode": "3000", "vatCode": "3",
-            "variants": [["sku": demo.productSKU, "sellingPrice": 1000]]
-        ], key: "product", journal: journal)
-        try validateProduct(product)
-        try journal.complete("product", id: product.id)
-        return product
-    }
-
-    private func importDocument(_ document: Demo.Document, customerID: Int, productID: Int, journal: Journal) async throws {
-        var fields: [String: Any] = [
-            "source": "recman", "sourceInstance": "synthetic-poc", "externalId": document.externalId,
-            "number": document.number, "issueDate": document.issueDate,
-            "customerId": customerID, "accounting": "book", "automaticRemindersEnabled": false,
-            "orderItems": [["productId": productID, "quantity": document.billedQuantity, "price": document.unitPrice, "currencyCode": "NOK"]],
-            "originalPdf": ["filename": "\(document.number).pdf", "contentBase64": document.pdf.base64EncodedString()]
-        ]
-        if !document.isCredit { fields["dueDate"] = document.issueDate }
-        if let reference = document.paymentReference { fields["paymentReference"] = reference }
-        let invoice: ImportedInvoice = try await post("/api/invoices/import", fields: fields, key: document.externalId, journal: journal)
-        try await verifyDocument(document, id: invoice.id)
-        try journal.complete(document.externalId, id: invoice.id)
-    }
-
-    private func verifyDocument(_ document: Demo.Document, id: Int) async throws {
-        let invoice: ImportedInvoice = try await read("/api/invoices/\(id)")
-        guard invoice.externalId == document.externalId, invoice.importSource == "recman",
-              invoice.importSourceInstance == "synthetic-poc", invoice.number == document.number, invoice.paymentReference == document.paymentReference,
-              invoice.issueDate == document.issueDate, invoice.creditNote == document.isCredit,
-              invoice.currencyCode == "NOK", invoice.voucherId != nil, !invoice.automaticRemindersEnabled,
-              invoice.totalAmount == document.total, invoice.totalExclVatAmount == document.net,
-              invoice.totalVatAmount == document.vat, invoice.originalAttachmentId != nil else {
-            throw appError("The saved invoice differs from the reviewed sample. Check \(document.number) in localhost ReAI.")
-        }
-        let pdf = try await api.invoicePDF(id: id, token: token, tenant: tenant.id)
-        guard pdf == document.pdf else { throw appError("The original PDF differs for \(document.number).") }
-    }
-
-    private func importPayroll(employeeID: Int, wage: Demo.Wage, specification: String,
-                               current: FullSamplePreview, journal: Journal) async throws {
-        let salaryID: Int
-        if let id = current.salaryID {
-            salaryID = id
-        } else {
-            let salary: SalaryRun = try await post("/api/salary-payments", fields: [
-                "period": demo.period, "paymentDate": demo.paymentDate, "employeeIds": [employeeID]
-            ], key: salaryKey, journal: journal)
-            guard salary.period == demo.period else { throw appError("The draft payroll period differs from the preview.") }
-            let detail: SalaryDetail = try await read("/api/salary-payments/\(salary.id)")
-            try verifyPayroll(detail, employeeID: employeeID, wage: wage, wageID: nil)
-            try journal.complete(salaryKey, id: salary.id)
-            salaryID = salary.id
-        }
-        guard current.wageID == nil else { return }
-        let salary: SalaryDetail = try await post("/api/salary-payments/\(salaryID)/wage-specs", fields: [
-            "employeeId": employeeID, "specificationCode": specification, "quantity": wage.hours, "rate": wage.rate,
-            "comment": wageKey
-        ], key: wageKey, journal: journal)
-        guard let spec = salary.employees.first?.wageSpecs.first(where: { $0.comment == wageKey }) else {
-            throw appError("ReAI did not return the sample wage line.")
-        }
-        try verifyPayroll(salary, employeeID: employeeID, wage: wage, wageID: spec.id)
-        try journal.complete(wageKey, id: spec.id)
-    }
-
-    private func verifyPayroll(_ salary: SalaryDetail, employeeID: Int, wage: Demo.Wage, wageID: Int?) throws {
-        guard salary.status == "under_process", !salary.imported, salary.voucherId == nil, salary.paymentDate == demo.paymentDate,
-              salary.employees.map(\.employeeId) == [employeeID] else {
-            throw appError("The saved payroll differs from the reviewed draft. Check the local salary payment.")
-        }
-        let imported = salary.employees.flatMap(\.wageSpecs).filter { $0.comment == wageKey }
-        guard let wageID else {
-            if !imported.isEmpty { throw appError("A wage line exists without a local receipt. Reconcile before importing.") }
-            return
-        }
-        guard imported.count == 1, let spec = imported.first, spec.id == wageID,
-              spec.specificationCode == wage.specification, spec.quantity == Decimal(wage.hours),
-              spec.rate == Decimal(wage.rate) else {
-            throw appError("The saved wage line differs from the reviewed draft.")
-        }
-    }
-
-    private func read<T: Decodable & Sendable>(_ path: String) async throws -> T {
-        try await api.request(path, token: token, tenant: tenant.id)
-    }
-
-    private func post<T: Decodable & Sendable>(_ path: String, fields: [String: Any],
-                                              key: String, journal: Journal) async throws -> T {
         try Task.checkCancellation()
-        let data = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
-        try journal.begin(key, endpoint: path, body: data)
-        return try await api.request(path, token: token, tenant: tenant.id, body: data)
+        let body = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
+        try journal.begin(key, endpoint: endpoint, body: body)
+        let employee: Employee = try await api.request(endpoint, token: token, tenant: tenant.id, body: body)
+        try validateIdentity(employee, plan: plan)
+        try validateEmployment(employee, plan: plan)
+        try journal.complete(key, id: employee.id)
     }
 }

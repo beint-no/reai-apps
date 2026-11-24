@@ -28,11 +28,6 @@ struct Company: Decodable, Equatable, Identifiable, Sendable {
 
 struct Account: Decodable, Sendable { let tenants: [Company] }
 
-struct Page<T: Decodable & Sendable>: Decodable, Sendable {
-    let items: [T]
-    let hasNext: Bool
-}
-
 actor ReAIAPI {
     private struct Problem: Decodable { let detail: String? }
     private let session: URLSession
@@ -48,39 +43,20 @@ actor ReAIAPI {
         try await request("/api/me", token: token)
     }
 
-    func list<T: Decodable & Sendable>(_ path: String, token: String, tenant: Int,
-                                       query: [URLQueryItem] = []) async throws -> [T] {
-        var items: [T] = []
-        for page in 1...100 {
-            let result: Page<T> = try await request(path, token: token, tenant: tenant, query: query + [
-                URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "pageSize", value: "100")
-            ])
-            items += result.items
-            if !result.hasNext { return items }
-        }
-        throw appError("Too many records to review in the local test company.")
-    }
-
     func request<T: Decodable & Sendable>(_ path: String, token: String, tenant: Int? = nil,
-                                         body: Data? = nil, query: [URLQueryItem] = []) async throws -> T {
-        let data = try await response(path, token: token, tenant: tenant, body: body, query: query,
-                                      accept: "application/json")
+                                         body: Data? = nil) async throws -> T {
+        let data = try await response(path, token: token, tenant: tenant, body: body)
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    func invoicePDF(id: Int, token: String, tenant: Int) async throws -> Data {
-        try await response("/api/invoices/\(id)/pdf", token: token, tenant: tenant, accept: "application/pdf")
-    }
-
-    private func response(_ path: String, token: String, tenant: Int?, body: Data? = nil,
-                          query: [URLQueryItem] = [], accept: String) async throws -> Data {
-        let url = AppEnvironment.origin.appending(path: path).appending(queryItems: query)
+    private func response(_ path: String, token: String, tenant: Int?, body: Data?) async throws -> Data {
+        let url = AppEnvironment.origin.appending(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = body == nil ? "GET" : "POST"
         request.httpBody = body
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("en", forHTTPHeaderField: "Accept-Language")
-        request.setValue(accept, forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
         if let tenant { request.setValue(String(tenant), forHTTPHeaderField: "X-Tenant-Id") }
         let (data, response) = try await session.data(for: request)

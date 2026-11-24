@@ -22,7 +22,10 @@ private struct ImportFeedback {
 @MainActor @Observable
 private final class ImportModel {
     let api = ReAIAPI()
+    let recMan = RecManAPI()
     let credentials = Credentials()
+    let recManCredentials = Credentials(account: "recman-read-only-key")
+    var hasRecManKey = false
     var company: Company?
     var preview: ImportPreview?
     var selectedEmployeeIDs: Set<Int> = []
@@ -36,6 +39,7 @@ private final class ImportModel {
 
     func restore() {
         run {
+            self.hasRecManKey = try await self.recManCredentials.load() != nil
             guard let saved = try await self.credentials.load() else { return }
             try await self.use(saved)
         }
@@ -77,7 +81,7 @@ private final class ImportModel {
 
     private func importer() throws -> RecManImport {
         guard let token, let company else { throw appError("Connect to localhost ReAI first.") }
-        return RecManImport(api: api, token: token, tenant: company, demo: Demo(date: .now))
+        return RecManImport(api: api, token: token, tenant: company)
     }
 
     private func clearPreview() {
@@ -87,9 +91,31 @@ private final class ImportModel {
         hasError = false
     }
 
+    func saveRecManKey(_ value: String) {
+        let key = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        run {
+            guard !key.isEmpty else { throw appError("Enter the RecMan API key.") }
+            try await self.recManCredentials.save(key)
+            self.hasRecManKey = true
+            self.clearPreview()
+            self.message = "RecMan key saved. Load Employees to connect."
+        }
+    }
+
     func load() {
         clearPreview()
-        run { self.preview = try await self.importer().preview(scope: .employees) }
+        run {
+            let importer = try self.importer()
+            guard let key = try await self.recManCredentials.load() else {
+                self.hasRecManKey = false
+                throw appError("Set the RecMan API key first.")
+            }
+            let employees = try await self.recMan.employees(key: key)
+            self.preview = try await importer.preview(employees: employees)
+            if employees.isEmpty {
+                self.message = "RecMan returned no employees."
+            }
+        }
     }
 
     func apply() {
@@ -109,7 +135,7 @@ private final class ImportModel {
                 self.importFeedback = ImportFeedback(title: "Employee Import Failed", message: error.localizedDescription)
                 return
             }
-            self.preview = try await importer.preview(scope: .employees)
+            self.preview = try await importer.preview(employees: reviewed.source)
         }
     }
 
@@ -139,22 +165,28 @@ private final class ImportModel {
 private struct ImportView: View {
     @ViewState private var model = ImportModel()
     @ViewState private var confirmImport = false
+    @ViewState private var editingRecManKey = false
+    @ViewState private var recManKeyInput = ""
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
-            sampleControls
+            employeeControls
             Divider()
             if let preview = model.preview {
                 previewList(preview)
             } else {
                 ContentUnavailableView {
-                    Label("Synthetic RecMan sample", systemImage: "tray.and.arrow.down")
+                    Label("RecMan employees", systemImage: "person.2")
                 } description: {
-                    Text(model.company == nil
-                         ? "Connect to a disposable ReAI company at localhost:8080."
-                         : "Load the sample to choose which employees to import.")
+                    if model.company == nil {
+                        Text("Connect to a disposable ReAI company at localhost:8080.")
+                    } else if !model.hasRecManKey {
+                        Text("Set the read-only RecMan API key to load employees.")
+                    } else {
+                        Text("Load employees from RecMan and choose which records to import.")
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -162,6 +194,26 @@ private struct ImportView: View {
             footer
         }
         .task { model.restore() }
+        .sheet(isPresented: $editingRecManKey, onDismiss: { recManKeyInput = "" }) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("RecMan API Key").font(.title2.bold())
+                SecureField("Read-only API key", text: $recManKeyInput)
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) { editingRecManKey = false }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Save Key") {
+                        model.saveRecManKey(recManKeyInput)
+                        recManKeyInput = ""
+                        editingRecManKey = false
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(recManKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(24)
+            .frame(width: 420)
+        }
         .alert(model.importFeedback?.title ?? "", isPresented: isImportFeedbackPresented,
                presenting: model.importFeedback) { _ in
             Button("OK", role: .cancel) {}
@@ -200,7 +252,7 @@ private struct ImportView: View {
         .padding(20)
     }
 
-    private var sampleControls: some View {
+    private var employeeControls: some View {
         HStack {
             if let preview = model.preview {
                 Button("Select All") {
@@ -214,7 +266,11 @@ private struct ImportView: View {
                 .disabled(model.selectedEmployeeIDs.isEmpty)
             }
             Spacer()
-            Button("Load Sample") { model.load() }.disabled(model.company == nil)
+            Button(model.hasRecManKey ? "Change RecMan Key…" : "Set RecMan Key…") {
+                editingRecManKey = true
+            }
+            Button("Load Employees") { model.load() }
+                .disabled(model.company == nil || !model.hasRecManKey)
         }
         .disabled(model.isBusy)
         .padding(.horizontal, 20)
@@ -225,14 +281,12 @@ private struct ImportView: View {
         List {
             Section("Employees") {
                 ForEach(preview.employeeRows) { row in
-                    if let candidateID = row.candidateID {
-                        HStack(spacing: 12) {
-                            Toggle(row.title, isOn: employeeSelection(candidateID))
-                                .toggleStyle(.checkbox)
-                                .labelsHidden()
-                                .disabled(row.needsReview || model.isBusy)
-                            previewRow(row)
-                        }
+                    HStack(spacing: 12) {
+                        Toggle(row.title, isOn: employeeSelection(row.id))
+                            .toggleStyle(.checkbox)
+                            .labelsHidden()
+                            .disabled(row.needsReview || model.isBusy)
+                        previewRow(row)
                     }
                 }
             }
@@ -272,10 +326,10 @@ private struct ImportView: View {
 
     private var confirmationMessage: String {
         let names = model.preview?.employeeRows.compactMap { row -> String? in
-            guard let id = row.candidateID, model.selectedEmployeeIDs.contains(id) else { return nil }
+            guard model.selectedEmployeeIDs.contains(row.id) else { return nil }
             return row.title
         }.joined(separator: ", ") ?? ""
-        return "This imports \(names)."
+        return "This imports \(names). For new employment relations, ReAI applies its defaults to fields this import leaves unset."
     }
 
     private var footer: some View {
@@ -286,7 +340,7 @@ private struct ImportView: View {
                     .foregroundStyle(model.hasError ? Color.red : Color.secondary)
                     .textSelection(.enabled)
             } else {
-                Text("localhost:8080 · Synthetic data").foregroundStyle(.secondary)
+                Text("localhost:8080 · Live RecMan").foregroundStyle(.secondary)
             }
             Spacer()
             Button("Import Selected Employees…") {
