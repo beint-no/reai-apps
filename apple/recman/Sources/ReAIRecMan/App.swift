@@ -210,7 +210,7 @@ private final class ImportModel {
                 let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
                 let batch = try await importer.load(employeePreview: preview, selection: ids)
                 self.payrollBatch = batch
-                for mapping in batch.mappings where !mapping.municipalityInput {
+                for mapping in batch.mappings where mapping.id.hasPrefix("municipality-") && !mapping.municipalityInput {
                     self.mappingChoices[mapping.id] = mapping.suggestion
                 }
                 if batch.rows.isEmpty { self.message = "No new paychecks for the selected employees." }
@@ -562,9 +562,10 @@ private struct ImportView: View {
             ($0.municipalityInput || required.contains($0.id) && $0.id.hasPrefix("municipality-")) &&
                 !$0.accepts(model.mappingChoices[$0.id])
         }
-        let unmappedWageCount = batch.mappings.count {
+        let unmappedWages = batch.mappings.filter {
             required.contains($0.id) && $0.id.hasPrefix("wage-") && !$0.accepts(model.mappingChoices[$0.id])
         }
+        let suggestedWage = unmappedWages.count == 1 ? unmappedWages.first : nil
         let hasMappablePayroll = !required.isEmpty
         let suggested = unconfirmedMunicipalities.filter {
             $0.municipalitySuggestion != nil && model.mappingChoices[$0.id] == nil
@@ -573,7 +574,7 @@ private struct ImportView: View {
             ? suggested.first?.municipalitySuggestion : nil
         let steps = [
             unconfirmedMunicipalities.isEmpty ? nil : "\(unconfirmedMunicipalities.count) municipality confirmations needed",
-            unmappedWageCount == 0 ? nil : "\(unmappedWageCount) wage types to map"
+            unmappedWages.isEmpty ? nil : (unmappedWages.count == 1 ? "1 wage type to map" : "\(unmappedWages.count) wage types to map")
         ].compactMap { $0 }
 
         return VStack(alignment: .leading, spacing: 6) {
@@ -588,6 +589,13 @@ private struct ImportView: View {
             }
             if !steps.isEmpty {
                 Text(steps.joined(separator: " · ")).foregroundStyle(.secondary)
+            }
+            if let mapping = suggestedWage, let suggestion = mapping.suggestion,
+               let option = mapping.options.first(where: { $0.id == suggestion }) {
+                let article = mapping.label.components(separatedBy: " · ").first ?? mapping.label
+                Button("Confirm \(article) → \(option.label)") {
+                    model.changeMapping(mapping.id, choice: suggestion)
+                }
             }
             if let suggestion = sharedSuggestion {
                 let count = suggested.count == 1 ? "1 employee" : "\(suggested.count) employees"
@@ -691,6 +699,14 @@ private struct ImportView: View {
                 })
                 .disabled(model.isBusy)
             } else {
+                if isPayroll, mapping.id.hasPrefix("wage-"), let suggestion = mapping.suggestion,
+                   let option = mapping.options.first(where: { $0.id == suggestion }) {
+                    Button("Confirm \(option.label)") {
+                        model.changeMapping(mapping.id, choice: suggestion)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(model.isBusy || model.mappingChoices[mapping.id] == suggestion)
+                }
                 Picker(mapping.label, selection: Binding {
                     model.mappingChoices[mapping.id]
                 } set: { choice in

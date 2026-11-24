@@ -208,7 +208,7 @@ struct PayrollImport {
                             label: "\(line.articleName) · \(line.articleType) · Article \(line.articleId)",
                             options: Self.wageCodes.sorted().map {
                                 AccountingOption(id: $0, label: $0.replacingOccurrences(of: "_", with: " ").capitalized)
-                            }, suggestion: nil)
+                            }, suggestion: suggestedWageCode(for: line))
                     }
                 }
                 entries[rowID] = PayrollEntry(check: check, period: period, paymentDate: paymentDate,
@@ -428,6 +428,13 @@ struct PayrollImport {
         guard !dates.isEmpty, dates.allSatisfy(accountingDate) else { return nil }
         let months = Set(dates.map { String($0.prefix(7)) })
         return months.count == 1 ? months.first : nil
+    }
+
+    private func suggestedWageCode(for line: RecManPaycheck.Line) -> String? {
+        let name = line.articleName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard line.articleType.caseInsensitiveCompare("hour") == .orderedSame,
+              ["timelønn", "hourly salary"].contains(name) else { return nil }
+        return "hourly_salary"
     }
 
     private func isWorkedTimeSupplement(_ line: RecManPaycheck.Line) -> Bool {
