@@ -581,6 +581,12 @@ private struct ImportView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(mapping.label).fontWeight(.medium)
                             if mapping.municipalityInput {
+                                if let suggestion = mapping.municipalitySuggestion {
+                                    Button("Confirm \(suggestion.label)") {
+                                        model.changeMapping(mapping.id, choice: suggestion.id)
+                                    }
+                                    .disabled(model.isBusy || model.mappingChoices[mapping.id] == suggestion.id)
+                                }
                                 TextField("Four-digit municipality code", text: Binding {
                                     model.mappingChoices[mapping.id] ?? ""
                                 } set: { choice in
@@ -667,6 +673,8 @@ private struct ImportView: View {
             guard model.selectedEmployeeIDs.contains(row.id) else { return nil }
             return row.title
         }.joined(separator: ", ") ?? ""
+        let bankCount = model.preview?.plans.filter { model.selectedEmployeeIDs.contains($0.key) && $0.value.bankToImport != nil }.count ?? 0
+        let bank = bankCount == 0 ? "" : "\nFill \(bankCount) blank bank accounts from RecMan."
         let ready = model.payrollApproval?.rows.count ?? 0
         let held = model.payrollApproval?.heldCount ?? 0
         let payroll = model.payrollIssue == nil
@@ -675,7 +683,7 @@ private struct ImportView: View {
         return """
             \(model.server.displayName)
 
-            Import \(names). \(payroll)
+            Import \(names). \(payroll)\(bank)
             For new employment relations, ReAI applies its defaults to fields left unset.
             """
     }

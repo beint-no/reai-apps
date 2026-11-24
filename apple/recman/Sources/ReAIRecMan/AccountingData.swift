@@ -58,7 +58,7 @@ struct RecManInvoice: Decodable, Identifiable, Sendable {
 }
 
 struct RecManCompany: Codable, Sendable {
-    struct Address: Codable, Sendable {
+    struct Address: Codable, Hashable, Sendable {
         let address1: String?
         let postalCode: String?
         let city: String?
@@ -148,6 +148,7 @@ struct AccountingMapping: Identifiable, Sendable {
     let options: [AccountingOption]
     let suggestion: String?
     var municipalityInput = false
+    var municipalitySuggestion: AccountingOption?
 
     func accepts(_ choice: String?) -> Bool {
         guard let choice else { return false }

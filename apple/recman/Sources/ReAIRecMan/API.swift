@@ -88,8 +88,8 @@ actor ReAIAPI {
     }
 
     func request<T: Decodable & Sendable>(_ path: String, token: String, tenant: Int? = nil,
-                                         body: Data? = nil, query: [URLQueryItem] = []) async throws -> T {
-        let data = try await response(path, token: token, tenant: tenant, body: body, query: query)
+                                         body: Data? = nil, query: [URLQueryItem] = [], method: String? = nil) async throws -> T {
+        let data = try await response(path, token: token, tenant: tenant, body: body, query: query, method: method)
         return try JSONDecoder().decode(T.self, from: data)
     }
 
@@ -107,10 +107,10 @@ actor ReAIAPI {
     }
 
     private func response(_ path: String, token: String, tenant: Int?, body: Data?,
-                          query: [URLQueryItem]) async throws -> Data {
+                          query: [URLQueryItem], method: String?) async throws -> Data {
         let url = server.url.appending(path: path).appending(queryItems: query)
         var request = URLRequest(url: url)
-        request.httpMethod = body == nil ? "GET" : "POST"
+        request.httpMethod = method ?? (body == nil ? "GET" : "POST")
         request.httpBody = body
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("en", forHTTPHeaderField: "Accept-Language")

@@ -11,13 +11,29 @@ struct Employee: Decodable, Equatable {
         let accountNumber: String
         let bankCode: String?
         let countryCode: String?
+
+        func matchesNorwegianAccount(_ expected: String) -> Bool {
+            countryCode == "NO" &&
+                [accountNumber, (bankCode ?? "") + accountNumber].compactMap(verifiedNorwegianAccount).contains(expected)
+        }
     }
 
     struct Relation: Decodable, Equatable {
-        struct Line: Decodable, Equatable {
+        struct Line: Codable, Equatable {
+            let id: Int?
             let startDate: String
+            var municipality: String?
+            let employmentType: String?
+            let formOfEmployment: String?
+            let workingHoursScheme: String?
+            let remunerationType: String?
+            let occupationCode: String?
             let percentage: Decimal?
-            let municipality: String?
+            let lastSalaryChangeDate: String?
+            let lastPositionPercentageChangeDate: String?
+            let annualSalary: Decimal?
+            let hourlyWage: Decimal?
+            let fullTimeHoursPerWeek: Decimal?
         }
         let startDate: String
         let endDate: String?
@@ -28,6 +44,17 @@ struct Employee: Decodable, Equatable {
     let email: String?
     let employmentRelations: [Relation]
     let bankAccount: Bank?
+
+    var hasBankAccount: Bool {
+        normalizedIdentity(bankAccount?.accountNumber) != nil
+    }
+
+    var lineMissingMunicipality: Relation.Line? {
+        guard employmentRelations.count == 1, let lines = employmentRelations.first?.employmentLines,
+              lines.count == 1, let line = lines.first, line.id != nil,
+              normalizedIdentity(line.municipality) == nil else { return nil }
+        return line
+    }
 
     func municipality(on start: String, through end: String) -> String? {
         let eligible = employmentRelations.filter {
@@ -59,10 +86,12 @@ struct EmployeePlan: Equatable {
     let endDate: String?
     let percentage: Decimal
     let existing: Employee?
+    let bankToImport: String?
 
     var displayEmployment: String {
         let end = endDate.map { " to \($0)" } ?? ""
-        return "\(startDate)\(end) · \(percentage)% · \(email)"
+        let bank = bankToImport.map { " · Add RecMan bank ending \($0.suffix(4))" } ?? ""
+        return "\(startDate)\(end) · \(percentage)% · \(email)\(bank)"
     }
 }
 
@@ -78,6 +107,7 @@ struct EmployeeImportResult {
     var added: [String] = []
     var employmentAdded: [String] = []
     var alreadyMatched: [String] = []
+    var bankAdded: [String] = []
     var employees: [Int: Employee] = [:]
 
     var message: String {
@@ -89,12 +119,12 @@ struct EmployeeImportResult {
         if !alreadyMatched.isEmpty {
             lines.append("Matched existing records for \(alreadyMatched.joined(separator: ", ")).")
         }
+        if !bankAdded.isEmpty { lines.append("Added bank details for \(bankAdded.joined(separator: ", ")).") }
         return lines.joined(separator: "\n")
     }
 }
 
 struct EmployeePayrollSetup: Equatable {
-    let bankAccount: String?
     let municipality: String
 }
 
@@ -131,6 +161,7 @@ struct RecManImport {
                 let details = [failure, result.message].filter { !$0.isEmpty }
                 throw appError(details.joined(separator: "\n\n"))
             }
+            if plan.bankToImport != nil { result.bankAdded.append(plan.name) }
             if let existing = plan.existing {
                 if existing.employmentRelations.isEmpty {
                     result.employmentAdded.append(plan.name)
@@ -223,7 +254,8 @@ struct RecManImport {
             throw appError("Missing or invalid employment percentage.")
         }
         return EmployeePlan(receiptKey: "recman-\(corporation)-employee-\(id)", name: candidate.name,
-                            email: email, startDate: start, endDate: end, percentage: percentage, existing: existing)
+                            email: email, startDate: start, endDate: end, percentage: percentage, existing: existing,
+                            bankToImport: existing?.hasBankAccount == true ? nil : verifiedNorwegianAccount(relation.bankAccount))
     }
 
     private func isDate(_ text: String, formatter: ISO8601DateFormatter) -> Bool {
@@ -262,8 +294,11 @@ struct RecManImport {
         let endpoint: String
         let key: String
         if let existing = plan.existing {
-            guard existing.employmentRelations.isEmpty else { return existing }
-            endpoint = "/api/employees/\(existing.id)/employment-relations"
+            let employeePath = "/api/employees/\(existing.id)"
+            if !existing.employmentRelations.isEmpty {
+                return try await updateEmployee(existing, plan: plan, setup: setup, journal: journal)
+            }
+            endpoint = "\(employeePath)/employment-relations"
             key = "\(plan.receiptKey)-employment"
             fields["startDate"] = plan.startDate
             if let end = plan.endDate { fields["endDate"] = end }
@@ -274,7 +309,7 @@ struct RecManImport {
             fields["email"] = plan.email
             fields["dateOfEmployment"] = plan.startDate
             if let end = plan.endDate { fields["endDateOfEmployment"] = end }
-            if let bank = setup?.bankAccount {
+            if let bank = plan.bankToImport {
                 fields["accountNumber"] = bank
                 fields["bankCountryCode"] = "NO"
             }
@@ -286,7 +321,47 @@ struct RecManImport {
         let employee: Employee = try await api.request(endpoint, token: token, tenant: tenant.id, body: body)
         try validateIdentity(employee, plan: plan)
         try validateEmployment(employee, plan: plan)
+        if plan.existing == nil, let bank = plan.bankToImport, employee.bankAccount?.matchesNorwegianAccount(bank) != true {
+            throw appError("ReAI did not return the reviewed bank account.")
+        }
         try journal.complete(key, id: employee.id)
+        if plan.existing != nil {
+            return try await updateEmployee(employee, plan: plan, setup: nil, journal: journal)
+        }
         return employee
+    }
+
+    private func updateEmployee(_ employee: Employee, plan: EmployeePlan, setup: EmployeePayrollSetup?,
+                                journal: Journal) async throws -> Employee {
+        var fields: [String: Any] = [:]
+        var updatedLine: Employee.Relation.Line?
+        if let setup, var line = employee.lineMissingMunicipality {
+            line.municipality = setup.municipality
+            fields["employmentLines"] = [try JSONSerialization.jsonObject(with: JSONEncoder().encode(line))]
+            updatedLine = line
+        }
+        if let bank = plan.bankToImport, !employee.hasBankAccount {
+            fields["accountNumber"] = bank
+            fields["bankCountryCode"] = "NO"
+        }
+        guard !fields.isEmpty else { return employee }
+
+        let endpoint = "/api/employees/\(employee.id)"
+        let body = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
+        let change = fields["accountNumber"] == nil ? "municipality" : (updatedLine == nil ? "bank" : "bank-municipality")
+        let key = "\(plan.receiptKey)-\(change)"
+        try Task.checkCancellation()
+        try journal.begin(key, endpoint: endpoint, body: body)
+        let saved: Employee = try await api.request(endpoint, token: token, tenant: tenant.id, body: body, method: "PATCH")
+        try validateIdentity(saved, plan: plan)
+        try validateEmployment(saved, plan: plan)
+        guard saved.id == employee.id,
+              plan.bankToImport.map({ saved.bankAccount?.matchesNorwegianAccount($0) == true }) ?? true,
+              updatedLine.map({ saved.employmentRelations.first?.employmentLines == [$0] }) ??
+                  (saved.employmentRelations == employee.employmentRelations) else {
+            throw appError("ReAI did not return the reviewed employee details.")
+        }
+        try journal.complete(key, id: saved.id)
+        return saved
     }
 }
