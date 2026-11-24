@@ -553,8 +553,18 @@ private struct ImportView: View {
                                 Text(row.detail).foregroundStyle(.secondary)
                                 if let problem = row.problem {
                                     Text(problem).foregroundStyle(.orange)
+                                } else if isPayroll && !ready.contains(row.id) {
+                                    let missing = row.requirements.filter { requirement in
+                                        mappings.first(where: { $0.id == requirement })?.accepts(model.mappingChoices[requirement]) != true
+                                    }
+                                    let reasons = [
+                                        model.confirmedNOK ? nil : "Confirm NOK",
+                                        missing.contains { $0.hasPrefix("municipality-") } ? "Confirm municipality" : nil,
+                                        missing.contains { $0.hasPrefix("wage-") } ? "Map wage types" : nil
+                                    ].compactMap { $0 }
+                                    Text(reasons.joined(separator: " · ")).foregroundStyle(.orange)
                                 } else if !ready.contains(row.id) {
-                                    Text(isPayroll ? "Payroll review required" : "Mapping required").foregroundStyle(.orange)
+                                    Text("Mapping required").foregroundStyle(.orange)
                                 } else if isPayroll {
                                     Text("Included in draft payroll").foregroundStyle(.secondary)
                                 }
@@ -675,6 +685,8 @@ private struct ImportView: View {
         }.joined(separator: ", ") ?? ""
         let bankCount = model.preview?.plans.filter { model.selectedEmployeeIDs.contains($0.key) && $0.value.bankToImport != nil }.count ?? 0
         let bank = bankCount == 0 ? "" : "\nFill \(bankCount) blank bank accounts from RecMan."
+        let municipalityCount = model.payrollApproval?.employeeSetup.count ?? 0
+        let municipality = municipalityCount == 0 ? "" : "\nSave \(municipalityCount) confirmed municipalities."
         let ready = model.payrollApproval?.rows.count ?? 0
         let held = model.payrollApproval?.heldCount ?? 0
         let payroll = model.payrollIssue == nil
@@ -683,7 +695,7 @@ private struct ImportView: View {
         return """
             \(model.server.displayName)
 
-            Import \(names). \(payroll)\(bank)
+            Import \(names). \(payroll)\(bank)\(municipality)
             For new employment relations, ReAI applies its defaults to fields left unset.
             """
     }

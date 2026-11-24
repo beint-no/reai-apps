@@ -35,7 +35,6 @@ private struct PayrollEntry {
     let paymentDate: String
     let municipalityMapping: String
     let bankToImport: String?
-    let needsMunicipality: Bool
 }
 
 struct PayrollImportApproval {
@@ -49,6 +48,7 @@ struct PayrollBatch {
     let mappings: [AccountingMapping]
     fileprivate let entries: [String: PayrollEntry]
     fileprivate let checks: [RecManPaycheck]
+    fileprivate let municipalityMappingIDs: [Int: String]
 
     func approval(choices: [String: String], confirmedNOK: Bool) -> PayrollImportApproval {
         let mappingsByID = Dictionary(uniqueKeysWithValues: mappings.map { ($0.id, $0) })
@@ -56,10 +56,9 @@ struct PayrollBatch {
             row.problem == nil && row.requirements.allSatisfy { mappingsByID[$0]?.accepts(choices[$0]) == true }
         } : []
         var setup: [Int: EmployeePayrollSetup] = [:]
-        for row in ready {
-            guard let entry = entries[row.id], entry.needsMunicipality,
-                  let municipality = choices[entry.municipalityMapping] else { continue }
-            setup[entry.check.candidateId] = EmployeePayrollSetup(municipality: municipality)
+        for (id, mappingID) in municipalityMappingIDs {
+            guard let code = choices[mappingID], mappingsByID[mappingID]?.accepts(code) == true else { continue }
+            setup[id] = EmployeePayrollSetup(municipality: code)
         }
         return PayrollImportApproval(rows: ready, employeeSetup: setup, heldCount: rows.count - ready.count)
     }
@@ -98,7 +97,7 @@ struct PayrollImport {
         }
         let pending = checks.filter { selection.contains($0.candidateId) && journal.result(for: receipt($0)) == nil }
         guard !pending.isEmpty else {
-            return PayrollBatch(rows: [], mappings: [], entries: [:], checks: checks)
+            return PayrollBatch(rows: [], mappings: [], entries: [:], checks: checks, municipalityMappingIDs: [:])
         }
 
         struct SalarySettings: Decodable { let payoutDayOfMonth: Int? }
@@ -107,14 +106,13 @@ struct PayrollImport {
         let runs = try await salaryRuns(periods: periods)
         let runsByPeriod = Dictionary(grouping: runs, by: \.period)
         let workplaces = try await loadWorkplaces(for: pending)
-        let municipalitySuggestions = await workplaceMunicipalities(
-            for: pending, plans: employeePreview.plans, workplaces: workplaces
-        )
+        let municipalityMatches = await workplaceMunicipalities(for: pending, workplaces: workplaces)
         let candidates = Dictionary(uniqueKeysWithValues: employeePreview.source.compactMap { candidate in
             candidate.candidateId.positiveID.map { ($0, candidate) }
         })
         var entries: [String: PayrollEntry] = [:]
         var mappings: [String: AccountingMapping] = [:]
+        var municipalityMappingIDs: [Int: String] = [:]
         var rows: [AccountingRow] = []
         var drafts: [Int: PayrollDraft] = [:]
         for check in pending.sorted(by: { $0.paycheckId < $1.paycheckId }) {
@@ -160,24 +158,30 @@ struct PayrollImport {
                     throw appError("The wage dates or employment ID do not match the selected employee.")
                 }
 
-                guard plan.existing?.hasBankAccount == true || plan.bankToImport != nil else {
-                    throw appError("There is no verified Norwegian bank account in RecMan or bank account in ReAI.")
-                }
-
                 let needsMunicipality = plan.existing?.employmentRelations.isEmpty != false ||
                     plan.existing?.lineMissingMunicipality != nil
+                let matches = municipalityMatches[check.candidateId] ?? []
                 let locationMapping: String
                 if needsMunicipality {
+                    if matches.count > 1 {
+                        let places = matches.map(\.label).joined(separator: ", ")
+                        let blockers = [
+                            plan.bankIssue,
+                            "Workplace addresses span \(places). Verify the applicable employment municipality in ReAI."
+                        ].compactMap { $0 }
+                        throw appError(blockers.joined(separator: "\n"))
+                    }
                     locationMapping = "municipality-employee-\(check.candidateId)"
+                    municipalityMappingIDs[check.candidateId] = locationMapping
                     mappings[locationMapping] = AccountingMapping(
                         id: locationMapping,
-                        label: "\(plan.name) · Verify the municipality for their imported work",
+                        label: "\(plan.name) · Confirm the workplace municipality",
                         options: [], suggestion: nil, municipalityInput: true,
-                        municipalitySuggestion: municipalitySuggestions[check.candidateId]
+                        municipalitySuggestion: matches.first
                     )
                 } else {
                     guard let municipality = plan.existing?.municipality(on: start, through: end) else {
-                        throw appError("Verify the workplace and set one municipality on the ReAI employment relation.")
+                        throw appError("Verify the workplace and set the municipality on the ReAI employment relation.")
                     }
                     locationMapping = "municipality-\(rowID)"
                     mappings[locationMapping] = AccountingMapping(
@@ -186,6 +190,7 @@ struct PayrollImport {
                         suggestion: nil
                     )
                 }
+                if let issue = plan.bankIssue { throw appError(issue) }
                 requirements.append(locationMapping)
                 for line in lines {
                     let article = articleKey(line)
@@ -199,8 +204,7 @@ struct PayrollImport {
                     }
                 }
                 entries[rowID] = PayrollEntry(check: check, period: period, paymentDate: paymentDate,
-                                              municipalityMapping: locationMapping, bankToImport: plan.bankToImport,
-                                              needsMunicipality: needsMunicipality)
+                                              municipalityMapping: locationMapping, bankToImport: plan.bankToImport)
             } catch let error as AppError {
                 problem = error.message
             }
@@ -214,7 +218,7 @@ struct PayrollImport {
                                       }))
         }
         return PayrollBatch(rows: rows, mappings: mappings.values.sorted { $0.label < $1.label }, entries: entries,
-                            checks: checks)
+                            checks: checks, municipalityMappingIDs: municipalityMappingIDs)
     }
 
     func perform(_ batch: PayrollBatch, approval: PayrollImportApproval, choices: [String: String],
@@ -343,28 +347,27 @@ struct PayrollImport {
         let address: RecManCompany.Address?
     }
 
-    private func workplaceMunicipalities(for checks: [RecManPaycheck], plans: [Int: EmployeePlan],
-                                        workplaces: [Int: Workplace]) async -> [Int: AccountingOption] {
-        var addressesByEmployee: [Int: Set<RecManCompany.Address>] = [:]
-        for (id, paychecks) in Dictionary(grouping: checks, by: \.candidateId) {
-            guard let plan = plans[id], plan.existing?.employmentRelations.isEmpty != false ||
-                    plan.existing?.lineMissingMunicipality != nil else { continue }
-            let workIDs = paychecks.map { Set($0.lines.values.compactMap(\.workId).filter { $0 > 0 }) }
-            guard workIDs.allSatisfy({ !$0.isEmpty }) else { continue }
-            let ids = Set(workIDs.flatMap { $0 })
-            let addresses = ids.compactMap { workID -> RecManCompany.Address? in
-                guard let workplace = workplaces[workID], workplace.candidateID == id else { return nil }
-                return workplace.address
+    private func workplaceMunicipalities(for checks: [RecManPaycheck],
+                                        workplaces: [Int: Workplace]) async -> [Int: [AccountingOption]] {
+        let addressesByEmployee = Dictionary(grouping: checks, by: \.candidateId).mapValues { paychecks in
+            paychecks.map { check in
+                let workIDs = Set(check.lines.values.compactMap(\.workId).filter { $0 > 0 })
+                return workIDs.map { id in
+                    guard let workplace = workplaces[id], workplace.candidateID == check.candidateId else { return nil as RecManCompany.Address? }
+                    return workplace.address
+                }
             }
-            if addresses.count == ids.count { addressesByEmployee[id] = Set(addresses) }
         }
-        guard !addressesByEmployee.isEmpty else { return [:] }
-        let addresses = Set(addressesByEmployee.values.flatMap { $0 }).sorted { $0.label < $1.label }
+        let addresses = Set(addressesByEmployee.values.flatMap { $0.flatMap { $0.compactMap(\.self) } })
+            .sorted { $0.label < $1.label }
+        guard !addresses.isEmpty else { return [:] }
         let resolved = await WorkplaceMunicipalities.lookup(addresses)
-        return addressesByEmployee.compactMapValues { addresses in
-            let matches = addresses.compactMap { resolved[$0] }
-            guard matches.count == addresses.count, Set(matches.map(\.id)).count == 1 else { return nil }
-            return matches.first
+        return addressesByEmployee.mapValues { paychecks in
+            let matches = paychecks.flatMap { $0.compactMap { $0.flatMap { resolved[$0] } } }
+            let distinct = Dictionary(grouping: matches, by: \.id).values.compactMap(\.first).sorted { $0.id < $1.id }
+            if distinct.count > 1 { return distinct }
+            let complete = paychecks.allSatisfy { !$0.isEmpty } && matches.count == paychecks.reduce(0) { $0 + $1.count }
+            return complete ? distinct : []
         }
     }
 
@@ -464,6 +467,16 @@ func verifiedNorwegianAccount(_ value: String?) -> String? {
     let digits = account.compactMap(\.wholeNumberValue)
     let sum = zip(digits, [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]).reduce(0) { $0 + $1.0 * $1.1 }
     return digits.last == (11 - sum % 11) % 11 ? account : nil
+}
+
+func verifiedNorwegianIBAN(_ value: String?) -> String? {
+    guard let value else { return nil }
+    let iban = value.filter { !$0.isWhitespace }.uppercased()
+    guard iban.range(of: #"^NO[0-9]{13}$"#, options: .regularExpression) != nil else { return nil }
+    let digits = String(iban.dropFirst(4)) + "2324" + String(iban.dropFirst(2).prefix(2))
+    let remainder = digits.compactMap(\.wholeNumberValue).reduce(0) { ($0 * 10 + $1) % 97 }
+    guard remainder == 1 else { return nil }
+    return verifiedNorwegianAccount(String(iban.dropFirst(4)))
 }
 
 private func draftPaymentDate(period: String, payoutDay: Int?) throws -> String {

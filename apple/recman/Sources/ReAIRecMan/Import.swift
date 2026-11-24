@@ -87,6 +87,7 @@ struct EmployeePlan: Equatable {
     let percentage: Decimal
     let existing: Employee?
     let bankToImport: String?
+    let bankIssue: String?
 
     var displayEmployment: String {
         let end = endDate.map { " to \($0)" } ?? ""
@@ -108,6 +109,7 @@ struct EmployeeImportResult {
     var employmentAdded: [String] = []
     var alreadyMatched: [String] = []
     var bankAdded: [String] = []
+    var municipalityAdded: [String] = []
     var employees: [Int: Employee] = [:]
 
     var message: String {
@@ -120,6 +122,7 @@ struct EmployeeImportResult {
             lines.append("Matched existing records for \(alreadyMatched.joined(separator: ", ")).")
         }
         if !bankAdded.isEmpty { lines.append("Added bank details for \(bankAdded.joined(separator: ", ")).") }
+        if !municipalityAdded.isEmpty { lines.append("Saved confirmed municipalities for \(municipalityAdded.joined(separator: ", ")).") }
         return lines.joined(separator: "\n")
     }
 }
@@ -162,6 +165,7 @@ struct RecManImport {
                 throw appError(details.joined(separator: "\n\n"))
             }
             if plan.bankToImport != nil { result.bankAdded.append(plan.name) }
+            if payrollSetup[id] != nil { result.municipalityAdded.append(plan.name) }
             if let existing = plan.existing {
                 if existing.employmentRelations.isEmpty {
                     result.employmentAdded.append(plan.name)
@@ -253,9 +257,19 @@ struct RecManImport {
         guard let percentage = relation.positionPercent?.value, (0...100).contains(percentage) else {
             throw appError("Missing or invalid employment percentage.")
         }
+        let bankToImport = existing?.hasBankAccount == true ? nil :
+            verifiedNorwegianAccount(relation.bankAccount) ?? verifiedNorwegianIBAN(relation.iban)
+        let bankIssue: String?
+        if existing?.hasBankAccount == true || bankToImport != nil {
+            bankIssue = nil
+        } else if normalizedIdentity(relation.bankAccount) == nil && normalizedIdentity(relation.iban) == nil {
+            bankIssue = "RecMan has no bank details. Add a verified account in RecMan or ReAI."
+        } else {
+            bankIssue = "RecMan bank details are invalid or unsupported. Add corrected details in RecMan or ReAI."
+        }
         return EmployeePlan(receiptKey: "recman-\(corporation)-employee-\(id)", name: candidate.name,
                             email: email, startDate: start, endDate: end, percentage: percentage, existing: existing,
-                            bankToImport: existing?.hasBankAccount == true ? nil : verifiedNorwegianAccount(relation.bankAccount))
+                            bankToImport: bankToImport, bankIssue: bankIssue)
     }
 
     private func isDate(_ text: String, formatter: ISO8601DateFormatter) -> Bool {
@@ -321,6 +335,9 @@ struct RecManImport {
         let employee: Employee = try await api.request(endpoint, token: token, tenant: tenant.id, body: body)
         try validateIdentity(employee, plan: plan)
         try validateEmployment(employee, plan: plan)
+        if let setup, employee.employmentRelations.first?.employmentLines.first?.municipality != setup.municipality {
+            throw appError("ReAI did not return the confirmed municipality.")
+        }
         if plan.existing == nil, let bank = plan.bankToImport, employee.bankAccount?.matchesNorwegianAccount(bank) != true {
             throw appError("ReAI did not return the reviewed bank account.")
         }

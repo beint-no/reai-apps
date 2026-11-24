@@ -13,6 +13,7 @@ struct RecManEmployee: Decodable, Equatable, Sendable {
         let endDate: String?
         let positionPercent: RecManNumber?
         let bankAccount: String?
+        let iban: String?
         let employmentId: RecManNumber?
     }
 
