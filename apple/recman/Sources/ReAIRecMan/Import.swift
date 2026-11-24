@@ -80,6 +80,7 @@ struct PreviewRow: Equatable, Identifiable {
 
 struct EmployeePlan: Equatable {
     let receiptKey: String
+    let replacesMissingEmployee: Bool
     let name: String
     let email: String
     let startDate: String
@@ -182,6 +183,7 @@ struct RecManImport {
     private func prepare(employees: [RecManEmployee], journal: Journal) async throws -> ImportPreview {
         guard tenant.currencyCode == "NOK" else { throw appError("Choose a ReAI company using NOK.") }
         let people: [EmployeeSummary] = try await api.request("/api/employees", token: token, tenant: tenant.id)
+        let currentEmployeeIDs = Set(people.map(\.id))
         let sourceEmails = Dictionary(grouping: employees.compactMap(\.contactEmail), by: { $0.lowercased() })
         let sourceNames = Dictionary(grouping: employees.map(\.name), by: { $0.lowercased() })
         let formatter = ISO8601DateFormatter()
@@ -210,7 +212,15 @@ struct RecManImport {
                 guard sourceNames[name.lowercased()]?.count == 1 else {
                     throw appError("Multiple RecMan employees have this name.")
                 }
-                let plan = try makePlan(candidate, id: id, email: email, existing: existing, formatter: formatter)
+                guard let corporation = candidate.corporationId?.positiveID else {
+                    throw appError("Missing RecMan corporation ID.")
+                }
+                let originalKey = "recman-\(corporation)-employee-\(id)"
+                let receiptKey = try employeeReceiptKey(originalKey, existingID: existing?.id,
+                                                        currentEmployeeIDs: currentEmployeeIDs, journal: journal)
+                let plan = try makePlan(candidate, email: email, existing: existing, formatter: formatter,
+                                        receiptKey: receiptKey,
+                                        replacesMissingEmployee: existing == nil && receiptKey != originalKey)
                 if let existing {
                     try validateIdentity(existing, plan: plan)
                     if !existing.employmentRelations.isEmpty { try validateEmployment(existing, plan: plan) }
@@ -222,7 +232,7 @@ struct RecManImport {
                 if let existing {
                     action = existing.employmentRelations.isEmpty ? "Add employment" : "Match employee and employment"
                 } else {
-                    action = "Create employee and employment"
+                    action = plan.replacesMissingEmployee ? "Recreate missing employee" : "Create employee and employment"
                 }
                 plans[id] = plan
                 rows.append(PreviewRow(id: id, title: plan.name, detail: plan.displayEmployment, action: action))
@@ -234,11 +244,9 @@ struct RecManImport {
         return ImportPreview(source: employees, employeeRows: rows, plans: plans)
     }
 
-    private func makePlan(_ candidate: RecManEmployee, id: Int, email: String, existing: Employee?,
-                          formatter: ISO8601DateFormatter) throws -> EmployeePlan {
-        guard let corporation = candidate.corporationId?.positiveID else {
-            throw appError("Missing RecMan corporation ID.")
-        }
+    private func makePlan(_ candidate: RecManEmployee, email: String, existing: Employee?,
+                          formatter: ISO8601DateFormatter, receiptKey: String,
+                          replacesMissingEmployee: Bool) throws -> EmployeePlan {
         guard !candidate.name.isEmpty, candidate.name.count <= 75,
               email.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil else {
             throw appError("A valid name and email are required.")
@@ -267,14 +275,38 @@ struct RecManImport {
         } else {
             bankIssue = "RecMan bank details are invalid or unsupported. Add corrected details in RecMan or ReAI."
         }
-        return EmployeePlan(receiptKey: "recman-\(corporation)-employee-\(id)", name: candidate.name,
-                            email: email, startDate: start, endDate: end, percentage: percentage, existing: existing,
+        return EmployeePlan(receiptKey: receiptKey, replacesMissingEmployee: replacesMissingEmployee,
+                            name: candidate.name, email: email, startDate: start, endDate: end, percentage: percentage, existing: existing,
                             bankToImport: bankToImport, bankIssue: bankIssue)
     }
 
     private func isDate(_ text: String, formatter: ISO8601DateFormatter) -> Bool {
         guard let date = formatter.date(from: text) else { return false }
         return formatter.string(from: date) == text
+    }
+
+    private func employeeReceiptKey(_ originalKey: String, existingID: Int?, currentEmployeeIDs: Set<Int>,
+                                    journal: Journal) throws -> String {
+        var key = originalKey
+        var previousIDs = Set<Int>()
+        let operationSuffixes = ["", "-employment", "-bank", "-municipality", "-bank-municipality"]
+        while true {
+            let recordedIDs = Set(operationSuffixes.compactMap { journal.result(for: key + $0) })
+            guard recordedIDs.count <= 1 else {
+                throw appError("Employee import receipts disagree. Reconcile before importing.")
+            }
+            guard let recorded = recordedIDs.first else {
+                if key != originalKey, existingID != nil {
+                    throw appError("The existing employee differs from the saved import receipt. Reconcile before importing.")
+                }
+                return key
+            }
+            if recorded == existingID { return key }
+            guard !currentEmployeeIDs.contains(recorded), previousIDs.insert(recorded).inserted else {
+                throw appError("The saved import receipt differs from ReAI. Reconcile before importing.")
+            }
+            key = "\(originalKey)-after-\(recorded)"
+        }
     }
 
     private func checkReceipt(_ journal: Journal, key: String, existingID: Int?) throws {

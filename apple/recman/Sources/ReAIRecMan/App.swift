@@ -775,10 +775,15 @@ private struct ImportView: View {
             ? "\(ready) paychecks will be added to draft payroll. \(held) held for review."
             : "Payroll could not be reviewed and will be held."
         let employeeUpdates = model.selectedEmployeeWriteCount
+        let recreating = model.preview?.employeeRows.filter { row in
+            model.selectedEmployeeIDs.contains(row.id) && model.preview?.plans[row.id]?.replacesMissingEmployee == true
+        }.map(\.title) ?? []
+        let recovery = recreating.isEmpty ? "" :
+            "\nRecreate employee records no longer listed in ReAI for \(recreating.joined(separator: ", ")). Confirm the previous records were deleted."
         return """
             \(model.server.displayName)
 
-            Review for \(names). \(employeeUpdates) employee records will be updated. \(payroll)\(bank)\(municipality)
+            Review for \(names). \(employeeUpdates) employee records will be updated. \(payroll)\(bank)\(municipality)\(recovery)
             For new employment relations, ReAI applies its defaults to fields left unset.
             """
     }

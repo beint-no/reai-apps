@@ -23,6 +23,6 @@ RecMan and ReAI credentials use separate Keychain items under `no.reai.recman`. 
 
 RecMan access is GET-only and user-triggered. Under `~/Library/Application Support/ReAIRecMan/`, the app keeps a 24-hour cache of companies, products, and projects and counts up to 200 requests per configured key per Oslo calendar day. Journals retain per-record receipts and advance incremental checkpoints only through a range with no unimported eligible records. Employee input, document PDFs, and payroll previews stay in memory.
 
-A pre-write receipt records the operation and digest before each POST. A write with an uncertain outcome blocks additional writes to that ReAI company. Check the destination record and reconcile the journal before resuming. Do not delete the journal or retry against a fresh profile to work around an uncertain write.
+A pre-write receipt records the operation and digest before each POST. A write with an uncertain outcome blocks additional writes to that ReAI company. Check the destination record and reconcile the journal before resuming. Do not delete the journal or retry against a fresh profile to work around an uncertain write. When a previously imported employee has been deleted in ReAI, the preview offers **Recreate missing employee**. Confirm the deletion before importing. The app retains the old receipt and records the new import separately.
 
 Local builds are for development. Publish a distributable build through the shared signing and notarization workflow after review and merge.
