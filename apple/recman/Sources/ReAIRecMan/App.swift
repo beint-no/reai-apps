@@ -208,8 +208,12 @@ private final class ImportModel {
             do {
                 let key = try await self.sourceKey()
                 let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
-                self.payrollBatch = try await importer.load(employeePreview: preview, selection: ids)
-                if self.payrollBatch?.rows.isEmpty == true { self.message = "No new paychecks for the selected employees." }
+                let batch = try await importer.load(employeePreview: preview, selection: ids)
+                self.payrollBatch = batch
+                for mapping in batch.mappings where !mapping.municipalityInput {
+                    self.mappingChoices[mapping.id] = mapping.suggestion
+                }
+                if batch.rows.isEmpty { self.message = "No new paychecks for the selected employees." }
             } catch {
                 self.payrollIssue = error.localizedDescription
             }
@@ -561,6 +565,7 @@ private struct ImportView: View {
         let unmappedWageCount = batch.mappings.count {
             required.contains($0.id) && $0.id.hasPrefix("wage-") && !$0.accepts(model.mappingChoices[$0.id])
         }
+        let hasMappablePayroll = !required.isEmpty
         let suggested = unconfirmedMunicipalities.filter {
             $0.municipalitySuggestion != nil && model.mappingChoices[$0.id] == nil
         }
@@ -576,8 +581,10 @@ private struct ImportView: View {
                 Text("\(approval.rows.count) paychecks ready · \(approval.heldCount) held")
                     .fontWeight(.medium)
                 Spacer()
-                Toggle("Payroll amounts are in NOK", isOn: $model.confirmedNOK)
-                    .toggleStyle(.checkbox)
+                if hasMappablePayroll {
+                    Toggle("Payroll amounts are in NOK", isOn: $model.confirmedNOK)
+                        .toggleStyle(.checkbox)
+                }
             }
             if !steps.isEmpty {
                 Text(steps.joined(separator: " · ")).foregroundStyle(.secondary)

@@ -184,13 +184,21 @@ struct PayrollImport {
                         throw appError("Verify the workplace and set the municipality on the ReAI employment relation.")
                     }
                     locationMapping = "municipality-\(rowID)"
+                    let verified = matches.count == 1 && matches.first?.id == municipality
+                    let label = verified ? "Saved municipality matches workplace" : "All work verified in municipality \(municipality)"
                     mappings[locationMapping] = AccountingMapping(
                         id: locationMapping, label: "\(plan.name) · Paycheck \(check.paycheckId) · \(period)",
-                        options: [AccountingOption(id: municipality, label: "All work verified in municipality \(municipality)")],
-                        suggestion: nil
+                        options: [AccountingOption(id: municipality, label: label)],
+                        suggestion: verified ? municipality : nil
                     )
                 }
-                if let issue = plan.bankIssue { throw appError(issue) }
+                let unsupported = Set(lines.filter(isWorkedTimeSupplement).map(\.articleName)).sorted()
+                var blockers = [plan.bankIssue].compactMap { $0 }
+                if !unsupported.isEmpty {
+                    let articles = unsupported.joined(separator: ", ")
+                    blockers.append("ReAI has no wage type for these shift additions (\(articles)). This paycheck needs ReAI support for irregular supplements for time worked.")
+                }
+                if !blockers.isEmpty { throw appError(blockers.joined(separator: "\n")) }
                 requirements.append(locationMapping)
                 for line in lines {
                     let article = articleKey(line)
@@ -420,6 +428,12 @@ struct PayrollImport {
         guard !dates.isEmpty, dates.allSatisfy(accountingDate) else { return nil }
         let months = Set(dates.map { String($0.prefix(7)) })
         return months.count == 1 ? months.first : nil
+    }
+
+    private func isWorkedTimeSupplement(_ line: RecManPaycheck.Line) -> Bool {
+        guard line.articleType.caseInsensitiveCompare("hourAddition") == .orderedSame else { return false }
+        let name = line.articleName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return ["kveldstillegg", "nattillegg", "helgetillegg"].contains(name)
     }
 
     private func validateSource(_ check: RecManPaycheck, period: String) throws {
