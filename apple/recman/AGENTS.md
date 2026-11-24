@@ -1,9 +1,9 @@
 # ReAI RecMan
 
-Native macOS proof of concept. Build with `tools/apple/build.py recman` from the repository root using Swift 6.4.
+Build with `tools/apple/build.py recman` using Swift 6.4. Keep client data, credentials, and real screenshots outside Git.
 
-Load employees with the RecMan v2 Candidates SELECT scope on explicit request. Bound paging and reject HTTP redirects. RecMan and ReAI credentials use separate items in the app’s Keychain service. Accept only loopback roots and the official HTTPS production root. Bind device authorization, tokens, and journals to the selected root. Send the approved tenant ID on scoped requests. Read `/openapi/public` before changing ReAI requests.
+Use only explicit, bounded RecMan v2 GET requests. Keep RecMan and ReAI credentials separate in Keychain. Scope ReAI tokens and journals to the selected loopback root or official HTTPS production root. Send the approved tenant ID on scoped requests. Review `/openapi/public` before changing ReAI requests.
 
-Preview before writing. Match employee identity and validate one supported employment relation. Never overwrite an existing employment relation or import national ID, bank, wage, or municipality data in this flow.
+Preview and validate before each import. Require reviewed mappings for unmatched employees and customers, products, VAT, revenue accounts, and wage codes. Only import amounts that the ReAI API can represent and preserve the original PDFs. Require workplace confirmation against the ReAI employment relation before drafting payroll. Do not write RecMan export logs, send invoices or EHF, submit A-melding, finalize payroll, or initiate payments.
 
-Persist a receipt before each POST. An interrupted or unverified write blocks further writes in the company pending manual reconciliation. Never silently reset an unreadable journal. Keep client data and credentials outside Git.
+Persist operation receipts before POST. An interrupted or unverified write blocks later writes for that ReAI company pending reconciliation. Never reset an unreadable journal or advance a checkpoint beyond an eligible unimported record.

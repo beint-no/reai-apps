@@ -1,23 +1,28 @@
 # ReAI RecMan
 
-Native Apple Silicon macOS 15+ proof of concept for importing selected RecMan employees and employment relations into an approved ReAI company on a local server or on `https://app.reai.no`.
+Native Apple Silicon macOS 15+ app for reviewing RecMan employee, invoice, credit note, and payroll records and importing them into ReAI.
 
-## Import employees
+## Connect
 
-1. Build from the repository root with `tools/apple/build.py recman` and Swift 6.4. Open `dist/recman/ReAI RecMan.app`.
-2. Select **ReAI URL…** and enter the server root. Use a loopback URL such as `http://localhost:8080` for development, or `https://app.reai.no` for production. A local ReAI instance must advertise the selected root in its device-approval URL.
-3. Select **Connect to ReAI** and approve the NOK company in the browser. The signed-in user needs permission to manage its employees.
-4. Select **Set RecMan Key…** and save a RecMan key with Candidates SELECT permission. **Load Employees** reads RecMan’s employee list and prepares the ReAI preview. Each load is limited to ten RecMan requests.
-5. Check the employees to import. **Select All** checks eligible rows, and **Select None** clears the selection. Select **Import Selected Employees…** and confirm.
+1. Build with `tools/apple/build.py recman` using Swift 6.4 and open `dist/recman/ReAI RecMan.app`.
+2. Open **ReAI URL…**. Enter a loopback root such as `http://localhost:8080` or select `https://app.reai.no`. The ReAI server must advertise the same root in its device-approval URL.
+3. Select **Connect to ReAI** and approve the NOK company. Your ReAI access determines the records and actions available.
+4. Save the RecMan key under **Set RecMan Key…**. **Test RecMan** checks read access and identifies the RecMan organization when the key exposes it. Grant SELECT on candidates, companies, products, invoices, credit notes, payroll, work, and projects for the corresponding workflows.
 
-The import sends names, email addresses, employment start and end dates, and position percentages. ReAI applies its defaults for employment fields the app leaves unset, including employment form and working hours. Check these fields in ReAI before using an imported employment relation for payroll. The app does not transfer national IDs, bank accounts, wage lines, or municipality values.
+## Import
 
-The preview requires a unique name and email and one RecMan employment relation with valid dates and a position percentage. Exact existing ReAI matches are reused. Conflicts are flagged for review. An exact employee match without an employment relation can receive one. Imports never update an existing relation.
+- **Employees.** Load, review, and check the employees to import. The app sends names, emails, and employment dates and percentages. It adds missing employment relations to exact matches and leaves existing relations for review when they differ. ReAI applies defaults for employment fields the app leaves unset. Review employment forms, working hours, bank details, and workplace information in ReAI before payroll.
+- **Invoices.** Choose an inclusive start date. Review the issued invoices and credit notes, confirm the amounts are in NOK, and map source customers and products to ReAI. The ReAI product must have an explicit revenue account and compatible VAT code. The app can create an unmatched Norwegian business customer after you choose that mapping. It fetches the original PDFs before writing, verifies amounts and VAT, and books with reminders disabled. Paid invoices and lines whose totals cannot be represented by the import API need a separate review. Credit notes are booked as issued documents and remain unapplied.
+- **Payroll.** Choose a month and payment date. Review unexported RecMan paychecks, match employees, and select a ReAI wage type for each source article. Review linked workplace information and confirm that every line on a paycheck can use the municipality already configured on the ReAI employment relation. Leave multi-municipality or uncertain cases for manual handling. The app creates or resumes its own draft with regular salary payments and wage lines. ReAI remains the place to review, approve, and run payroll.
+
+Check records and confirm the operation and destination before each import. The app does not send invoices or EHF, submit A-melding, or execute payments.
 
 ## Local state and recovery
 
-The RecMan key and approved ReAI tokens are stored as separate Keychain items under the `no.reai.recman` service. Each ReAI root has its own approval and import journal. Changing the root clears the employee preview and restores the selected root’s saved approval when available. **Disconnect** removes the credential for the selected root. Revoke the approval in ReAI to invalidate that server token. RecMan requests are GET-only and the employee preview is held in memory.
+RecMan and ReAI credentials use separate Keychain items under `no.reai.recman`. ReAI approvals and import journals are scoped to the selected server. Changing the server clears the preview and restores its approval, when available. Disconnect removes the credential for that server.
 
-The journal under `~/Library/Application Support/ReAIRecMan/` records operation identifiers, request digests, and confirmed ReAI IDs. An interrupted or unverified write blocks further imports into the company until the recorded operation is reconciled in ReAI. Keep the journal when reusing an existing company.
+RecMan access is GET-only and user-triggered. Under `~/Library/Application Support/ReAIRecMan/`, the app keeps a 24-hour cache of companies, products, and projects and counts up to 200 requests per configured key per Oslo calendar day. Journals retain per-record receipts and advance incremental checkpoints only through a range with no unimported eligible records. Employee input, document PDFs, and payroll previews stay in memory.
 
-Local ad-hoc builds are for development. A distributable build requires the shared signed and notarized release pipeline.
+A pre-write receipt records the operation and digest before each POST. A write with an uncertain outcome blocks additional writes to that ReAI company. Check the destination record and reconcile the journal before resuming. Do not delete the journal or retry against a fresh profile to work around an uncertain write.
+
+Local builds are for development. Publish a distributable build through the shared signing and notarization workflow after review and merge.

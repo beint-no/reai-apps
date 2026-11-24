@@ -68,6 +68,8 @@ struct Company: Decodable, Equatable, Identifiable, Sendable {
 
 struct Account: Decodable, Sendable { let tenants: [Company] }
 
+private struct ReAIPage<Item: Decodable & Sendable>: Decodable, Sendable { let items: [Item]; let hasNext: Bool }
+
 actor ReAIAPI {
     private struct Problem: Decodable { let detail: String? }
     nonisolated let server: ReAIServer
@@ -86,13 +88,27 @@ actor ReAIAPI {
     }
 
     func request<T: Decodable & Sendable>(_ path: String, token: String, tenant: Int? = nil,
-                                         body: Data? = nil) async throws -> T {
-        let data = try await response(path, token: token, tenant: tenant, body: body)
+                                         body: Data? = nil, query: [URLQueryItem] = []) async throws -> T {
+        let data = try await response(path, token: token, tenant: tenant, body: body, query: query)
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    private func response(_ path: String, token: String, tenant: Int?, body: Data?) async throws -> Data {
-        let url = server.url.appending(path: path)
+    func list<T: Decodable & Sendable>(_ path: String, token: String, tenant: Int,
+                                      query: [URLQueryItem] = []) async throws -> [T] {
+        var items: [T] = []
+        for page in 1...100 {
+            let result: ReAIPage<T> = try await request(path, token: token, tenant: tenant, query: query + [
+                URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "pageSize", value: "100")
+            ])
+            items += result.items
+            if !result.hasNext { return items }
+        }
+        throw appError("ReAI returned too many records to review.")
+    }
+
+    private func response(_ path: String, token: String, tenant: Int?, body: Data?,
+                          query: [URLQueryItem]) async throws -> Data {
+        let url = server.url.appending(path: path).appending(queryItems: query)
         var request = URLRequest(url: url)
         request.httpMethod = body == nil ? "GET" : "POST"
         request.httpBody = body

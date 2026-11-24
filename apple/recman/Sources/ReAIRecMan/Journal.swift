@@ -40,6 +40,12 @@ final class Journal {
 
     func result(for key: String) -> Int? { receipts[key]?.resultID }
 
+    func advanceCheckpoint(_ key: String, through id: Int) throws {
+        guard id > (result(for: key) ?? 0) else { return }
+        receipts[key] = Receipt(endpoint: "checkpoint", requestDigest: "", resultID: id)
+        try save()
+    }
+
     func begin(_ key: String, endpoint: String, body: Data) throws {
         guard receipts[key] == nil else { throw appError("This operation already has a receipt.") }
         receipts[key] = Receipt(endpoint: endpoint, requestDigest: SHA256.hash(data: body).description)

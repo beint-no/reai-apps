@@ -29,7 +29,14 @@ private final class ImportModel {
     let recManCredentials = Credentials(account: "recman-read-only-key")
     var hasRecManKey = false
     var company: Company?
+    var scope = AccountingScope.employees
+    var sourceDate = Date.now
+    var paymentDate = Date.now
+    var confirmedNOK = false
     var preview: ImportPreview?
+    var accountingBatch: AccountingBatch?
+    var selectedAccountingIDs: Set<String> = []
+    var mappingChoices: [String: String] = [:]
     var selectedEmployeeIDs: Set<Int> = []
     var approvalCode: String?
     var isBusy = false
@@ -66,6 +73,7 @@ private final class ImportModel {
         guard next != server else { return }
 
         clearPreview()
+        confirmedNOK = false
         importFeedback = nil
         token = nil
         company = nil
@@ -114,8 +122,11 @@ private final class ImportModel {
         return RecManImport(api: api, token: token, tenant: company)
     }
 
-    private func clearPreview() {
+    func clearPreview() {
         preview = nil
+        accountingBatch = nil
+        selectedAccountingIDs = []
+        mappingChoices = [:]
         selectedEmployeeIDs = []
         message = nil
         hasError = false
@@ -127,23 +138,96 @@ private final class ImportModel {
             guard !key.isEmpty else { throw appError("Enter the RecMan API key.") }
             try await self.recManCredentials.save(key)
             self.hasRecManKey = true
+            self.confirmedNOK = false
             self.clearPreview()
-            self.message = "RecMan key saved. Load Employees to connect."
+            self.message = "RecMan key saved."
+        }
+    }
+
+    private func sourceKey() async throws -> String {
+        guard let key = try await recManCredentials.load() else {
+            hasRecManKey = false
+            throw appError("Set the RecMan API key first.")
+        }
+        return key
+    }
+
+    private func accountingTarget() throws -> AccountingTarget {
+        guard let token, let company else { throw appError("Connect to ReAI first.") }
+        return AccountingTarget(api: api, tenant: company, token: token)
+    }
+
+    func testRecMan() {
+        run {
+            let key = try await self.sourceKey()
+            self.message = try await self.recMan.health(key: key)
         }
     }
 
     func load() {
+        guard !isBusy else { return }
         clearPreview()
         run {
-            let importer = try self.importer()
-            guard let key = try await self.recManCredentials.load() else {
-                self.hasRecManKey = false
-                throw appError("Set the RecMan API key first.")
+            let key = try await self.sourceKey()
+            switch self.scope {
+            case .employees:
+                let importer = try self.importer()
+                let employees = try await self.recMan.employees(key: key)
+                self.preview = try await importer.preview(employees: employees)
+                if employees.isEmpty { self.message = "RecMan returned no employees." }
+            case .invoices:
+                let importer = InvoiceImport(source: self.recMan, key: key, target: try self.accountingTarget())
+                let batch = try await importer.load(from: osloDate(self.sourceDate))
+                self.setAccountingBatch(.invoices(batch))
+            case .payroll:
+                let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
+                let batch = try await importer.load(periodDate: osloDate(self.sourceDate),
+                                                    paymentDate: osloDate(self.paymentDate))
+                self.setAccountingBatch(.payroll(batch))
             }
-            let employees = try await self.recMan.employees(key: key)
-            self.preview = try await importer.preview(employees: employees)
-            if employees.isEmpty {
-                self.message = "RecMan returned no employees."
+        }
+    }
+
+    private func setAccountingBatch(_ batch: AccountingBatch) {
+        accountingBatch = batch
+        for item in batch.mappings { mappingChoices[item.id] = item.suggestion }
+        if batch.rows.isEmpty { message = "No new records for this date selection." }
+    }
+
+    var readyAccountingIDs: Set<String> {
+        Set((accountingBatch?.rows ?? []).filter { row in
+            row.problem == nil && row.requirements.allSatisfy { mappingChoices[$0] != nil }
+        }.map(\.id))
+    }
+
+    func changeMapping(_ id: String, choice: String?) {
+        mappingChoices[id] = choice
+        selectedAccountingIDs.formIntersection(readyAccountingIDs)
+    }
+
+    func applyAccounting() {
+        let selection = selectedAccountingIDs
+        guard !isBusy, confirmedNOK, let reviewed = accountingBatch, !selection.isEmpty,
+              selection.isSubset(of: readyAccountingIDs) else { return }
+        let choices = mappingChoices
+        run {
+            do {
+                let key = try await self.sourceKey()
+                let target = try self.accountingTarget()
+                let message: String
+                switch reviewed {
+                case .invoices(let batch):
+                    message = try await InvoiceImport(source: self.recMan, key: key, target: target)
+                        .perform(batch, selection: selection, choices: choices)
+                case .payroll(let batch):
+                    message = try await PayrollImport(source: self.recMan, key: key, target: target)
+                        .perform(batch, selection: selection, choices: choices)
+                }
+                self.clearPreview()
+                self.importFeedback = ImportFeedback(title: "Import Complete", message: message)
+            } catch {
+                self.clearPreview()
+                self.importFeedback = ImportFeedback(title: "Import Incomplete", message: error.localizedDescription)
             }
         }
     }
@@ -209,16 +293,18 @@ private struct ImportView: View {
             Divider()
             if let preview = model.preview {
                 previewList(preview)
+            } else if let batch = model.accountingBatch {
+                accountingPreview(batch)
             } else {
                 ContentUnavailableView {
-                    Label("RecMan employees", systemImage: "person.2")
+                    Label(model.scope.rawValue, systemImage: model.scope == .employees ? "person.2" : "doc.text")
                 } description: {
                     if model.company == nil {
                         Text("Set the ReAI URL and connect to a company.")
                     } else if !model.hasRecManKey {
-                        Text("Set the read-only RecMan API key to load employees.")
+                        Text("Set the read-only RecMan API key.")
                     } else {
-                        Text("Load employees from RecMan and choose which records to import.")
+                        Text("Load records from RecMan to review before importing.")
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -326,28 +412,133 @@ private struct ImportView: View {
     }
 
     private var employeeControls: some View {
-        HStack {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Picker("Import", selection: $model.scope) {
+                    ForEach(AccountingScope.allCases, id: \.self) { scope in
+                        Text(scope.rawValue).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .onChange(of: model.scope) {
+                    model.confirmedNOK = false
+                    model.clearPreview()
+                }
+                Spacer()
+                Button(model.hasRecManKey ? "Change RecMan Key…" : "Set RecMan Key…") {
+                    editingRecManKey = true
+                }
+                Button("Test RecMan") { model.testRecMan() }.disabled(!model.hasRecManKey)
+                Button(model.scope == .employees ? "Load Employees" : "Load Records") { model.load() }
+                    .disabled(model.company == nil || !model.hasRecManKey)
+            }
+            if model.scope != .employees {
+                HStack {
+                    DatePicker(model.scope == .invoices ? "On or after" : "Payroll month", selection: $model.sourceDate,
+                               displayedComponents: .date)
+                        .fixedSize()
+                        .onChange(of: model.sourceDate) { model.clearPreview() }
+                    if model.scope == .payroll {
+                        DatePicker("Payment date", selection: $model.paymentDate, displayedComponents: .date)
+                            .fixedSize()
+                            .onChange(of: model.paymentDate) { model.clearPreview() }
+                    }
+                    Spacer()
+                    Toggle("RecMan amounts are in NOK", isOn: $model.confirmedNOK)
+                        .toggleStyle(.checkbox)
+                }
+            }
             if let preview = model.preview {
-                Button("Select All") {
-                    model.selectedEmployeeIDs = preview.selectableEmployeeIDs
+                HStack {
+                    Button("Select All") { model.selectedEmployeeIDs = preview.selectableEmployeeIDs }
+                        .disabled(model.selectedEmployeeIDs == preview.selectableEmployeeIDs)
+                    Button("Select None") { model.selectedEmployeeIDs.removeAll() }
+                        .disabled(model.selectedEmployeeIDs.isEmpty)
                 }
-                .disabled(model.selectedEmployeeIDs == preview.selectableEmployeeIDs)
-
-                Button("Select None") {
-                    model.selectedEmployeeIDs.removeAll()
+            } else if model.accountingBatch != nil {
+                HStack {
+                    Button("Select All Ready") { model.selectedAccountingIDs = model.readyAccountingIDs }
+                        .disabled(model.selectedAccountingIDs == model.readyAccountingIDs)
+                    Button("Select None") { model.selectedAccountingIDs.removeAll() }
+                        .disabled(model.selectedAccountingIDs.isEmpty)
                 }
-                .disabled(model.selectedEmployeeIDs.isEmpty)
             }
-            Spacer()
-            Button(model.hasRecManKey ? "Change RecMan Key…" : "Set RecMan Key…") {
-                editingRecManKey = true
-            }
-            Button("Load Employees") { model.load() }
-                .disabled(model.company == nil || !model.hasRecManKey)
         }
         .disabled(model.isBusy)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
+    }
+
+    private func accountingPreview(_ batch: AccountingBatch) -> some View {
+        let ready = model.readyAccountingIDs
+        return HSplitView {
+            List {
+                Section("Records") {
+                    ForEach(batch.rows) { row in
+                        HStack(alignment: .top, spacing: 10) {
+                            Toggle(row.title, isOn: Binding {
+                                model.selectedAccountingIDs.contains(row.id)
+                            } set: { selected in
+                                if selected { model.selectedAccountingIDs.insert(row.id) }
+                                else { model.selectedAccountingIDs.remove(row.id) }
+                            })
+                            .toggleStyle(.checkbox)
+                            .labelsHidden()
+                            .disabled(!ready.contains(row.id) || model.isBusy)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(row.title).fontWeight(.medium)
+                                Text(row.detail).foregroundStyle(.secondary)
+                                if let problem = row.problem {
+                                    Text(problem).foregroundStyle(.orange)
+                                } else if !ready.contains(row.id) {
+                                    Text("Mapping required").foregroundStyle(.orange)
+                                }
+                                if !row.lineDetails.isEmpty {
+                                    DisclosureGroup("\(row.lineDetails.count) lines") {
+                                        ForEach(row.lineDetails.indices, id: \.self) { index in
+                                            Text(row.lineDetails[index])
+                                                .foregroundStyle(.secondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                    }
+                                }
+                            }
+                            .font(.callout)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .frame(minWidth: 300)
+            List {
+                Section("Mappings") {
+                    ForEach(batch.mappings) { mapping in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(mapping.label).fontWeight(.medium)
+                            Picker(mapping.label, selection: Binding {
+                                model.mappingChoices[mapping.id]
+                            } set: { choice in
+                                model.changeMapping(mapping.id, choice: choice)
+                            }) {
+                                Text("Choose a mapping").tag(nil as String?)
+                                ForEach(mapping.options) { option in Text(option.label).tag(Optional(option.id)) }
+                            }
+                            .labelsHidden()
+                            .disabled(mapping.options.isEmpty || model.isBusy)
+                            if mapping.options.isEmpty {
+                                Text("No compatible ReAI record. Update ReAI and reload.").foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.callout)
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .frame(minWidth: 315)
+        }
     }
 
     private func previewList(_ preview: ImportPreview) -> some View {
@@ -398,6 +589,14 @@ private struct ImportView: View {
     }
 
     private var confirmationMessage: String {
+        if model.scope != .employees {
+            let count = model.selectedAccountingIDs.count
+            if model.scope == .invoices {
+                return "\(model.server.displayName)\n\nBook \(count) selected issued documents in NOK."
+            }
+            let period = osloDate(model.sourceDate).prefix(7)
+            return "\(model.server.displayName)\n\nAdd \(count) selected paychecks to draft payroll for \(period), with payment date \(osloDate(model.paymentDate))."
+        }
         let names = model.preview?.employeeRows.compactMap { row -> String? in
             guard model.selectedEmployeeIDs.contains(row.id) else { return nil }
             return row.title
@@ -420,14 +619,19 @@ private struct ImportView: View {
                 Text("Live RecMan").foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Import Selected Employees…") {
+            Button(model.scope == .employees ? "Import Selected Employees…" : "Import Selected Records…") {
                 confirmImport = true
             }
             .buttonStyle(.borderedProminent)
-            .disabled(model.preview == nil || model.selectedEmployeeIDs.isEmpty || model.isBusy)
+            .disabled(model.isBusy || (model.scope == .employees
+                ? model.preview == nil || model.selectedEmployeeIDs.isEmpty
+                : model.accountingBatch == nil || model.selectedAccountingIDs.isEmpty || !model.confirmedNOK))
             .confirmationDialog("Import into \(model.company?.companyName ?? "ReAI")?",
                                 isPresented: $confirmImport, titleVisibility: .visible) {
-                Button("Import") { model.apply() }
+                Button("Import") {
+                    if model.scope == .employees { model.apply() }
+                    else { model.applyAccounting() }
+                }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text(confirmationMessage)
