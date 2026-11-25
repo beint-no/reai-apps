@@ -9,6 +9,19 @@ enum InvoiceKind: String, CaseIterable, Sendable {
 
 struct RecManInvoice: Decodable, Identifiable, Sendable {
     struct Line: Decodable, Sendable {
+        struct Code: Decodable, Sendable {
+            let value: String
+
+            init(from decoder: Decoder) throws {
+                let box = try decoder.singleValueContainer()
+                if let text = try? box.decode(String.self) {
+                    value = text
+                } else {
+                    value = String(try box.decode(Int.self))
+                }
+            }
+        }
+
         let productId: Int
         let description: String
         let qty: Decimal
@@ -17,6 +30,8 @@ struct RecManInvoice: Decodable, Identifiable, Sendable {
         let sumVat: Decimal
         let sumInclVat: Decimal
         let vatPercent: Decimal
+        let creditAccount: Code?
+        let vatCode: Code?
     }
 
     let id: Int
@@ -149,7 +164,6 @@ struct AccountingMapping: Identifiable, Sendable {
     let suggestion: String?
     var municipalityInput = false
     var municipalitySuggestion: AccountingOption?
-    var unavailableReason: String?
 
     func accepts(_ choice: String?) -> Bool {
         guard let choice else { return false }

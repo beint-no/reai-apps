@@ -40,6 +40,15 @@ final class Journal {
 
     func result(for key: String) -> Int? { receipts[key]?.resultID }
 
+    func verifiedResult(for key: String, endpoint: String, body: Data) throws -> Int? {
+        guard let receipt = receipts[key] else { return nil }
+        guard receipt.endpoint == endpoint, receipt.requestDigest == SHA256.hash(data: body).description,
+              let id = receipt.resultID else {
+            throw appError("The saved order differs from this preview. Review it in ReAI before importing.")
+        }
+        return id
+    }
+
     func advanceCheckpoint(_ key: String, through id: Int) throws {
         guard id > (result(for: key) ?? 0) else { return }
         receipts[key] = Receipt(endpoint: "checkpoint", requestDigest: "", resultID: id)

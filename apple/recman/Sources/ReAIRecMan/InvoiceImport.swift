@@ -11,19 +11,59 @@ private struct InvoiceCustomer: Decodable, Equatable, Sendable {
     var label: String { [name, number, organizationNumber].compactMap(normalizedIdentity).joined(separator: " · ") }
 }
 
-private struct InvoiceProduct: Decodable, Equatable, Sendable {
+private struct InvoiceSalesAccount: Decodable, Sendable {
+    let number: String
+}
+
+private struct InvoiceLine: Equatable, Sendable {
+    let itemName: String
+    let quantity: Decimal
+    let unitPrice: Decimal
+    let netAmount: Decimal
+    let taxAmount: Decimal
+    let accountNumber: String
+    let vatCode: String
+    let usesProductCodes: Bool
+
+    var orderFields: [String: Any] {
+        ["itemName": itemName, "quantity": decimalJSON(quantity), "unitPrice": decimalJSON(unitPrice), "vatCode": vatCode]
+    }
+
+    func snapshot(orderID: Int) -> [String: Any] {
+        orderFields.merging([
+            "orderId": orderID, "netAmount": decimalJSON(netAmount), "taxAmount": decimalJSON(taxAmount),
+            "accountNumber": accountNumber
+        ]) { _, value in value }
+    }
+
+    var preview: String {
+        let source = usesProductCodes ? " · Accounting codes include RecMan product data" : ""
+        return "\(itemName) · \(quantity) × NOK \(unitPrice) · net \(netAmount) · VAT \(vatCode) (\(taxAmount)) · account \(accountNumber)\(source)"
+    }
+}
+
+private struct InvoiceSourceOrder: Decodable, Sendable {
+    struct Line: Decodable, Equatable, Sendable {
+        let itemName: String
+        let quantity: Decimal
+        let unitPrice: Decimal
+        let vatCode: String
+    }
+
     let id: Int
-    let title: String
-    let stockItem: Bool
-    let archived: Bool
-    let revenueAccountCode: String?
-    let vatCode: String?
+    let customerId: Int
+    let issueDate: String
+    let currencyCode: String
+    let externalReference: String?
+    let invoiceId: Int?
+    let sendEhf: Bool
+    let lifecycle: String
+    let lines: [Line]
 }
 
 private struct InvoiceVAT: Decodable, Equatable, Sendable {
     let code: String
     let rate: Decimal
-    let description: String
 }
 
 private struct InvoiceResult: Decodable, Sendable {
@@ -43,6 +83,9 @@ private struct InvoiceResult: Decodable, Sendable {
     let importSource: String?
     let importSourceInstance: String?
     let externalId: String?
+    let orders: [SourceOrder]
+
+    struct SourceOrder: Decodable, Sendable { let id: Int }
 }
 
 struct InvoiceBatch {
@@ -51,8 +94,7 @@ struct InvoiceBatch {
     fileprivate let documents: [RecManInvoice]
     fileprivate let companies: [RecManCompany]
     fileprivate let customers: [InvoiceCustomer]
-    fileprivate let products: [InvoiceProduct]
-    fileprivate let vat: [InvoiceVAT]
+    fileprivate let lines: [String: [InvoiceLine]]
     fileprivate let start: String
 }
 
@@ -90,49 +132,48 @@ struct InvoiceImport {
             sourceProducts = try await source.products(key: key)
         }
         let customers = pending.isEmpty ? [] : try await loadCustomers()
-        let products: [InvoiceProduct] = pending.isEmpty ? [] : try await target.list("/api/products")
-        let vat: [InvoiceVAT] = pending.isEmpty ? [] : try await target.read("/api/vat-codes", query: [
-            URLQueryItem(name: "usage", value: "customer_invoice")
-        ])
+        let taxes = pending.isEmpty ? [:] : try await invoiceVAT()
+        let accounts: Set<String> = pending.isEmpty ? [] : try await salesAccounts()
+        let productsByID = Dictionary(grouping: sourceProducts, by: \.productId)
 
         var mappings: [String: AccountingMapping] = [:]
+        var prepared: [String: [InvoiceLine]] = [:]
         var rows: [AccountingRow] = []
         for document in pending.sorted(by: { ($0.date, $0.key) < ($1.date, $1.key) }) {
             let company = companies.first { Int($0.companyId) == document.companyId }
             let customerID = customerKey(document.companyId)
-            if mappings[customerID] == nil, let company {
-                mappings[customerID] = customerMapping(company, customers: customers)
-            }
-            var requirements = Set([customerID])
-            var problem = documentProblem(document)
-            if company == nil { problem = "The RecMan customer is missing." }
-            for line in document.lines {
-                guard let product = sourceProducts.first(where: { $0.productId == line.productId }) else {
-                    problem = "A line has no RecMan product."
-                    continue
+            var problem: String?
+            let multiplier = documentMultiplier(document)
+            do {
+                try validateDocument(document)
+                guard let company else { throw appError("The RecMan customer is missing.") }
+                let lines = try document.lines.map { line in
+                    try prepareLine(line, products: productsByID, taxes: taxes, accounts: accounts,
+                                    multiplier: multiplier)
                 }
-                let mappingID = productKey(product.productId, rate: line.vatPercent)
-                requirements.insert(mappingID)
-                if mappings[mappingID] == nil {
-                    mappings[mappingID] = productMapping(product, rate: line.vatPercent, products: products, vat: vat)
+                guard lines.contains(where: { $0.quantity != 0 || $0.unitPrice != 0 }) else {
+                    throw appError("The document needs at least one priced or quantified order line.")
                 }
+                prepared[document.key] = lines
+                if mappings[customerID] == nil {
+                    mappings[customerID] = customerMapping(company, customers: customers)
+                }
+            } catch {
+                problem = error.localizedDescription
             }
-            let sign = document.kind == .creditNote && document.total > 0 ? -1 : 1
-            let multiplier = Decimal(sign)
             let vatTotal = document.lines.reduce(Decimal(0)) { $0 + $1.sumVat } * multiplier
             let kid = normalizedIdentity(document.identificationCode).map { " · KID \($0)" } ?? ""
             rows.append(AccountingRow(id: document.key, title: "\(document.kind.title) \(document.number)",
                                       detail: "\(company?.name ?? "Unknown customer") · \(document.date) · NOK \(document.total * multiplier) · VAT \(vatTotal)\(kid)",
-                                      requirements: requirements.sorted(), problem: problem,
-                                      lineDetails: document.lines.map {
+                                      requirements: [customerID], problem: problem,
+                                      lineDetails: prepared[document.key]?.map(\.preview) ?? document.lines.map {
                                           "\($0.description) · \($0.qty) × NOK \($0.price) · total \($0.sumInclVat * multiplier)"
                                       }))
         }
         let requiredMappings = Set(rows.filter { $0.problem == nil }.flatMap(\.requirements))
         let reviewMappings = mappings.values.filter { requiredMappings.contains($0.id) }.sorted { $0.label < $1.label }
         return InvoiceBatch(rows: rows, mappings: reviewMappings,
-                            documents: documents, companies: companies, customers: customers, products: products,
-                            vat: vat, start: start)
+                            documents: documents, companies: companies, customers: customers, lines: prepared, start: start)
     }
 
     func perform(_ batch: InvoiceBatch, selection: Set<String>, choices: [String: String]) async throws -> String {
@@ -141,13 +182,11 @@ struct InvoiceImport {
         guard !chosen.isEmpty, chosen.count == selection.count else { throw appError("Select invoices to import.") }
         try validateChoices(chosen, mappings: batch.mappings, choices: choices)
         let customers = try await loadCustomers()
-        let products: [InvoiceProduct] = try await target.list("/api/products")
-        let vat: [InvoiceVAT] = try await target.read("/api/vat-codes", query: [
-            URLQueryItem(name: "usage", value: "customer_invoice")
-        ])
-        guard Set(customers.map(\.id)).count == customers.count,
-              Set(products.map(\.id)).count == products.count,
-              vat == batch.vat else { throw appError("The ReAI accounting configuration changed. Reload the preview.") }
+        let taxes = try await invoiceVAT()
+        let accounts = try await salesAccounts()
+        guard Set(customers.map(\.id)).count == customers.count else {
+            throw appError("The ReAI customer list changed. Reload the preview.")
+        }
 
         var pdfs: [String: String] = [:]
         let documents = batch.documents.filter { selection.contains($0.key) }
@@ -163,13 +202,10 @@ struct InvoiceImport {
             if let id = Int(choice), customers.first(where: { $0.id == id }) != batch.customers.first(where: { $0.id == id }) {
                 throw appError("A selected ReAI customer changed. Reload the preview.")
             }
-            for line in document.lines {
-                let selected = choices[productKey(line.productId, rate: line.vatPercent)].flatMap(Int.init)
-                guard let selected, let product = products.first(where: { $0.id == selected }),
-                      product == batch.products.first(where: { $0.id == selected }) else {
-                    throw appError("A selected product changed in ReAI. Reload the preview.")
-                }
-            }
+            guard let lines = batch.lines[document.key],
+                  zip(lines, document.lines).allSatisfy({ line, source in
+                      accounts.contains(line.accountNumber) && taxes[line.vatCode]?.rate == source.vatPercent
+                  }) else { throw appError("The ReAI VAT or revenue account settings changed. Reload the preview.") }
             pdfs[document.key] = try await source.originalPDF(document: document, key: key)
         }
 
@@ -179,7 +215,7 @@ struct InvoiceImport {
             do {
                 guard let choice = choices[customerKey(document.companyId)],
                       let company = batch.companies.first(where: { Int($0.companyId) == document.companyId }),
-                      let pdf = pdfs[document.key] else { throw appError("The invoice review is incomplete.") }
+                      let pdf = pdfs[document.key], let lines = batch.lines[document.key] else { throw appError("The invoice review is incomplete.") }
                 let customerID: Int
                 if let id = Int(choice) ?? customerIDs[document.companyId] {
                     customerID = id
@@ -187,7 +223,8 @@ struct InvoiceImport {
                     customerID = try await createCustomer(company, journal: journal)
                     customerIDs[document.companyId] = customerID
                 }
-                try await book(document, customerID: customerID, choices: choices, pdf: pdf, journal: journal)
+                let order = try await sourceOrder(for: document, customerID: customerID, lines: lines, journal: journal)
+                try await book(document, customerID: customerID, orderID: order, lines: lines, pdf: pdf, journal: journal)
                 completed.append(document.number)
             } catch {
                 let imported = completed.isEmpty ? "" : "\n\nBooked before the error: \(completed.map(String.init).joined(separator: ", "))."
@@ -213,7 +250,6 @@ struct InvoiceImport {
         "checkpoint-\(RecManState.fingerprint(key))-\(kind.scope)-\(start)"
     }
     private func customerKey(_ id: Int) -> String { "customer-\(id)" }
-    private func productKey(_ id: Int, rate: Decimal) -> String { "product-\(id)-\(rate)" }
 
     private func customerMapping(_ source: RecManCompany, customers: [InvoiceCustomer]) -> AccountingMapping {
         let organization = source.organizationNumber
@@ -232,42 +268,111 @@ struct InvoiceImport {
         if matches.isEmpty, !source.name.isEmpty, organization != nil {
             options.insert(AccountingOption(id: "create", label: "Create customer from RecMan"), at: 0)
         }
-        let suggestion = matches.count == 1 && compatible.contains(where: { $0.id == matches[0].id }) ? String(matches[0].id) : nil
+        let matchedID = matches.count == 1 && compatible.contains(where: { $0.id == matches[0].id })
+            ? String(matches[0].id) : nil
+        let suggestion = matchedID ?? (options.first?.id == "create" ? "create" : nil)
         return AccountingMapping(id: customerKey(Int(source.companyId) ?? 0), label: "Customer · \(source.name)",
                                  options: options, suggestion: suggestion)
     }
 
-    private func productMapping(_ source: RecManProduct, rate: Decimal, products: [InvoiceProduct],
-                                vat: [InvoiceVAT]) -> AccountingMapping {
-        let options = products.compactMap { product -> AccountingOption? in
-            guard !product.archived, !product.stockItem, let account = product.revenueAccountCode, account.hasPrefix("3"),
-                  let code = product.vatCode, let tax = vat.first(where: { $0.code == code && $0.rate == rate }) else { return nil }
-            return AccountingOption(id: String(product.id), label: "\(product.title) · \(account) · VAT \(code) \(tax.description)")
-        }.sorted { $0.label < $1.label }
-        return AccountingMapping(id: productKey(source.productId, rate: rate),
-                                 label: "\(source.name) · RecMan account \(source.creditAccount), VAT \(source.vatCode) (\(rate)%)",
-                                 options: options, suggestion: nil,
-                                 unavailableReason: options.isEmpty
-                                     ? "Set up a non-stock ReAI product with an explicit revenue account and a VAT code for \(rate)%, then reload."
-                                     : nil)
+    private func invoiceVAT() async throws -> [String: InvoiceVAT] {
+        let codes: [InvoiceVAT] = try await target.read("/api/vat-codes", query: [
+            URLQueryItem(name: "usage", value: "customer_invoice")
+        ])
+        guard Set(codes.map(\.code)).count == codes.count else { throw appError("ReAI returned repeated VAT codes.") }
+        return Dictionary(uniqueKeysWithValues: codes.map { ($0.code, $0) })
     }
 
-    private func documentProblem(_ document: RecManInvoice) -> String? {
-        if document.departmentId <= 0 || document.number <= 0 || document.lines.isEmpty || document.total == 0 ||
-            (document.kind == .invoice && document.total < 0) {
-            return "The source document has an unsupported number, department, or total."
+    private func salesAccounts() async throws -> Set<String> {
+        let accounts: [InvoiceSalesAccount] = try await target.read("/api/chart-of-accounts")
+        return Set(accounts.map(\.number).filter { $0.hasPrefix("3") })
+    }
+
+    private func validateDocument(_ document: RecManInvoice) throws {
+        guard document.departmentId > 0, document.number > 0, (1...1000).contains(document.lines.count),
+              document.total != 0, document.date <= osloDate(.now) else {
+            throw appError("The source document has an unsupported number, date, department, or total.")
         }
-        if document.kind == .invoice, let due = normalizedIdentity(document.dueDate),
-           !accountingDate(due) || due < document.date { return "The invoice due date is invalid." }
-        if document.kind == .invoice, document.paid == 1 { return "Already paid in RecMan. Reconcile the payment before booking." }
-        for line in document.lines {
-            if line.qty == 0 || roundedMoney(line.qty * line.price) != line.sumExclVat ||
-                roundedMoney(line.sumExclVat * line.vatPercent / 100) != line.sumVat ||
-                line.sumExclVat + line.sumVat != line.sumInclVat {
-                return "Line amounts cannot be reproduced by the ReAI import API."
+        if document.kind == .invoice {
+            guard document.total > 0, let due = normalizedIdentity(document.dueDate),
+                  accountingDate(due), due >= document.date else {
+                throw appError("The invoice needs a valid due date and a positive total.")
             }
+            if document.paid == 1 { throw appError("Already paid in RecMan. Reconcile the payment before booking.") }
         }
-        return nil
+    }
+
+    private func documentMultiplier(_ document: RecManInvoice) -> Decimal {
+        document.kind == .creditNote && document.total > 0 ? -1 : 1
+    }
+
+    private func prepareLine(_ line: RecManInvoice.Line, products: [Int: [RecManProduct]],
+                             taxes: [String: InvoiceVAT], accounts: Set<String>, multiplier: Decimal) throws -> InvoiceLine {
+        let matches = products[line.productId] ?? []
+        let product = matches.count == 1 ? matches.first : nil
+        guard let description = normalizedIdentity(line.description), description.utf16.count <= 255 else {
+            throw appError("A RecMan line description is blank or exceeds ReAI’s 255-character limit.")
+        }
+        let lineAccount = normalizedIdentity(line.creditAccount?.value)
+        let lineVAT = normalizedIdentity(line.vatCode?.value)
+        guard let account = lineAccount ?? normalizedIdentity(product?.creditAccount),
+              account.range(of: #"^3[0-9]{3}$"#, options: .regularExpression) != nil,
+              accounts.contains(account) else {
+            throw appError("The RecMan revenue account for \(description) is missing or unavailable in ReAI.")
+        }
+        guard let code = lineVAT ?? normalizedIdentity(product?.vatCode),
+              let tax = taxes[code], tax.rate == line.vatPercent else {
+            throw appError("The original RecMan VAT code for \(description) is missing or incompatible in ReAI.")
+        }
+        guard abs(line.qty) <= Decimal(string: "99999999.99")!, abs(line.price) <= 10_000_000,
+              [line.qty, line.price, line.sumExclVat, line.sumVat].allSatisfy({ roundedMoney($0) == $0 }),
+              [line.sumExclVat, line.sumVat].allSatisfy({ abs($0) < 1_000_000_000_000 }),
+              line.sumExclVat + line.sumVat == line.sumInclVat,
+              line.sumVat == 0 || (line.vatPercent > 0 && (line.sumVat < 0) == (line.sumExclVat < 0) && line.sumExclVat != 0) else {
+            throw appError("The original amounts for \(description) exceed ReAI’s limits or are inconsistent.")
+        }
+        return InvoiceLine(itemName: description, quantity: line.qty, unitPrice: line.price * multiplier,
+                           netAmount: line.sumExclVat * multiplier, taxAmount: line.sumVat * multiplier,
+                           accountNumber: account, vatCode: code, usesProductCodes: lineAccount == nil || lineVAT == nil)
+    }
+
+    private func sourceOrder(for document: RecManInvoice, customerID: Int, lines: [InvoiceLine],
+                             journal: Journal) async throws -> Int {
+        let endpoint = "/api/orders"
+        let orderKey = "invoice-order-\(document.key)"
+        let reference = "recman-\(document.key)"
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        let daysUntilDue: Int
+        if document.kind == .invoice, let due = document.dueDate.flatMap(normalizedIdentity).flatMap(formatter.date(from:)),
+           let issued = formatter.date(from: document.date) {
+            daysUntilDue = Int(due.timeIntervalSince(issued) / 86_400)
+        } else {
+            daysUntilDue = 0
+        }
+        let fields: [String: Any] = [
+            "externalReference": reference, "customerId": customerID, "currencyCode": "NOK",
+            "orderDate": document.date, "issueDate": document.date, "daysUntilDue": daysUntilDue,
+            "sendEhf": false, "orderLines": lines.map(\.orderFields)
+        ]
+        let body = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
+        let savedID = try journal.verifiedResult(for: orderKey, endpoint: endpoint, body: body)
+        let order: InvoiceSourceOrder
+        if let savedID {
+            order = try await target.read("\(endpoint)/\(savedID)")
+        } else {
+            order = try await target.write(endpoint, fields: fields, key: orderKey, journal: journal)
+        }
+        let expected = lines.map {
+            InvoiceSourceOrder.Line(itemName: $0.itemName, quantity: $0.quantity, unitPrice: $0.unitPrice, vatCode: $0.vatCode)
+        }
+        guard order.id > 0, savedID == nil || order.id == savedID, order.customerId == customerID,
+              order.currencyCode == "NOK", order.issueDate == document.date, order.externalReference == reference,
+              order.invoiceId == nil, order.lifecycle != "cancelled", !order.sendEhf, order.lines == expected else {
+            throw appError("ReAI returned an order that differs from the preview.")
+        }
+        if savedID == nil { try journal.complete(orderKey, id: order.id) }
+        return order.id
     }
 
     private func createCustomer(_ company: RecManCompany, journal: Journal) async throws -> Int {
@@ -282,22 +387,16 @@ struct InvoiceImport {
         return customer.id
     }
 
-    private func book(_ document: RecManInvoice, customerID: Int, choices: [String: String], pdf: String,
-                      journal: Journal) async throws {
-        let multiplier: Decimal = document.kind == .creditNote && document.total > 0 ? -1 : 1
-        let items = try document.lines.map { line -> [String: Any] in
-            guard let id = choices[productKey(line.productId, rate: line.vatPercent)].flatMap(Int.init) else {
-                throw appError("A product mapping is missing.")
-            }
-            let price = line.price * (line.qty < 0 ? -1 : 1) * multiplier
-            return ["productId": id, "quantity": decimalJSON(abs(line.qty)), "price": decimalJSON(price), "currencyCode": "NOK"]
-        }
+    private func book(_ document: RecManInvoice, customerID: Int, orderID: Int, lines: [InvoiceLine],
+                      pdf: String, journal: Journal) async throws {
+        let multiplier = documentMultiplier(document)
         let instance = "department-\(document.departmentId)"
         let number = String(document.number)
         var fields: [String: Any] = [
             "source": "recman", "sourceInstance": instance, "externalId": document.key, "number": number,
             "customerId": customerID, "issueDate": document.date, "accounting": "book",
-            "automaticRemindersEnabled": false, "orderItems": items,
+            "automaticRemindersEnabled": false, "orderId": orderID,
+            "snapshotLines": lines.map { $0.snapshot(orderID: orderID) },
             "originalPdf": ["filename": "\(document.kind.scope)-\(number).pdf", "contentBase64": pdf]
         ]
         if document.kind == .invoice, let due = normalizedIdentity(document.dueDate) { fields["dueDate"] = due }
@@ -310,7 +409,7 @@ struct InvoiceImport {
               record.paymentReference == fields["paymentReference"] as? String,
               record.dueDate == fields["dueDate"] as? String,
               record.currencyCode == "NOK", record.originalAttachmentId != nil, record.voucherId != nil,
-              !record.automaticRemindersEnabled, record.importSource == "recman",
+              !record.automaticRemindersEnabled, record.orders.map(\.id) == [orderID], record.importSource == "recman",
               record.importSourceInstance == instance, record.externalId == document.key else {
             throw appError("ReAI returned a document that differs from the reviewed import.")
         }
