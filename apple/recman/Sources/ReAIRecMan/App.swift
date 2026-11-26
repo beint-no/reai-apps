@@ -31,7 +31,7 @@ private final class ImportModel {
     var company: Company?
     var scope = AccountingScope.employees
     var sourceDate = Date.now
-    var confirmedNOK = false
+    var invoiceAmountsInNOK = true
     var payrollAmountsInNOK = true
     var preview: ImportPreview?
     var invoiceBatch: InvoiceBatch?
@@ -76,7 +76,7 @@ private final class ImportModel {
         guard next != server else { return }
 
         clearPreview()
-        confirmedNOK = false
+        invoiceAmountsInNOK = true
         importFeedback = nil
         token = nil
         company = nil
@@ -141,7 +141,7 @@ private final class ImportModel {
             guard !key.isEmpty else { throw appError("Enter the RecMan API key.") }
             try await self.recManCredentials.save(key)
             self.hasRecManKey = true
-            self.confirmedNOK = false
+            self.invoiceAmountsInNOK = true
             self.clearPreview()
             self.message = "RecMan key saved."
         }
@@ -262,7 +262,7 @@ private final class ImportModel {
 
     func applyAccounting() {
         let selection = selectedAccountingIDs
-        guard !isBusy, confirmedNOK, let reviewed = invoiceBatch, !selection.isEmpty,
+        guard !isBusy, invoiceAmountsInNOK, let reviewed = invoiceBatch, !selection.isEmpty,
               selection.isSubset(of: readyAccountingIDs) else { return }
         let choices = mappingChoices
         run {
@@ -550,7 +550,7 @@ private struct ImportView: View {
                 .labelsHidden()
                 .fixedSize()
                 .onChange(of: model.scope) {
-                    model.confirmedNOK = false
+                    model.invoiceAmountsInNOK = true
                     model.clearPreview()
                 }
                 Spacer()
@@ -563,7 +563,7 @@ private struct ImportView: View {
                         .fixedSize()
                         .onChange(of: model.sourceDate) { model.clearPreview() }
                     Spacer()
-                    Toggle("RecMan amounts are in NOK", isOn: $model.confirmedNOK)
+                    Toggle("RecMan amounts are in NOK", isOn: $model.invoiceAmountsInNOK)
                         .toggleStyle(.checkbox)
                 }
             }
@@ -859,7 +859,7 @@ private struct ImportView: View {
             .buttonStyle(.borderedProminent)
             .disabled(model.isBusy || (model.scope == .employees
                 ? !model.canApplyEmployees
-                : model.invoiceBatch == nil || model.selectedAccountingIDs.isEmpty || !model.confirmedNOK))
+                : model.invoiceBatch == nil || model.selectedAccountingIDs.isEmpty || !model.invoiceAmountsInNOK))
             .confirmationDialog("Save to \(model.company?.companyName ?? "ReAI")?",
                                 isPresented: $confirmImport, titleVisibility: .visible) {
                 Button(model.scope == .employees ? model.employeeImportButtonTitle : "Import") {
