@@ -58,7 +58,6 @@ enum AppSection: Hashable, Sendable {
 @MainActor @Observable
 final class ShippingModel {
     var section: AppSection = .shipping
-    var showingLocations: Bool { section == .locations }
     var pickupCount = 0
     var loadingPickups = false
     var showingPickupHistory = false

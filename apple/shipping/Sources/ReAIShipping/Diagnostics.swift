@@ -45,21 +45,13 @@ enum Diagnostics {
         }
     }
 
-    static func recordError(operation: String, error: Error) {
+    static func recordError(operation: String, error: any Error) {
         if error is CancellationError { return }
         let nsError = error as NSError
         let detail = "domain=\(sanitize(nsError.domain)) code=\(nsError.code) type=\(sanitize(String(reflecting: type(of: error))))"
         logger.error("[\(operation, privacy: .public)] \(detail, privacy: .public)")
         queue.async {
             writeLine(level: "ERROR", operation: sanitize(operation), detail: detail)
-        }
-    }
-
-    static func recordWarning(operation: String, detail: String) {
-        let cleanDetail = sanitize(detail)
-        logger.warning("[\(operation, privacy: .public)] \(cleanDetail, privacy: .public)")
-        queue.async {
-            writeLine(level: "WARN", operation: sanitize(operation), detail: cleanDetail)
         }
     }
 
