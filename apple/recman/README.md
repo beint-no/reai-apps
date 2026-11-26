@@ -5,9 +5,9 @@ Native Apple Silicon macOS 15+ app for reviewing RecMan employee, invoice, credi
 ## Connect
 
 1. Build with `tools/apple/build.py recman` using Swift 6.4 and open `dist/recman/ReAI RecMan.app`.
-2. Open **ReAI URL…**. Enter a loopback root such as `http://localhost:8080` or select `https://app.reai.no`. The ReAI server must advertise the same root in its device-approval URL.
+2. Open **Settings** and set **ReAI URL** to a loopback root such as `http://localhost:8080` or to `https://app.reai.no`. The ReAI server must advertise the same root in its device-approval URL.
 3. Select **Connect to ReAI** and approve the NOK company. Your ReAI access determines the records and actions available.
-4. Save the RecMan key under **Set RecMan Key…**. **Test RecMan** checks read access and identifies the RecMan organization when the key exposes it. Grant SELECT on candidates, companies, products, invoices, credit notes, payroll, work, and projects for the corresponding workflows.
+4. Open **Settings** and select **Set RecMan Key…** to save the key. **Test RecMan** checks read access and identifies the RecMan organization when the key exposes it. Grant SELECT on candidates, companies, products, invoices, credit notes, payroll, work, and projects for the corresponding workflows.
 
 ## Import
 

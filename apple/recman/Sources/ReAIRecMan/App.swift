@@ -349,14 +349,106 @@ private final class ImportModel {
     }
 }
 
-private struct ImportView: View {
-    @ViewState private var model = ImportModel()
-    @ViewState private var confirmImport = false
-    @ViewState private var editingReAIServer = false
+private struct ImportSettingsView: View {
+    let model: ImportModel
+    @Environment(\.dismiss) private var dismiss
     @ViewState private var reaiURLInput = ""
     @ViewState private var reaiURLError: String?
     @ViewState private var editingRecManKey = false
     @ViewState private var recManKeyInput = ""
+    @ViewState private var showsOperationFeedback = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Settings").font(.title2.bold())
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("ReAI URL").font(.headline)
+                TextField("ReAI URL", text: $reaiURLInput, prompt: Text("http://localhost:8080"))
+                    .labelsHidden()
+                    .onChange(of: reaiURLInput) { reaiURLError = nil }
+                HStack {
+                    Button("Use Localhost") { reaiURLInput = ReAIServer.localDefault.url.absoluteString }
+                    Button("Use Production") { reaiURLInput = "https://app.reai.no" }
+                    Spacer()
+                    Button("Save URL") { saveURL() }
+                        .disabled(reaiURLInput.isEmpty || reaiURLInput == model.server.url.absoluteString)
+                }
+                if let reaiURLError {
+                    Text(reaiURLError).foregroundStyle(.red)
+                }
+            }
+            .disabled(model.isBusy)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("RecMan API Key").font(.headline)
+                HStack {
+                    if !editingRecManKey {
+                        Button(model.hasRecManKey ? "Change RecMan Key…" : "Set RecMan Key…") {
+                            editingRecManKey = true
+                        }
+                    }
+                    Button("Test RecMan") {
+                        showsOperationFeedback = true
+                        model.testRecMan()
+                    }
+                    .disabled(!model.hasRecManKey)
+                }
+                if editingRecManKey {
+                    SecureField("Read-only API key", text: $recManKeyInput)
+                    HStack {
+                        Spacer()
+                        Button("Cancel") { endKeyEdit() }
+                        Button("Save Key") {
+                            showsOperationFeedback = true
+                            model.saveRecManKey(recManKeyInput)
+                            endKeyEdit()
+                        }
+                        .disabled(recManKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+            .disabled(model.isBusy)
+
+            if showsOperationFeedback, let message = model.message {
+                Text(message)
+                    .foregroundStyle(model.hasError ? Color.red : Color.secondary)
+                    .textSelection(.enabled)
+            }
+            HStack {
+                if model.isBusy { ProgressView().controlSize(.small) }
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 460)
+        .onAppear { reaiURLInput = model.server.url.absoluteString }
+    }
+
+    private func saveURL() {
+        do {
+            try model.setReAIServer(reaiURLInput)
+            reaiURLInput = model.server.url.absoluteString
+            showsOperationFeedback = model.isBusy
+        } catch {
+            reaiURLError = error.localizedDescription
+        }
+    }
+
+    private func endKeyEdit() {
+        recManKeyInput = ""
+        editingRecManKey = false
+    }
+}
+
+private struct ImportView: View {
+    @ViewState private var model = ImportModel()
+    @ViewState private var confirmImport = false
+    @ViewState private var showingSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -381,9 +473,9 @@ private struct ImportView: View {
                     Label(model.scope.rawValue, systemImage: model.scope == .employees ? "person.2" : "doc.text")
                 } description: {
                     if model.company == nil {
-                        Text("Set the ReAI URL and connect to a company.")
+                        Text("Set the ReAI URL in Settings and connect to a company.")
                     } else if !model.hasRecManKey {
-                        Text("Set the read-only RecMan API key.")
+                        Text("Set the read-only RecMan API key in Settings.")
                     } else {
                         Text("Load records from RecMan to review before importing.")
                     }
@@ -394,55 +486,8 @@ private struct ImportView: View {
             footer
         }
         .task { model.restore() }
-        .sheet(isPresented: $editingReAIServer) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("ReAI URL").font(.title2.bold())
-                TextField("ReAI root URL", text: $reaiURLInput, prompt: Text("http://localhost:8080"))
-                    .onChange(of: reaiURLInput) { reaiURLError = nil }
-                HStack {
-                    Button("Use Localhost") { reaiURLInput = ReAIServer.localDefault.url.absoluteString }
-                    Button("Use Production") { reaiURLInput = "https://app.reai.no" }
-                }
-                if let reaiURLError {
-                    Text(reaiURLError).foregroundStyle(.red)
-                }
-                HStack {
-                    Spacer()
-                    Button("Cancel", role: .cancel) { editingReAIServer = false }
-                        .keyboardShortcut(.cancelAction)
-                    Button("Save URL") {
-                        do {
-                            try model.setReAIServer(reaiURLInput)
-                            editingReAIServer = false
-                        } catch {
-                            reaiURLError = error.localizedDescription
-                        }
-                    }
-                    .keyboardShortcut(.defaultAction)
-                }
-            }
-            .padding(24)
-            .frame(width: 440)
-        }
-        .sheet(isPresented: $editingRecManKey, onDismiss: { recManKeyInput = "" }) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("RecMan API Key").font(.title2.bold())
-                SecureField("Read-only API key", text: $recManKeyInput)
-                HStack {
-                    Spacer()
-                    Button("Cancel", role: .cancel) { editingRecManKey = false }
-                        .keyboardShortcut(.cancelAction)
-                    Button("Save Key") {
-                        model.saveRecManKey(recManKeyInput)
-                        recManKeyInput = ""
-                        editingRecManKey = false
-                    }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(recManKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-            .padding(24)
-            .frame(width: 420)
+        .sheet(isPresented: $showingSettings) {
+            ImportSettingsView(model: model)
         }
         .alert(model.importFeedback?.title ?? "", isPresented: isImportFeedbackPresented,
                presenting: model.importFeedback) { _ in
@@ -472,10 +517,10 @@ private struct ImportView: View {
                     .textSelection(.enabled)
             }
             Spacer()
-            Button("ReAI URL…") {
-                reaiURLInput = model.server.url.absoluteString
-                reaiURLError = nil
-                editingReAIServer = true
+            Button {
+                showingSettings = true
+            } label: {
+                Label("Settings", systemImage: "gearshape")
             }
             .disabled(model.isBusy)
             if let code = model.approvalCode {
@@ -509,10 +554,6 @@ private struct ImportView: View {
                     model.clearPreview()
                 }
                 Spacer()
-                Button(model.hasRecManKey ? "Change RecMan Key…" : "Set RecMan Key…") {
-                    editingRecManKey = true
-                }
-                Button("Test RecMan") { model.testRecMan() }.disabled(!model.hasRecManKey)
                 Button(model.scope == .employees ? "Load Employees" : "Load Records") { model.load() }
                     .disabled(model.company == nil || !model.hasRecManKey)
             }
