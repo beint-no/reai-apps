@@ -93,6 +93,7 @@ struct InvoiceBatch {
     let rows: [AccountingRow]
     let mappings: [AccountingMapping]
     let bankMatches: [String: InvoiceBankMatch]
+    let bookingOpen: Set<String>
     fileprivate let documents: [RecManInvoice]
     fileprivate let pending: [RecManInvoice]
     fileprivate let companies: [RecManCompany]
@@ -150,18 +151,21 @@ struct InvoiceImport {
 
         var mappings: [String: AccountingMapping] = [:]
         var prepared: [String: [InvoiceLine]] = [:]
+        var bookingOpen: Set<String> = []
         var rows: [AccountingRow] = []
         for document in pending.sorted(by: { ($0.date, $0.key) < ($1.date, $1.key) }) {
             let company = companies.first { Int($0.companyId) == document.companyId }
             let customerID = customerKey(document.companyId)
             let alreadyBooked = journal.result(for: document.key) != nil
             let bankMatch = bankReview.matches[document.key]
+            let bankIssue = bankReview.issues[document.key] ?? "Paid in RecMan. No verified bank match."
+            let bookOpen = document.needsBankMatch && bankMatch == nil && !alreadyBooked
             var problem: String?
             let multiplier = documentMultiplier(document)
             do {
                 try validateDocument(document)
-                if document.needsBankMatch, bankMatch == nil {
-                    throw appError(bankReview.issues[document.key] ?? "Paid in RecMan. No verified bank match.")
+                if document.needsBankMatch, bankMatch == nil, alreadyBooked {
+                    throw appError(bankIssue)
                 }
                 if !alreadyBooked {
                     guard let company else { throw appError("The RecMan customer is missing.") }
@@ -177,12 +181,14 @@ struct InvoiceImport {
                         mappings[customerID] = customerMapping(company, customers: customers)
                     }
                 }
+                if bookOpen { bookingOpen.insert(document.key) }
             } catch {
                 problem = error.localizedDescription
             }
             let vatTotal = document.lines.reduce(Decimal(0)) { $0 + $1.sumVat } * multiplier
             let kid = normalizedIdentity(document.identificationCode).map { " · KID \($0)" } ?? ""
-            let payment = bankMatch.map { "\n\($0.detail)" } ?? ""
+            let payment = bankMatch.map { "\n\($0.detail)" } ??
+                (bookOpen && problem == nil ? "\n\(bankIssue) Will be booked as open with reminders off." : "")
             let booked = alreadyBooked ? " · Already booked in ReAI" : ""
             rows.append(AccountingRow(id: document.key, title: "\(document.kind.title) \(document.number)",
                                       detail: "\(company?.name ?? "Unknown customer") · \(document.date) · NOK \(document.total * multiplier) · VAT \(vatTotal)\(kid)\(booked)\(payment)",
@@ -193,7 +199,7 @@ struct InvoiceImport {
         }
         let requiredMappings = Set(rows.filter { $0.problem == nil }.flatMap(\.requirements))
         let reviewMappings = mappings.values.filter { requiredMappings.contains($0.id) }.sorted { $0.label < $1.label }
-        return InvoiceBatch(rows: rows, mappings: reviewMappings, bankMatches: bankReview.matches,
+        return InvoiceBatch(rows: rows, mappings: reviewMappings, bankMatches: bankReview.matches, bookingOpen: bookingOpen,
                             documents: documents, pending: pending, companies: companies, customers: customers,
                             lines: prepared, start: start)
     }
@@ -205,10 +211,11 @@ struct InvoiceImport {
         try validateChoices(chosen, mappings: batch.mappings, choices: choices)
         let documents = batch.pending.filter { selection.contains($0.key) }
         let payments = InvoicePayments(target: target)
-        if documents.contains(where: \.needsBankMatch) {
+        let matchingDocuments = documents.filter { batch.bankMatches[$0.key] != nil }
+        if !matchingDocuments.isEmpty {
             let fresh = try await payments.review(batch.pending, journal: journal)
-            for document in documents where document.needsBankMatch {
-                guard let reviewed = batch.bankMatches[document.key], fresh.matches[document.key] == reviewed else {
+            for document in matchingDocuments {
+                guard fresh.matches[document.key] == batch.bankMatches[document.key] else {
                     throw appError("The bank match for invoice \(document.number) changed. Reload the preview.")
                 }
             }
@@ -243,6 +250,7 @@ struct InvoiceImport {
 
         var customerIDs: [Int: Int] = [:]
         var bookedCount = 0
+        var bookedOpenCount = 0
         var reconciledCount = 0
         var completed: [Int] = []
         for document in documents.sorted(by: { ($0.date, $0.key) < ($1.date, $1.key) }) {
@@ -251,7 +259,11 @@ struct InvoiceImport {
                     throw appError("The document was already imported. Reload the preview.")
                 }
                 let invoiceID: Int
+                let bookOpen = batch.bookingOpen.contains(document.key)
                 if let bookedID = journal.result(for: document.key) {
+                    guard !bookOpen else {
+                        throw appError("The invoice was already booked. Reload the preview.")
+                    }
                     invoiceID = bookedID
                 } else {
                     guard let choice = choices[customerKey(document.companyId)],
@@ -267,8 +279,10 @@ struct InvoiceImport {
                         customerIDs[document.companyId] = customerID
                     }
                     let order = try await sourceOrder(for: document, customerID: customerID, lines: lines, journal: journal)
-                    invoiceID = try await book(document, customerID: customerID, orderID: order, lines: lines, pdf: pdf, journal: journal)
+                    invoiceID = try await book(document, customerID: customerID, orderID: order, lines: lines,
+                                               pdf: pdf, bookOpen: bookOpen, journal: journal)
                     bookedCount += 1
+                    if bookOpen { bookedOpenCount += 1 }
                 }
                 if let match = batch.bankMatches[document.key] {
                     try await payments.reconcile(match, document: document, invoiceID: invoiceID, journal: journal)
@@ -288,13 +302,15 @@ struct InvoiceImport {
             }
             if let last = contiguous.last { try journal.advanceCheckpoint(checkpoint(kind, start: batch.start), through: last.id) }
         }
+        let openInvoices = bookedOpenCount == 0 ? "" : "\nBooked \(bookedOpenCount) paid RecMan invoices as open with reminders off."
         let reconciliation = reconciledCount == 0 ? "" : "\nReconciled \(reconciledCount) invoice payments."
-        return "Booked \(bookedCount) invoice or credit note records.\(reconciliation)"
+        return "Booked \(bookedCount) invoice or credit note records.\(openInvoices)\(reconciliation)"
     }
 
     private func finished(_ document: RecManInvoice, journal: Journal) -> Bool {
-        journal.result(for: document.key) != nil &&
-            (!document.needsBankMatch || journal.result(for: document.bankMatchReceipt) != nil)
+        journal.result(for: document.openInvoiceReceipt) != nil ||
+            (journal.result(for: document.key) != nil &&
+             (!document.needsBankMatch || journal.result(for: document.bankMatchReceipt) != nil))
     }
 
     private func loadCustomers() async throws -> [InvoiceCustomer] {
@@ -444,7 +460,7 @@ struct InvoiceImport {
     }
 
     private func book(_ document: RecManInvoice, customerID: Int, orderID: Int, lines: [InvoiceLine],
-                      pdf: String, journal: Journal) async throws -> Int {
+                      pdf: String, bookOpen: Bool, journal: Journal) async throws -> Int {
         let multiplier = documentMultiplier(document)
         let instance = "department-\(document.departmentId)"
         let number = String(document.number)
@@ -457,9 +473,11 @@ struct InvoiceImport {
         ]
         if document.kind == .invoice, let due = normalizedIdentity(document.dueDate) { fields["dueDate"] = due }
         if let kid = normalizedIdentity(document.identificationCode) { fields["paymentReference"] = kid }
-        let record: InvoiceResult = try await target.write("/api/invoices/import", fields: fields, key: document.key, journal: journal)
+        let receipt = bookOpen ? document.openInvoiceReceipt : document.key
+        let record: InvoiceResult = try await target.write("/api/invoices/import", fields: fields, key: receipt, journal: journal)
         guard record.id > 0, record.number == number, record.issueDate == document.date, record.creditNote == (document.kind == .creditNote),
               record.totalAmount == document.total * multiplier,
+              !bookOpen || record.outstanding == document.total,
               record.totalExclVatAmount == document.lines.reduce(0, { $0 + $1.sumExclVat }) * multiplier,
               record.totalVatAmount == document.lines.reduce(0, { $0 + $1.sumVat }) * multiplier,
               record.paymentReference == fields["paymentReference"] as? String,
@@ -469,7 +487,7 @@ struct InvoiceImport {
               record.importSourceInstance == instance, record.externalId == document.key else {
             throw appError("ReAI returned a document that differs from the reviewed import.")
         }
-        try journal.complete(document.key, id: record.id)
+        try journal.complete(receipt, id: record.id)
         return record.id
     }
 }

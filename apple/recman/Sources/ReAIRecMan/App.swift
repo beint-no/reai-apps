@@ -818,8 +818,10 @@ private struct ImportView: View {
             let count = model.selectedAccountingIDs.count
             let matches = model.selectedAccountingIDs.compactMap { model.invoiceBatch?.bankMatches[$0] }
             let newCount = count - matches.count(where: { $0.existingInvoiceID != nil })
+            let openCount = model.selectedAccountingIDs.intersection(model.invoiceBatch?.bookingOpen ?? []).count
             let actions = [
                 newCount == 0 ? nil : "Book \(newCount) selected issued documents in NOK.",
+                openCount == 0 ? nil : "Leave \(openCount) paid RecMan invoices open with reminders off.",
                 matches.isEmpty ? nil : "Reconcile \(matches.count) matched invoice payments."
             ].compactMap { $0 }
             return model.server.displayName + "\n\n" + actions.joined(separator: "\n")

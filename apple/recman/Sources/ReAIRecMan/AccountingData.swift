@@ -49,6 +49,7 @@ struct RecManInvoice: Decodable, Identifiable, Sendable {
     var total: Decimal { lines.reduce(0) { $0 + $1.sumInclVat } }
     var needsBankMatch: Bool { kind == .invoice && paid == 1 }
     var bankMatchReceipt: String { "invoice-bank-match-\(key)" }
+    var openInvoiceReceipt: String { "invoice-booked-open-\(key)" }
     var bankReference: String? {
         guard let reference = normalizedIdentity(identificationCode),
               reference.utf8.allSatisfy({ (48...57).contains($0) }) else { return nil }
