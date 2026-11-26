@@ -554,18 +554,16 @@ private struct ImportView: View {
                     model.clearPreview()
                 }
                 Spacer()
-                Button(model.scope == .employees ? "Load Employees" : "Load Records") { model.load() }
-                    .disabled(model.company == nil || !model.hasRecManKey)
-            }
-            if model.scope == .invoices {
-                HStack {
+                if model.scope == .invoices {
                     DatePicker("On or after", selection: $model.sourceDate, displayedComponents: .date)
                         .fixedSize()
                         .onChange(of: model.sourceDate) { model.clearPreview() }
-                    Spacer()
                     Toggle("RecMan amounts are in NOK", isOn: $model.invoiceAmountsInNOK)
                         .toggleStyle(.checkbox)
+                        .fixedSize()
                 }
+                Button(model.scope == .employees ? "Load Employees" : "Load Records") { model.load() }
+                    .disabled(model.company == nil || !model.hasRecManKey)
             }
             if let preview = model.preview {
                 HStack {
