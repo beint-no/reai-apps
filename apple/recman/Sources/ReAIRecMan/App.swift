@@ -32,6 +32,7 @@ private final class ImportModel {
     var scope = AccountingScope.employees
     var sourceDate = Date.now
     var confirmedNOK = false
+    var payrollAmountsInNOK = true
     var preview: ImportPreview?
     var invoiceBatch: InvoiceBatch?
     var payrollBatch: PayrollBatch?
@@ -198,7 +199,7 @@ private final class ImportModel {
         payrollIssue = nil
         reviewedEmployeeIDs = []
         mappingChoices = [:]
-        if scope == .employees { confirmedNOK = false }
+        payrollAmountsInNOK = true
     }
 
     func reviewPayroll() {
@@ -229,7 +230,7 @@ private final class ImportModel {
     }
 
     var payrollApproval: PayrollImportApproval? {
-        payrollBatch?.approval(choices: mappingChoices, confirmedNOK: confirmedNOK)
+        payrollBatch?.approval(choices: mappingChoices, confirmedNOK: payrollAmountsInNOK)
     }
 
     var selectedEmployeeWriteCount: Int {
@@ -584,7 +585,7 @@ private struct ImportView: View {
                     .fontWeight(.medium)
                 Spacer()
                 if hasMappablePayroll {
-                    Toggle("Payroll amounts are in NOK", isOn: $model.confirmedNOK)
+                    Toggle("Payroll amounts are in NOK", isOn: $model.payrollAmountsInNOK)
                         .toggleStyle(.checkbox)
                 }
             }
@@ -637,7 +638,7 @@ private struct ImportView: View {
                                         mappings.first(where: { $0.id == requirement })?.accepts(model.mappingChoices[requirement]) != true
                                     }
                                     let reasons = [
-                                        model.confirmedNOK ? nil : "Confirm NOK",
+                                        model.payrollAmountsInNOK ? nil : "Confirm NOK",
                                         missing.contains { $0.hasPrefix("municipality-") } ? "Confirm municipality" : nil,
                                         missing.contains { $0.hasPrefix("wage-") } ? "Map wage types" : nil
                                     ].compactMap { $0 }
@@ -794,7 +795,7 @@ private struct ImportView: View {
         let ready = model.payrollApproval?.rows.count ?? 0
         let held = model.payrollApproval?.heldCount ?? 0
         let payroll = model.payrollIssue == nil
-            ? "\(ready) paychecks will be added to draft payroll. \(held) held for review."
+            ? "\(ready) paychecks will be added to draft payroll in NOK. \(held) held for review."
             : "Payroll could not be reviewed and will be held."
         let employeeUpdates = model.selectedEmployeeWriteCount
         let recreating = model.preview?.employeeRows.filter { row in
