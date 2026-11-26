@@ -64,14 +64,82 @@ struct PayrollBatch {
     }
 }
 
+private struct WageTypeSchema: Decodable, Sendable {
+    struct Path: Decodable {
+        let post: Operation?
+
+        struct Operation: Decodable {
+            let requestBody: Body
+
+            struct Body: Decodable {
+                let content: [String: Media]
+
+                struct Media: Decodable {
+                    let schema: Reference
+
+                    struct Reference: Decodable {
+                        let ref: String
+                        enum CodingKeys: String, CodingKey { case ref = "$ref" }
+                    }
+                }
+            }
+        }
+    }
+
+    struct Schema: Decodable {
+        let properties: Properties
+
+        struct Properties: Decodable {
+            let specificationCode: Property
+
+            struct Property: Decodable {
+                let codes: [String]
+                enum CodingKeys: String, CodingKey { case codes = "enum" }
+            }
+        }
+    }
+
+    struct SchemaName: CodingKey {
+        let stringValue: String
+        let intValue: Int? = nil
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { return nil }
+    }
+
+    enum CodingKeys: String, CodingKey { case paths, components }
+    enum ComponentKeys: String, CodingKey { case schemas }
+
+    struct Paths: Decodable {
+        let wageSpecs: Path?
+        enum CodingKeys: String, CodingKey { case wageSpecs = "/api/salary-payments/{id}/wage-specs" }
+    }
+
+    let codes: Set<String>?
+
+    init(from decoder: Decoder) throws {
+        let root = try decoder.container(keyedBy: CodingKeys.self)
+        let paths = try root.decode(Paths.self, forKey: .paths)
+        guard let ref = paths.wageSpecs?.post?.requestBody.content["application/json"]?.schema.ref,
+              ref.hasPrefix("#/components/schemas/"), let schema = ref.split(separator: "/").last else {
+            codes = nil
+            return
+        }
+        let components = try root.nestedContainer(keyedBy: ComponentKeys.self, forKey: .components)
+        let schemas = try components.nestedContainer(keyedBy: SchemaName.self, forKey: .schemas)
+        let definition = try schemas.decode(Schema.self, forKey: SchemaName(stringValue: String(schema)))
+        let wageCodes = definition.properties.specificationCode.codes
+        codes = wageCodes.isEmpty ? nil : Set(wageCodes)
+    }
+}
+
 @MainActor
 struct PayrollImport {
     let source: RecManAPI
     let key: String
     let target: AccountingTarget
 
-    // Keep these in step with the regular wage-spec endpoint. Each source article requires an explicit choice.
-    static let wageCodes = [
+    // These wage types were supported before the server exposed the supplement codes.
+    private static let wageCodes: Set<String> = [
         "hourly_salary", "hourly_salary_adjustment", "fixed_salary", "overtime_salary",
         "overtime_premium", "overtime_adjustment", "bonus", "commission", "commission_adjustment",
         "holiday_allowance", "vacation_deduction", "taxable_equipment_rent", "taxable_insurance_benefit",
@@ -80,6 +148,17 @@ struct PayrollImport {
         "tax_free_travel_meals_no_kitchen", "tax_free_travel_meals_with_kitchen", "tax_free_mileage_allowance",
         "travel_expense_mileage", "travel_expense_taxable_mileage", "other_reportable_expense_allowance"
     ]
+
+    private static let supplementCodes: Set<String> = [
+        "evening_supplement", "night_supplement", "weekend_supplement",
+        "public_holiday_supplement", "irregular_non_worked_time_supplement"
+    ]
+
+    private func advertisedWageCodes() async throws -> Set<String> {
+        let schema: WageTypeSchema = try await target.read("/openapi/public")
+        guard let codes = schema.codes else { throw appError("ReAI’s payroll API did not list its wage types.") }
+        return codes
+    }
 
     func load(employeePreview: ImportPreview, selection: Set<Int>) async throws -> PayrollBatch {
         guard !selection.isEmpty, selection.isSubset(of: employeePreview.selectableEmployeeIDs),
@@ -102,6 +181,16 @@ struct PayrollImport {
 
         struct SalarySettings: Decodable { let payoutDayOfMonth: Int? }
         let settings: SalarySettings = try await target.read("/api/salary-settings")
+        let availableCodes = (try? await advertisedWageCodes()) ?? Self.wageCodes
+        let options = Self.wageCodes.union(Self.supplementCodes).intersection(availableCodes).sorted().map {
+            AccountingOption(id: $0, label: $0.replacingOccurrences(of: "_", with: " ").capitalized)
+        }
+        let suggestionsByArticle = Dictionary(grouping: pending.flatMap { $0.lines.values }, by: articleKey)
+            .compactMapValues { lines -> String? in
+                let suggestions = Set(lines.map(suggestedWageCode))
+                guard suggestions.count == 1, let suggestion = suggestions.first else { return nil }
+                return suggestion
+            }
         let periods = Set(pending.compactMap { payrollPeriod($0) }).sorted()
         let runs = try await salaryRuns(periods: periods)
         let runsByPeriod = Dictionary(grouping: runs, by: \.period)
@@ -192,11 +281,14 @@ struct PayrollImport {
                         suggestion: verified ? municipality : nil
                     )
                 }
-                let unsupported = Set(lines.filter(isWorkedTimeSupplement).map(\.articleName)).sorted()
+                let unsupported = Set(lines.compactMap { line -> String? in
+                    guard let code = suggestedWageCode(for: line), Self.supplementCodes.contains(code),
+                          !availableCodes.contains(code) else { return nil }
+                    return line.articleName
+                }).sorted()
                 var blockers = [plan.bankIssue].compactMap { $0 }
                 if !unsupported.isEmpty {
-                    let articles = unsupported.joined(separator: ", ")
-                    blockers.append("ReAI has no wage type for these shift additions (\(articles)). This paycheck needs ReAI support for irregular supplements for time worked.")
+                    blockers.append("ReAI’s payroll API does not list the required wage types for \(unsupported.joined(separator: ", ")).")
                 }
                 if !blockers.isEmpty { throw appError(blockers.joined(separator: "\n")) }
                 requirements.append(locationMapping)
@@ -204,11 +296,15 @@ struct PayrollImport {
                     let article = articleKey(line)
                     requirements.append(article)
                     if mappings[article] == nil {
+                        let suggestion = suggestionsByArticle[article].flatMap { availableCodes.contains($0) ? $0 : nil }
+                        let choices = if let suggestion, Self.supplementCodes.contains(suggestion) {
+                            options.filter { $0.id == suggestion }
+                        } else {
+                            options
+                        }
                         mappings[article] = AccountingMapping(id: article,
                             label: "\(line.articleName) · \(line.articleType) · Article \(line.articleId)",
-                            options: Self.wageCodes.sorted().map {
-                                AccountingOption(id: $0, label: $0.replacingOccurrences(of: "_", with: " ").capitalized)
-                            }, suggestion: suggestedWageCode(for: line))
+                            options: choices, suggestion: suggestion)
                     }
                 }
                 entries[rowID] = PayrollEntry(check: check, period: period, paymentDate: paymentDate,
@@ -235,6 +331,13 @@ struct PayrollImport {
         try validateChoices(approval.rows, mappings: batch.mappings, choices: choices)
         let entries = approval.rows.compactMap { batch.entries[$0.id] }
         guard entries.count == approval.rows.count else { throw appError("A selected payroll preview is missing.") }
+        let supplementChoices = Set(entries.flatMap { $0.check.lines.values }.compactMap { choices[articleKey($0)] })
+            .intersection(Self.supplementCodes)
+        if !supplementChoices.isEmpty {
+            guard try await supplementChoices.isSubset(of: advertisedWageCodes()) else {
+                throw appError("The connected ReAI server no longer lists the selected supplements. Reload the preview.")
+            }
+        }
 
         var verifiedEmployees: [Int: Employee] = [:]
         for entry in entries {
@@ -432,15 +535,22 @@ struct PayrollImport {
 
     private func suggestedWageCode(for line: RecManPaycheck.Line) -> String? {
         let name = line.articleName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard line.articleType.caseInsensitiveCompare("hour") == .orderedSame,
-              ["timelønn", "hourly salary"].contains(name) else { return nil }
-        return "hourly_salary"
-    }
-
-    private func isWorkedTimeSupplement(_ line: RecManPaycheck.Line) -> Bool {
-        guard line.articleType.caseInsensitiveCompare("hourAddition") == .orderedSame else { return false }
-        let name = line.articleName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return ["kveldstillegg", "nattillegg", "helgetillegg"].contains(name)
+        switch (line.articleType.lowercased(), name) {
+        case ("hour", "timelønn"), ("hour", "hourly salary"):
+            return "hourly_salary"
+        case ("month", "månedslønn"), ("month", "monthly salary"):
+            return "fixed_salary"
+        case ("houraddition", "kveldstillegg"):
+            return "evening_supplement"
+        case ("houraddition", "nattillegg"):
+            return "night_supplement"
+        case ("houraddition", "helgetillegg"):
+            return "weekend_supplement"
+        case ("houraddition", "helligdagstillegg"), ("addition", "helligdagstillegg"):
+            return "public_holiday_supplement"
+        default:
+            return nil
+        }
     }
 
     private func validateSource(_ check: RecManPaycheck, period: String) throws {

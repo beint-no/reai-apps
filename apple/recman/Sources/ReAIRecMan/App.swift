@@ -211,7 +211,7 @@ private final class ImportModel {
                 let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
                 let batch = try await importer.load(employeePreview: preview, selection: ids)
                 self.payrollBatch = batch
-                for mapping in batch.mappings where mapping.id.hasPrefix("municipality-") && !mapping.municipalityInput {
+                for mapping in batch.mappings where !mapping.municipalityInput {
                     self.mappingChoices[mapping.id] = mapping.suggestion
                 }
                 if batch.rows.isEmpty { self.message = "No new paychecks for the selected employees." }
@@ -702,11 +702,15 @@ private struct ImportView: View {
             } else {
                 if isPayroll, mapping.id.hasPrefix("wage-"), let suggestion = mapping.suggestion,
                    let option = mapping.options.first(where: { $0.id == suggestion }) {
-                    Button("Confirm \(option.label)") {
-                        model.changeMapping(mapping.id, choice: suggestion)
+                    if model.mappingChoices[mapping.id] == suggestion {
+                        Text("Suggested automatically").foregroundStyle(.secondary)
+                    } else {
+                        Button("Use \(option.label)") {
+                            model.changeMapping(mapping.id, choice: suggestion)
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(model.isBusy)
                     }
-                    .buttonStyle(.borderless)
-                    .disabled(model.isBusy || model.mappingChoices[mapping.id] == suggestion)
                 }
                 Picker(mapping.label, selection: Binding {
                     model.mappingChoices[mapping.id]
