@@ -11,6 +11,7 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-subprocess", exact: "1.0.2"),
     ],
     targets: [.executableTarget(name: "ReAIShipping", dependencies: ["Sparkle", .product(name: "Subprocess", package: "swift-subprocess")],
+                               swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")],
                                linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])])],
     swiftLanguageModes: [.v6]
 )

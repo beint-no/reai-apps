@@ -1,5 +1,6 @@
 import Foundation
 import Subprocess
+import System
 
 struct Printer: Identifiable, Sendable { let id: String; let name: String }
 actor LabelPrinter {
