@@ -123,7 +123,7 @@ struct EmployeeImportResult {
             lines.append("Matched existing records for \(alreadyMatched.joined(separator: ", ")).")
         }
         if !bankAdded.isEmpty { lines.append("Added bank details for \(bankAdded.joined(separator: ", ")).") }
-        if !municipalityAdded.isEmpty { lines.append("Saved confirmed municipalities for \(municipalityAdded.joined(separator: ", ")).") }
+        if !municipalityAdded.isEmpty { lines.append("Saved workplace municipalities for \(municipalityAdded.joined(separator: ", ")).") }
         return lines.joined(separator: "\n")
     }
 }
@@ -368,7 +368,7 @@ struct RecManImport {
         try validateIdentity(employee, plan: plan)
         try validateEmployment(employee, plan: plan)
         if let setup, employee.employmentRelations.first?.employmentLines.first?.municipality != setup.municipality {
-            throw appError("ReAI did not return the confirmed municipality.")
+            throw appError("ReAI did not return the reviewed municipality.")
         }
         if plan.existing == nil, let bank = plan.bankToImport, employee.bankAccount?.matchesNorwegianAccount(bank) != true {
             throw appError("ReAI did not return the reviewed bank account.")

@@ -212,7 +212,7 @@ private final class ImportModel {
                 let importer = PayrollImport(source: self.recMan, key: key, target: try self.accountingTarget())
                 let batch = try await importer.load(employeePreview: preview, selection: ids)
                 self.payrollBatch = batch
-                for mapping in batch.mappings where !mapping.municipalityInput {
+                for mapping in batch.mappings {
                     self.mappingChoices[mapping.id] = mapping.suggestion
                 }
                 if batch.rows.isEmpty { self.message = "No new paychecks for the selected employees." }
@@ -560,22 +560,17 @@ private struct ImportView: View {
     private func payrollReviewControls(_ batch: PayrollBatch, approval: PayrollImportApproval) -> some View {
         @Bindable var model = model
         let required = Set(batch.rows.filter { $0.problem == nil }.flatMap(\.requirements))
-        let unconfirmedMunicipalities = batch.mappings.filter {
-            ($0.municipalityInput || required.contains($0.id) && $0.id.hasPrefix("municipality-")) &&
-                !$0.accepts(model.mappingChoices[$0.id])
+        let missingMunicipalities = batch.mappings.filter {
+            $0.municipalityInput && !$0.accepts(model.mappingChoices[$0.id])
         }
         let unmappedWages = batch.mappings.filter {
             required.contains($0.id) && $0.id.hasPrefix("wage-") && !$0.accepts(model.mappingChoices[$0.id])
         }
         let suggestedWage = unmappedWages.count == 1 ? unmappedWages.first : nil
         let hasMappablePayroll = !required.isEmpty
-        let suggested = unconfirmedMunicipalities.filter {
-            $0.municipalitySuggestion != nil && model.mappingChoices[$0.id] == nil
-        }
-        let sharedSuggestion = Set(suggested.compactMap { $0.municipalitySuggestion?.id }).count == 1
-            ? suggested.first?.municipalitySuggestion : nil
         let steps = [
-            unconfirmedMunicipalities.isEmpty ? nil : "\(unconfirmedMunicipalities.count) municipality confirmations needed",
+            missingMunicipalities.isEmpty ? nil : (missingMunicipalities.count == 1
+                ? "1 municipality code needed" : "\(missingMunicipalities.count) municipality codes needed"),
             unmappedWages.isEmpty ? nil : (unmappedWages.count == 1 ? "1 wage type to map" : "\(unmappedWages.count) wage types to map")
         ].compactMap { $0 }
 
@@ -597,12 +592,6 @@ private struct ImportView: View {
                 let article = mapping.label.components(separatedBy: " · ").first ?? mapping.label
                 Button("Confirm \(article) → \(option.label)") {
                     model.changeMapping(mapping.id, choice: suggestion)
-                }
-            }
-            if let suggestion = sharedSuggestion {
-                let count = suggested.count == 1 ? "1 employee" : "\(suggested.count) employees"
-                Button("Confirm \(suggestion.label) for \(count)") {
-                    for mapping in suggested { model.changeMapping(mapping.id, choice: suggestion.id) }
                 }
             }
         }
@@ -639,7 +628,7 @@ private struct ImportView: View {
                                     }
                                     let reasons = [
                                         model.payrollAmountsInNOK ? nil : "Confirm NOK",
-                                        missing.contains { $0.hasPrefix("municipality-") } ? "Confirm municipality" : nil,
+                                        missing.contains { $0.hasPrefix("municipality-") } ? "Enter a valid municipality code" : nil,
                                         missing.contains { $0.hasPrefix("wage-") } ? "Map wage types" : nil
                                     ].compactMap { $0 }
                                     Text(reasons.joined(separator: " · ")).foregroundStyle(.orange)
@@ -688,18 +677,19 @@ private struct ImportView: View {
             Text(mapping.label).fontWeight(.medium)
             if mapping.municipalityInput {
                 if let suggestion = mapping.municipalitySuggestion {
-                    Button("Confirm \(suggestion.label)") {
-                        model.changeMapping(mapping.id, choice: suggestion.id)
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(model.isBusy || model.mappingChoices[mapping.id] == suggestion.id)
+                    Text("Workplace match · \(suggestion.label)").foregroundStyle(.secondary)
+                } else {
+                    Text("Verify the workplace and enter its municipality code.").foregroundStyle(.secondary)
                 }
                 TextField("Four-digit municipality code", text: Binding {
                     model.mappingChoices[mapping.id] ?? ""
                 } set: { choice in
                     model.changeMapping(mapping.id, choice: choice.isEmpty ? nil : choice)
                 })
+                .accessibilityLabel("\(mapping.label) municipality code")
                 .disabled(model.isBusy)
+            } else if isPayroll, mapping.id.hasPrefix("municipality-"), let saved = mapping.options.first {
+                Text(saved.label).foregroundStyle(.secondary)
             } else {
                 if isPayroll, mapping.id.hasPrefix("wage-"), let suggestion = mapping.suggestion,
                    let option = mapping.options.first(where: { $0.id == suggestion }) {
@@ -791,7 +781,7 @@ private struct ImportView: View {
         let bankCount = model.preview?.plans.filter { model.selectedEmployeeIDs.contains($0.key) && $0.value.bankToImport != nil }.count ?? 0
         let bank = bankCount == 0 ? "" : "\nFill \(bankCount) blank bank accounts from RecMan."
         let municipalityCount = model.payrollApproval?.employeeSetup.count ?? 0
-        let municipality = municipalityCount == 0 ? "" : "\nSave \(municipalityCount) confirmed municipalities."
+        let municipality = municipalityCount == 0 ? "" : "\nSave workplace municipality codes for \(municipalityCount) employees."
         let ready = model.payrollApproval?.rows.count ?? 0
         let held = model.payrollApproval?.heldCount ?? 0
         let payroll = model.payrollIssue == nil
