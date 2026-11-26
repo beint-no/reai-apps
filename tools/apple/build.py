@@ -49,8 +49,10 @@ def build(app_id, version=None):
     swift_version = (ROOT / '.swift-version').read_text().strip()
     if not re.search(r'Swift version ' + re.escape(swift_version) + r'(?:[ .]|$)', output(swift, '--version')):
         raise ValueError(f'Swift {swift_version} is required; set SWIFT_BIN to its executable')
-    run(swift, 'build', '-c', 'release', '--arch', 'arm64', cwd=source)
-    binary_directory = Path(output(swift, 'build', '-c', 'release', '--arch', 'arm64', '--show-bin-path', cwd=source))
+    lockfile = source / 'Package.resolved'
+    resolve_flags = ['--only-use-versions-from-resolved-file'] if lockfile.exists() else []
+    run(swift, 'build', '-c', 'release', '--arch', 'arm64', *resolve_flags, cwd=source)
+    binary_directory = Path(output(swift, 'build', '-c', 'release', '--arch', 'arm64', *resolve_flags, '--show-bin-path', cwd=source))
     destination = ROOT / 'dist' / app_id
     destination.mkdir(parents=True, exist_ok=True)
     bundle = destination / (app['name'] + '.app')
@@ -65,7 +67,6 @@ def build(app_id, version=None):
         shutil.copytree(resource, resources / resource.name)
     if (source / 'Resources').is_dir():
         shutil.copytree(source / 'Resources', resources, dirs_exist_ok=True)
-    lockfile = source / 'Package.resolved'
     if lockfile.exists():
         notices = resources / 'ThirdPartyNotices'
         notices.mkdir()
@@ -82,6 +83,23 @@ def build(app_id, version=None):
     info = plistlib.loads((source / 'Info.plist').read_bytes())
     if info['CFBundleIdentifier'] != app['bundle_id'] or info['CFBundleExecutable'] != app['executable']:
         raise ValueError('Bundle identity does not match apps.json')
+    if info.get('CFBundleName') != app['name'] or info.get('CFBundleDisplayName') != app['name']:
+        raise ValueError('Bundle display name does not match apps.json')
+    if app.get('sparkle', False):
+        expected_feed = f'https://beint-no.github.io/reai-apps/updates/{app_id}.xml'
+        if info.get('SUFeedURL') != expected_feed:
+            raise ValueError(f'SUFeedURL must be {expected_feed}')
+        if not str(info.get('SUPublicEDKey', '')).strip():
+            raise ValueError('Sparkle app is missing SUPublicEDKey in Info.plist')
+        if info.get('SURequireSignedFeed') is not True or info.get('SUVerifyUpdateBeforeExtraction') is not True:
+            raise ValueError('Sparkle app must enable SURequireSignedFeed and SUVerifyUpdateBeforeExtraction')
+        from sparkle import SPARKLE_URL
+        pins = {pin['identity'].casefold(): pin['state'].get('version') for pin in json.loads(lockfile.read_text())['pins']} if lockfile.exists() else {}
+        sparkle_version = pins.get('sparkle')
+        if not sparkle_version or f'/download/{sparkle_version}/Sparkle-{sparkle_version}.tar.xz' not in SPARKLE_URL:
+            raise ValueError(f'Sparkle Package.resolved version ({sparkle_version}) does not match tools/apple/sparkle.py')
+    elif 'SUFeedURL' in info or 'SUPublicEDKey' in info:
+        raise ValueError('Non-Sparkle app must not declare Sparkle keys in Info.plist')
     info['CFBundleShortVersionString'] = app['version']
     info['CFBundleVersion'] = app['build']
     (bundle / 'Contents' / 'Info.plist').write_bytes(plistlib.dumps(info))
