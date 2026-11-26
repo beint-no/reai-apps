@@ -816,7 +816,13 @@ private struct ImportView: View {
     private var confirmationMessage: String {
         if model.scope == .invoices {
             let count = model.selectedAccountingIDs.count
-            return "\(model.server.displayName)\n\nBook \(count) selected issued documents in NOK."
+            let matches = model.selectedAccountingIDs.compactMap { model.invoiceBatch?.bankMatches[$0] }
+            let newCount = count - matches.count(where: { $0.existingInvoiceID != nil })
+            let actions = [
+                newCount == 0 ? nil : "Book \(newCount) selected issued documents in NOK.",
+                matches.isEmpty ? nil : "Reconcile \(matches.count) matched invoice payments."
+            ].compactMap { $0 }
+            return model.server.displayName + "\n\n" + actions.joined(separator: "\n")
         }
         let names = model.preview?.employeeRows.compactMap { row -> String? in
             guard model.selectedEmployeeIDs.contains(row.id) else { return nil }
