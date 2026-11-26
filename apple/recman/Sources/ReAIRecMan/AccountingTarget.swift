@@ -34,4 +34,5 @@ struct AccountingRow: Identifiable, Sendable {
     let requirements: [String]
     let problem: String?
     let lineDetails: [String]
+    var vatSettingsURL: URL? = nil
 }

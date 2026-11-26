@@ -66,6 +66,51 @@ private struct InvoiceVAT: Decodable, Equatable, Sendable {
     let rate: Decimal
 }
 
+private struct InvoiceVATProblem: LocalizedError {
+    let message: String
+    var showSettings = false
+    var errorDescription: String? { message }
+}
+
+private struct InvoiceVATReview {
+    let sales: [String: InvoiceVAT]
+    let catalog: [String: InvoiceVAT]?
+
+    private static let settings = [
+        "5": "No output VAT (inside the VAT Act) - (0%)",
+        "6": "No output VAT (outside the VAT Act) - (0%)",
+        "31": "Output VAT, medium rate - (15.0%)",
+        "33": "Output VAT, low rate - (12.0%)"
+    ]
+
+    func validate(line: RecManInvoice.Line, productCode: String?, description: String) throws -> String {
+        let lineCode = normalizedIdentity(line.vatCode?.value)
+        let prefix = "VAT on “\(description)” ·"
+        guard let code = lineCode ?? normalizedIdentity(productCode) else {
+            throw InvoiceVATProblem(message: "\(prefix) RecMan code missing, rate \(line.vatPercent)%. Check the invoice line and product in RecMan.")
+        }
+        let source = lineCode == nil ? "RecMan line code missing, product code \(code)" : "RecMan code \(code)"
+        let detail = "\(prefix) \(source), rate \(line.vatPercent)%."
+
+        if let known = sales[code] ?? catalog?[code], known.rate != line.vatPercent {
+            throw InvoiceVATProblem(message: "\(detail) ReAI defines code \(code) at \(known.rate)%. Verify the code and rate on the original invoice.")
+        }
+        if sales[code] != nil { return code }
+        if let catalog, catalog[code] == nil {
+            throw InvoiceVATProblem(message: "\(detail) ReAI does not recognize code \(code). Verify its ReAI equivalent before importing.")
+        }
+        if let setting = Self.settings[code], sales["3"] != nil {
+            throw InvoiceVATProblem(
+                message: "\(detail) This sales VAT code is disabled for the connected company. If this is the correct VAT treatment, enable “\(setting)” in ReAI, then click Load Records again.",
+                showSettings: true
+            )
+        }
+        let allowed = sales.keys.sorted().joined(separator: ", ")
+        let available = allowed.isEmpty ? "" : " Available sales codes are \(allowed)."
+        throw InvoiceVATProblem(message: "\(detail) ReAI does not allow this code on sales invoices for the connected company.\(available) Verify the VAT treatment before importing.")
+    }
+}
+
 struct InvoiceResult: Decodable, Sendable {
     let id: Int
     let number: String
@@ -145,7 +190,7 @@ struct InvoiceImport {
             sourceProducts = newDocuments.isEmpty ? [] : try await source.products(key: key)
         }
         let customers = newDocuments.isEmpty ? [] : try await loadCustomers()
-        let taxes = newDocuments.isEmpty ? [:] : try await invoiceVAT()
+        let taxes = try await invoiceVATReview(needed: !newDocuments.isEmpty)
         let accounts: Set<String> = newDocuments.isEmpty ? [] : try await salesAccounts()
         let productsByID = Dictionary(grouping: sourceProducts, by: \.productId)
 
@@ -161,6 +206,7 @@ struct InvoiceImport {
             let bankIssue = bankReview.issues[document.key] ?? "Paid in RecMan. No verified bank match."
             let bookOpen = document.needsBankMatch && bankMatch == nil && !alreadyBooked
             var problem: String?
+            var vatSettingsURL: URL?
             let multiplier = documentMultiplier(document)
             do {
                 try validateDocument(document)
@@ -182,6 +228,13 @@ struct InvoiceImport {
                     }
                 }
                 if bookOpen { bookingOpen.insert(document.key) }
+            } catch let error as InvoiceVATProblem {
+                problem = error.message
+                if error.showSettings {
+                    vatSettingsURL = target.api.server.url.appending(path: "company/settings").appending(queryItems: [
+                        URLQueryItem(name: "tenantId", value: String(target.tenant.id))
+                    ])
+                }
             } catch {
                 problem = error.localizedDescription
             }
@@ -195,7 +248,7 @@ struct InvoiceImport {
                                       requirements: alreadyBooked ? [] : [customerID], problem: problem,
                                       lineDetails: prepared[document.key]?.map(\.preview) ?? document.lines.map {
                                           "\($0.description) · \($0.qty) × NOK \($0.price) · total \($0.sumInclVat * multiplier)"
-                                      }))
+                                      }, vatSettingsURL: vatSettingsURL))
         }
         let requiredMappings = Set(rows.filter { $0.problem == nil }.flatMap(\.requirements))
         let reviewMappings = mappings.values.filter { requiredMappings.contains($0.id) }.sorted { $0.label < $1.label }
@@ -348,12 +401,19 @@ struct InvoiceImport {
                                  options: options, suggestion: suggestion)
     }
 
-    private func invoiceVAT() async throws -> [String: InvoiceVAT] {
-        let codes: [InvoiceVAT] = try await target.read("/api/vat-codes", query: [
-            URLQueryItem(name: "usage", value: "customer_invoice")
-        ])
+    private func invoiceVAT(usage: String? = "customer_invoice") async throws -> [String: InvoiceVAT] {
+        let query = usage.map { [URLQueryItem(name: "usage", value: $0)] } ?? []
+        let codes: [InvoiceVAT] = try await target.read("/api/vat-codes", query: query)
         guard Set(codes.map(\.code)).count == codes.count else { throw appError("ReAI returned repeated VAT codes.") }
         return Dictionary(uniqueKeysWithValues: codes.map { ($0.code, $0) })
+    }
+
+    private func invoiceVATReview(needed: Bool) async throws -> InvoiceVATReview {
+        guard needed else { return InvoiceVATReview(sales: [:], catalog: nil) }
+        let sales = try await invoiceVAT()
+        let catalog = try? await invoiceVAT(usage: nil)
+        try Task.checkCancellation()
+        return InvoiceVATReview(sales: sales, catalog: catalog)
     }
 
     private func salesAccounts() async throws -> Set<String> {
@@ -379,7 +439,7 @@ struct InvoiceImport {
     }
 
     private func prepareLine(_ line: RecManInvoice.Line, products: [Int: [RecManProduct]],
-                             taxes: [String: InvoiceVAT], accounts: Set<String>, multiplier: Decimal) throws -> InvoiceLine {
+                             taxes: InvoiceVATReview, accounts: Set<String>, multiplier: Decimal) throws -> InvoiceLine {
         let matches = products[line.productId] ?? []
         let product = matches.count == 1 ? matches.first : nil
         guard let description = normalizedIdentity(line.description), description.utf16.count <= 255 else {
@@ -392,10 +452,7 @@ struct InvoiceImport {
               accounts.contains(account) else {
             throw appError("The RecMan revenue account for \(description) is missing or unavailable in ReAI.")
         }
-        guard let code = lineVAT ?? normalizedIdentity(product?.vatCode),
-              let tax = taxes[code], tax.rate == line.vatPercent else {
-            throw appError("The original RecMan VAT code for \(description) is missing or incompatible in ReAI.")
-        }
+        let code = try taxes.validate(line: line, productCode: product?.vatCode, description: description)
         guard abs(line.qty) <= Decimal(string: "99999999.99")!, abs(line.price) <= 10_000_000,
               [line.qty, line.price, line.sumExclVat, line.sumVat].allSatisfy({ roundedMoney($0) == $0 }),
               [line.sumExclVat, line.sumVat].allSatisfy({ abs($0) < 1_000_000_000_000 }),

@@ -662,6 +662,10 @@ private struct ImportView: View {
                                 Text(row.detail).foregroundStyle(.secondary)
                                 if let problem = row.problem {
                                     Text(problem).foregroundStyle(.orange)
+                                    if let url = row.vatSettingsURL {
+                                        Link("Open VAT settings", destination: url)
+                                            .buttonStyle(.bordered)
+                                    }
                                 } else if isPayroll && !ready.contains(row.id) {
                                     let missing = row.requirements.filter { requirement in
                                         mappings.first(where: { $0.id == requirement })?.accepts(model.mappingChoices[requirement]) != true
