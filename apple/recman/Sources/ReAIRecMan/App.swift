@@ -585,6 +585,7 @@ private struct ImportView: View {
                     Text("Payroll could not be reviewed. \(issue)").font(.callout).foregroundStyle(.orange)
                 }
             } else if model.invoiceBatch != nil {
+                Divider()
                 HStack {
                     Button("Select All Ready") { model.selectedAccountingIDs = model.readyAccountingIDs }
                         .disabled(model.selectedAccountingIDs == model.readyAccountingIDs)
