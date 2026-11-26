@@ -66,6 +66,19 @@ final class Journal {
         try save()
     }
 
+    func reject(_ key: String) throws {
+        guard let pending = receipts[key], pending.resultID == nil else {
+            throw appError("The rejected write has no pending receipt.")
+        }
+        receipts[key] = nil
+        do {
+            try save()
+        } catch {
+            receipts[key] = pending
+            throw error
+        }
+    }
+
     private func save() throws {
         try JSONEncoder().encode(receipts).write(to: file, options: .atomic)
     }

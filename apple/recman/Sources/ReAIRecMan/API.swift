@@ -51,6 +51,11 @@ struct AppError: LocalizedError {
 
 func appError(_ message: String) -> AppError { AppError(message: message) }
 
+struct ReAIWriteRejected: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 final class RedirectBlocker: NSObject, URLSessionTaskDelegate, Sendable {
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
@@ -71,7 +76,13 @@ struct Account: Decodable, Sendable { let tenants: [Company] }
 private struct ReAIPage<Item: Decodable & Sendable>: Decodable, Sendable { let items: [Item]; let hasNext: Bool }
 
 actor ReAIAPI {
-    private struct Problem: Decodable { let detail: String? }
+    private struct Problem: Decodable {
+        let status: Int?
+        let detail: String?
+        let title: String?
+    }
+
+    private static let rejectionStatuses: Set<Int> = [400, 401, 403, 404, 405, 409, 412, 415, 422, 429]
     nonisolated let server: ReAIServer
     private let session: URLSession
 
@@ -122,8 +133,14 @@ actor ReAIAPI {
             throw appError("Invalid or oversized response from ReAI.")
         }
         guard (200..<300).contains(http.statusCode) else {
-            let detail = (try? JSONDecoder().decode(Problem.self, from: data))?.detail
-            throw appError(detail ?? "ReAI returned HTTP \(http.statusCode) for \(path).")
+            let problem = try? JSONDecoder().decode(Problem.self, from: data)
+            let message = normalizedIdentity(problem?.detail) ?? normalizedIdentity(problem?.title) ??
+                "ReAI returned HTTP \(http.statusCode) for \(path)."
+            if body != nil, http.mimeType == "application/problem+json", problem?.status == http.statusCode,
+               Self.rejectionStatuses.contains(http.statusCode) {
+                throw ReAIWriteRejected(message: message)
+            }
+            throw appError(message)
         }
         return data
     }

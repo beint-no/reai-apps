@@ -19,11 +19,20 @@ struct AccountingTarget {
     func journal() throws -> Journal { try Journal(server: api.server, tenant: tenant) }
 
     func write<T: Decodable & Sendable>(_ path: String, fields: [String: Any], key: String,
-                                        journal: Journal) async throws -> T {
+                                        journal: Journal, method: String = "POST") async throws -> T {
         try Task.checkCancellation()
         let body = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
         try journal.begin(key, endpoint: path, body: body)
-        return try await api.request(path, token: token, tenant: tenant.id, body: body)
+        do {
+            return try await api.request(path, token: token, tenant: tenant.id, body: body, method: method)
+        } catch let rejection as ReAIWriteRejected {
+            do {
+                try journal.reject(key)
+            } catch {
+                throw appError("\(rejection.localizedDescription) The rejected receipt could not be cleared. \(error.localizedDescription)")
+            }
+            throw rejection
+        }
     }
 }
 

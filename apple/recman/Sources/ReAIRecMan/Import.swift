@@ -361,10 +361,8 @@ struct RecManImport {
             }
         }
 
-        try Task.checkCancellation()
-        let body = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
-        try journal.begin(key, endpoint: endpoint, body: body)
-        let employee: Employee = try await api.request(endpoint, token: token, tenant: tenant.id, body: body)
+        let target = AccountingTarget(api: api, tenant: tenant, token: token)
+        let employee: Employee = try await target.write(endpoint, fields: fields, key: key, journal: journal)
         try validateIdentity(employee, plan: plan)
         try validateEmployment(employee, plan: plan)
         if let setup, employee.employmentRelations.first?.employmentLines.first?.municipality != setup.municipality {
@@ -396,12 +394,10 @@ struct RecManImport {
         guard !fields.isEmpty else { return employee }
 
         let endpoint = "/api/employees/\(employee.id)"
-        let body = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
         let change = fields["accountNumber"] == nil ? "municipality" : (updatedLine == nil ? "bank" : "bank-municipality")
         let key = "\(plan.receiptKey)-\(change)"
-        try Task.checkCancellation()
-        try journal.begin(key, endpoint: endpoint, body: body)
-        let saved: Employee = try await api.request(endpoint, token: token, tenant: tenant.id, body: body, method: "PATCH")
+        let target = AccountingTarget(api: api, tenant: tenant, token: token)
+        let saved: Employee = try await target.write(endpoint, fields: fields, key: key, journal: journal, method: "PATCH")
         try validateIdentity(saved, plan: plan)
         try validateEmployment(saved, plan: plan)
         guard saved.id == employee.id,

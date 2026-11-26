@@ -306,6 +306,7 @@ struct InvoiceImport {
         var bookedOpenCount = 0
         var reconciledCount = 0
         var completed: [Int] = []
+        var rejections: [String] = []
         for document in documents.sorted(by: { ($0.date, $0.key) < ($1.date, $1.key) }) {
             do {
                 guard !finished(document, journal: journal) else {
@@ -343,10 +344,15 @@ struct InvoiceImport {
                 }
                 completed.append(document.number)
             } catch {
-                let imported = completed.isEmpty ? "" : "\n\nCompleted before the error: \(completed.map(String.init).joined(separator: ", "))."
                 let partial = document.needsBankMatch && journal.result(for: document.key) != nil
                     ? " The invoice is booked in ReAI. Check its payment and bank reconciliation." : ""
-                throw appError("Could not finish document \(document.number). \(error.localizedDescription)\(partial)\(imported)")
+                let failure = "Could not finish document \(document.number). \(error.localizedDescription)\(partial)"
+                if error is ReAIWriteRejected {
+                    rejections.append(failure)
+                    continue
+                }
+                let imported = completed.isEmpty ? [] : ["Completed before the error: \(completed.map(String.init).joined(separator: ", "))."]
+                throw appError((rejections + [failure] + imported).joined(separator: "\n\n"))
             }
         }
         for kind in InvoiceKind.allCases {
@@ -357,7 +363,11 @@ struct InvoiceImport {
         }
         let openInvoices = bookedOpenCount == 0 ? "" : "\nBooked \(bookedOpenCount) paid RecMan invoices as open with reminders off."
         let reconciliation = reconciledCount == 0 ? "" : "\nReconciled \(reconciledCount) invoice payments."
-        return "Booked \(bookedCount) invoice or credit note records.\(openInvoices)\(reconciliation)"
+        let summary = "Booked \(bookedCount) invoice or credit note records.\(openInvoices)\(reconciliation)"
+        guard rejections.isEmpty else {
+            throw appError(([summary] + rejections).joined(separator: "\n\n"))
+        }
+        return summary
     }
 
     private func finished(_ document: RecManInvoice, journal: Journal) -> Bool {
