@@ -714,7 +714,8 @@ private struct ImportView: View {
     }
 
     private func mappingRow(_ mapping: AccountingMapping, isPayroll: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let createsOnly = !isPayroll && mapping.options.count == 1 && mapping.suggestion == "create"
+        return VStack(alignment: .leading, spacing: 6) {
             Text(mapping.label).fontWeight(.medium)
             if mapping.municipalityInput {
                 if let suggestion = mapping.municipalitySuggestion {
@@ -749,7 +750,9 @@ private struct ImportView: View {
                 } set: { choice in
                     model.changeMapping(mapping.id, choice: choice)
                 }) {
-                    Text(isPayroll ? "Choose an option" : "Choose a mapping").tag(nil as String?)
+                    if !createsOnly {
+                        Text(isPayroll ? "Choose an option" : "Choose a mapping").tag(nil as String?)
+                    }
                     ForEach(mapping.options) { option in Text(option.label).tag(Optional(option.id)) }
                 }
                 .labelsHidden()
