@@ -17,6 +17,8 @@ Device authorization accepts self-declared app names. Approval chooses one compa
 
 Windows apps live in windows/; read windows/AGENTS.md and the app module instructions. Shared build tools live in tools/windows.
 
+Web apps and the `apps.reai.no` catalog live in `web/`; read `web/AGENTS.md`. Everything outside `/app/*` is pure static HTML, modern CSS and AVIF/SVG assets built with `lyn`. `/app/*` routes to one Cloudflare Worker (`web/worker.js`) using plain ESM JavaScript with strict JSDoc (`checkJs: true`), server-rendered HTMX 4 fragments and Declarative Shadow DOM Web Components (zero Lit, zero bundler, zero legacy polyfills). Build and verify with `tools/web/build.py --offline` and deploy with `tools/web/deploy.py`. Keep `site/` intact for GitHub Pages native update feeds (`updates/*.xml` and `updates/*.json`).
+
 apps.json is authoritative for app identity and downloadable filename.
 For Apple, build affected apps with tools/apple/build.py <app>. Set SWIFT_BIN when Swift 6.4 is not the default. For Windows, use tools/windows/build.ps1 -App <app> on Windows and verify both architectures in CI.
 Never release an ad-hoc Apple build. Release tags use <app>/v<version> and point to a commit merged into main. The Release app action on main chooses the next patch version; build numbers use GITHUB_RUN_NUMBER.

@@ -1,8 +1,17 @@
 # ReAI Apps
 
-Desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/ui).
+Web and desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/ui).
 
-**[Download apps](https://beint-no.github.io/reai-apps/)** — Mac: Apple Silicon, macOS 15+. Windows: Windows 11 25H2+, x64 or ARM64.
+**[apps.reai.no](https://apps.reai.no/)** (and legacy [GitHub Pages downloads](https://beint-no.github.io/reai-apps/)) — Web apps run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
+
+### Web apps (hosted on `apps.reai.no`)
+
+Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`, backed by encrypted `HttpOnly` session cookies and Declarative Shadow DOM Web Components.
+
+| App | Route | What it does |
+| --- | --- | --- |
+| [Hybel Journal (Web)](web/worker/apps/hybel.js) | `/app/hybel/` | Preview a monthly Hybel CSV journal (or synthetic sample), validate accounts against ReAI and create a review voucher. |
+| [UI Component Lab](web/worker/apps/lab.js) | `/app/lab/` | Interactive playground for zero-framework Declarative Shadow DOM `<reai-*>` components and HTMX 4 swaps. |
 
 ### Maintained
 
@@ -64,9 +73,11 @@ windows/
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
   global.json       Pinned .NET SDK
 apps.json          App identities and download names
-site/              GitHub Pages download site
+web/               apps.reai.no Lyn static catalog + single Cloudflare Worker + SSR/HTMX web apps
+site/              GitHub Pages download site and native update feeds (updates/*.xml, updates/*.json)
 tools/apple/       Apple build, signing and release tools
 tools/windows/     Windows build and packaging tools
+tools/web/         Web build, JSDoc typecheck and Cloudflare deploy tools
 .github/           CI, release and Pages workflows
 ```
 

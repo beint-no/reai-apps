@@ -1,0 +1,19 @@
+{{ $rel := site.Data.releases }}
+{{ with .Params.appId }}
+  {{ $mac := index $rel . }}
+  <div class="download-group">
+    <a class="button primary" href="{{ $mac.url }}">{{ T "download_mac" }} ↓</a>
+    <a class="release-note" href="{{ $mac.releaseUrl }}">{{ T "release_notes" $mac.version }} ↗</a>
+  </div>
+{{ end }}
+{{ with .Params.windowsAppId }}
+  {{ $win := index $rel . }}
+  <div class="download-group">
+    <div class="download-row">
+      <a class="button secondary" href="{{ $win.url }}">{{ T "download_win_x64" }} ↓</a>
+      <a class="button secondary" href="{{ $win.arm64Url }}">{{ T "download_win_arm64" }} ↓</a>
+    </div>
+    <span class="release-note">{{ T "unsigned_windows_note" }}</span>
+    <a class="release-note" href="{{ $win.releaseUrl }}">{{ T "release_notes" $win.version }} ↗</a>
+  </div>
+{{ end }}

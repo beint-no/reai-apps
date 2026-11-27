@@ -35,6 +35,8 @@ destination = root / 'dist' / 'site'
 destination.mkdir(parents=True, exist_ok=True)
 source = (root / 'site' / 'index.html').read_text()
 for app_id, app in apps.items():
+    if app.get('platform') == 'web':
+        continue
     candidates = []
     for release in releases:
         match = re.fullmatch(re.escape(app_id) + r'/v(\d+)\.(\d+)\.(\d+)', release['tag_name'])

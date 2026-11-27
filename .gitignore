@@ -14,3 +14,7 @@ bin/
 obj/
 .vs/
 *.pfx
+web/public/
+web/.lyn/
+web/node_modules/
+web/.wrangler/

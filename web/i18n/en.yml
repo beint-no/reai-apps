@@ -1,0 +1,41 @@
+skip_to_content: Skip to content
+open_web_app: Open web app
+download_mac: Download for Mac
+download_win_x64: Windows x64
+download_win_arm64: Windows ARM64
+release_notes: "Version %s · Release notes"
+unsigned_windows_note: Unsigned Windows ZIP. Confirm SmartScreen before running.
+source_and_setup: Setup and source
+windows_source: Windows source
+all_apps: All apps
+maintained: Maintained
+experimental: Experimental
+example: Example
+web_badge: Web app
+desktop_badge: Desktop app
+industry_label: Industry
+learn_more: Details and setup
+home_eyebrow: OPEN-SOURCE REAI PLATFORM
+home_cta_primary: Try Hybel web app
+home_cta_secondary: Explore UI lab
+home_web_heading: Web apps
+home_web_intro: Browser-based bridges and experimental tools hosted on apps.reai.no with zero local install.
+home_maintained_heading: Maintained desktop apps
+home_maintained_intro: Native Mac and Windows apps in daily production use.
+home_examples_heading: Example desktop apps
+home_examples_intro: Working open-source references on the same ReAI Public API foundation.
+home_industries_heading: Browse by industry
+home_industries_intro: One canonical open-source app per external system, grouped by workflow and industry.
+security_heading: Security and architecture
+security_body: Web apps authenticate through a same-origin Cloudflare Worker proxy using encrypted HttpOnly cookies, so ReAI tokens never touch browser storage. Native apps store credentials in macOS Keychain or Windows Credential Locker.
+manage_tokens: Revoke access in your ReAI profile
+contribute_heading: Missing an integration?
+contribute_body: Open a pull request or propose a canonical integration in the monorepo.
+suggest_app: Suggest an app
+footer_license: Open source · MIT license
+footer_source: Source code
+footer_api: Public API
+footer_issues: Issues
+not_found_heading: Page not found
+not_found_body: The page you requested does not exist on apps.reai.no.
+back_home: Back to ReAI Apps

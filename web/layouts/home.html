@@ -1,0 +1,73 @@
+{{ define "main" }}
+  {{ $webSection := site.GetPage "/web-apps/" }}
+  {{ $desktopSection := site.GetPage "/desktop/" }}
+  {{ $industriesSection := site.GetPage "/industries/" }}
+  <section class="hero wrap">
+    <div class="eyebrow"><span class="status-dot"></span>{{ T "home_eyebrow" }}</div>
+    <h1>{{ .Title }}</h1>
+    <p class="lead">{{ .Summary }}</p>
+    <div class="hero-actions">
+      <a class="button primary" href="/app/hybel/">{{ T "home_cta_primary" }} →</a>
+      <a class="button secondary" href="/app/lab/">{{ T "home_cta_secondary" }} →</a>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="section-head">
+      <h2>{{ T "home_web_heading" }}</h2>
+      <p>{{ T "home_web_intro" }}</p>
+    </div>
+    <div class="card-grid">
+      {{ range $webSection.Pages }}{{ partial "app-card" (dict "page" . "level" "h3") }}{{ end }}
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="section-head">
+      <h2>{{ T "home_industries_heading" }}</h2>
+      <p>{{ T "home_industries_intro" }}</p>
+    </div>
+    <div class="industry-grid">
+      {{ range $industriesSection.Pages }}
+        <a class="industry-card" href="{{ .RelPermalink }}">
+          <h3>{{ .Title }}</h3>
+          <p>{{ .Summary }}</p>
+        </a>
+      {{ end }}
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="section-head">
+      <h2>{{ T "home_maintained_heading" }}</h2>
+      <p>{{ T "home_maintained_intro" }}</p>
+    </div>
+    <div class="card-grid">
+      {{ range where $desktopSection.Pages "Params.status" "maintained" }}{{ partial "app-card" (dict "page" . "level" "h3") }}{{ end }}
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="section-head">
+      <h2>{{ T "home_examples_heading" }}</h2>
+      <p>{{ T "home_examples_intro" }}</p>
+    </div>
+    <div class="card-grid">
+      {{ range where $desktopSection.Pages "Params.status" "example" }}{{ partial "app-card" (dict "page" . "level" "h3") }}{{ end }}
+    </div>
+  </section>
+
+  <section class="note-band wrap">
+    <h2>{{ T "security_heading" }}</h2>
+    <p>{{ T "security_body" }}</p>
+    <a class="text-link" href="{{ site.Params.profileTokensUrl }}">{{ T "manage_tokens" }} ↗</a>
+  </section>
+
+  <section class="contribute wrap">
+    <div>
+      <h2>{{ T "contribute_heading" }}</h2>
+      <p>{{ T "contribute_body" }}</p>
+    </div>
+    <a class="button secondary" href="{{ site.Params.suggestUrl }}">{{ T "suggest_app" }} ↗</a>
+  </section>
+{{ end }}

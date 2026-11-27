@@ -1,0 +1,69 @@
+baseURL: https://apps.reai.no/
+title: ReAI Apps
+endpoints:
+  - /app/hybel/
+  - /app/lab/
+  - /app/auth/session
+  - /app/auth/device/start
+  - /app/auth/device/poll
+  - /app/auth/token
+  - /app/auth/company
+  - /app/auth/logout
+  - /app/hybel/sample
+  - /app/hybel/parse
+  - /app/hybel/validate
+  - /app/hybel/voucher
+  - /app/lab/ping
+languages:
+  - code: en
+    locale: en-US
+    label: English
+    menus:
+      main:
+        - name: Industries
+          pageRef: /industries/
+          weight: 1
+        - name: Web apps
+          pageRef: /web-apps/
+          weight: 2
+        - name: Desktop apps
+          pageRef: /desktop/
+          weight: 3
+        - name: UI lab
+          url: /app/lab/
+          weight: 4
+  - code: nb
+    locale: nb-NO
+    label: Norsk
+    menus:
+      main:
+        - name: Bransjer
+          pageRef: /industries/
+          weight: 1
+        - name: Nettapper
+          pageRef: /web-apps/
+          weight: 2
+        - name: Skrivebordsapper
+          pageRef: /desktop/
+          weight: 3
+        - name: UI-lab
+          url: /app/lab/
+          weight: 4
+pageParams:
+  eyebrow: string
+  industry: string
+  appId: string
+  windowsAppId: string
+  webAppUrl: string
+  icon: string
+  status: string
+  sourcePath: string
+  windowsSourcePath: string
+  highlights: list
+params:
+  githubUrl: https://github.com/beint-no/reai-apps
+  apiDocsUrl: https://app.reai.no/openapi/public/ui
+  reaiUrl: https://reai.no
+  suggestUrl: https://github.com/beint-no/reai-apps/issues/new?template=app-idea.yml
+  issuesUrl: https://github.com/beint-no/reai-apps/issues
+  profileTokensUrl: https://app.reai.no/user/profile#user-access-tokens
