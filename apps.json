@@ -15,30 +15,6 @@
     "icon": "make-icon.swift",
     "asset": "ReAI-Finder-Vault-Apple-Silicon.dmg"
   },
-  "import": {
-    "name": "ReAI Import",
-    "path": "apple/import",
-    "executable": "ReAIImport",
-    "bundle_id": "no.reai.import",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Import-Apple-Silicon.dmg"
-  },
-  "stripe": {
-    "name": "ReAI Stripe Import",
-    "path": "apple/stripe",
-    "executable": "ReAIStripeImport",
-    "bundle_id": "no.reai.stripeimport",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Stripe-Import-Apple-Silicon.dmg"
-  },
-  "import-windows": {
-    "name": "ReAI Import for Windows",
-    "platform": "windows",
-    "path": "windows/import",
-    "executable": "ReAI.Import.exe",
-    "asset": "ReAI-Import-Windows-x64.zip",
-    "arm64_asset": "ReAI-Import-Windows-ARM64.zip"
-  },
   "time-tracker-windows": {
     "platform": "windows",
     "name": "ReAI Time Tracker for Windows",
@@ -46,38 +22,6 @@
     "executable": "ReAI.TimeTracker.exe",
     "asset": "ReAI-Time-Tracker-Windows-x64.zip",
     "arm64_asset": "ReAI-Time-Tracker-Windows-ARM64.zip"
-  },
-  "vipps": {
-    "name": "ReAI Vipps Reconcile",
-    "path": "apple/vipps",
-    "executable": "ReAIVippsReconcile",
-    "bundle_id": "no.reai.vippsreconcile",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Vipps-Reconcile-Apple-Silicon.dmg"
-  },
-  "klarna": {
-    "name": "ReAI Klarna Reconcile",
-    "path": "apple/klarna",
-    "executable": "ReAIKlarnaReconcile",
-    "bundle_id": "no.reai.klarnareconcile",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Klarna-Reconcile-Apple-Silicon.dmg"
-  },
-  "zettle": {
-    "name": "ReAI Zettle Reconcile",
-    "path": "apple/zettle",
-    "executable": "ReAIZettleReconcile",
-    "bundle_id": "no.reai.zettlereconcile",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Zettle-Reconcile-Apple-Silicon.dmg"
-  },
-  "dintero": {
-    "name": "ReAI Dintero Fees",
-    "path": "apple/dintero",
-    "executable": "ReAIDinteroFees",
-    "bundle_id": "no.reai.dinterofees",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Dintero-Fees-Apple-Silicon.dmg"
   },
   "shipping": {
     "name": "ReAI Shipping",
@@ -98,14 +42,6 @@
     "arm64_asset": "ReAI-Shipping-Windows-ARM64.zip",
     "updates": true
   },
-  "hybel": {
-    "name": "ReAI Hybel Journal",
-    "path": "apple/hybel",
-    "executable": "ReAIHybel",
-    "bundle_id": "no.reai.hybeljournal",
-    "icon": "make-icon.swift",
-    "asset": "ReAI-Hybel-Journal-Apple-Silicon.dmg"
-  },
   "product-labels": {
     "name": "ReAI Product Labels",
     "path": "apple/product-labels",
@@ -116,12 +52,61 @@
     "sparkle": true,
     "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
   },
+  "close-check": {
+    "name": "ReAI Month-End Close Checker",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/close-check.js",
+    "route": "/app/close-check/"
+  },
   "hybel-web": {
-    "name": "ReAI Hybel Journal (Web)",
+    "name": "ReAI Hybel Journal",
     "platform": "web",
     "industry": "real-estate",
     "path": "web/worker/apps/hybel.js",
     "route": "/app/hybel/"
+  },
+  "import-web": {
+    "name": "ReAI Spreadsheet Import",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/import.js",
+    "route": "/app/import/"
+  },
+  "stripe-web": {
+    "name": "ReAI Stripe Import",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/stripe.js",
+    "route": "/app/stripe/"
+  },
+  "vipps-web": {
+    "name": "ReAI Vipps Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/vipps/"
+  },
+  "klarna-web": {
+    "name": "ReAI Klarna Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/klarna/"
+  },
+  "zettle-web": {
+    "name": "ReAI Zettle Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/zettle/"
+  },
+  "dintero-web": {
+    "name": "ReAI Dintero Fees",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/dintero/"
   },
   "ui-lab": {
     "name": "ReAI UI Component Lab",

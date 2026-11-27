@@ -102,6 +102,51 @@
     }
   }
 
+  .nav-pill {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--reai-line);
+    background: var(--reai-surface);
+    color: var(--reai-ink);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--reai-green);
+    }
+  }
+
+  .app-switcher {
+    width: min(280px, calc(100vw - 32px));
+    padding: 8px;
+    border: 1px solid var(--reai-line);
+    border-radius: 14px;
+    background: var(--reai-surface);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.14);
+
+    &:popover-open {
+      display: grid;
+      gap: 2px;
+    }
+
+    & a {
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--reai-ink);
+      font-size: 14px;
+
+      &:hover,
+      &[data-current="true"] {
+        background: color-mix(in oklch, var(--reai-green) 10%, white);
+        color: var(--reai-green);
+        font-weight: 600;
+      }
+    }
+  }
+
   .app-main {
     padding-block: 36px 64px;
   }

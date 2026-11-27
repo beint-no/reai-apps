@@ -121,7 +121,7 @@ let package = Package(name: "ReAIProfile", platforms: [.macOS(.v15)],
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('app', choices=['labels', 'import'])
+    parser.add_argument('app', choices=['labels'])
     parser.add_argument('--output', type=Path, required=True, help='New private directory outside the checkout')
     parser.add_argument('--template', choices=['SwiftUI', 'Time Profiler', 'Allocations'], default='SwiftUI')
     args = parser.parse_args()

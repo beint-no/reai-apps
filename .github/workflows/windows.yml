@@ -8,7 +8,7 @@ on:
         description: Windows app to release (unsigned, no signing fee)
         required: true
         type: choice
-        options: [import-windows, shipping-windows, time-tracker-windows]
+        options: [shipping-windows, time-tracker-windows]
 permissions:
   contents: read
 concurrency:
@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.apps.outputs.matrix }}
+      has_apps: ${{ steps.apps.outputs.has_apps }}
       app: ${{ steps.apps.outputs.app }}
       version: ${{ steps.apps.outputs.version }}
     steps:
@@ -33,6 +34,7 @@ jobs:
         run: python3 tools/windows/matrix.py
   build:
     needs: prepare
+    if: needs.prepare.outputs.has_apps == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}

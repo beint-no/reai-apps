@@ -1,28 +1,20 @@
 ---
 title: Hybel Journal
-seoTitle: Hybel Journal — Web and Mac bridge for ReAI
-description: Preview, validate and book a monthly Hybel CSV journal into ReAI as a balanced review voucher directly from your browser or Mac.
+seoTitle: Hybel Journal — Monthly CSV bridge for ReAI accounting
+description: Preview, validate and book a monthly Hybel CSV journal into ReAI as a balanced review voucher directly from your browser.
 summary: Validate a monthly Hybel CSV journal in the browser and post a balanced review voucher to ReAI.
 industry: real-estate
 status: experimental
-icon: icons/hybel.avif
 webAppUrl: /app/hybel/
-appId: hybel
-sourcePath: web/apps/hybel
+sourcePath: web/worker/apps/hybel.js
 highlights:
-  - "Instant client-side CSV parsing, auto column mapping and balance validation"
-  - "Includes a synthetic sample CSV so anyone can test without connecting an account"
-  - "Validates company org number, chart of accounts, bank accounts and existing vouchers via the ReAI API"
-  - "Flags the resulting voucher for accountant review with a SHA-256 content trail"
+  - "CSV parsing, Norwegian/English auto column mapping and per-reference balance checks"
+  - "Built-in synthetic sample CSV to test the full flow without an account"
+  - "Validates org number, chart of accounts, active NOK bank accounts and existing vouchers via ReAI API"
+  - "Creates one balanced review voucher with SHA-256 trail"
+icon: icons/hybel.avif
 ---
 
-## How it works
+## Browser-first workflow
 
-1. Export one calendar month's **Bilagsjournal** CSV from Hybel (or load the built-in synthetic sample).
-2. Map the columns once in the browser—non-sensitive header preferences stay in local storage.
-3. Connect to ReAI through the same-origin Worker proxy, verify the company organization number, and validate every account and balance group against live ReAI data.
-4. Confirm the checklist and create a single balanced review voucher in ReAI, then attach the original Hybel PDF/CSV reports before clearing review.
-
-## Boundaries
-
-Hybel currently documents CSV exports and provider-managed integrations rather than a self-service API. This app operates strictly on a monthly NOK general-ledger export with VAT code `0` and leaves tenant subledgers in Hybel.
+Replaces the earlier Mac-only Hybel prototype so accountants and landlords on any OS can validate a monthly NOK Hybel general-ledger CSV (VAT code `0`) and create a review-flagged ReAI voucher with zero install.

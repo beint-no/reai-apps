@@ -1,6 +1,10 @@
 // @ts-check
+import { handleCloseCheck } from './worker/apps/close-check.js';
 import { handleHybel } from './worker/apps/hybel.js';
+import { handleImport } from './worker/apps/import.js';
 import { handleLab } from './worker/apps/lab.js';
+import { handleReconcile } from './worker/apps/reconcile.js';
+import { handleStripe } from './worker/apps/stripe.js';
 import { handleAuth } from './worker/lib/auth.js';
 import { HttpError, errorResponse, withAppHeaders } from './worker/lib/http.js';
 
@@ -19,6 +23,27 @@ export default {
       }
       if (pathname === '/app/hybel' || pathname.startsWith('/app/hybel/')) {
         return await handleHybel(request, env);
+      }
+      if (pathname === '/app/import' || pathname.startsWith('/app/import/')) {
+        return await handleImport(request, env);
+      }
+      if (pathname === '/app/stripe' || pathname.startsWith('/app/stripe/')) {
+        return await handleStripe(request, env);
+      }
+      if (pathname === '/app/vipps' || pathname.startsWith('/app/vipps/')) {
+        return await handleReconcile(request, env, 'vipps');
+      }
+      if (pathname === '/app/klarna' || pathname.startsWith('/app/klarna/')) {
+        return await handleReconcile(request, env, 'klarna');
+      }
+      if (pathname === '/app/zettle' || pathname.startsWith('/app/zettle/')) {
+        return await handleReconcile(request, env, 'zettle');
+      }
+      if (pathname === '/app/dintero' || pathname.startsWith('/app/dintero/')) {
+        return await handleReconcile(request, env, 'dintero');
+      }
+      if (pathname === '/app/close-check' || pathname.startsWith('/app/close-check/')) {
+        return await handleCloseCheck(request, env);
       }
       if (pathname === '/app/lab' || pathname.startsWith('/app/lab/')) {
         return await handleLab(request);

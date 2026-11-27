@@ -11,11 +11,11 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } 
 export async function handleLab(request) {
   const { pathname } = new URL(request.url);
 
-  if (pathname === '/app/lab' && request.method === 'GET') {
+  if (pathname === '/app/lab' && (request.method === 'GET' || request.method === 'HEAD')) {
     return Response.redirect(new URL('/app/lab/', request.url), 301);
   }
 
-  if (pathname === '/app/lab/' && request.method === 'GET') {
+  if (pathname === '/app/lab/' && (request.method === 'GET' || request.method === 'HEAD')) {
     const body = html`
       <section class="app-intro">
         <p class="eyebrow">EXPERIMENTAL · ZERO FRAMEWORKS</p>
