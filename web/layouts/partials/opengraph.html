@@ -1,0 +1,6 @@
+<meta property="og:title" content="{{ .SeoTitle }}">
+<meta property="og:description" content="{{ .Description }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:type" content="{{ cond .IsHome "website" "article" }}">
+<meta property="og:image" content="{{ absURL "/og-image.png" }}">
+<meta name="twitter:card" content="summary_large_image">

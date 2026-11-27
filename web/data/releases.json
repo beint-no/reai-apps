@@ -1,0 +1,75 @@
+{
+  "time-tracker": {
+    "version": "0.3.4",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/time-tracker/v0.3.4/ReAI-Time-Tracker-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/time-tracker/v0.3.4"
+  },
+  "finder-vault": {
+    "version": "0.2.2",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/finder-vault/v0.2.2/ReAI-Finder-Vault-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/finder-vault/v0.2.2"
+  },
+  "import": {
+    "version": "0.1.0",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/import/v0.1.0/ReAI-Import-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/import/v0.1.0"
+  },
+  "stripe": {
+    "version": "0.1.2",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/stripe/v0.1.2/ReAI-Stripe-Import-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/stripe/v0.1.2"
+  },
+  "import-windows": {
+    "version": "0.1.0",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/import-windows/v0.1.0/ReAI-Import-Windows-x64.zip",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/import-windows/v0.1.0",
+    "arm64Url": "https://github.com/beint-no/reai-apps/releases/download/import-windows/v0.1.0/ReAI-Import-Windows-ARM64.zip"
+  },
+  "time-tracker-windows": {
+    "version": "0.1.1",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/time-tracker-windows/v0.1.1/ReAI-Time-Tracker-Windows-x64.zip",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/time-tracker-windows/v0.1.1",
+    "arm64Url": "https://github.com/beint-no/reai-apps/releases/download/time-tracker-windows/v0.1.1/ReAI-Time-Tracker-Windows-ARM64.zip"
+  },
+  "vipps": {
+    "version": "0.1.1",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/vipps/v0.1.1/ReAI-Vipps-Reconcile-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/vipps/v0.1.1"
+  },
+  "klarna": {
+    "version": "0.1.1",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/klarna/v0.1.1/ReAI-Klarna-Reconcile-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/klarna/v0.1.1"
+  },
+  "zettle": {
+    "version": "0.1.1",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/zettle/v0.1.1/ReAI-Zettle-Reconcile-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/zettle/v0.1.1"
+  },
+  "dintero": {
+    "version": "0.1.2",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/dintero/v0.1.2/ReAI-Dintero-Fees-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/dintero/v0.1.2"
+  },
+  "shipping": {
+    "version": "0.1.17",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/shipping/v0.1.17/ReAI-Shipping-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/shipping/v0.1.17"
+  },
+  "shipping-windows": {
+    "version": "0.1.3",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/shipping-windows/v0.1.3/ReAI-Shipping-Windows-x64.zip",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/shipping-windows/v0.1.3",
+    "arm64Url": "https://github.com/beint-no/reai-apps/releases/download/shipping-windows/v0.1.3/ReAI-Shipping-Windows-ARM64.zip"
+  },
+  "hybel": {
+    "version": "0.1.2",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/hybel/v0.1.2/ReAI-Hybel-Journal-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/hybel/v0.1.2"
+  },
+  "product-labels": {
+    "version": "0.1.7",
+    "url": "https://github.com/beint-no/reai-apps/releases/download/product-labels/v0.1.7/ReAI-Product-Labels-Apple-Silicon.dmg",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/product-labels/v0.1.7"
+  }
+}

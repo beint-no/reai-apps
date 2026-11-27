@@ -1,0 +1,37 @@
+name: Web platform
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'tools/web/**'
+      - 'apps.json'
+      - '.github/workflows/web.yml'
+permissions:
+  contents: read
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: stable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install lyn
+        run: go install github.com/beint-no/lyn/cmd/lyn@latest
+      - name: Install dev type-checking tools
+        working-directory: web
+        run: npm ci
+      - name: Build static site and type-check JSDoc Worker
+        run: python3 tools/web/build.py --offline

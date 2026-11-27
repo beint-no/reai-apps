@@ -115,5 +115,19 @@
     "asset": "ReAI-Product-Labels-Apple-Silicon.dmg",
     "sparkle": true,
     "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
+  },
+  "hybel-web": {
+    "name": "ReAI Hybel Journal (Web)",
+    "platform": "web",
+    "industry": "real-estate",
+    "path": "web/worker/apps/hybel.js",
+    "route": "/app/hybel/"
+  },
+  "ui-lab": {
+    "name": "ReAI UI Component Lab",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/lab.js",
+    "route": "/app/lab/"
   }
 }

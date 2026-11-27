@@ -1,0 +1,11 @@
+:root {
+  color-scheme: light;
+  --reai-bg: #f5f6f2;
+  --reai-surface: #ffffff;
+  --reai-ink: #182723;
+  --reai-muted: #52615a;
+  --reai-green: #006c51;
+  --reai-green-hover: #00543e;
+  --reai-line: #dce1d9;
+  --reai-radius: 16px;
+}

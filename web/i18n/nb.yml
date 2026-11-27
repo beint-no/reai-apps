@@ -1,0 +1,41 @@
+skip_to_content: Hopp til innhold
+open_web_app: Åpne nettapp
+download_mac: Last ned for Mac
+download_win_x64: Windows x64
+download_win_arm64: Windows ARM64
+release_notes: "Versjon %s · Endringslogg"
+unsigned_windows_note: Usignert Windows ZIP. Bekreft i SmartScreen før kjøring.
+source_and_setup: Oppsett og kildekode
+windows_source: Windows-kildekode
+all_apps: Alle apper
+maintained: Vedlikeholdt
+experimental: Eksperimentell
+example: Eksempel
+web_badge: Nettapp
+desktop_badge: Skrivebordsapp
+industry_label: Bransje
+learn_more: Detaljer og oppsett
+home_eyebrow: ÅPEN KILDEKODE FOR REAI
+home_cta_primary: Prøv Hybel nettapp
+home_cta_secondary: Utforsk UI-lab
+home_web_heading: Nettapper
+home_web_intro: Nettleserbaserte broer og verktøy på apps.reai.no uten lokal installasjon.
+home_maintained_heading: Vedlikeholdte skrivebordsapper
+home_maintained_intro: Native Mac- og Windows-apper i daglig drift.
+home_examples_heading: Eksempelapper for skrivebord
+home_examples_intro: Fungerende referanseapper bygget på det samme åpne ReAI-API-et.
+home_industries_heading: Utforsk etter bransje
+home_industries_intro: Én kanonisk app med åpen kildekode per eksternt system, gruppert etter arbeidsflyt og bransje.
+security_heading: Sikkerhet og arkitektur
+security_body: Nettapper autentiserer via samme opprinnelse i Cloudflare Worker med krypterte HttpOnly-informasjonskapsler, slik at ReAI-nøkler aldri lagres i nettleseren. Skrivebordsapper lagrer nøkler i macOS Keychain eller Windows Credential Locker.
+manage_tokens: Tilbakekall tilgang i ReAI-profilen din
+contribute_heading: Savner du en integrasjon?
+contribute_body: Send en pull request eller foreslå én kanonisk integrasjon i monorepoet.
+suggest_app: Foreslå en app
+footer_license: Åpen kildekode · MIT-lisens
+footer_source: Kildekode
+footer_api: Offentlig API
+footer_issues: Feilmeldinger
+not_found_heading: Siden ble ikke funnet
+not_found_body: Siden du ba om finnes ikke på apps.reai.no.
+back_home: Tilbake til ReAI Apps

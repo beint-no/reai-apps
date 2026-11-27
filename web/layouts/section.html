@@ -1,0 +1,24 @@
+{{ define "main" }}
+  <section class="page-head wrap">
+    {{ with .Params.eyebrow }}<div class="eyebrow">{{ . }}</div>{{ end }}
+    <h1>{{ .Title }}</h1>
+    <p class="lead">{{ .Summary }}</p>
+  </section>
+  {{ with .Content }}<section class="prose wrap">{{ . }}</section>{{ end }}
+  {{ $pages := .Pages }}
+  {{ if $pages }}
+    <section class="section wrap">
+      <div class="card-grid">
+        {{ range $pages }}{{ partial "app-card" (dict "page" . "level" "h2") }}{{ end }}
+      </div>
+    </section>
+  {{ end }}
+  {{ with .Params.industry }}
+    {{ $ind := . }}
+    <section class="section wrap">
+      <div class="card-grid">
+        {{ range where site.RegularPages "Params.industry" $ind }}{{ partial "app-card" (dict "page" . "level" "h2") }}{{ end }}
+      </div>
+    </section>
+  {{ end }}
+{{ end }}

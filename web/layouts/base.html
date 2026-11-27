@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="{{ site.Language.Locale }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="{{ .Description }}">
+  {{ if .NoIndex }}<meta name="robots" content="noindex">{{ end }}
+  <title>{{ block "title" . }}{{ .SeoTitle }}{{ end }}</title>
+  {{ if not .NoIndex }}<link rel="canonical" href="{{ .Permalink }}">{{ range .AllTranslations }}<link rel="alternate" hreflang="{{ .Language.Code }}" href="{{ .Permalink }}">{{ end }}{{ end }}
+  {{ with asset "site.css" }}<link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ .Integrity }}">{{ end }}
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  {{ if not .NoIndex }}{{ partial "opengraph" . }}{{ partial "schema" . }}{{ end }}
+</head>
+<body>
+  <a class="skip-link" href="#content">{{ T "skip_to_content" }}</a>
+  {{ partial "header" . }}
+  <main id="content">{{ block "main" . }}{{ end }}</main>
+  {{ partial "footer" . }}
+  <script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/app/*"]}},{"not":{"selector_matches":"[download], [target=_blank]"}}]},"eagerness":"moderate"}]}</script>
+</body>
+</html>
