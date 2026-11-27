@@ -376,11 +376,11 @@ function readColumnMap(form, headers) {
 export async function handleHybel(request, env) {
   const { pathname } = new URL(request.url);
 
-  if (pathname === '/app/hybel' && request.method === 'GET') {
+  if (pathname === '/app/hybel' && (request.method === 'GET' || request.method === 'HEAD')) {
     return Response.redirect(new URL('/app/hybel/', request.url), 301);
   }
 
-  if (pathname === '/app/hybel/' && request.method === 'GET') {
+  if (pathname === '/app/hybel/' && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
     const body = html`
       <section class="app-intro">

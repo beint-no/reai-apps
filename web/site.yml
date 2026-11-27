@@ -2,6 +2,13 @@ baseURL: https://apps.reai.no/
 title: ReAI Apps
 endpoints:
   - /app/hybel/
+  - /app/import/
+  - /app/stripe/
+  - /app/vipps/
+  - /app/klarna/
+  - /app/zettle/
+  - /app/dintero/
+  - /app/close-check/
   - /app/lab/
   - /app/auth/session
   - /app/auth/device/start
@@ -13,6 +20,30 @@ endpoints:
   - /app/hybel/parse
   - /app/hybel/validate
   - /app/hybel/voucher
+  - /app/import/template
+  - /app/import/sample
+  - /app/import/preview
+  - /app/import/run
+  - /app/import/export
+  - /app/stripe/sample
+  - /app/stripe/preview
+  - /app/stripe/import-invoice
+  - /app/stripe/stage-subscription
+  - /app/vipps/sample
+  - /app/vipps/review
+  - /app/vipps/export
+  - /app/klarna/sample
+  - /app/klarna/review
+  - /app/klarna/export
+  - /app/zettle/sample
+  - /app/zettle/review
+  - /app/zettle/export
+  - /app/dintero/sample
+  - /app/dintero/review
+  - /app/dintero/export
+  - /app/dintero/voucher
+  - /app/close-check/sample
+  - /app/close-check/run
   - /app/lab/ping
 languages:
   - code: en

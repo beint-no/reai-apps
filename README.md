@@ -10,12 +10,19 @@ Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`
 
 | App | Route | What it does |
 | --- | --- | --- |
-| [Hybel Journal (Web)](web/worker/apps/hybel.js) | `/app/hybel/` | Preview a monthly Hybel CSV journal (or synthetic sample), validate accounts against ReAI and create a review voucher. |
+| [Month-End Close Checker](web/worker/apps/close-check.js) | `/app/close-check/` | Read-only closing checklist across period locks, pending bank feeds, voucher review queues and supplier tasks. |
+| [Hybel Journal](web/worker/apps/hybel.js) | `/app/hybel/` | Preview a monthly Hybel CSV journal (or synthetic sample), validate accounts against ReAI and create a review voucher. |
+| [Spreadsheet Import](web/worker/apps/import.js) | `/app/import/` | Import products, customers and suppliers from CSV/TSV with header auto-matching, duplicate checks and result export. |
+| [Stripe Import](web/worker/apps/stripe.js) | `/app/stripe/` | Import eligible paid tax-free Stripe invoices and stage simple subscriptions with automatic billing off. |
+| [Vipps Reconcile](web/worker/apps/reconcile.js) | `/app/vipps/` | Compare Vipps scheduled payouts against pending ReAI bank transactions and export CSV. |
+| [Klarna Reconcile](web/worker/apps/reconcile.js) | `/app/klarna/` | Compare Klarna settlement payouts against pending ReAI bank transactions and export CSV. |
+| [Zettle Reconcile](web/worker/apps/reconcile.js) | `/app/zettle/` | Compare Zettle liquid-account payouts against pending ReAI bank transactions and export CSV. |
+| [Dintero Fees](web/worker/apps/reconcile.js) | `/app/dintero/` | Review withheld Dintero settlement fees, export CSV and optionally create a monthly review voucher. |
 | [UI Component Lab](web/worker/apps/lab.js) | `/app/lab/` | Interactive playground for zero-framework Declarative Shadow DOM `<reai-*>` components and HTMX 4 swaps. |
 
-### Maintained
+### Maintained native apps
 
-In daily use and actively developed.
+In daily use and actively developed (require direct OS printer access).
 
 | App | What it does |
 | --- | --- |
@@ -23,23 +30,15 @@ In daily use and actively developed.
 | [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
 | [Shipping for Windows](windows/shipping) | Native Windows app to ship orders and print carrier labels. Unsigned ZIP download. |
 
-### Example apps
+### Example native apps
 
-Working apps built on the same foundation. They are kept building, but not actively developed.
+OS-integrated reference apps kept building on the same foundation. Non-native apps live on `apps.reai.no` to avoid desktop duplication.
 
 | App | What it does |
 | --- | --- |
-| [Hybel Journal for Mac](apple/hybel) | Preview a monthly Hybel CSV journal and create a ReAI voucher for accountant review. Experimental; no direct Hybel API sync. |
-| [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
-| [Import for Mac](apple/import) | Import products, customers and suppliers from Excel or CSV. |
-| [Import for Windows](windows/import) | Native Windows 11 import app. Unsigned ZIP download. |
-| [Finder Vault](apple/finder-vault) | Upload documents and watch folders for new files. |
-| [Stripe Import for Mac](apple/stripe) | Manually import simple paid Stripe invoices and stage subscriptions. |
-| [Vipps Reconcile for Mac](apple/vipps) | Review Vipps payouts against ReAI bank transactions. |
-| [Klarna Reconcile for Mac](apple/klarna) | Review Klarna payouts against ReAI bank transactions. |
-| [Zettle Reconcile for Mac](apple/zettle) | Review Zettle payouts against ReAI bank transactions. |
-| [Dintero Fees for Mac](apple/dintero) | Review withheld payout fees and create a monthly ReAI voucher for review. |
+| [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
+| [Finder Vault](apple/finder-vault) | Upload documents and watch local Finder folders for new files. |
 
 ## Install
 

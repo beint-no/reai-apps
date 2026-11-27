@@ -125,10 +125,21 @@ export function appShell(props) {
   <header class="app-header wrap">
     <a class="brand" href="/"><span class="brand-mark">r</span>ReAI <span class="brand-suffix">Apps</span></a>
     <nav class="app-nav">
-      <a href="/app/hybel/"${props.activePath === '/app/hybel/' ? html` data-current="true"` : ''}>Hybel Journal</a>
-      <a href="/app/lab/"${props.activePath === '/app/lab/' ? html` data-current="true"` : ''}>UI Lab</a>
-      <a href="/">Catalog</a>
+      <button type="button" class="nav-pill" popovertarget="app-switcher">Switch app ▾</button>
+      <a href="/web-apps/">All web apps</a>
+      <a href="/desktop/">Desktop</a>
       <a href="https://github.com/beint-no/reai-apps">GitHub ↗</a>
+    </nav>
+    <nav id="app-switcher" popover class="app-switcher">
+      <a href="/app/close-check/"${props.activePath === '/app/close-check/' ? html` data-current="true"` : ''}>Month-End Close Checker</a>
+      <a href="/app/hybel/"${props.activePath === '/app/hybel/' ? html` data-current="true"` : ''}>Hybel Journal</a>
+      <a href="/app/import/"${props.activePath === '/app/import/' ? html` data-current="true"` : ''}>Spreadsheet Import</a>
+      <a href="/app/stripe/"${props.activePath === '/app/stripe/' ? html` data-current="true"` : ''}>Stripe Import</a>
+      <a href="/app/vipps/"${props.activePath === '/app/vipps/' ? html` data-current="true"` : ''}>Vipps Reconcile</a>
+      <a href="/app/klarna/"${props.activePath === '/app/klarna/' ? html` data-current="true"` : ''}>Klarna Reconcile</a>
+      <a href="/app/zettle/"${props.activePath === '/app/zettle/' ? html` data-current="true"` : ''}>Zettle Reconcile</a>
+      <a href="/app/dintero/"${props.activePath === '/app/dintero/' ? html` data-current="true"` : ''}>Dintero Fees</a>
+      <a href="/app/lab/"${props.activePath === '/app/lab/' ? html` data-current="true"` : ''}>UI Component Lab</a>
     </nav>
   </header>
   <main class="app-main wrap">${props.body}</main>
