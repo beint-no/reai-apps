@@ -47,3 +47,16 @@ class ReaiDropzone extends HTMLElement {
 if (!customElements.get('reai-dropzone')) {
   customElements.define('reai-dropzone', ReaiDropzone);
 }
+
+const modernPlatform =
+  'shadowRootMode' in HTMLTemplateElement.prototype &&
+  'popover' in HTMLElement.prototype &&
+  typeof CSS !== 'undefined' &&
+  CSS.supports('color', 'color-mix(in oklch, red, blue)');
+
+if (!modernPlatform) {
+  const banner = document.getElementById('browser-update-notice');
+  if (banner) {
+    banner.hidden = false;
+  }
+}

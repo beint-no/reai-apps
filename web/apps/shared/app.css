@@ -1,6 +1,14 @@
+@view-transition {
+  navigation: auto;
+}
+
 @layer base, layout, components;
 
 @layer base {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -349,14 +357,38 @@
     }
   }
 
-  .native-popover {
-    max-width: 420px;
+  .browser-notice {
+    padding: 12px 16px;
+    background: #fdf4e1;
+    border-bottom: 1px solid #efd296;
+    color: #6c4500;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .native-popover,
+  .native-dialog {
+    max-width: 440px;
     padding: 22px;
     border: 1px solid var(--reai-line);
     border-radius: 16px;
     background: var(--reai-surface);
     color: var(--reai-ink);
     box-shadow: 0 24px 60px rgb(0 0 0 / 0.14);
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    transition: opacity 160ms ease, transform 160ms ease, overlay 160ms allow-discrete, display 160ms allow-discrete;
+
+    &:popover-open,
+    &[open] {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+
+      @starting-style {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+      }
+    }
 
     &::backdrop {
       background: rgb(24 39 35 / 0.28);
@@ -371,5 +403,11 @@
       margin: 0 0 14px;
       color: var(--reai-muted);
     }
+  }
+}
+
+@supports not ((selector(:has(*))) and (color: color-mix(in oklch, red, blue))) {
+  #browser-update-notice {
+    display: block !important;
   }
 }

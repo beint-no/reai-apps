@@ -119,6 +119,9 @@ export function appShell(props) {
   <script type="module" src="/app/shared/ui.js"></script>
 </head>
 <body>
+  <div id="browser-update-notice" class="browser-notice" hidden>
+    Your browser is outdated. Update to the latest Chrome, Safari, Edge, or Firefox to use ReAI Apps.
+  </div>
   <header class="app-header wrap">
     <a class="brand" href="/"><span class="brand-mark">r</span>ReAI <span class="brand-suffix">Apps</span></a>
     <nav class="app-nav">

@@ -1,5 +1,10 @@
+@view-transition {
+  navigation: auto;
+}
+
 :root {
   color-scheme: light;
+  interpolate-size: allow-keywords;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
   --bg: #f5f6f2;
   --surface: #ffffff;
@@ -200,6 +205,8 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
 }
 
 .industry-card {

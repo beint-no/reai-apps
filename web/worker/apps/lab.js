@@ -63,19 +63,25 @@ export async function handleLab(request) {
         })}
 
         ${reaiCard({
-          eyebrow: 'PLATFORM · POPOVER + HTMX 4',
-          title: 'Native HTML popover & live fragment swap',
+          eyebrow: 'PLATFORM · POPOVER + INVOKER COMMANDS + HTMX 4',
+          title: 'Zero-JS Popover, Dialog Invokers & HTMX swap',
           body: html`
             <div class="inline-row">
               <button type="button" class="button primary" hx-post="/app/lab/ping" hx-target="#lab-ping-result" hx-swap="innerHTML">Swap SSR fragment</button>
               <button type="button" class="button secondary" popovertarget="lab-popover">Open native popover</button>
+              <button type="button" class="button secondary" command="show-modal" commandfor="lab-dialog">Open modal dialog</button>
             </div>
             <div id="lab-ping-result" class="stack-sm"></div>
             <div id="lab-popover" popover class="native-popover">
               <h3>Native HTML Popover API</h3>
-              <p>Zero JavaScript needed for top-layer positioning, light-dismiss and Escape handling.</p>
+              <p>Zero JavaScript needed for top-layer positioning, <code>@starting-style</code> entry transitions, light-dismiss and Escape handling.</p>
               <button type="button" class="button secondary" popovertarget="lab-popover" popovertargetaction="hide">Close</button>
             </div>
+            <dialog id="lab-dialog" class="native-dialog">
+              <h3>Invoker Commands API</h3>
+              <p>Opened and closed purely with <code>command="show-modal"</code> and <code>commandfor="lab-dialog"</code> — zero JavaScript event listeners.</p>
+              <button type="button" class="button primary" command="close" commandfor="lab-dialog">Close dialog</button>
+            </dialog>
           `,
         })}
 

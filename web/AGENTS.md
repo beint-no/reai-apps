@@ -9,7 +9,7 @@ Single-origin, single-Worker web platform hosted on `apps.reai.no`.
 - Interactive apps are server-rendered with auto-escaping `html\`...\`` tagged templates (`worker/lib/html.js`), HTMX 4 (`apps/shared/vendor/htmx-4.0.0.min.js`) and zero-framework Declarative Shadow DOM Web Components (`worker/lib/ui.js`) to eliminate FOUC.
 - ReAI authentication runs strictly server-to-server inside `worker/lib/auth.js`. Access tokens are encrypted with AES-256-GCM inside an `HttpOnly; Secure; SameSite=Lax; Path=/app` cookie and never touch `localStorage` or browser JS.
 - Plain modern ESM JavaScript with strict JSDoc (`// @ts-check`, `tsconfig.json` `checkJs: true`, `strict: true`) — zero bundler and zero runtime npm dependencies.
-- Modern browser platform only: AVIF images, native CSS nesting, `@layer`, `color-mix()`, Popover API, Declarative Shadow DOM, Web Crypto and native ESM. Do not add polyfills or legacy fallbacks.
+- Modern browser platform only (Baseline Newly Available is encouraged whenever it simplifies or speeds up the site): AVIF images, `@view-transition`, `interpolate-size`, `@starting-style`, `content-visibility`, native CSS nesting, `@layer`, `color-mix()`, Popover API, Invoker Commands (`command`/`commandfor`), Declarative Shadow DOM, Web Crypto and native ESM. Never add polyfills or legacy fallbacks—outdated browsers receive a notice to update.
 
 ## Commands
 
