@@ -127,6 +127,7 @@ const APP_LINKS = [
   ['/app/hybel/', 'Hybel'],
   ['/app/fazile/', 'Fazile'],
   ['/app/timma/', 'Booking & Clinic'],
+  ['/app/recman/', 'RecMan Staffing'],
   ['/app/import/', 'CSV Import'],
   ['/app/export/', 'BI & Excel Export'],
 ];

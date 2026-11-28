@@ -77,6 +77,7 @@
   "pleo-web": { "name": "ReAI Pleo Expenses Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/cards.js", "route": "/app/pleo/" },
   "revolut-web": { "name": "ReAI Revolut & Wise Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/cards.js", "route": "/app/revolut/" },
   "timma-web": { "name": "ReAI Booking & Clinic Settlement", "platform": "web", "industry": "operations", "path": "web/worker/apps/billing.js", "route": "/app/timma/" },
+  "recman-web": { "name": "ReAI RecMan Accounting Bridge", "platform": "web", "industry": "operations", "path": "web/worker/apps/recman.js", "route": "/app/recman/" },
   "hybel-web": { "name": "ReAI Hybel Journal", "platform": "web", "industry": "real-estate", "path": "web/worker/apps/hybel.js", "route": "/app/hybel/" },
   "fazile-web": { "name": "ReAI Fazile Property Billing", "platform": "web", "industry": "real-estate", "path": "web/worker/apps/billing.js", "route": "/app/fazile/" },
   "import-web": { "name": "ReAI Spreadsheet Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/import.js", "route": "/app/import/" },

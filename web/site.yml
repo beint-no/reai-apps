@@ -30,6 +30,7 @@ endpoints:
   - /app/revolut/
   - /app/fazile/
   - /app/timma/
+  - /app/recman/
   - /app/lab/
   - /app/auth/session
   - /app/auth/device/start
@@ -136,6 +137,12 @@ endpoints:
   - /app/timma/sample
   - /app/timma/preview
   - /app/timma/book
+  - /app/recman/test
+  - /app/recman/sample
+  - /app/recman/scan-invoices
+  - /app/recman/book-invoice
+  - /app/recman/scan-payroll
+  - /app/recman/import-paycheck
   - /app/lab/ping
 languages:
   - code: en

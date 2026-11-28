@@ -20,7 +20,7 @@ export function reaiOrigin(env) {
  * @template T
  * @param {import('./types.d.ts').Env} env
  * @param {string} path
- * @param {{ token: string, tenantId?: number, method?: 'GET' | 'POST', query?: Record<string, string>, body?: unknown }} options
+ * @param {{ token: string, tenantId?: number, method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', query?: Record<string, string>, body?: unknown }} options
  * @returns {Promise<T>}
  */
 export async function reaiRequest(env, path, options) {
