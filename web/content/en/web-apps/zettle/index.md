@@ -5,7 +5,7 @@ description: "Compare PayPal Point of Sale payouts, formerly Zettle, against pen
 summary: "Match PayPal Point of Sale (Zettle) payouts against pending ReAI bank transactions and export a CSV report."
 industry: payments
 webAppUrl: /app/zettle/
-sourcePath: web/worker/apps/zettle.js
+sourcePath: web/worker/apps/zettle/
 highlights:
   - "Reads payouts through the Finance API with a READ:FINANCE API key"
   - "Matches payouts against ReAI bank transactions within 8 days"

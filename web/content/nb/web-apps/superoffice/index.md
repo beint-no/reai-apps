@@ -5,7 +5,7 @@ description: "Hent solgte salg fra SuperOffice CRM og legg dem inn som ordrer i 
 summary: "Hent salg med status Solgt fra SuperOffice og legg dem inn som ordrer i ReAI."
 industry: operations
 webAppUrl: /app/superoffice/
-sourcePath: web/worker/apps/superoffice.js
+sourcePath: web/worker/apps/superoffice/
 highlights:
   - "Leser solgte salg fra SuperOffice REST API"
   - "Finner kunden på organisasjonsnummer eller navn, ellers opprettes en bedriftskunde"

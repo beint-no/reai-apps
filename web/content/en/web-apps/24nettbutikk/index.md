@@ -5,7 +5,7 @@ description: "Fetch products and paid orders from the 24Nettbutikk API and move 
 summary: "Create missing products in ReAI and stage paid 24Nettbutikk orders as ReAI orders."
 industry: ecommerce-logistics
 webAppUrl: /app/24nettbutikk/
-sourcePath: web/worker/apps/24nettbutikk.js
+sourcePath: web/worker/apps/24nettbutikk/
 highlights:
   - "Reads products, paid orders and customers from the 24Nettbutikk API"
   - "Uses the VAT rate of each order line from the shop"

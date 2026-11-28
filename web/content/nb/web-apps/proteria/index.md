@@ -5,7 +5,7 @@ description: "Importer fakturarapporten fra Proteria Frakt og lag ordreutkast i 
 summary: "Les inn Fakturarapport fra Proteria som CSV, velg kolonner og lag ordreutkast i ReAI som du kontrollerer selv."
 industry: ecommerce-logistics
 webAppUrl: /app/proteria/
-sourcePath: web/worker/apps/proteria.js
+sourcePath: web/worker/apps/proteria/
 highlights:
   - "Leser Fakturarapport som CSV fra Proteria sin rapportløsning"
   - "Du velger kolonnene selv, AmountWithoutVAT er forhåndsvalgt"

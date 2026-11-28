@@ -5,7 +5,7 @@ description: Connect SumUp card terminals to ReAI accounting for free. Match Sum
 summary: Compare SumUp card terminal payouts and transaction fees with pending ReAI bank transactions.
 industry: payments
 webAppUrl: /app/sumup/
-sourcePath: web/worker/apps/sumup.js
+sourcePath: web/worker/apps/sumup/
 highlights:
   - "Reads SumUp Merchant Payouts API directly with your Merchant Code and API key"
   - "Shows net payout amount and deducted SumUp fee alongside ReAI bank candidates"

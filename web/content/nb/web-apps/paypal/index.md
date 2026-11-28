@@ -5,7 +5,7 @@ description: "Hent uttakene fra PayPal Business til banken for en måned og avst
 summary: "Avstem uttak fra PayPal Business mot banken i ReAI og last ned avstemmingen som CSV."
 industry: payments
 webAppUrl: /app/paypal/
-sourcePath: web/worker/apps/paypal.js
+sourcePath: web/worker/apps/paypal/
 highlights:
   - "Leser uttak til bank fra PayPal Transaction Search API"
   - "Bruker en egen live REST app med Transaction search slått på"

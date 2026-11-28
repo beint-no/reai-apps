@@ -12,7 +12,6 @@ all_apps: All integrations
 web_badge: Web
 desktop_badge: Desktop
 learn_more: Guide & setup
-home_eyebrow: FREE INTEGRATIONS FOR REAI
 home_cta_secondary: Browse all integrations
 home_web_heading: Web integrations
 home_web_intro: Search for your system or filter by industry. Integrations run in the browser and are free with ReAI.

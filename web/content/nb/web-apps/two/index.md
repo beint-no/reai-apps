@@ -5,7 +5,7 @@ description: "Hent oppgjørsrapporten fra Two og bokfør hver utbetaling som bil
 summary: "Hent oppgjørsrapporten fra Two for en periode og lag ett balansert bilag til kontroll i ReAI per utbetaling."
 industry: payments
 webAppUrl: /app/two/
-sourcePath: web/worker/apps/two.js
+sourcePath: web/worker/apps/two/
 highlights:
   - "Leser oppgjørsrapporten fra Two API med din egen API-nøkkel"
   - "Ett bilag per utbetaling, gruppert på betalingsreferansen fra Two"

@@ -5,7 +5,7 @@ description: "Hent vunne salgsmuligheter fra Lime CRM, opprett manglende kunder 
 summary: "Hent vunne salgsmuligheter og tilhørende selskaper fra Lime CRM og lag kunder og ordre i ReAI."
 industry: operations
 webAppUrl: /app/lime/
-sourcePath: web/worker/apps/lime.js
+sourcePath: web/worker/apps/lime/
 highlights:
   - "Leser vunne salgsmuligheter med Lime CRM sitt Limeobject API og en API-nøkkel"
   - "Finner kunden i ReAI på organisasjonsnummer eller navn, og oppretter den hvis den mangler"

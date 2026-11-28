@@ -5,7 +5,7 @@ description: "Book Favrit settlements in ReAI as review vouchers, with sales per
 summary: "Fetch the Favrit settlements for one day and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/favrit/
-sourcePath: web/worker/apps/favrit.js
+sourcePath: web/worker/apps/favrit/
 highlights:
   - "Reads settlement reports through the Favrit Accounting API with a client id and secret"
   - "Keeps the sales accounts from Favrit and posts sales with the matching ReAI output VAT code"

@@ -5,7 +5,7 @@ description: "Fetch uninvoiced Ordrestyring hours and materials, log the hours i
 summary: "Fetch Ordrestyring hours and case materials through the Ordrestyring GraphQL API into ReAI timesheets and draft orders."
 industry: operations
 webAppUrl: /app/ordrestyring/
-sourcePath: web/worker/apps/ordrestyring.js
+sourcePath: web/worker/apps/ordrestyring/
 highlights:
   - "Uses the Ordrestyring GraphQL API with an API token from Ordrestyring"
   - "Logs uninvoiced hours per employee and skips rejected hours"

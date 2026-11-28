@@ -5,7 +5,7 @@ description: Eksporter hovedboksposteringer, fakturaer, leverandørfakturaer, ku
 summary: Hent ut rene hovedboksposteringer, fakturaer, kunder og varer til Excel, Power BI og egne analyser.
 industry: operations
 webAppUrl: /app/export/
-sourcePath: web/worker/apps/export.js
+sourcePath: web/worker/apps/export/
 highlights:
   - "Eksporterer 5 datasett: hovedboksposteringer, kundefakturaer, leverandørfakturaer, kunder og varer"
   - "Excel-klar semikolonseparert CSV med UTF-8 BOM (riktige norske bokstaver æ, ø, å)"

@@ -5,7 +5,7 @@ description: "Fetch business trips and road tolls from the ABAX Open API and rec
 summary: "Fetch business trips and road tolls from the ABAX Open API and record them in the ReAI driving log."
 industry: operations
 webAppUrl: /app/abax/
-sourcePath: web/worker/apps/abax.js
+sourcePath: web/worker/apps/abax/
 highlights:
   - "Reads trips from the ABAX Open API V4 with a client ID and client secret"
   - "Includes business trips only, not private trips or commutes"

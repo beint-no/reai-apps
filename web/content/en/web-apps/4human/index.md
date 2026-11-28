@@ -5,7 +5,7 @@ description: "Fetch employees from 4human HRM and create them in ReAI Employees 
 summary: "Read current employments from the 4human HRM API and create the employees in ReAI one by one."
 industry: operations
 webAppUrl: /app/4human/
-sourcePath: web/worker/apps/4human.js
+sourcePath: web/worker/apps/4human/
 highlights:
   - "Uses the 4human HRM REST API with the Client ID and Secret Key from 4human"
   - "Name, email, phone, start date, position percentage, address and bank account"

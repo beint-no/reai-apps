@@ -5,7 +5,7 @@ description: "Hent timer fra Severa REST API og før dem i timelistene i ReAI p�
 summary: "Hent timer fra Severa for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/severa/
-sourcePath: web/worker/apps/severa.js
+sourcePath: web/worker/apps/severa/
 highlights:
   - "Leser timer fra Severa REST API med klient-ID og klienthemmelighet"
   - "Viser dato, bruker, prosjekt og fase før du fører noe"

@@ -5,7 +5,7 @@ description: "Hent ufakturerte timer og varer fra Ordrestyring, før timene i Re
 summary: "Hent timer og varer på saker fra Ordrestyring GraphQL API til timelister og ordreutkast i ReAI."
 industry: operations
 webAppUrl: /app/ordrestyring/
-sourcePath: web/worker/apps/ordrestyring.js
+sourcePath: web/worker/apps/ordrestyring/
 highlights:
   - "Bruker Ordrestyring GraphQL API med API-token fra Ordrestyring"
   - "Fører ufakturerte timer per ansatt og hopper over avviste timer"

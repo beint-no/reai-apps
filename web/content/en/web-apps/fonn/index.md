@@ -5,7 +5,7 @@ description: "Fetch Fonn time cards per project and log them as ReAI timesheet r
 summary: "Fetch Fonn time cards through the Fonn API and log them in ReAI Timesheets."
 industry: operations
 webAppUrl: /app/fonn/
-sourcePath: web/worker/apps/fonn.js
+sourcePath: web/worker/apps/fonn/
 highlights:
   - "Uses the Fonn API with your subscription key and access token"
   - "Fetches time cards for every project or one project number"

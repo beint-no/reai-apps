@@ -5,7 +5,7 @@ description: Match Klarna payouts against ReAI bank transactions and download a 
 summary: Compare Klarna Settlements API payouts with pending ReAI bank transactions and export a reconciliation CSV.
 industry: payments
 webAppUrl: /app/klarna/
-sourcePath: web/worker/apps/klarna.js
+sourcePath: web/worker/apps/klarna/
 highlights:
   - "Reads payouts from the Klarna Settlements API with sales, fees and returns"
   - "Finds matching ReAI bank transactions by payment reference or amount"

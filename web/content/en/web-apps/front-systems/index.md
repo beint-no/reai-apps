@@ -5,7 +5,7 @@ description: "Book Front Systems POS settlements in ReAI as review vouchers, spl
 summary: "Fetch the Front Systems POS settlements for one day and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/front-systems/
-sourcePath: web/worker/apps/front-systems.js
+sourcePath: web/worker/apps/front-systems/
 highlights:
   - "Reads POS settlements through the Front Systems REST API with a subscription key and an API key"
   - "Posts sales per VAT rate with the matching ReAI output VAT code"

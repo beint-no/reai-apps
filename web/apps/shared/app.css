@@ -317,6 +317,15 @@
     clip-path: inset(50%);
   }
 
+  /* Vertical rhythm for card content: each block after the first gets the same gap. */
+  r-card > :not([slot], :empty) {
+    margin-block: 0;
+  }
+
+  r-card > :not([slot], :empty) ~ :not([slot], :empty) {
+    margin-block-start: 16px;
+  }
+
   .muted-note {
     margin: 8px 0 0;
     font-size: 13px;

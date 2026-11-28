@@ -5,7 +5,7 @@ description: "Match daily Svea Checkout payouts against ReAI bank transactions a
 summary: "Fetch Svea reconciliation reports for each day of a month and match every payout to a pending ReAI bank transaction."
 industry: payments
 webAppUrl: /app/svea/
-sourcePath: web/worker/apps/svea.js
+sourcePath: web/worker/apps/svea/
 highlights:
   - "Reads the Svea Payment Admin API reconciliation report for each payout date"
   - "Shows the paid amount, Svea fees with VAT and the number of transactions"

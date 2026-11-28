@@ -5,7 +5,7 @@ description: "Compare the Rackbeat product register with ReAI Products by SKU an
 summary: "Read Rackbeat products through the REST API and create the missing ones in ReAI Products."
 industry: ecommerce-logistics
 webAppUrl: /app/rackbeat/
-sourcePath: web/worker/apps/rackbeat.js
+sourcePath: web/worker/apps/rackbeat/
 highlights:
   - "Reads sellable Rackbeat products with a personal API key"
   - "Matches the Rackbeat product number against ReAI SKUs"

@@ -5,7 +5,7 @@ description: "Bokfør fakturaene fra EasyPractice for en periode som bilag til k
 summary: "Hent fakturaene fra EasyPractice for en periode og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/easypractice/
-sourcePath: web/worker/apps/easypractice.js
+sourcePath: web/worker/apps/easypractice/
 highlights:
   - "Leser fakturaer fra EasyPractice API med et personlig tilgangstoken"
   - "Skiller behandlinger uten MVA fra salg med MVA og fører riktig MVA-kode i ReAI"

@@ -5,7 +5,7 @@ description: Import paid Stripe invoices and stage recurring subscriptions into 
 summary: Bring paid zero-VAT Stripe invoices into ReAI idempotently and stage active subscriptions with auto-billing off.
 industry: payments
 webAppUrl: /app/stripe/
-sourcePath: web/worker/apps/stripe.js
+sourcePath: web/worker/apps/stripe/
 highlights:
   - "Uses a restricted Stripe key with read access only (rk_live_ or rk_test_)"
   - "Idempotent historical invoice import with accounting=none to prevent double-booking"

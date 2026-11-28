@@ -5,7 +5,7 @@ description: "Fetch the Two settlement report and book each payout in ReAI as a 
 summary: "Fetch the Two settlement report for a period and create one balanced review voucher in ReAI per payout."
 industry: payments
 webAppUrl: /app/two/
-sourcePath: web/worker/apps/two.js
+sourcePath: web/worker/apps/two/
 highlights:
   - "Reads the settlement report through the Two API with your own API key"
   - "One voucher per payout, grouped by the Two payment reference"

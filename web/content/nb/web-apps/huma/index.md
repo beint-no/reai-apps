@@ -5,7 +5,7 @@ description: "Hent aktive ansatte fra Huma Open API og opprett de som mangler i 
 summary: "Hent aktive ansatte fra Huma Open API og opprett de som mangler i ReAI Ansatte."
 industry: operations
 webAppUrl: /app/huma/
-sourcePath: web/worker/apps/huma.js
+sourcePath: web/worker/apps/huma/
 highlights:
   - "Bruker Huma Open API med klient-ID og klienthemmelighet"
   - "Finner ansatte som allerede finnes i ReAI på e-post eller navn"

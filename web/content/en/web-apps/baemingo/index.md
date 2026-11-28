@@ -5,7 +5,7 @@ description: "Total a Baemingo business day of orders, refunds and tips into one
 summary: "Fetch one Baemingo business day through the public API and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/baemingo/
-sourcePath: web/worker/apps/baemingo.js
+sourcePath: web/worker/apps/baemingo/
 highlights:
   - "Reads orders, refunds and tip corrections from the Baemingo public API with your x-api-key"
   - "Splits sales by VAT rate and payments by method, with tips on a payable account"

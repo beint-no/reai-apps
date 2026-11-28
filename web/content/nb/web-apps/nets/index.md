@@ -5,7 +5,7 @@ description: "Hent utbetalingene fra Nexi Checkout for en måned og avstem dem m
 summary: "Avstem utbetalinger fra Nexi Checkout, tidligere Nets Easy, mot banken i ReAI og last ned avstemmingen som CSV."
 industry: payments
 webAppUrl: /app/nets/
-sourcePath: web/worker/apps/nets.js
+sourcePath: web/worker/apps/nets/
 highlights:
   - "Leser utbetalinger fra Nexi Checkout Reporting API med den hemmelige nøkkelen"
   - "Viser beløp, gebyr og referanse for hver utbetaling"

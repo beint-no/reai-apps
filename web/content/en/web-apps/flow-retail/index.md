@@ -5,7 +5,7 @@ description: "Book the Flow Retail accounting report for one day in ReAI as a re
 summary: "Fetch the Flow Retail accounting report for one day and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/flow-retail/
-sourcePath: web/worker/apps/flow-retail.js
+sourcePath: web/worker/apps/flow-retail/
 highlights:
   - "Reads the daily accounting report from the Flow Retail API v2 with an integration token"
   - "Keeps the accounts and VAT codes from your Flow Retail accounting setup"

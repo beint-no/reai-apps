@@ -5,7 +5,7 @@ description: "Create PrestaShop products in ReAI and turn valid store orders int
 summary: "Read products and valid orders from the PrestaShop Webservice and move them into ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/prestashop/
-sourcePath: web/worker/apps/prestashop.js
+sourcePath: web/worker/apps/prestashop/
 highlights:
   - "Uses the PrestaShop Webservice that ships with the store, no extra module"
   - "Compares each product reference with the SKUs in ReAI"

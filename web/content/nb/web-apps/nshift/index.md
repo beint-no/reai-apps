@@ -5,7 +5,7 @@ description: "Hent lagrede fraktpriser fra nShift Delivery og lag ordreutkast i 
 summary: "Les prishistorikk fra nShift Delivery med din egen API-nøkkel og lag ordreutkast i ReAI per sending."
 industry: ecommerce-logistics
 webAppUrl: /app/nshift/
-sourcePath: web/worker/apps/nshift.js
+sourcePath: web/worker/apps/nshift/
 highlights:
   - "Bruker REST API-et til nShift Delivery med din egen API-nøkkel"
   - "Fraktpris per sending med transportør, tjeneste og antall kolli"

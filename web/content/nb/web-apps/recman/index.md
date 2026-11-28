@@ -5,7 +5,7 @@ description: "Koble RecMan gratis til ReAI. Importer fakturaer og kreditnotaer m
 summary: "Bokfør utstedte RecMan-fakturaer og kreditnotaer med original PDF og KID, og klargjør lønnsutkast i ReAI med automatisk AGA-kommuneoppslag."
 industry: operations
 webAppUrl: /app/recman/
-sourcePath: web/worker/apps/recman.js
+sourcePath: web/worker/apps/recman/
 highlights:
   - "Importerer utstedte fakturaer og kreditnotaer med original PDF, KID, MVA-koder og salgskontoer, uten å sende EHF eller e-post på nytt"
   - "Slår automatisk opp vikarers arbeidssted via Kartverket til norsk kommunenummer for riktig AGA-sone, og holder igjen lønnsslipper med flere kommuner til manuell kontroll"

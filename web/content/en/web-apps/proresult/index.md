@@ -5,7 +5,7 @@ description: "Import a Proresult hour report, log the hours in ReAI Timesheets a
 summary: "Import the Proresult Timelister egendefinert report into ReAI timesheets and draft orders."
 industry: operations
 webAppUrl: /app/proresult/
-sourcePath: web/worker/apps/proresult.js
+sourcePath: web/worker/apps/proresult/
 highlights:
   - "Reads the Timelister egendefinert hour report saved as CSV"
   - "Logs hours per employee with hour type, project and comment"

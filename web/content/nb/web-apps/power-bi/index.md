@@ -5,7 +5,7 @@ description: "Lag Power Query-skript som henter posteringer, resultat, saldoer o
 summary: "Kopier ferdige Power Query-skript for posteringer, resultat, balanse og fakturaer fra ReAI til Power BI Desktop, Power BI-tjenesten eller Excel."
 industry: operations
 webAppUrl: /app/power-bi/
-sourcePath: web/worker/apps/power-bi.js
+sourcePath: web/worker/apps/power-bi/
 highlights:
   - "Power BI og Excel kaller ReAI direkte med din nøkkel, apps.reai.no ser den aldri"
   - "Posteringer, resultat per kontoklasse, saldoer og alle fakturaer i perioden"

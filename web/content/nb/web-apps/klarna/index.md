@@ -5,7 +5,7 @@ description: Sammenlign utbetalinger fra Klarna med banktransaksjoner i ReAI og 
 summary: Sammenlign utbetalinger fra Klarna Settlements API med banktransaksjoner i ReAI og eksporter avstemmingsrapport.
 industry: payments
 webAppUrl: /app/klarna/
-sourcePath: web/worker/apps/klarna.js
+sourcePath: web/worker/apps/klarna/
 highlights:
   - "Henter utbetalinger fra Klarna Settlements API med salg, gebyrer og returer"
   - "Finner banktransaksjoner i ReAI på utbetalingsreferanse og beløp"

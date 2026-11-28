@@ -5,7 +5,7 @@ description: Check and book the Hybel Premium Bilagsjournal as one review vouche
 summary: Validate a monthly Hybel CSV journal in your browser and post a balanced review voucher to ReAI.
 industry: real-estate
 webAppUrl: /app/hybel/
-sourcePath: web/worker/apps/hybel.js
+sourcePath: web/worker/apps/hybel/
 highlights:
   - "Reads the Hybel Bilagsjournal CSV in UTF-8 or Windows-1252 with automatic column mapping"
   - "Checks that every date and BatchID group balances to 0.00 before anything is sent to ReAI"

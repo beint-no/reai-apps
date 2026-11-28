@@ -5,7 +5,7 @@ description: "Fetch project hours from the HoltePortalen API and post them to Re
 summary: "Fetch project hours from the HoltePortalen API and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/holte/
-sourcePath: web/worker/apps/holte.js
+sourcePath: web/worker/apps/holte/
 highlights:
   - "Uses the HoltePortalen API with an API token from the settings"
   - "Shows the HoltePortalen project number, project name and user"

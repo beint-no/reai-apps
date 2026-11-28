@@ -156,13 +156,6 @@ button:focus-visible {
   color: var(--brand);
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--brand);
-}
-
 .lead {
   margin: 0;
   max-width: 66ch;

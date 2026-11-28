@@ -5,7 +5,7 @@ description: "Hent timer og varer fra SpeedyCraft, før timene i ReAI Timelister
 summary: "Hent timer og varer på arbeidsordrer fra SpeedyCraft REST API til timelister og ordreutkast i ReAI."
 industry: operations
 webAppUrl: /app/speedycraft/
-sourcePath: web/worker/apps/speedycraft.js
+sourcePath: web/worker/apps/speedycraft/
 highlights:
   - "Bruker SpeedyCraft REST API med tilgang du får fra Devinco"
   - "Fører timer per ansatt og hopper over avviste timer"

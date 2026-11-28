@@ -5,7 +5,7 @@ description: "Bokfør den daglige GBAT10-filen fra ExtendaGO som bilag til kontr
 summary: "Last opp den daglige GBAT10-filen fra ExtendaGO og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/extendago/
-sourcePath: web/worker/apps/extendago.js
+sourcePath: web/worker/apps/extendago/
 highlights:
   - "Leser GBAT10-filen som ExtendaGO leverer til SFTP hver natt"
   - "Beholder kontoene og MVA-kodene fra regnskapsoppsettet i ExtendaGO"

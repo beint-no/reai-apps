@@ -5,7 +5,7 @@ description: Kontroller og bokfør bilagsjournalen fra Hybel Premium som ett bil
 summary: Kontroller en månedlig bilagsjournal (CSV) fra Hybel og opprett et balansert bilag til kontroll i ReAI.
 industry: real-estate
 webAppUrl: /app/hybel/
-sourcePath: web/worker/apps/hybel.js
+sourcePath: web/worker/apps/hybel/
 highlights:
   - "Leser bilagsjournalen fra Hybel som CSV i UTF-8 eller Windows-1252, med automatisk kolonnegjenkjenning"
   - "Kontrollerer at hver dato og BatchID balanserer til 0,00 før noe sendes til ReAI"

@@ -5,7 +5,7 @@ description: "Bokfør dagsoppgjør fra Duell som bilag til kontroll i ReAI, med 
 summary: "Hent dagsoppgjørene fra Duell for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/duell/
-sourcePath: web/worker/apps/duell.js
+sourcePath: web/worker/apps/duell/
 highlights:
   - "Leser dagsoppgjør fra Duell API med avtalenummer og token"
   - "Beholder kontoene fra Duell og fører salg med riktig MVA-kode i ReAI"

@@ -5,7 +5,7 @@ description: "Read the articles your warehouse keeps in Ongoing WMS and create t
 summary: "Read articles from Ongoing WMS and create missing article numbers as products in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/ongoing-wms/
-sourcePath: web/worker/apps/ongoing-wms.js
+sourcePath: web/worker/apps/ongoing-wms/
 highlights:
   - "Reads articles from the Ongoing WMS Goods Owner REST API"
   - "Compares article numbers with your ReAI products"

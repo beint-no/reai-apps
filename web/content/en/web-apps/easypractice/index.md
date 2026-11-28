@@ -5,7 +5,7 @@ description: "Book EasyPractice invoices for a period in ReAI as one review vouc
 summary: "Fetch the EasyPractice invoices for a period and create one balanced review voucher in ReAI."
 industry: operations
 webAppUrl: /app/easypractice/
-sourcePath: web/worker/apps/easypractice.js
+sourcePath: web/worker/apps/easypractice/
 highlights:
   - "Reads invoices through the EasyPractice API with a personal access token"
   - "Separates treatments without VAT from sales with VAT and posts the matching ReAI VAT code"

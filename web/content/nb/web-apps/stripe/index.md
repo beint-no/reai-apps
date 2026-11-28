@@ -5,7 +5,7 @@ description: Importer betalte Stripe-fakturaer og flytt faste abonnementer til R
 summary: Importer betalte Stripe-fakturaer trygt til ReAI og klargjør aktive abonnementer uten dobbeltfakturering.
 industry: payments
 webAppUrl: /app/stripe/
-sourcePath: web/worker/apps/stripe.js
+sourcePath: web/worker/apps/stripe/
 highlights:
   - "Bruker begrenset lesenøkkel fra Stripe (rk_live_ eller rk_test_) uten skrivetilgang"
   - "Idempotent import av historiske fakturaer (accounting=none) så ingenting dobbeltføres"

@@ -5,7 +5,7 @@ description: "Fetch finalized Provet Cloud invoices for a period and create a ba
 summary: "Book Provet Cloud invoices as one ReAI review voucher per period: clinic payments, open client balances and sales by VAT rate."
 industry: operations
 webAppUrl: /app/provet-cloud/
-sourcePath: web/worker/apps/provet-cloud.js
+sourcePath: web/worker/apps/provet-cloud/
 highlights:
   - "Reads invoices, invoice rows and payments from the Provet Cloud REST API"
   - "Uses OAuth 2.0 client credentials that you request from Provet"

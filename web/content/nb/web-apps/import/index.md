@@ -5,7 +5,7 @@ description: Flytt varer, kunder og leverandører fra Tripletex, Fiken eller Exc
 summary: Tilordne CSV-kolonner, valider org.nr, hopp over duplikater og importer grunndata trygt til ReAI.
 industry: operations
 webAppUrl: /app/import/
-sourcePath: web/worker/apps/import.js
+sourcePath: web/worker/apps/import/
 highlights:
   - "Importerer varer, kunder og leverandører med ferdige nedlastbare CSV-maler"
   - "Automatisk norsk og engelsk kolonnegjenkjenning og Mod11-kontroll av org.nr"

@@ -5,7 +5,7 @@ description: "Hent godkjente timer fra Tidsbanken API og før dem i timelistene 
 summary: "Hent godkjente timer fra Tidsbanken for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/tidsbanken/
-sourcePath: web/worker/apps/tidsbanken.js
+sourcePath: web/worker/apps/tidsbanken/
 highlights:
   - "Leser godkjente timelinjer fra Tidsbanken API med abonnementsnøkkel og tb-key"
   - "Viser ansatt, prosjekt og notat før du fører noe"

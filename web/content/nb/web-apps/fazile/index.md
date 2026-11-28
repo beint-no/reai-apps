@@ -5,7 +5,7 @@ description: "Hent aktive leiekontrakter fra Fazile via API og klargjør dem som
 summary: "Hent aktive leiekontrakter fra Fazile og klargjør leiefakturering i ReAI med full kontroll før aktivering."
 industry: real-estate
 webAppUrl: /app/fazile/
-sourcePath: web/worker/apps/fazile.js
+sourcePath: web/worker/apps/fazile/
 highlights:
   - "Leser aktive kontrakter og leietakere med en API-nøkkel fra Fazile"
   - "Finner leietakeren i ReAI på organisasjonsnummer, e-post eller navn"

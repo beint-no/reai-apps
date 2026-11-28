@@ -5,7 +5,7 @@ description: "Book Amendo Z-reports in ReAI as review vouchers with sales per VA
 summary: "Fetch the Amendo Z-reports for one day and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/amendo/
-sourcePath: web/worker/apps/amendo.js
+sourcePath: web/worker/apps/amendo/
 highlights:
   - "Reads Z-reports through the ProTouch API v3 that the Amendo back office runs on"
   - "Splits sales by VAT rate, net of returns, and payments by payment type"

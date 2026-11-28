@@ -5,7 +5,7 @@ description: "Read won deals from Lime CRM, create missing ReAI customers and st
 summary: "Read won deals and their companies from Lime CRM and create customers and orders in ReAI."
 industry: operations
 webAppUrl: /app/lime/
-sourcePath: web/worker/apps/lime.js
+sourcePath: web/worker/apps/lime/
 highlights:
   - "Reads won deals through the Lime CRM Limeobject API with an API key"
   - "Matches the ReAI customer by organization number or name and creates it when missing"

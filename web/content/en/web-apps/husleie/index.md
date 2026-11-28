@@ -5,7 +5,7 @@ description: "Upload the Husleie.no Leieforhold report and stage monthly rent bi
 summary: "Turn active Husleie.no rental agreements into ReAI subscriptions with automatic billing kept off."
 industry: real-estate
 webAppUrl: /app/husleie/
-sourcePath: web/worker/apps/husleie.js
+sourcePath: web/worker/apps/husleie/
 highlights:
   - "Reads the CSV export of the Leieforhold report in MinHusleie"
   - "Matches tenants in ReAI by email or name"

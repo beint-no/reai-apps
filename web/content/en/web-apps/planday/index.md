@@ -5,7 +5,7 @@ description: "Fetch approved Planday shifts for one employee and post the hours 
 summary: "Fetch approved Planday shifts and post the hours to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/planday/
-sourcePath: web/worker/apps/planday.js
+sourcePath: web/worker/apps/planday/
 highlights:
   - "Reads approved shifts through the Planday Open API with an App ID and refresh token"
   - "Subtracts unpaid breaks and shows the department of each shift"

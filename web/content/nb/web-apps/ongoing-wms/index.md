@@ -5,7 +5,7 @@ description: "Hent artiklene lageret ditt har registrert i Ongoing WMS og oppret
 summary: "Les artiklene fra Ongoing WMS og opprett manglende varenumre som produkter i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/ongoing-wms/
-sourcePath: web/worker/apps/ongoing-wms.js
+sourcePath: web/worker/apps/ongoing-wms/
 highlights:
   - "Leser artikler fra Ongoing WMS Goods Owner REST API"
   - "Sammenligner varenumre med produktene i ReAI"

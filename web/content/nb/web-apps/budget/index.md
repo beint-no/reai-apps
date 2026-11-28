@@ -5,7 +5,7 @@ description: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI
 summary: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI og se kvartalssummer direkte."
 industry: operations
 webAppUrl: /app/budget/
-sourcePath: web/worker/apps/budget.js
+sourcePath: web/worker/apps/budget/
 highlights:
   - "Tilpasset norsk bokføringsskikk (FP&A & annual company budgeting)"
   - "Direkte kobling mot ReAI sitt åpne API (PUT /api/company-budgets/{year} & GET /api/company-budgets/{year})"

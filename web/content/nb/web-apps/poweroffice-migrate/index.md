@@ -5,7 +5,7 @@ description: "Hent kunder, leverandører og produkter fra PowerOffice Go API og 
 summary: "Flytt kunder, leverandører og produkter fra PowerOffice Go til ReAI."
 industry: operations
 webAppUrl: /app/poweroffice-migrate/
-sourcePath: web/worker/apps/poweroffice-migrate.js
+sourcePath: web/worker/apps/poweroffice-migrate/
 highlights:
   - "Leser kunder, leverandører og produkter fra PowerOffice Go API"
   - "Tar med kundenummer, leverandørnummer, organisasjonsnummer, e-post og pris"

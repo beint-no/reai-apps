@@ -5,7 +5,7 @@ description: "Book TicketCo ticket sales in ReAI as review vouchers, with sales 
 summary: "Fetch TicketCo transactions for a period or one event and create one balanced review voucher in ReAI."
 industry: operations
 webAppUrl: /app/ticketco/
-sourcePath: web/worker/apps/ticketco.js
+sourcePath: web/worker/apps/ticketco/
 highlights:
   - "Reads ticket transactions through the TicketCo Public API"
   - "Posts sales including VAT with the matching VAT code, also for tickets without VAT"

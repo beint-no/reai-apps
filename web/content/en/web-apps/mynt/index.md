@@ -5,7 +5,7 @@ description: "Turn a Mynt expense export into one balanced ReAI review voucher w
 summary: "Import Mynt card expenses from the CSV export into a balanced ReAI review voucher."
 industry: operations
 webAppUrl: /app/mynt/
-sourcePath: web/worker/apps/mynt.js
+sourcePath: web/worker/apps/mynt/
 highlights:
   - "Reads the Mynt export columns Transaction date, Amount, VAT rate, Description and Account"
   - "Books 25, 15 and 12 percent input VAT and keeps refunds as credits"

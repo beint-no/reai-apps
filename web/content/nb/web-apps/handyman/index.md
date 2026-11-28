@@ -5,7 +5,7 @@ description: "Hent fullførte serviceordrer med timer og materiell fra Handyman 
 summary: "Hent fullførte serviceordrer fra Handyman API og legg dem inn som ordrer og timer i ReAI."
 industry: operations
 webAppUrl: /app/handyman/
-sourcePath: web/worker/apps/handyman.js
+sourcePath: web/worker/apps/handyman/
 highlights:
   - "Bruker Handyman API på deres egen Handyman-server"
   - "Summerer timer, arbeid og materiell per fullført ordre"

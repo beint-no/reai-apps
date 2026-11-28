@@ -5,7 +5,7 @@ description: "Hent registrerte timer fra Timely med din egen OAuth-app og før d
 summary: "Godkjenn din egen Timely-app, hent timer for en periode og før dem inn i ReAI Timelister."
 industry: operations
 webAppUrl: /app/timely/
-sourcePath: web/worker/apps/timely.js
+sourcePath: web/worker/apps/timely/
 highlights:
   - "Bruker Timely sitt API med en OAuth-app du lager selv i Timely"
   - "Matcher personer på e-post eller navn og prosjekter på navn"

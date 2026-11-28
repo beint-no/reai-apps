@@ -5,7 +5,7 @@ description: "Hent ansatte fra 4human HRM og opprett dem i ReAI Ansatte med kont
 summary: "Les aktive arbeidsforhold fra API-et til 4human HRM og opprett de ansatte i ReAI én og én."
 industry: operations
 webAppUrl: /app/4human/
-sourcePath: web/worker/apps/4human.js
+sourcePath: web/worker/apps/4human/
 highlights:
   - "Bruker REST API-et til 4human HRM med Client ID og Secret Key fra 4human"
   - "Navn, e-post, telefon, startdato, stillingsprosent, adresse og kontonummer"

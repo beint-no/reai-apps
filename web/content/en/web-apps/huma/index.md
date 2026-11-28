@@ -5,7 +5,7 @@ description: "Fetch active employees from the Huma Open API and create the missi
 summary: "Fetch active employees from the Huma Open API and create the missing ones in ReAI Employees."
 industry: operations
 webAppUrl: /app/huma/
-sourcePath: web/worker/apps/huma.js
+sourcePath: web/worker/apps/huma/
 highlights:
   - "Uses the Huma Open API with a client ID and client secret"
   - "Matches employees already in ReAI by email or name"

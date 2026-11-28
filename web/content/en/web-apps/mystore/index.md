@@ -5,7 +5,7 @@ description: "Create Mystore products in ReAI by SKU and move orders across with
 summary: "Fetch products and the latest orders from the Mystore API and move them into ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/mystore/
-sourcePath: web/worker/apps/mystore.js
+sourcePath: web/worker/apps/mystore/
 highlights:
   - "Reads products and orders through the Mystore API with a personal access token"
   - "Creates products that are missing in ReAI, matched by SKU"

@@ -5,7 +5,7 @@ description: Hent bedrifter fra HubSpot CRM, finn dem som allerede er kunder i R
 summary: Skann bedrifter i HubSpot, finn eksisterende kunder i ReAI og opprett manglende kunder med ett klikk.
 industry: operations
 webAppUrl: /app/hubspot/
-sourcePath: web/worker/apps/hubspot.js
+sourcePath: web/worker/apps/hubspot/
 highlights:
   - "Leser bedrifter fra HubSpot CRM med en tjenestenøkkel med lesetilgang"
   - "Finner eksisterende ReAI-kunder på organisasjonsnummer eller navn"

@@ -5,7 +5,7 @@ description: "Bokfør eksportjobber fra Pleo som bilag til kontroll i ReAI, med 
 summary: "Hent den eldste eksportjobben fra Pleo, lag ett balansert bilag i ReAI og marker utgiftene som eksportert i Pleo."
 industry: operations
 webAppUrl: /app/pleo/
-sourcePath: web/worker/apps/pleo.js
+sourcePath: web/worker/apps/pleo/
 highlights:
   - "Leser eksportjobber fra Pleo Export API med en API-nøkkel fra Pleo"
   - "Bruker kontoen og MVA-satsen på hver utgift og motkontoen fra Pleo"

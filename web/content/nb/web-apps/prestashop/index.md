@@ -5,7 +5,7 @@ description: "Opprett produkter fra PrestaShop i ReAI og gjør gyldige nettbutik
 summary: "Hent produkter og gyldige ordrer fra PrestaShop Webservice og overfør dem til ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/prestashop/
-sourcePath: web/worker/apps/prestashop.js
+sourcePath: web/worker/apps/prestashop/
 highlights:
   - "Bruker det innebygde Webservice i PrestaShop, uten ekstra modul"
   - "Sammenligner referansen på produktet med varenumrene i ReAI"

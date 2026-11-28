@@ -5,7 +5,7 @@ description: Kontroller Dintero-oppgjør, match utbetalinger mot bank i ReAI og 
 summary: Match betalte Dintero-oppgjør mot bank i ReAI og bokfør trukne månedsgebyrer med kontrollflagg.
 industry: payments
 webAppUrl: /app/dintero/
-sourcePath: web/worker/apps/dintero.js
+sourcePath: web/worker/apps/dintero/
 highlights:
   - "Summerer trukne gebyrer i betalte Dintero-oppgjør i selskapets valuta"
   - "Matcher nettoutbetalinger mot bank i ReAI og eksporterer avstemmings-CSV"

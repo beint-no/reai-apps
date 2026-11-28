@@ -5,7 +5,7 @@ description: "Fetch card payments and fees from the Revolut Business API and cre
 summary: "Fetch completed NOK card payments from Revolut Business for a period and create one balanced review voucher in ReAI."
 industry: operations
 webAppUrl: /app/revolut/
-sourcePath: web/worker/apps/revolut.js
+sourcePath: web/worker/apps/revolut/
 highlights:
   - "Reads card payments and fees through the Revolut Business API with your own API key"
   - "Posts fees to account 7770 and card payments to the expense account you choose"

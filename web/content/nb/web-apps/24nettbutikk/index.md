@@ -5,7 +5,7 @@ description: "Hent produkter og betalte ordrer fra 24Nettbutikk-API-et og overf√
 summary: "Opprett manglende produkter i ReAI og legg betalte ordrer fra 24Nettbutikk inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/24nettbutikk/
-sourcePath: web/worker/apps/24nettbutikk.js
+sourcePath: web/worker/apps/24nettbutikk/
 highlights:
   - "Henter produkter, betalte ordrer og kunder fra 24Nettbutikk-API-et"
   - "Bruker MVA-satsen p√• hver ordrelinje fra nettbutikken"

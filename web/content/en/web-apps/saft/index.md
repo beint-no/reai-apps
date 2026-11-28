@@ -5,7 +5,7 @@ description: "Switch to ReAI from Tripletex, Fiken, PowerOffice Go, Visma or Con
 summary: "Switch to ReAI from Tripletex, Fiken, PowerOffice Go, Visma or Conta using standard Norwegian SAF-T Financial XML: inspect closing balances, import customers & suppliers, and export Excel opening balance."
 industry: operations
 webAppUrl: /app/saft/
-sourcePath: web/worker/apps/saft.js
+sourcePath: web/worker/apps/saft/
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Switching Norwegian accounting systems (SAF-T)"
   - "Direct mapping to NS 4102 / ReAI Public API (SAF-T XML -> Customers, Suppliers & Trial Balance)"

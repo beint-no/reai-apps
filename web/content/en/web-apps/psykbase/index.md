@@ -5,7 +5,7 @@ description: "Fetch PsykBase Online invoices for a period and create a balanced 
 summary: "Book PsykBase Online invoices as one ReAI review voucher per period, with VAT exempt health services on VAT code 6."
 industry: operations
 webAppUrl: /app/psykbase/
-sourcePath: web/worker/apps/psykbase.js
+sourcePath: web/worker/apps/psykbase/
 highlights:
   - "Reads invoices and invoice lines from the PsykBase API with a Personal Access Token"
   - "Books VAT exempt health services on 3200 with VAT code 6"

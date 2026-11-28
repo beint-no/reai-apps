@@ -5,7 +5,7 @@ description: "Fetch worked Workfeed shifts and post the hours to ReAI Timesheets
 summary: "Read approved Workfeed shifts with your API key and post the hours to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/workfeed/
-sourcePath: web/worker/apps/workfeed.js
+sourcePath: web/worker/apps/workfeed/
 highlights:
   - "Uses the Workfeed open API with your own API key"
   - "Shift length minus registered break, approved shifts by default"

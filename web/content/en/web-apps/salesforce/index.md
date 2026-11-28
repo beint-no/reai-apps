@@ -5,7 +5,7 @@ description: "Fetch won Salesforce opportunities and stage them as ReAI orders w
 summary: "Fetch Closed Won opportunities and stage them as orders in ReAI."
 industry: operations
 webAppUrl: /app/salesforce/
-sourcePath: web/worker/apps/salesforce.js
+sourcePath: web/worker/apps/salesforce/
 highlights:
   - "Reads won opportunities through the Salesforce REST API with client credentials"
   - "One order line per opportunity product, otherwise the amount"

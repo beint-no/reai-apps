@@ -5,7 +5,7 @@ description: "Hent yrkesturer og bompenger fra ABAX Open API og før dem i kjør
 summary: "Hent yrkesturer og bompenger fra ABAX Open API og før dem i kjøreboken i ReAI."
 industry: operations
 webAppUrl: /app/abax/
-sourcePath: web/worker/apps/abax.js
+sourcePath: web/worker/apps/abax/
 highlights:
   - "Henter turer fra ABAX Open API V4 med klient-ID og klienthemmelighet"
   - "Tar bare med yrkesturer, ikke private turer eller pendling"

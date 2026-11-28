@@ -5,7 +5,7 @@ description: "Fetch hour entries from Finago Busy through its API and post them 
 summary: "Fetch hour entries from Finago Busy through its API and post them to ReAI Timesheets by employee and project."
 industry: operations
 webAppUrl: /app/busy/
-sourcePath: web/worker/apps/busy.js
+sourcePath: web/worker/apps/busy/
 highlights:
   - "Uses the Finago Busy API v2 with a workspace API token"
   - "Can limit the import to approved hour entries"

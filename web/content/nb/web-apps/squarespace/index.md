@@ -5,7 +5,7 @@ description: "Hent ordrer fra Squarespace Commerce og legg dem inn som ordrer i 
 summary: "Hent Squarespace-ordrer for en periode og legg dem inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/squarespace/
-sourcePath: web/worker/apps/squarespace.js
+sourcePath: web/worker/apps/squarespace/
 highlights:
   - "Leser ordrer fra Squarespace Orders API med en API-nøkkel"
   - "Én ordrelinje per vare, frakt og rabatt, med beløp uten MVA"

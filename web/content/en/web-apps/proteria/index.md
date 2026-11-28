@@ -5,7 +5,7 @@ description: "Import the Proteria Frakt invoice report and stage freight per shi
 summary: "Read the Proteria Fakturarapport CSV, map its columns and stage freight lines as ReAI draft orders you review."
 industry: ecommerce-logistics
 webAppUrl: /app/proteria/
-sourcePath: web/worker/apps/proteria.js
+sourcePath: web/worker/apps/proteria/
 highlights:
   - "Reads the Fakturarapport CSV from Proteria reporting"
   - "You map the report columns, with AmountWithoutVAT preselected"

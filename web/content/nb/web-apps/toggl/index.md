@@ -5,7 +5,7 @@ description: "Hent førte timer fra Toggl Track API og før dem i timelistene i 
 summary: "Hent månedens timer fra Toggl Track og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/toggl/
-sourcePath: web/worker/apps/toggl.js
+sourcePath: web/worker/apps/toggl/
 highlights:
   - "Henter timer fra Toggl Track API for valgt måned"
   - "Kobler timene til valgt ansatt og prosjekt i ReAI"

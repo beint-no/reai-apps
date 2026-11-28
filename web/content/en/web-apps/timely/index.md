@@ -5,7 +5,7 @@ description: "Fetch logged Timely hours with your own Timely OAuth app and post 
 summary: "Authorize your own Timely app, fetch logged hours for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/timely/
-sourcePath: web/worker/apps/timely.js
+sourcePath: web/worker/apps/timely/
 highlights:
   - "Uses the Timely API with an OAuth app you create in Timely"
   - "Matches people by email or name and projects by name"

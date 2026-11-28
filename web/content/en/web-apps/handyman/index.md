@@ -5,7 +5,7 @@ description: "Fetch completed service orders with hours and materials from the H
 summary: "Fetch completed service orders from the Handyman API and add them to ReAI as orders and timesheets."
 industry: operations
 webAppUrl: /app/handyman/
-sourcePath: web/worker/apps/handyman.js
+sourcePath: web/worker/apps/handyman/
 highlights:
   - "Uses the Handyman API on your own Handyman server"
   - "Totals hours, labour and materials for each completed order"

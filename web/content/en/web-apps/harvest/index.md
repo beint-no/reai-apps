@@ -5,7 +5,7 @@ description: "Fetch project hours from the Harvest API v2 and post them to ReAI 
 summary: "Fetch Harvest time entries through API v2 and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/harvest/
-sourcePath: web/worker/apps/harvest.js
+sourcePath: web/worker/apps/harvest/
 highlights:
   - "Uses the Harvest API v2 with a Personal Access Token and Account ID"
   - "Shows the Harvest project, user and notes"

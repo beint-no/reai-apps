@@ -5,7 +5,7 @@ description: "Total a Caspeco business day of POS sales into one ReAI review vou
 summary: "Fetch one Caspeco business day through the Sales Export API and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/caspeco/
-sourcePath: web/worker/apps/caspeco.js
+sourcePath: web/worker/apps/caspeco/
 highlights:
   - "Reads sales lines from the Caspeco Sales Export API with the AuthKey from Caspeco"
   - "Derives the VAT rate per line and groups payments by Caspeco payment type"

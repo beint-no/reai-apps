@@ -5,7 +5,7 @@ description: "Move Pipedrive organizations into the ReAI customer register and t
 summary: "Move Pipedrive organizations into ReAI customers and stage won deals as ReAI draft orders."
 industry: operations
 webAppUrl: /app/pipedrive/
-sourcePath: web/worker/apps/pipedrive.js
+sourcePath: web/worker/apps/pipedrive/
 highlights:
   - "Reads organizations and won deals through the Pipedrive API with your personal API token"
   - "Checks the Norwegian organization number before the customer is created in ReAI"
