@@ -31,6 +31,34 @@ endpoints:
   - /app/fazile/
   - /app/timma/
   - /app/recman/
+  - /app/smartdok/
+  - /app/svenn/
+  - /app/cordel/
+  - /app/holte/
+  - /app/handyman/
+  - /app/minuba/
+  - /app/favrit/
+  - /app/quickorder/
+  - /app/munu/
+  - /app/lightspeed/
+  - /app/visbook/
+  - /app/mews/
+  - /app/wolt-foodora/
+  - /app/pckasse/
+  - /app/extendago/
+  - /app/susoft/
+  - /app/superoffice/
+  - /app/lime/
+  - /app/planday/
+  - /app/tamigo/
+  - /app/huma/
+  - /app/busy/
+  - /app/milient/
+  - /app/ticketco/
+  - /app/checkin/
+  - /app/spond-rubic/
+  - /app/opus-dental/
+  - /app/ongoing-wms/
   - /app/lab/
   - /app/auth/session
   - /app/auth/device/start
@@ -143,6 +171,100 @@ endpoints:
   - /app/recman/book-invoice
   - /app/recman/scan-payroll
   - /app/recman/import-paycheck
+  - /app/smartdok/sample
+  - /app/smartdok/preview
+  - /app/smartdok/create-order
+  - /app/smartdok/log-hours
+  - /app/svenn/sample
+  - /app/svenn/preview
+  - /app/svenn/create-order
+  - /app/svenn/log-hours
+  - /app/cordel/sample
+  - /app/cordel/preview
+  - /app/cordel/create-order
+  - /app/cordel/log-hours
+  - /app/holte/sample
+  - /app/holte/preview
+  - /app/holte/create-order
+  - /app/holte/log-hours
+  - /app/handyman/sample
+  - /app/handyman/preview
+  - /app/handyman/create-order
+  - /app/handyman/log-hours
+  - /app/minuba/sample
+  - /app/minuba/preview
+  - /app/minuba/create-order
+  - /app/minuba/log-hours
+  - /app/favrit/sample
+  - /app/favrit/preview
+  - /app/favrit/book
+  - /app/quickorder/sample
+  - /app/quickorder/preview
+  - /app/quickorder/book
+  - /app/munu/sample
+  - /app/munu/preview
+  - /app/munu/book
+  - /app/lightspeed/sample
+  - /app/lightspeed/preview
+  - /app/lightspeed/book
+  - /app/visbook/sample
+  - /app/visbook/preview
+  - /app/visbook/book
+  - /app/mews/sample
+  - /app/mews/preview
+  - /app/mews/book
+  - /app/wolt-foodora/sample
+  - /app/wolt-foodora/preview
+  - /app/wolt-foodora/book
+  - /app/pckasse/sample
+  - /app/pckasse/preview
+  - /app/pckasse/book
+  - /app/extendago/sample
+  - /app/extendago/preview
+  - /app/extendago/book
+  - /app/susoft/sample
+  - /app/susoft/preview
+  - /app/susoft/book
+  - /app/superoffice/sample
+  - /app/superoffice/preview
+  - /app/superoffice/scan
+  - /app/superoffice/create-customer
+  - /app/superoffice/create-order
+  - /app/lime/sample
+  - /app/lime/preview
+  - /app/lime/scan
+  - /app/lime/create-customer
+  - /app/lime/create-order
+  - /app/planday/sample
+  - /app/planday/preview
+  - /app/planday/import
+  - /app/tamigo/sample
+  - /app/tamigo/preview
+  - /app/tamigo/import
+  - /app/huma/sample
+  - /app/huma/preview
+  - /app/huma/import
+  - /app/busy/sample
+  - /app/busy/preview
+  - /app/busy/import
+  - /app/milient/sample
+  - /app/milient/preview
+  - /app/milient/import
+  - /app/ticketco/sample
+  - /app/ticketco/preview
+  - /app/ticketco/book
+  - /app/checkin/sample
+  - /app/checkin/preview
+  - /app/checkin/book
+  - /app/spond-rubic/sample
+  - /app/spond-rubic/preview
+  - /app/spond-rubic/book
+  - /app/opus-dental/sample
+  - /app/opus-dental/preview
+  - /app/opus-dental/book
+  - /app/ongoing-wms/sample
+  - /app/ongoing-wms/scan
+  - /app/ongoing-wms/sync-article
   - /app/lab/ping
 languages:
   - code: en
