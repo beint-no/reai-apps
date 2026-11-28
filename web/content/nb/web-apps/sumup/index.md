@@ -5,7 +5,7 @@ description: Koble SumUp-betalingsterminal til ReAI regnskap gratis. Avstem utbe
 summary: Sammenlign utbetalinger og kortgebyrer fra SumUp mot uavstemte banktransaksjoner i ReAI.
 industry: payments
 webAppUrl: /app/sumup/
-sourcePath: web/worker/apps/sumup.js
+sourcePath: web/worker/apps/sumup/
 highlights:
   - "Henter utbetalinger direkte fra SumUp Payouts API med forhandlerkode og API-nøkkel"
   - "Viser netto utbetaling og trukket SumUp-gebyr sammen med banklinjer i ReAI"

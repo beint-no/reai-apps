@@ -5,7 +5,7 @@ description: "Book Pleo export jobs as review vouchers in ReAI, using the accoun
 summary: "Fetch the oldest Pleo export job, create one balanced ReAI voucher and mark the expenses as exported in Pleo."
 industry: operations
 webAppUrl: /app/pleo/
-sourcePath: web/worker/apps/pleo.js
+sourcePath: web/worker/apps/pleo/
 highlights:
   - "Reads export jobs through the Pleo Export API with a Pleo API key"
   - "Uses the account and VAT rate on each expense and the contra account from Pleo"

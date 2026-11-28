@@ -5,7 +5,7 @@ description: "Fetch attested work hours from the SmartDok API and post them to R
 summary: "Fetch attested SmartDok hours for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/smartdok/
-sourcePath: web/worker/apps/smartdok.js
+sourcePath: web/worker/apps/smartdok/
 highlights:
   - "Reads attested work hours through the SmartDok API with an API access token"
   - "Shows employee, project, subproject and wage type before anything is posted"

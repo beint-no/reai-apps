@@ -5,7 +5,7 @@ description: "Hent arbeidede vakter fra timearket i Tamigo og før dem i timelis
 summary: "Hent arbeidede vakter fra Tamigo for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/tamigo/
-sourcePath: web/worker/apps/tamigo.js
+sourcePath: web/worker/apps/tamigo/
 highlights:
   - "Leser arbeidede timer fra Tamigo API med en applikasjonsnøkkel"
   - "Viser ansatt, avdeling og vakttid før du fører noe"

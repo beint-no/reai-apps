@@ -5,7 +5,7 @@ description: "Avstem oppgjørsbunter fra Qliro Checkout mot banktransaksjoner i 
 summary: "Hent oppgjørsbunter fra Qliro via Admin API og match hver bankoverføring mot en uavstemt banktransaksjon i ReAI."
 industry: payments
 webAppUrl: /app/qliro/
-sourcePath: web/worker/apps/qliro.js
+sourcePath: web/worker/apps/qliro/
 highlights:
   - "Leser oppgjørsbunter fra Qliro med API secret for Qliro Checkout"
   - "Viser beløp, gebyrer og betalingsleverandør for hver overføring"

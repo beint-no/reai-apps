@@ -5,7 +5,7 @@ description: "Fetch approved hours from the Tidsbanken API and post them to ReAI
 summary: "Fetch approved Tidsbanken hours for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/tidsbanken/
-sourcePath: web/worker/apps/tidsbanken.js
+sourcePath: web/worker/apps/tidsbanken/
 highlights:
   - "Reads approved time lines through the Tidsbanken API with a subscription key and tb-key"
   - "Shows employee, project and note before anything is posted"

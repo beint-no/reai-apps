@@ -5,7 +5,7 @@ description: "Last opp rapporten over leieforhold fra Husleie.no og klargjør m�
 summary: "Overfør aktive leieforhold fra Husleie.no til faste abonnementer i ReAI med automatisk fakturering avslått."
 industry: real-estate
 webAppUrl: /app/husleie/
-sourcePath: web/worker/apps/husleie.js
+sourcePath: web/worker/apps/husleie/
 highlights:
   - "Leser CSV fra rapporten Leieforhold i MinHusleie"
   - "Finner leietakeren i ReAI på e-post eller navn"

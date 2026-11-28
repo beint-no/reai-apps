@@ -5,7 +5,7 @@ description: "Create missing ReAI products by SKU and stage Magento 2 or Adobe C
 summary: "Read products and invoiced orders from Magento 2 or Adobe Commerce and create products and orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/magento/
-sourcePath: web/worker/apps/magento.js
+sourcePath: web/worker/apps/magento/
 highlights:
   - "Reads products and orders through the Magento REST API with an integration token"
   - "Creates products missing in ReAI with SKU, price and stock item flag"

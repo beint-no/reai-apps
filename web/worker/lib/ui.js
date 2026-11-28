@@ -199,7 +199,7 @@ export function appShell(props) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="${props.description}">
   <meta name="robots" content="noindex">
-  <title>${props.title} — ReAI Apps</title>
+  <title>${props.title} · ReAI Apps</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app/shared/tokens.css">
   <link rel="stylesheet" href="/app/shared/app.css">

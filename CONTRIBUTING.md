@@ -6,7 +6,7 @@ Add apps inside this monorepo. Reuse a small existing app as a starting point an
 
 | Platform | Starting point | Keep |
 | --- | --- | --- |
-| Web (`apps.reai.no/app/*`) | [Hybel Journal](web/worker/apps/hybel.js) | Single-Worker route module, SSR `html\`...\`` templates, HTMX 4 swaps, Declarative Shadow DOM components (`web/worker/lib/ui.js`), `web/worker/lib/auth.js` HttpOnly BFF cookie and strict JSDoc (`// @ts-check`) |
+| Web (`apps.reai.no/app/*`) | [Hybel Journal](web/worker/apps/hybel/index.js) | Single-Worker route module, SSR `html\`...\`` templates, HTMX 4 swaps, Declarative Shadow DOM components (`web/worker/lib/ui.js`), `web/worker/lib/auth.js` HttpOnly BFF cookie and strict JSDoc (`// @ts-check`) |
 | Mac | [Time Tracker](apple/time-tracker) | Swift package structure, SwiftUI app entry point, browser connection, Keychain and `Info.plist` |
 | Windows | [Time Tracker](windows/time-tracker) | WinUI project settings, app entry point, browser connection and Credential Locker |
 | Spreadsheet import | [Mac Import](apple/import) or [Windows Import](windows/import) | Bounded parsing, editable mapping, preview and durable import progress where relevant |

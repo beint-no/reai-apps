@@ -5,7 +5,7 @@ description: "Avstem daglige utbetalinger fra Svea Checkout mot banktransaksjone
 summary: "Hent avstemmingsrapporter fra Svea for hver dag i måneden og match hver utbetaling mot en uavstemt banktransaksjon i ReAI."
 industry: payments
 webAppUrl: /app/svea/
-sourcePath: web/worker/apps/svea.js
+sourcePath: web/worker/apps/svea/
 highlights:
   - "Leser avstemmingsrapporten fra Svea Payment Admin API for hver utbetalingsdato"
   - "Viser utbetalt beløp, gebyrer fra Svea med mva og antall transaksjoner"

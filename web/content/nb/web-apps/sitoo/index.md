@@ -5,7 +5,7 @@ description: "Hent dagens Z-rapporter fra Sitoo POS og lag et balansert bilag ti
 summary: "Gjør Z-rapportene fra Sitoo POS om til ett balansert bilag til kontroll i ReAI per dag, med utgående mva-koder."
 industry: operations
 webAppUrl: /app/sitoo/
-sourcePath: web/worker/apps/sitoo.js
+sourcePath: web/worker/apps/sitoo/
 highlights:
   - "Henter Z-rapporter fra Sitoo REST API med API-ID og passord"
   - "Fordeler salget på 25, 15, 12 og 0 % mva med mva-kodene i ReAI"

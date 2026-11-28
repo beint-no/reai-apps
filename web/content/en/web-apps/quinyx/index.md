@@ -5,7 +5,7 @@ description: "Fetch the shifts of one Quinyx employee and post the hours to ReAI
 summary: "Fetch Quinyx shifts and post the hours to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/quinyx/
-sourcePath: web/worker/apps/quinyx.js
+sourcePath: web/worker/apps/quinyx/
 highlights:
   - "Reads shifts through the Quinyx API with your own integration credentials"
   - "Subtracts breaks and skips free days and shifts that do not count as worked hours"

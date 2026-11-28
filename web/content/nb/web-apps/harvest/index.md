@@ -5,7 +5,7 @@ description: "Hent prosjekttimer fra Harvest API v2 og før dem i ReAI Timeliste
 summary: "Hent timeregistreringer fra Harvest API v2 og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/harvest/
-sourcePath: web/worker/apps/harvest.js
+sourcePath: web/worker/apps/harvest/
 highlights:
   - "Bruker Harvest API v2 med Personal Access Token og Account ID"
   - "Viser prosjekt, bruker og kommentar fra Harvest"

@@ -5,7 +5,7 @@ description: "Hent timer fra Finago Busy via API og før dem i ReAI Timelister p
 summary: "Hent timer fra Finago Busy via API og før dem i ReAI Timelister per ansatt og prosjekt."
 industry: operations
 webAppUrl: /app/busy/
-sourcePath: web/worker/apps/busy.js
+sourcePath: web/worker/apps/busy/
 highlights:
   - "Bruker Finago Busy API v2 med et API-token fra arbeidsområdet"
   - "Henter bare godkjente timer hvis du ønsker det"

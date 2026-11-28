@@ -5,7 +5,7 @@ description: "Match Qliro Checkout settlement batches against ReAI bank transact
 summary: "Fetch Qliro settlement batches through the Admin API and match each bank transfer to a pending ReAI bank transaction."
 industry: payments
 webAppUrl: /app/qliro/
-sourcePath: web/worker/apps/qliro.js
+sourcePath: web/worker/apps/qliro/
 highlights:
   - "Reads Qliro settlement batches with your Qliro Checkout API secret"
   - "Shows batch amount, fee amount and payment provider for each transfer"

@@ -5,7 +5,7 @@ description: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budg
 summary: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budgets and inspect quarterly totals live."
 industry: operations
 webAppUrl: /app/budget/
-sourcePath: web/worker/apps/budget.js
+sourcePath: web/worker/apps/budget/
 highlights:
   - "Built for Norwegian bookkeeping rules (FP&A & annual company budgeting)"
   - "Direct integration with ReAI Public API (PUT /api/company-budgets/{year} & GET /api/company-budgets/{year})"

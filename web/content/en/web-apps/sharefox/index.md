@@ -5,7 +5,7 @@ description: "Summarise booked Sharefox rental orders by VAT rate and create one
 summary: "Fetch Sharefox orders for a period and book the rental sales as a ReAI review voucher against your payment clearing account."
 industry: ecommerce-logistics
 webAppUrl: /app/sharefox/
-sourcePath: web/worker/apps/sharefox.js
+sourcePath: web/worker/apps/sharefox/
 highlights:
   - "Reads Sharefox orders through the Sharefox API with an admin login"
   - "Counts only Booked and Closed orders, including change orders"

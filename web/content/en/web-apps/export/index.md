@@ -5,7 +5,7 @@ description: Export ReAI general ledger postings, customer invoices, supplier in
 summary: Extract clean ReAI postings, invoices, customers and products for Excel, Power BI and custom dashboards.
 industry: operations
 webAppUrl: /app/export/
-sourcePath: web/worker/apps/export.js
+sourcePath: web/worker/apps/export/
 highlights:
   - "Exports 5 live datasets: postings, customer invoices, supplier invoices, customers and products"
   - "Excel-ready UTF-8 BOM semicolon CSV (preserves Norwegian characters æ, ø, å cleanly)"

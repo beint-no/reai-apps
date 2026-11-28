@@ -5,7 +5,7 @@ description: "Fetch customers, suppliers and products from the Finago Office API
 summary: "Move customers, suppliers and products from Finago Office to ReAI."
 industry: operations
 webAppUrl: /app/24sevenoffice-migrate/
-sourcePath: web/worker/apps/24sevenoffice-migrate.js
+sourcePath: web/worker/apps/24sevenoffice-migrate/
 highlights:
   - "Reads customers, suppliers and products from the Finago Office API"
   - "Keeps customer numbers, supplier numbers, organization numbers, email addresses and prices"

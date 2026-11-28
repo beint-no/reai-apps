@@ -171,7 +171,6 @@ export function renderConnectPanel(session, opts = {}) {
     const selected = session.tenants.find((t) => t.id === session.tenantId);
     return reaiCard({
       id: 'reai-connect',
-      eyebrow: 'REAI CONNECTION',
       title: selected ? selected.companyName : 'Choose company',
       badge: reaiBadge({ text: 'Connected (HttpOnly cookie)', tone: 'success' }),
       body: html`
@@ -195,7 +194,7 @@ export function renderConnectPanel(session, opts = {}) {
             <button type="submit" class="button secondary">Disconnect</button>
           </form>
         </div>
-        <p class="muted-note">Access token is encrypted inside an HttpOnly cookie on apps.reai.no and never exposed to browser scripts.</p>
+        <p class="muted-note">The access token stays encrypted in an HttpOnly cookie on apps.reai.no and is never exposed to browser scripts.</p>
       `,
     });
   }
@@ -205,7 +204,6 @@ export function renderConnectPanel(session, opts = {}) {
     const pollSeconds = Math.max(3, Math.min(15, p.interval || 5));
     return reaiCard({
       id: 'reai-connect',
-      eyebrow: 'REAI CONNECTION',
       title: 'Approve in ReAI',
       badge: reaiBadge({ text: 'Waiting for approval', tone: 'warn' }),
       body: html`
@@ -238,12 +236,11 @@ export function renderConnectPanel(session, opts = {}) {
 
   return reaiCard({
     id: 'reai-connect',
-    eyebrow: 'REAI CONNECTION',
     title: 'Connect to ReAI',
     badge: reaiBadge({ text: 'Ready to connect', tone: 'neutral' }),
     body: html`
       ${opts.error ? reaiCallout({ tone: 'danger', body: opts.error }) : ''}
-      <p class="muted-note">Approve in ReAI to connect your company with an encrypted HttpOnly session cookie — no manual tokens or passwords needed.</p>
+      <p class="muted-note">Approve in ReAI and choose a company. No tokens or passwords to copy.</p>
       <div class="inline-row">
         <form hx-post="/app/auth/device/start" hx-target="#reai-connect" hx-swap="outerHTML">
           <input type="hidden" name="clientId" value="${clientId}">

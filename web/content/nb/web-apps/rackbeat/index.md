@@ -5,7 +5,7 @@ description: "Sammenlign produktregisteret i Rackbeat med produktene i ReAI på 
 summary: "Les produkter fra Rackbeat via REST API og opprett de som mangler i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/rackbeat/
-sourcePath: web/worker/apps/rackbeat.js
+sourcePath: web/worker/apps/rackbeat/
 highlights:
   - "Leser salgbare produkter fra Rackbeat med en personlig API-nøkkel"
   - "Sammenligner varenummeret i Rackbeat med SKU i ReAI"

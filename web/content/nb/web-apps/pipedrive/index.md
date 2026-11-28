@@ -5,7 +5,7 @@ description: "Overfør organisasjoner fra Pipedrive til kunderegisteret i ReAI o
 summary: "Overfør organisasjoner fra Pipedrive til kunderegisteret i ReAI og opprett ordreutkast fra vunne avtaler."
 industry: operations
 webAppUrl: /app/pipedrive/
-sourcePath: web/worker/apps/pipedrive.js
+sourcePath: web/worker/apps/pipedrive/
 highlights:
   - "Leser organisasjoner og vunne avtaler fra Pipedrive API med din personlige API-nøkkel"
   - "Kontrollerer norsk organisasjonsnummer før kunden opprettes i ReAI"

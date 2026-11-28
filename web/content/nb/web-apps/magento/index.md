@@ -5,7 +5,7 @@ description: "Opprett manglende produkter i ReAI etter SKU og legg ordre fra Mag
 summary: "Hent produkter og fakturerte ordre fra Magento 2 eller Adobe Commerce og lag produkter og ordre i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/magento/
-sourcePath: web/worker/apps/magento.js
+sourcePath: web/worker/apps/magento/
 highlights:
   - "Leser produkter og ordre fra Magento REST API med en integrasjonsnøkkel"
   - "Oppretter produkter som mangler i ReAI, med SKU, pris og lagerstatus"

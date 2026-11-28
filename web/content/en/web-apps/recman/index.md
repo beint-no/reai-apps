@@ -5,7 +5,7 @@ description: "Connect RecMan to ReAI for free. Import issued staffing invoices a
 summary: "Book issued RecMan invoices & credit notes with original PDFs and KID, and prepare ReAI draft payroll with Kartverket workplace municipality (AGA zone) detection."
 industry: operations
 webAppUrl: /app/recman/
-sourcePath: web/worker/apps/recman.js
+sourcePath: web/worker/apps/recman/
 highlights:
   - "Imports issued RecMan invoices & credit notes with original PDFs, KID (paymentReference), VAT and sales accounts, without resending EHF or email"
   - "Resolves staffing workplace addresses through Kartverket to Norwegian municipality codes for the AGA zone, and holds paychecks that span several municipalities for review"

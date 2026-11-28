@@ -5,7 +5,7 @@ description: Migrate products, customers and suppliers from Tripletex, Fiken or 
 summary: Match CSV columns, validate Norwegian org numbers, skip existing records and import cleanly into ReAI.
 industry: operations
 webAppUrl: /app/import/
-sourcePath: web/worker/apps/import.js
+sourcePath: web/worker/apps/import/
 highlights:
   - "Imports Products, Customers and Suppliers with downloadable CSV templates"
   - "Automatic English and Norwegian header matching plus Mod11 org.nr validation"

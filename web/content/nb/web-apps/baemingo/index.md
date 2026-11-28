@@ -5,7 +5,7 @@ description: "Summer en driftsdag i Baemingo med ordrer, refusjoner og tips til 
 summary: "Hent én driftsdag fra Baemingo via det åpne API-et og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/baemingo/
-sourcePath: web/worker/apps/baemingo.js
+sourcePath: web/worker/apps/baemingo/
 highlights:
   - "Leser ordrer, refusjoner og tipskorrigeringer fra Baemingo API med din x-api-key"
   - "Fordeler salg på MVA-satser og betalinger på betalingsmåte, med tips som gjeld til ansatte"

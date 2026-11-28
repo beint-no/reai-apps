@@ -5,7 +5,7 @@ description: "Avstem utbetalinger fra PayPal Point of Sale, tidligere Zettle, mo
 summary: "Match utbetalinger fra PayPal Point of Sale (Zettle) mot uavstemte banktransaksjoner i ReAI og last ned CSV-rapport."
 industry: payments
 webAppUrl: /app/zettle/
-sourcePath: web/worker/apps/zettle.js
+sourcePath: web/worker/apps/zettle/
 highlights:
   - "Henter utbetalinger fra Finance API med en API-nøkkel med tilgangen READ:FINANCE"
   - "Matcher utbetalinger mot banktransaksjoner i ReAI innenfor 8 dager"

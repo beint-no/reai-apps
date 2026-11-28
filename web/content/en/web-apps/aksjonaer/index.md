@@ -5,7 +5,7 @@ description: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV
 summary: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV) into ReAI Share Investments with fritaksmetoden support."
 industry: operations
 webAppUrl: /app/aksjonaer/
-sourcePath: web/worker/apps/aksjonaer.js
+sourcePath: web/worker/apps/aksjonaer/
 highlights:
   - "Built for Norwegian bookkeeping rules (Holding companies & Norwegian equity portfolios)"
   - "Direct integration with ReAI Public API (POST /api/share-investments & GET /api/share-investments)"

@@ -81,595 +81,595 @@
     "name": "ReAI Vipps Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/vipps.js",
+    "path": "web/worker/apps/vipps/",
     "route": "/app/vipps/"
   },
   "klarna-web": {
     "name": "ReAI Klarna Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/klarna.js",
+    "path": "web/worker/apps/klarna/",
     "route": "/app/klarna/"
   },
   "stripe-web": {
     "name": "ReAI Stripe Import",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/stripe.js",
+    "path": "web/worker/apps/stripe/",
     "route": "/app/stripe/"
   },
   "zettle-web": {
     "name": "ReAI PayPal POS (Zettle) Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/zettle.js",
+    "path": "web/worker/apps/zettle/",
     "route": "/app/zettle/"
   },
   "sumup-web": {
     "name": "ReAI SumUp Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/sumup.js",
+    "path": "web/worker/apps/sumup/",
     "route": "/app/sumup/"
   },
   "dintero-web": {
     "name": "ReAI Dintero Fees",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/dintero.js",
+    "path": "web/worker/apps/dintero/",
     "route": "/app/dintero/"
   },
   "nets-web": {
     "name": "ReAI Nexi Checkout Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/nets.js",
+    "path": "web/worker/apps/nets/",
     "route": "/app/nets/"
   },
   "paypal-web": {
     "name": "ReAI PayPal Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/paypal.js",
+    "path": "web/worker/apps/paypal/",
     "route": "/app/paypal/"
   },
   "front-systems-web": {
     "name": "ReAI Front Systems POS",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/front-systems.js",
+    "path": "web/worker/apps/front-systems/",
     "route": "/app/front-systems/"
   },
   "mystore-web": {
     "name": "ReAI Mystore.no Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/mystore.js",
+    "path": "web/worker/apps/mystore/",
     "route": "/app/mystore/"
   },
   "24nettbutikk-web": {
     "name": "ReAI 24Nettbutikk Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/24nettbutikk.js",
+    "path": "web/worker/apps/24nettbutikk/",
     "route": "/app/24nettbutikk/"
   },
   "magento-web": {
     "name": "ReAI Magento Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/magento.js",
+    "path": "web/worker/apps/magento/",
     "route": "/app/magento/"
   },
   "prestashop-web": {
     "name": "ReAI PrestaShop Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/prestashop.js",
+    "path": "web/worker/apps/prestashop/",
     "route": "/app/prestashop/"
   },
   "shopware-web": {
     "name": "ReAI Shopware 6 Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/shopware.js",
+    "path": "web/worker/apps/shopware/",
     "route": "/app/shopware/"
   },
   "wix-web": {
     "name": "ReAI Wix Stores Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/wix.js",
+    "path": "web/worker/apps/wix/",
     "route": "/app/wix/"
   },
   "hubspot-web": {
     "name": "ReAI HubSpot CRM Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/hubspot.js",
+    "path": "web/worker/apps/hubspot/",
     "route": "/app/hubspot/"
   },
   "pipedrive-web": {
     "name": "ReAI Pipedrive CRM Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/pipedrive.js",
+    "path": "web/worker/apps/pipedrive/",
     "route": "/app/pipedrive/"
   },
   "toggl-web": {
     "name": "ReAI Toggl Track Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/toggl.js",
+    "path": "web/worker/apps/toggl/",
     "route": "/app/toggl/"
   },
   "clockify-web": {
     "name": "ReAI Clockify Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/clockify.js",
+    "path": "web/worker/apps/clockify/",
     "route": "/app/clockify/"
   },
   "harvest-web": {
     "name": "ReAI Harvest Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/harvest.js",
+    "path": "web/worker/apps/harvest/",
     "route": "/app/harvest/"
   },
   "tidsbanken-web": {
     "name": "ReAI Tidsbanken / SmartDok Import",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/tidsbanken.js",
+    "path": "web/worker/apps/tidsbanken/",
     "route": "/app/tidsbanken/"
   },
   "pleo-web": {
     "name": "ReAI Pleo Expenses Import",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/pleo.js",
+    "path": "web/worker/apps/pleo/",
     "route": "/app/pleo/"
   },
   "revolut-web": {
     "name": "ReAI Revolut & Wise Import",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/revolut.js",
+    "path": "web/worker/apps/revolut/",
     "route": "/app/revolut/"
   },
   "recman-web": {
     "name": "ReAI RecMan Accounting Bridge",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/recman.js",
+    "path": "web/worker/apps/recman/",
     "route": "/app/recman/"
   },
   "hybel-web": {
     "name": "ReAI Hybel Journal",
     "platform": "web",
     "industry": "real-estate",
-    "path": "web/worker/apps/hybel.js",
+    "path": "web/worker/apps/hybel/",
     "route": "/app/hybel/"
   },
   "fazile-web": {
     "name": "ReAI Fazile Property Billing",
     "platform": "web",
     "industry": "real-estate",
-    "path": "web/worker/apps/fazile.js",
+    "path": "web/worker/apps/fazile/",
     "route": "/app/fazile/"
   },
   "import-web": {
     "name": "ReAI Spreadsheet Import",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/import.js",
+    "path": "web/worker/apps/import/",
     "route": "/app/import/"
   },
   "export-web": {
     "name": "ReAI BI & Accounting Export",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/export.js",
+    "path": "web/worker/apps/export/",
     "route": "/app/export/"
   },
   "ui-lab": {
     "name": "ReAI UI Component Lab",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/lab.js",
+    "path": "web/worker/apps/lab/",
     "route": "/app/lab/"
   },
   "smartdok-web": {
     "name": "ReAI SmartDok",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/smartdok.js",
+    "path": "web/worker/apps/smartdok/",
     "route": "/app/smartdok/"
   },
   "holte-web": {
     "name": "ReAI EG HoltePortalen",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/holte.js",
+    "path": "web/worker/apps/holte/",
     "route": "/app/holte/"
   },
   "handyman-web": {
     "name": "ReAI Handyman",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/handyman.js",
+    "path": "web/worker/apps/handyman/",
     "route": "/app/handyman/"
   },
   "favrit-web": {
     "name": "ReAI Favrit",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/favrit.js",
+    "path": "web/worker/apps/favrit/",
     "route": "/app/favrit/"
   },
   "extendago-web": {
     "name": "ReAI ExtendaGO",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/extendago.js",
+    "path": "web/worker/apps/extendago/",
     "route": "/app/extendago/"
   },
   "superoffice-web": {
     "name": "ReAI SuperOffice",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/superoffice.js",
+    "path": "web/worker/apps/superoffice/",
     "route": "/app/superoffice/"
   },
   "lime-web": {
     "name": "ReAI Lime CRM",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/lime.js",
+    "path": "web/worker/apps/lime/",
     "route": "/app/lime/"
   },
   "planday-web": {
     "name": "ReAI Planday",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/planday.js",
+    "path": "web/worker/apps/planday/",
     "route": "/app/planday/"
   },
   "tamigo-web": {
     "name": "ReAI Tamigo",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/tamigo.js",
+    "path": "web/worker/apps/tamigo/",
     "route": "/app/tamigo/"
   },
   "huma-web": {
     "name": "ReAI Huma HR",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/huma.js",
+    "path": "web/worker/apps/huma/",
     "route": "/app/huma/"
   },
   "busy-web": {
     "name": "ReAI Finago Busy",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/busy.js",
+    "path": "web/worker/apps/busy/",
     "route": "/app/busy/"
   },
   "ticketco-web": {
     "name": "ReAI TicketCo",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/ticketco.js",
+    "path": "web/worker/apps/ticketco/",
     "route": "/app/ticketco/"
   },
   "ongoing-wms-web": {
     "name": "ReAI Ongoing WMS",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/ongoing-wms.js",
+    "path": "web/worker/apps/ongoing-wms/",
     "route": "/app/ongoing-wms/"
   },
   "abax-web": {
     "name": "ReAI ABAX",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/abax.js",
+    "path": "web/worker/apps/abax/",
     "route": "/app/abax/"
   },
   "easypractice-web": {
     "name": "ReAI EasyPract",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/easypractice.js",
+    "path": "web/worker/apps/easypractice/",
     "route": "/app/easypractice/"
   },
   "two-web": {
     "name": "ReAI Two B2B",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/two.js",
+    "path": "web/worker/apps/two/",
     "route": "/app/two/"
   },
   "husleie-web": {
     "name": "ReAI Husleie.no",
     "platform": "web",
     "industry": "real-estate",
-    "path": "web/worker/apps/husleie.js",
+    "path": "web/worker/apps/husleie/",
     "route": "/app/husleie/"
   },
   "quinyx-web": {
     "name": "ReAI Quinyx",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/quinyx.js",
+    "path": "web/worker/apps/quinyx/",
     "route": "/app/quinyx/"
   },
   "severa-web": {
     "name": "ReAI Severa",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/severa.js",
+    "path": "web/worker/apps/severa/",
     "route": "/app/severa/"
   },
   "saft-web": {
     "name": "ReAI SAF-T NO",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/saft.js",
+    "path": "web/worker/apps/saft/",
     "route": "/app/saft/"
   },
   "squarespace-web": {
     "name": "ReAI Squarespace",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/squarespace.js",
+    "path": "web/worker/apps/squarespace/",
     "route": "/app/squarespace/"
   },
   "paddle-web": {
     "name": "ReAI Paddle",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/paddle.js",
+    "path": "web/worker/apps/paddle/",
     "route": "/app/paddle/"
   },
   "salesforce-web": {
     "name": "ReAI Salesforce",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/salesforce.js",
+    "path": "web/worker/apps/salesforce/",
     "route": "/app/salesforce/"
   },
   "poweroffice-migrate-web": {
     "name": "ReAI PowerOffice Switch",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/poweroffice-migrate.js",
+    "path": "web/worker/apps/poweroffice-migrate/",
     "route": "/app/poweroffice-migrate/"
   },
   "24sevenoffice-migrate-web": {
     "name": "ReAI Finago Office Switch",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/24sevenoffice-migrate.js",
+    "path": "web/worker/apps/24sevenoffice-migrate/",
     "route": "/app/24sevenoffice-migrate/"
   },
   "aksjonaer-web": {
     "name": "ReAI Aksjonær & Shares",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/aksjonaer.js",
+    "path": "web/worker/apps/aksjonaer/",
     "route": "/app/aksjonaer/"
   },
   "budget-web": {
     "name": "ReAI Company Budget",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/budget.js",
+    "path": "web/worker/apps/budget/",
     "route": "/app/budget/"
   },
   "automations-web": {
     "name": "ReAI Make / Zapier / n8n",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/automations.js",
+    "path": "web/worker/apps/automations/",
     "route": "/app/automations/"
   },
   "4human-web": {
     "name": "ReAI 4human HRM Employee Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/4human.js",
+    "path": "web/worker/apps/4human/",
     "route": "/app/4human/"
   },
   "amendo-web": {
     "name": "ReAI Amendo Z-report Accounting",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/amendo.js",
+    "path": "web/worker/apps/amendo/",
     "route": "/app/amendo/"
   },
   "autogear-web": {
     "name": "ReAI Autogear Driving Log",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/autogear.js",
+    "path": "web/worker/apps/autogear/",
     "route": "/app/autogear/"
   },
   "baemingo-web": {
     "name": "ReAI Baemingo Daily Sales Accounting",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/baemingo.js",
+    "path": "web/worker/apps/baemingo/",
     "route": "/app/baemingo/"
   },
   "caspeco-web": {
     "name": "ReAI Caspeco Daily Sales Accounting",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/caspeco.js",
+    "path": "web/worker/apps/caspeco/",
     "route": "/app/caspeco/"
   },
   "duell-web": {
     "name": "ReAI Duell Z-report Accounting",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/duell.js",
+    "path": "web/worker/apps/duell/",
     "route": "/app/duell/"
   },
   "flow-retail-web": {
     "name": "ReAI Flow Retail Daily Accounting",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/flow-retail.js",
+    "path": "web/worker/apps/flow-retail/",
     "route": "/app/flow-retail/"
   },
   "fonn-web": {
     "name": "ReAI Access Fonn",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/fonn.js",
+    "path": "web/worker/apps/fonn/",
     "route": "/app/fonn/"
   },
   "kvalitetskontroll-web": {
     "name": "ReAI Kvalitetskontroll Hours Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/kvalitetskontroll.js",
+    "path": "web/worker/apps/kvalitetskontroll/",
     "route": "/app/kvalitetskontroll/"
   },
   "mynt-web": {
     "name": "ReAI Mynt Card Expenses",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/mynt.js",
+    "path": "web/worker/apps/mynt/",
     "route": "/app/mynt/"
   },
   "nshift-web": {
     "name": "ReAI nShift Delivery Freight Rebilling",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/nshift.js",
+    "path": "web/worker/apps/nshift/",
     "route": "/app/nshift/"
   },
   "ordrestyring-web": {
     "name": "ReAI Ordrestyring Case Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/ordrestyring.js",
+    "path": "web/worker/apps/ordrestyring/",
     "route": "/app/ordrestyring/"
   },
   "pindena-web": {
     "name": "ReAI Pindena Course Registration Accounting",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/pindena.js",
+    "path": "web/worker/apps/pindena/",
     "route": "/app/pindena/"
   },
   "power-bi-web": {
     "name": "ReAI Power BI Feed",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/power-bi.js",
+    "path": "web/worker/apps/power-bi/",
     "route": "/app/power-bi/"
   },
   "proresult-web": {
     "name": "ReAI Proresult Hours Import",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/proresult.js",
+    "path": "web/worker/apps/proresult/",
     "route": "/app/proresult/"
   },
   "proteria-web": {
     "name": "ReAI Proteria Frakt Freight Rebilling",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/proteria.js",
+    "path": "web/worker/apps/proteria/",
     "route": "/app/proteria/"
   },
   "provet-cloud-web": {
     "name": "ReAI Provet Cloud Veterinary Sales Accounting",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/provet-cloud.js",
+    "path": "web/worker/apps/provet-cloud/",
     "route": "/app/provet-cloud/"
   },
   "psykbase-web": {
     "name": "ReAI PsykBase Clinic Invoice Accounting",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/psykbase.js",
+    "path": "web/worker/apps/psykbase/",
     "route": "/app/psykbase/"
   },
   "qliro-web": {
     "name": "ReAI Qliro Checkout Settlement Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/qliro.js",
+    "path": "web/worker/apps/qliro/",
     "route": "/app/qliro/"
   },
   "rackbeat-web": {
     "name": "ReAI Rackbeat Product Sync",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/rackbeat.js",
+    "path": "web/worker/apps/rackbeat/",
     "route": "/app/rackbeat/"
   },
   "sharefox-web": {
     "name": "ReAI Sharefox Rental Sales",
     "platform": "web",
     "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/sharefox.js",
+    "path": "web/worker/apps/sharefox/",
     "route": "/app/sharefox/"
   },
   "sitoo-web": {
     "name": "ReAI Sitoo POS Z-report Accounting",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/sitoo.js",
+    "path": "web/worker/apps/sitoo/",
     "route": "/app/sitoo/"
   },
   "speedycraft-web": {
     "name": "ReAI SpeedyCraft Work Order Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/speedycraft.js",
+    "path": "web/worker/apps/speedycraft/",
     "route": "/app/speedycraft/"
   },
   "spense-web": {
     "name": "ReAI Spense Settlement Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/spense.js",
+    "path": "web/worker/apps/spense/",
     "route": "/app/spense/"
   },
   "svea-web": {
     "name": "ReAI Svea Checkout Settlement Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/svea.js",
+    "path": "web/worker/apps/svea/",
     "route": "/app/svea/"
   },
   "timely-web": {
     "name": "ReAI Timely Timesheet Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/timely.js",
+    "path": "web/worker/apps/timely/",
     "route": "/app/timely/"
   },
   "walley-web": {
     "name": "ReAI Walley Settlement Reconcile",
     "platform": "web",
     "industry": "payments",
-    "path": "web/worker/apps/walley.js",
+    "path": "web/worker/apps/walley/",
     "route": "/app/walley/"
   },
   "workfeed-web": {
     "name": "ReAI Workfeed Shift Hours",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/workfeed.js",
+    "path": "web/worker/apps/workfeed/",
     "route": "/app/workfeed/"
   }
 }

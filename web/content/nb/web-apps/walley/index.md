@@ -5,7 +5,7 @@ description: "Avstem utbetalinger fra Walley mot banktransaksjoner i ReAI og las
 summary: "Hent Walley oppgjør via Reports API og match hver utbetaling mot en uavstemt banktransaksjon i ReAI."
 industry: payments
 webAppUrl: /app/walley/
-sourcePath: web/worker/apps/walley.js
+sourcePath: web/worker/apps/walley/
 highlights:
   - "Leser Walley oppgjør med en API-nøkkel fra Merchant Hub"
   - "Viser utbetalt beløp, gebyrer og oppgjørsperiode for hver utbetaling"

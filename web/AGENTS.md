@@ -43,3 +43,10 @@ Local `wrangler dev` on `localhost`/`127.0.0.1` automatically generates an ephem
 - `/app/*` Worker apps are English and link to the English catalog (`/en/`, `/en/web-apps/`, `/en/docs/`).
 - The front page's curated "most used systems by industry" list lives in `data/popular.json`. Keep it to the most used Norwegian systems (about 4 to 6 per industry) and point each entry at an existing `/web-apps/<slug>/` page.
 - Switching accounting system is handled by people: link to ReAI's contact page instead of promoting the switcher apps above the fold.
+
+## Integrations
+
+- Each app lives in its own folder, `web/worker/apps/<slug>/`, with `index.js` (exports `handle`) and `AGENTS.md`. Read the folder's `AGENTS.md` before changing an integration.
+- `AGENTS.md` links the vendor's current API documentation and records the API version, auth, endpoints used, ReAI endpoints and caveats. Update it in the same change as the code, including the "Last verified" date.
+- Use only documented endpoints on the newest API version, with server-side filtering and paging; never invent hosts, paths or fields. Build only for active vendors whose customers can get an API key (or a documented export when no API exists).
+- Shared helpers belong in `web/worker/lib/` (`csv.js`, `norway.js`, `voucher-rows.js`, `api-http.js`); apps never import from another app's folder.

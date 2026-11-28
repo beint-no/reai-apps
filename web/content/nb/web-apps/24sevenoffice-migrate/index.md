@@ -5,7 +5,7 @@ description: "Hent kunder, leverandører og produkter fra Finago Office API og o
 summary: "Flytt kunder, leverandører og produkter fra Finago Office til ReAI."
 industry: operations
 webAppUrl: /app/24sevenoffice-migrate/
-sourcePath: web/worker/apps/24sevenoffice-migrate.js
+sourcePath: web/worker/apps/24sevenoffice-migrate/
 highlights:
   - "Leser kunder, leverandører og produkter fra Finago Office API"
   - "Tar med kundenummer, leverandørnummer, organisasjonsnummer, e-post og pris"

@@ -5,7 +5,7 @@ description: "Importer en timerapport fra Proresult, før timene i ReAI Timelist
 summary: "Importer rapporten Timelister egendefinert fra Proresult til timelister og ordreutkast i ReAI."
 industry: operations
 webAppUrl: /app/proresult/
-sourcePath: web/worker/apps/proresult.js
+sourcePath: web/worker/apps/proresult/
 highlights:
   - "Leser timerapporten Timelister egendefinert lagret som CSV"
   - "Fører timer per ansatt med timetype, prosjekt og kommentar"

@@ -5,7 +5,7 @@ description: "Hent betalte ordrer fra Shopware 6 og legg dem inn som ordrer i Re
 summary: "Hent betalte Shopware-ordrer for en periode og legg dem inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/shopware/
-sourcePath: web/worker/apps/shopware.js
+sourcePath: web/worker/apps/shopware/
 highlights:
   - "Leser betalte ordrer fra Shopware Admin API med en integrasjon"
   - "Én ordrelinje per vare, rabatt og frakt, med MVA-satsen Shopware beregnet"

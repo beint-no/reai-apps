@@ -5,7 +5,7 @@ description: "Gjør en utgiftseksport fra Mynt om til ett balansert kontrollbila
 summary: "Les inn kortutgifter fra Mynt sin CSV-eksport som ett balansert kontrollbilag i ReAI."
 industry: operations
 webAppUrl: /app/mynt/
-sourcePath: web/worker/apps/mynt.js
+sourcePath: web/worker/apps/mynt/
 highlights:
   - "Leser kolonnene Transaction date, Amount, VAT rate, Description og Account fra Mynt"
   - "Fører inngående mva med 25, 15 og 12 prosent og beholder refusjoner som kredit"

@@ -5,7 +5,7 @@ description: "Bokfør billettsalg fra TicketCo som bilag til kontroll i ReAI, me
 summary: "Hent transaksjonene fra TicketCo for en periode eller ett arrangement og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/ticketco/
-sourcePath: web/worker/apps/ticketco.js
+sourcePath: web/worker/apps/ticketco/
 highlights:
   - "Leser billettransaksjoner fra TicketCo Public API"
   - "Fører salg inklusive MVA med riktig MVA-kode, også for avgiftsfrie billetter"

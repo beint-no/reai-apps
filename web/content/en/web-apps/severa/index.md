@@ -5,7 +5,7 @@ description: "Fetch work hours from the Severa REST API and post them to ReAI Ti
 summary: "Fetch Severa work hours for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/severa/
-sourcePath: web/worker/apps/severa.js
+sourcePath: web/worker/apps/severa/
 highlights:
   - "Reads work hours through the Severa REST API with a client ID and client secret"
   - "Shows date, user, project and phase before anything is posted"

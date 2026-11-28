@@ -5,7 +5,7 @@ description: "Fetch a month of Clockify time entries through the API and post th
 summary: "Fetch Clockify time entries through the API and post them to ReAI Timesheets by employee and project."
 industry: operations
 webAppUrl: /app/clockify/
-sourcePath: web/worker/apps/clockify.js
+sourcePath: web/worker/apps/clockify/
 highlights:
   - "Uses the Clockify API v1 with your personal API key"
   - "Works with workspaces in every Clockify data region"

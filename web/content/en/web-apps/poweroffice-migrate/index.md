@@ -5,7 +5,7 @@ description: "Fetch customers, suppliers and products from the PowerOffice Go AP
 summary: "Move customers, suppliers and products from PowerOffice Go to ReAI."
 industry: operations
 webAppUrl: /app/poweroffice-migrate/
-sourcePath: web/worker/apps/poweroffice-migrate.js
+sourcePath: web/worker/apps/poweroffice-migrate/
 highlights:
   - "Reads customers, suppliers and products from the PowerOffice Go API"
   - "Keeps customer numbers, supplier numbers, organization numbers, email addresses and prices"

@@ -5,7 +5,7 @@ description: "Import the Spense settlement report, match each payout to the ReAI
 summary: "Match Spense payouts against pending ReAI bank transactions and book settlements as a review voucher."
 industry: payments
 webAppUrl: /app/spense/
-sourcePath: web/worker/apps/spense.js
+sourcePath: web/worker/apps/spense/
 highlights:
   - "Reads the documented Spense settlement CSV in the payouts or transactions format"
   - "Matches net payouts to pending ReAI bank transactions within eight days"

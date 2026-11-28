@@ -5,7 +5,7 @@ description: Review Dintero checkout settlements, match net payouts against ReAI
 summary: Match paid Dintero settlements against ReAI bank feeds and optionally book withheld monthly fees.
 industry: payments
 webAppUrl: /app/dintero/
-sourcePath: web/worker/apps/dintero.js
+sourcePath: web/worker/apps/dintero/
 highlights:
   - "Totals withheld fees across paid Dintero settlements in your company currency"
   - "Matches net settlements against pending ReAI bank transactions and exports CSV"

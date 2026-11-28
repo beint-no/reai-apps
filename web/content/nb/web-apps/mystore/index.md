@@ -5,7 +5,7 @@ description: "Opprett produkter fra Mystore i ReAI etter varenummer og overfør 
 summary: "Hent produkter og de siste ordrene fra Mystore API og overfør dem til ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/mystore/
-sourcePath: web/worker/apps/mystore.js
+sourcePath: web/worker/apps/mystore/
 highlights:
   - "Leser produkter og ordrer fra Mystore API med en personlig tilgangsnøkkel"
   - "Oppretter produkter som mangler i ReAI, sammenlignet på varenummer"

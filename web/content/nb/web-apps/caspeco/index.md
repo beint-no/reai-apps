@@ -5,7 +5,7 @@ description: "Summer en driftsdag med kassesalg i Caspeco til ett bilag til kont
 summary: "Hent én driftsdag fra Caspeco via Sales Export API og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/caspeco/
-sourcePath: web/worker/apps/caspeco.js
+sourcePath: web/worker/apps/caspeco/
 highlights:
   - "Leser salgslinjer fra Caspeco Sales Export API med AuthKey fra Caspeco"
   - "Finner MVA-satsen per linje og grupperer betalinger på betalingstype"

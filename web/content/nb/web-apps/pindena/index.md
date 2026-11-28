@@ -5,7 +5,7 @@ description: "Hent deltagerne på en aktivitet i Pindena og lag et balansert bil
 summary: "Bokfør forhåndsbetalte påmeldinger fra Pindena per aktivitet som et bilag til kontroll i ReAI, med mva-behandlingen du velger."
 industry: operations
 webAppUrl: /app/pindena/
-sourcePath: web/worker/apps/pindena.js
+sourcePath: web/worker/apps/pindena/
 highlights:
   - "Henter aktiviteten og deltagerne fra Pindena API"
   - "Fører forhåndsbetalte påmeldinger mot 1580 for avstemming mot utbetalingen"

@@ -5,7 +5,7 @@ description: "Fetch SpeedyCraft service hours and materials, log the hours in Re
 summary: "Fetch SpeedyCraft work order hours and materials through the SpeedyCraft REST API into ReAI timesheets and draft orders."
 industry: operations
 webAppUrl: /app/speedycraft/
-sourcePath: web/worker/apps/speedycraft.js
+sourcePath: web/worker/apps/speedycraft/
 highlights:
   - "Uses the SpeedyCraft REST API with credentials issued by Devinco"
   - "Logs service hours per employee and skips rejected hours"

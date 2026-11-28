@@ -5,7 +5,7 @@ description: "Fetch approved hour registrations from Kvalitetskontroll and log t
 summary: "Fetch approved Kvalitetskontroll hours through the KS API and log them in ReAI Timesheets."
 industry: operations
 webAppUrl: /app/kvalitetskontroll/
-sourcePath: web/worker/apps/kvalitetskontroll.js
+sourcePath: web/worker/apps/kvalitetskontroll/
 highlights:
   - "Uses the Kvalitetskontroll API with your own personal access token"
   - "Fetches approved hours only, with hour type, project and employee"

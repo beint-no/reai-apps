@@ -5,7 +5,7 @@ description: "Fetch stored freight prices from nShift Delivery and stage them pe
 summary: "Read nShift Delivery price history with your own API key and stage freight per shipment as ReAI draft orders."
 industry: ecommerce-logistics
 webAppUrl: /app/nshift/
-sourcePath: web/worker/apps/nshift.js
+sourcePath: web/worker/apps/nshift/
 highlights:
   - "Uses the nShift Delivery REST API with your own API key"
   - "Freight price per shipment with carrier, service and parcel count"

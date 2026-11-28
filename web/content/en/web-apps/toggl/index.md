@@ -5,7 +5,7 @@ description: "Fetch tracked hours from the Toggl Track API and post them to ReAI
 summary: "Fetch a month of Toggl Track time entries and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/toggl/
-sourcePath: web/worker/apps/toggl.js
+sourcePath: web/worker/apps/toggl/
 highlights:
   - "Reads your Toggl Track time entries for the chosen month"
   - "Maps the hours to a ReAI employee and optional project"

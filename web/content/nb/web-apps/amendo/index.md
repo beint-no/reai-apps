@@ -5,7 +5,7 @@ description: "Bokfør dagsoppgjør fra Amendo som bilag til kontroll i ReAI, for
 summary: "Hent dagsoppgjørene fra Amendo for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/amendo/
-sourcePath: web/worker/apps/amendo.js
+sourcePath: web/worker/apps/amendo/
 highlights:
   - "Leser dagsoppgjør via ProTouch API v3, som backoffice i Amendo bygger på"
   - "Fordeler salg på MVA-satser, fratrukket returer, og betalinger på betalingstype"

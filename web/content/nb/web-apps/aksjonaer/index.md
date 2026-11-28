@@ -5,7 +5,7 @@ description: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 ret
 summary: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 rett til ReAI aksjeinvesteringer (1350/1810)."
 industry: operations
 webAppUrl: /app/aksjonaer/
-sourcePath: web/worker/apps/aksjonaer.js
+sourcePath: web/worker/apps/aksjonaer/
 highlights:
   - "Tilpasset norsk bokføringsskikk (Holding companies & Norwegian equity portfolios)"
   - "Direkte kobling mot ReAI sitt åpne API (POST /api/share-investments & GET /api/share-investments)"

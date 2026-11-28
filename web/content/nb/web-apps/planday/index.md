@@ -5,7 +5,7 @@ description: "Hent godkjente vakter fra Planday for én ansatt og før timene i 
 summary: "Hent godkjente vakter fra Planday og før timene i ReAI Timelister."
 industry: operations
 webAppUrl: /app/planday/
-sourcePath: web/worker/apps/planday.js
+sourcePath: web/worker/apps/planday/
 highlights:
   - "Leser godkjente vakter fra Planday Open API med App ID og refresh token"
   - "Trekker fra ubetalte pauser og viser avdelingen for hver vakt"

@@ -5,7 +5,7 @@ description: "Fetch confirmed business trips and road tolls from the Autogear AP
 summary: "Fetch confirmed Autogear trips with road tolls and record them in ReAI Driving Log after review."
 industry: operations
 webAppUrl: /app/autogear/
-sourcePath: web/worker/apps/autogear.js
+sourcePath: web/worker/apps/autogear/
 highlights:
   - "Reads trips from the Autogear REST API with your own Client ID and Client Secret"
   - "Skips private and commute trips and matches drivers to ReAI employees by email"

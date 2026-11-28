@@ -5,7 +5,7 @@ description: "Fetch paid Shopware 6 orders and stage them as ReAI orders with it
 summary: "Fetch paid Shopware orders for a period and stage them as orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/shopware/
-sourcePath: web/worker/apps/shopware.js
+sourcePath: web/worker/apps/shopware/
 highlights:
   - "Reads paid orders through the Shopware Admin API with an integration"
   - "One order line per item, discount and shipping, with the tax rate Shopware calculated"

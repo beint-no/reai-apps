@@ -5,7 +5,7 @@ description: "Bokfør kasseoppgjørene fra Front Systems som bilag til kontroll 
 summary: "Hent kasseoppgjørene fra Front Systems for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/front-systems/
-sourcePath: web/worker/apps/front-systems.js
+sourcePath: web/worker/apps/front-systems/
 highlights:
   - "Leser kasseoppgjør fra Front Systems REST API med abonnementsnøkkel og API-nøkkel"
   - "Fører salg per MVA-sats med utgående MVA-kode i ReAI"

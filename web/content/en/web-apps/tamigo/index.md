@@ -5,7 +5,7 @@ description: "Fetch worked shifts from the Tamigo timesheet and post them to ReA
 summary: "Fetch worked Tamigo shifts for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/tamigo/
-sourcePath: web/worker/apps/tamigo.js
+sourcePath: web/worker/apps/tamigo/
 highlights:
   - "Reads worked hours through the Tamigo API with an application key"
   - "Shows employee, department and shift time before anything is posted"

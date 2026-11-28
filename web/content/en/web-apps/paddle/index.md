@@ -5,7 +5,7 @@ description: "Book Paddle Merchant-of-Record and Chargebee SaaS payouts in ReAI 
 summary: "Book Paddle Merchant-of-Record and Chargebee SaaS payouts in ReAI separating 0% export SaaS revenue (3100), MoR fees (7770) and net payout (1580)."
 industry: payments
 webAppUrl: /app/paddle/
-sourcePath: web/worker/apps/paddle.js
+sourcePath: web/worker/apps/paddle/
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Norwegian SaaS & software exports (SaaS)"
   - "Direct mapping to NS 4102 / ReAI Public API (1580, 3100 (0% export), 7770)"

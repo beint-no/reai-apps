@@ -5,7 +5,7 @@ description: "Hent månedens timer fra Clockify via API og før dem i ReAI Timel
 summary: "Hent timeregistreringer fra Clockify via API og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/clockify/
-sourcePath: web/worker/apps/clockify.js
+sourcePath: web/worker/apps/clockify/
 highlights:
   - "Bruker Clockify API v1 med din personlige API-nøkkel"
   - "Støtter arbeidsområder i alle Clockify-regioner"

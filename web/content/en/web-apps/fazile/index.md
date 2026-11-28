@@ -5,7 +5,7 @@ description: "Read active lease contracts from the Fazile API and stage them as 
 summary: "Read active Fazile lease contracts and stage ReAI recurring billing with automatic billing kept off until approved."
 industry: real-estate
 webAppUrl: /app/fazile/
-sourcePath: web/worker/apps/fazile.js
+sourcePath: web/worker/apps/fazile/
 highlights:
   - "Reads active contracts and tenants with a Fazile API key"
   - "Matches tenants in ReAI by organization number, email or name"

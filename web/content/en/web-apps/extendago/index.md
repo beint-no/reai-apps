@@ -5,7 +5,7 @@ description: "Book the daily ExtendaGO GBAT10 file in ReAI as a review voucher, 
 summary: "Upload the daily ExtendaGO GBAT10 file and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/extendago/
-sourcePath: web/worker/apps/extendago.js
+sourcePath: web/worker/apps/extendago/
 highlights:
   - "Reads the GBAT10 file that ExtendaGO delivers to SFTP every night"
   - "Keeps the accounts and VAT codes from the ExtendaGO accounting settings"

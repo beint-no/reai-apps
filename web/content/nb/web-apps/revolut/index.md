@@ -5,7 +5,7 @@ description: "Hent kortkjøp og gebyrer fra Revolut Business API og lag ett bila
 summary: "Hent fullførte kortkjøp i NOK fra Revolut Business for en periode og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/revolut/
-sourcePath: web/worker/apps/revolut.js
+sourcePath: web/worker/apps/revolut/
 highlights:
   - "Leser kortkjøp og gebyrer fra Revolut Business API med din egen API-nøkkel"
   - "Fører gebyrer på konto 7770 og kortkjøp på kostnadskontoen du velger"

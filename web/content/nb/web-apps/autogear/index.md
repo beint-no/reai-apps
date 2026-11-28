@@ -5,7 +5,7 @@ description: "Hent godkjente yrkesreiser og bompenger fra Autogear API og regist
 summary: "Hent godkjente turer med bompenger fra Autogear og registrer dem i ReAI Kjørebok etter kontroll."
 industry: operations
 webAppUrl: /app/autogear/
-sourcePath: web/worker/apps/autogear.js
+sourcePath: web/worker/apps/autogear/
 highlights:
   - "Leser turer fra Autogear REST API med egen Client ID og Client Secret"
   - "Utelater private turer og arbeidsreiser, og kobler sjåfør til ansatt i ReAI via e-post"

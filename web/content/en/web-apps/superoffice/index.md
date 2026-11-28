@@ -5,7 +5,7 @@ description: "Fetch sold SuperOffice CRM sales and stage them as ReAI orders wit
 summary: "Fetch sales with status Sold from SuperOffice and stage them as orders in ReAI."
 industry: operations
 webAppUrl: /app/superoffice/
-sourcePath: web/worker/apps/superoffice.js
+sourcePath: web/worker/apps/superoffice/
 highlights:
   - "Reads sold sales through the SuperOffice REST API"
   - "Matches the customer by organization number or name, or creates a company customer"

@@ -5,7 +5,7 @@ description: "Book Duell Z-reports in ReAI as review vouchers, using the account
 summary: "Fetch the Duell Z-reports for one day and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/duell/
-sourcePath: web/worker/apps/duell.js
+sourcePath: web/worker/apps/duell/
 highlights:
   - "Reads Z-reports through the Duell API with your client number and token"
   - "Keeps the accounts from your Duell account plan and posts sales with the matching ReAI VAT code"

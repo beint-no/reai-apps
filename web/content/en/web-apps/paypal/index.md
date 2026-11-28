@@ -5,7 +5,7 @@ description: "Fetch PayPal Business withdrawals to your bank for one month and r
 summary: "Reconcile PayPal Business withdrawals against the bank in ReAI and download the result as CSV."
 industry: payments
 webAppUrl: /app/paypal/
-sourcePath: web/worker/apps/paypal.js
+sourcePath: web/worker/apps/paypal/
 highlights:
   - "Reads bank withdrawals from the PayPal Transaction Search API"
   - "Uses your own live REST app with Transaction search turned on"

@@ -5,7 +5,7 @@ description: "Fetch Nexi Checkout payouts for one month and reconcile them again
 summary: "Reconcile Nexi Checkout payouts, formerly Nets Easy, against the bank in ReAI and download the result as CSV."
 industry: payments
 webAppUrl: /app/nets/
-sourcePath: web/worker/apps/nets.js
+sourcePath: web/worker/apps/nets/
 highlights:
   - "Reads payouts from the Nexi Checkout Reporting API with your secret key"
   - "Shows amount, fees and reference for every payout"

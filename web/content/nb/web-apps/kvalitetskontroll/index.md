@@ -5,7 +5,7 @@ description: "Hent godkjente timer fra Kvalitetskontroll og før dem som timelis
 summary: "Hent godkjente timer fra Kvalitetskontroll via KS API og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/kvalitetskontroll/
-sourcePath: web/worker/apps/kvalitetskontroll.js
+sourcePath: web/worker/apps/kvalitetskontroll/
 highlights:
   - "Bruker Kvalitetskontroll API med ditt eget personlige tilgangstoken"
   - "Henter bare godkjente timer, med timetype, prosjekt og ansatt"

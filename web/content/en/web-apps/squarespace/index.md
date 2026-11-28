@@ -5,7 +5,7 @@ description: "Fetch Squarespace Commerce orders and stage them as ReAI orders wi
 summary: "Fetch Squarespace orders for a period and stage them as orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/squarespace/
-sourcePath: web/worker/apps/squarespace.js
+sourcePath: web/worker/apps/squarespace/
 highlights:
   - "Reads orders through the Squarespace Orders API with a developer API key"
   - "One order line per item, shipping and discount, excluding VAT"

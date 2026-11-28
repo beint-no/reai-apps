@@ -5,7 +5,7 @@ description: "Hent fakturaer fra PsykBase Online for en periode og lag et balans
 summary: "Bokfør fakturaene fra PsykBase Online som ett bilag til kontroll i ReAI per periode, med mva-frie helsetjenester på mva-kode 6."
 industry: operations
 webAppUrl: /app/psykbase/
-sourcePath: web/worker/apps/psykbase.js
+sourcePath: web/worker/apps/psykbase/
 highlights:
   - "Henter fakturaer og fakturalinjer fra PsykBase API med et personlig tilgangstoken"
   - "Fører mva-frie helsetjenester på 3200 med mva-kode 6"

@@ -5,7 +5,7 @@ description: "Hent attesterte timer fra SmartDok API og før dem i timelistene i
 summary: "Hent attesterte timer fra SmartDok for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/smartdok/
-sourcePath: web/worker/apps/smartdok.js
+sourcePath: web/worker/apps/smartdok/
 highlights:
   - "Leser attesterte timer fra SmartDok API med API-tilgangsnøkkel"
   - "Viser ansatt, prosjekt, underprosjekt og lønnsart før du fører noe"

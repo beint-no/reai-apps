@@ -5,7 +5,7 @@ description: "Hent prosjekttimer fra HoltePortalen API og før dem i ReAI Timeli
 summary: "Hent prosjekttimer fra HoltePortalen API og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/holte/
-sourcePath: web/worker/apps/holte.js
+sourcePath: web/worker/apps/holte/
 highlights:
   - "Bruker HoltePortalen API med et API-token fra innstillingene"
   - "Viser prosjektnummer, prosjektnavn og bruker fra HoltePortalen"

@@ -5,7 +5,7 @@ description: "Bokfør oppgjørene fra Favrit som bilag til kontroll i ReAI, med 
 summary: "Hent oppgjørene fra Favrit for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/favrit/
-sourcePath: web/worker/apps/favrit.js
+sourcePath: web/worker/apps/favrit/
 highlights:
   - "Leser oppgjørsrapporter fra Favrit Accounting API med klient-id og hemmelighet"
   - "Beholder salgskontoene fra Favrit og fører salg med utgående MVA-kode i ReAI"

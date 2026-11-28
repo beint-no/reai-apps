@@ -5,7 +5,7 @@ description: "Hent vaktene til én ansatt fra Quinyx og før timene i ReAI Timel
 summary: "Hent vakter fra Quinyx og før timene i ReAI Timelister."
 industry: operations
 webAppUrl: /app/quinyx/
-sourcePath: web/worker/apps/quinyx.js
+sourcePath: web/worker/apps/quinyx/
 highlights:
   - "Leser vakter fra Quinyx API med egne integrasjonsnøkler"
   - "Trekker fra pauser og hopper over fridager og vakter som ikke teller som arbeidstid"

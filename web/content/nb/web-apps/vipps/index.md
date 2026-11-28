@@ -5,7 +5,7 @@ description: Avstem Vipps-utbetalinger mot bank i ReAI helt gratis. Komplett gui
 summary: Match utbetalinger fra Vipps mot banktransaksjoner i ReAI og last ned ferdig avstemmingsrapport i CSV.
 industry: payments
 webAppUrl: /app/vipps/
-sourcePath: web/worker/apps/vipps.js
+sourcePath: web/worker/apps/vipps/
 highlights:
   - "Henter planlagte utbetalinger fra Vipps Report API for én måned"
   - "Matcher utbetalingene mot uavstemte banktransaksjoner i ReAI (±8 dager)"

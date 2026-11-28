@@ -5,7 +5,7 @@ description: "Generate Power Query scripts that load ReAI ledger postings, profi
 summary: "Copy ready Power Query M scripts for ReAI postings, P&L, balances and invoices into Power BI Desktop, the Power BI service or Excel."
 industry: operations
 webAppUrl: /app/power-bi/
-sourcePath: web/worker/apps/power-bi.js
+sourcePath: web/worker/apps/power-bi/
 highlights:
   - "Power BI and Excel call the ReAI API directly with your key; apps.reai.no never sees it"
   - "Postings, profit and loss by account class, balances and paginated invoices"

@@ -5,7 +5,7 @@ description: "Match Walley settlement payouts against ReAI bank transactions and
 summary: "Fetch Walley settlements through the Reports API and match each payout to a pending ReAI bank transaction."
 industry: payments
 webAppUrl: /app/walley/
-sourcePath: web/worker/apps/walley.js
+sourcePath: web/worker/apps/walley/
 highlights:
   - "Reads Walley settlements with a Merchant Hub API key"
   - "Shows payout amount, Walley fees and settlement period per payout"

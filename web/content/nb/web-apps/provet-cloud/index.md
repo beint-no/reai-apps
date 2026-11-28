@@ -5,7 +5,7 @@ description: "Hent fakturaer fra Provet Cloud for en periode og lag et balansert
 summary: "Bokfør fakturaene fra Provet Cloud som ett bilag til kontroll i ReAI per periode: betalinger på klinikken, åpne kundesaldoer og salg per mva-sats."
 industry: operations
 webAppUrl: /app/provet-cloud/
-sourcePath: web/worker/apps/provet-cloud.js
+sourcePath: web/worker/apps/provet-cloud/
 highlights:
   - "Henter fakturaer, fakturalinjer og betalinger fra Provet Cloud REST API"
   - "Bruker OAuth 2.0 med klientnøkler som du får fra Provet"

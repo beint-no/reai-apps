@@ -5,7 +5,7 @@ description: "Fetch paid Wix orders and stage them as ReAI orders with item line
 summary: "Fetch paid Wix orders for a period and stage them as orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/wix/
-sourcePath: web/worker/apps/wix.js
+sourcePath: web/worker/apps/wix/
 highlights:
   - "Reads paid orders through the Wix eCommerce API with an API key and site ID"
   - "One order line per item and for shipping, with the VAT rate Wix charged"

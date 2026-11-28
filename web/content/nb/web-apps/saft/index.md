@@ -5,7 +5,7 @@ description: "Last opp norsk SAF-T Financial XML fra Tripletex, Fiken, PowerOffi
 summary: "Last opp norsk SAF-T Financial XML fra Tripletex, Fiken, PowerOffice Go, Visma eller Conta — se saldobalanse, importer kunder og leverandører til ReAI, og last ned åpningssaldo i Excel."
 industry: operations
 webAppUrl: /app/saft/
-sourcePath: web/worker/apps/saft.js
+sourcePath: web/worker/apps/saft/
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Switching Norwegian accounting systems (SAF-T)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (SAF-T XML -> Customers, Suppliers & Trial Balance)"

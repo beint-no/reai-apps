@@ -5,7 +5,7 @@ description: "Koble ReAI til 5 000+ apper med ferdige maler for n8n, Make og Zap
 summary: "Koble ReAI til 5 000+ apper med ferdige maler for n8n, Make og Zapier samt sanntidstest av ReAI-API-et."
 industry: operations
 webAppUrl: /app/automations/
-sourcePath: web/worker/apps/automations.js
+sourcePath: web/worker/apps/automations/
 highlights:
   - "Tilpasset norsk bokføringsskikk (No-code & low-code workflow automation)"
   - "Direkte kobling mot ReAI sitt åpne API (ReAI Public REST API (/api/customers, /api/orders, /api/leads))"

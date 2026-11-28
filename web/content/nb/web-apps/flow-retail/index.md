@@ -5,7 +5,7 @@ description: "Bokfør regnskapsrapporten fra Flow Retail for én dag som bilag t
 summary: "Hent regnskapsrapporten fra Flow Retail for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/flow-retail/
-sourcePath: web/worker/apps/flow-retail.js
+sourcePath: web/worker/apps/flow-retail/
 highlights:
   - "Leser den daglige regnskapsrapporten fra Flow Retail API v2 med et integrasjonstoken"
   - "Beholder kontoene og MVA-kodene fra regnskapsoppsettet i Flow Retail"

@@ -5,7 +5,7 @@ description: Read HubSpot CRM companies, find those already in ReAI and create t
 summary: Scan HubSpot CRM companies, detect existing ReAI customers and create missing customers with one click.
 industry: operations
 webAppUrl: /app/hubspot/
-sourcePath: web/worker/apps/hubspot.js
+sourcePath: web/worker/apps/hubspot/
 highlights:
   - "Reads HubSpot CRM companies with a read only service key"
   - "Detects existing ReAI customers by organization number or company name"

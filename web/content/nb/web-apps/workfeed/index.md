@@ -5,7 +5,7 @@ description: "Hent gjennomførte vakter fra Workfeed og før timene inn i ReAI T
 summary: "Les godkjente vakter fra Workfeed med din API-nøkkel og før timene inn i ReAI Timelister."
 industry: operations
 webAppUrl: /app/workfeed/
-sourcePath: web/worker/apps/workfeed.js
+sourcePath: web/worker/apps/workfeed/
 highlights:
   - "Bruker det åpne API-et til Workfeed med din egen API-nøkkel"
   - "Vaktlengde minus registrert pause, kun godkjente vakter som standard"

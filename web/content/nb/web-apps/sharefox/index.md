@@ -5,7 +5,7 @@ description: "Summer bookede utleieordrer fra Sharefox per mva-sats og lag ett b
 summary: "Hent ordrer fra Sharefox for en periode og før utleiesalget som et bilag til kontroll mot mellomkontoen for betalinger."
 industry: ecommerce-logistics
 webAppUrl: /app/sharefox/
-sourcePath: web/worker/apps/sharefox.js
+sourcePath: web/worker/apps/sharefox/
 highlights:
   - "Leser ordrer via Sharefox API med innlogging som administrator"
   - "Tar bare med ordrer med status Booked og Closed, også endringsordrer"

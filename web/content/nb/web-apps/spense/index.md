@@ -5,7 +5,7 @@ description: "Les inn oppgjørsrapporten fra Spense, avstem hver utbetaling mot 
 summary: "Avstem utbetalinger fra Spense mot uavstemte banktransaksjoner i ReAI og før oppgjøret som kontrollbilag."
 industry: payments
 webAppUrl: /app/spense/
-sourcePath: web/worker/apps/spense.js
+sourcePath: web/worker/apps/spense/
 highlights:
   - "Leser Spense sin dokumenterte oppgjørsfil i formatet payouts eller transactions"
   - "Matcher nettoutbetalinger mot uavstemte banktransaksjoner i ReAI innenfor åtte dager"

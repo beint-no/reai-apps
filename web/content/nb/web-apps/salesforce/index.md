@@ -5,7 +5,7 @@ description: "Hent vunne salgsmuligheter fra Salesforce og legg dem inn som ordr
 summary: "Hent salgsmuligheter med status Closed Won og legg dem inn som ordrer i ReAI."
 industry: operations
 webAppUrl: /app/salesforce/
-sourcePath: web/worker/apps/salesforce.js
+sourcePath: web/worker/apps/salesforce/
 highlights:
   - "Leser vunne salgsmuligheter fra Salesforce REST API med client credentials"
   - "Én ordrelinje per produkt på salgsmuligheten, ellers beløpet"

@@ -5,7 +5,7 @@ description: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapi
 summary: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapier REST blueprints and live /api/me tester."
 industry: operations
 webAppUrl: /app/automations/
-sourcePath: web/worker/apps/automations.js
+sourcePath: web/worker/apps/automations/
 highlights:
   - "Built for Norwegian bookkeeping rules (No-code & low-code workflow automation)"
   - "Direct integration with ReAI Public API (ReAI Public REST API (/api/customers, /api/orders, /api/leads))"

@@ -5,7 +5,7 @@ description: "Hent betalte ordrer fra Wix og legg dem inn som ordrer i ReAI med 
 summary: "Hent betalte Wix-ordrer for en periode og legg dem inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/wix/
-sourcePath: web/worker/apps/wix.js
+sourcePath: web/worker/apps/wix/
 highlights:
   - "Leser betalte ordrer fra Wix eCommerce API med API-nøkkel og site ID"
   - "Én ordrelinje per vare og frakt, med MVA-satsen Wix beregnet"

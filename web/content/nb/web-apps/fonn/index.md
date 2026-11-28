@@ -5,7 +5,7 @@ description: "Hent timekort fra Fonn per prosjekt og før dem som timelisterader
 summary: "Hent timekort fra Fonn via Fonn API og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/fonn/
-sourcePath: web/worker/apps/fonn.js
+sourcePath: web/worker/apps/fonn/
 highlights:
   - "Bruker Fonn API med abonnementsnøkkel og tilgangstoken"
   - "Henter timekort for alle prosjekter eller ett prosjektnummer"

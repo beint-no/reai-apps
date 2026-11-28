@@ -5,7 +5,7 @@ description: "Fetch the day's Sitoo POS Z-reports and create a balanced review v
 summary: "Turn Sitoo POS Z-reports into one balanced ReAI review voucher per day, with ReAI output VAT codes."
 industry: operations
 webAppUrl: /app/sitoo/
-sourcePath: web/worker/apps/sitoo.js
+sourcePath: web/worker/apps/sitoo/
 highlights:
   - "Reads POS Z-reports from the Sitoo REST API with your API ID and password"
   - "Splits sales by 25, 15, 12 and 0% VAT using ReAI output VAT codes"

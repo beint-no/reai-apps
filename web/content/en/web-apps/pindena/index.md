@@ -5,7 +5,7 @@ description: "Fetch the participants of a Pindena activity and create a balanced
 summary: "Book prepaid Pindena registrations for an activity as a ReAI review voucher with the VAT treatment you choose."
 industry: operations
 webAppUrl: /app/pindena/
-sourcePath: web/worker/apps/pindena.js
+sourcePath: web/worker/apps/pindena/
 highlights:
   - "Reads the activity and its participants from the Pindena API"
   - "Books prepaid registrations against 1580 for matching with the payout"
