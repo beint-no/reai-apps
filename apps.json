@@ -61,6 +61,22 @@
     "sparkle": true,
     "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
   },
+  "pos-print-bridge": {
+    "name": "ReAI POS Print Bridge",
+    "path": "apple/pos-print-bridge",
+    "executable": "ReAIPOSPrintBridge",
+    "bundle_id": "no.reai.posprintbridge",
+    "icon": "make-icon.swift",
+    "asset": "ReAI-POS-Print-Bridge-Apple-Silicon.dmg"
+  },
+  "pos-print-bridge-windows": {
+    "name": "ReAI POS Print Bridge for Windows",
+    "platform": "windows",
+    "path": "windows/pos-print-bridge",
+    "executable": "ReAI.POSPrintBridge.exe",
+    "asset": "ReAI-POS-Print-Bridge-Windows-x64.zip",
+    "arm64_asset": "ReAI-POS-Print-Bridge-Windows-ARM64.zip"
+  },
   "vipps-web": {
     "name": "ReAI Vipps Reconcile",
     "platform": "web",

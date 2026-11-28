@@ -6,7 +6,7 @@ on:
         description: App to release
         required: true
         type: choice
-        options: [product-labels, shipping, time-tracker, document-scanner]
+        options: [product-labels, shipping, pos-print-bridge, time-tracker, document-scanner]
   pull_request:
     paths: ['apple/**', 'tools/apple/**', 'apps.json', '.swift-version', '.github/actions/**', '.github/workflows/apps.yml']
   # Not on push to main: the pull request already built the change. Tags still build
