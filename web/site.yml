@@ -2,6 +2,26 @@ baseURL: https://apps.reai.no/
 title: ReAI Apps
 endpoints:
   - /app/hybel/
+  - /app/tripletex-migrate/
+  - /app/fiken-migrate/
+  - /app/poweroffice-migrate/
+  - /app/24sevenoffice-migrate/
+  - /app/brreg-leads/
+  - /app/aksjonaer/
+  - /app/assets/
+  - /app/budget/
+  - /app/mrr/
+  - /app/gift-cards/
+  - /app/accountant-hub/
+  - /app/stock-count/
+  - /app/fresha/
+  - /app/aspit/
+  - /app/ledigtime/
+  - /app/propely/
+  - /app/unibo/
+  - /app/ads-spend/
+  - /app/autopass/
+  - /app/automations/
   - /app/import/
   - /app/export/
   - /app/hubspot/
@@ -68,8 +88,6 @@ endpoints:
   - /app/pasientsky/
   - /app/membro/
   - /app/easypractice/
-  - /app/inkasso/
-  - /app/kravia/
   - /app/two/
   - /app/airbnb/
   - /app/husleie/

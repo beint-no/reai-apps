@@ -7,26 +7,12 @@ import { formatMinor } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
- * @typedef {'inkasso' | 'kravia' | 'two'} CollSlug
+ * @typedef {'two'} CollSlug
  * @typedef {{ date: string, ref: string, principalMinor: number, interestMinor: number, feeMinor: number }} CollSummary
  */
 
 /** @type {Record<CollSlug, { brand: string, title: string, lead: string, eyebrow: string, sample: CollSummary }>} */
 const COLL = {
-  inkasso: {
-    brand: 'Kredinor / Intrum / Lowell',
-    title: 'Norwegian Debt Collection (Inkasso) Settlement',
-    lead: 'Book monthly Norwegian inkasso settlement reports (Kredinor, Intrum, Lowell, Sergel) into ReAI separating principal receivable clearing (1579), default interest (8050), collection fees (7770) and net payout (1580).',
-    eyebrow: 'DEBT COLLECTION (INKASSO)',
-    sample: { date: '2026-10-31', ref: 'INK-2026-104', principalMinor: 4850000, interestMinor: 312000, feeMinor: 420000 },
-  },
-  kravia: {
-    brand: 'Kravia & Svea Inkasso',
-    title: 'Kravia / Svea Automated Collection Settlement',
-    lead: 'Book Kravia and Svea Finans invoice collection payouts cleanly into ReAI separating collected principal (1579), late-payment interest (8050), fees (7770) and net bank settlement (1580).',
-    eyebrow: 'AUTOMATED INKASSO & FOLLOW-UP',
-    sample: { date: '2026-10-31', ref: 'KRV-2026-881', principalMinor: 3200000, interestMinor: 185000, feeMinor: 195000 },
-  },
   two: {
     brand: 'Two (B2B BNPL)',
     title: 'Two B2B Checkout & Factoring Settlement',
@@ -48,15 +34,15 @@ function renderColl(slug, s, isSample) {
       <div class="metric-grid">
         ${reaiMetric({ label: 'Net payout (1580)', value: `${formatMinor(net)} NOK`, detail: 'Matches incoming bank transfer' })}
         ${reaiMetric({ label: 'Principal cleared (1579)', value: `${formatMinor(s.principalMinor)} NOK`, detail: 'Reconcile against customer ledger' })}
-        ${reaiMetric({ label: 'Interest (8050) / Fees (7770)', value: `${formatMinor(s.interestMinor)} / ${formatMinor(s.feeMinor)}`, detail: 'Norwegian default interest & collection cost' })}
+        ${reaiMetric({ label: 'Checkout / factoring fee (7770)', value: `${formatMinor(s.feeMinor)} NOK`, detail: 'Deducted before payout' })}
       </div>
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Account</th><th>Posting</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
         <tbody>
           <tr><td class="mono">1580</td><td>${cfg.brand} · Net settlement clearing</td><td class="num">${formatMinor(net)}</td><td class="num"></td></tr>
-          ${s.feeMinor > 0 ? html`<tr><td class="mono">7770</td><td>${cfg.brand} · Collection / factoring commission</td><td class="num">${formatMinor(s.feeMinor)}</td><td class="num"></td></tr>` : ''}
-          <tr><td class="mono">1579</td><td>Collected customer receivable principal</td><td class="num"></td><td class="num">${formatMinor(s.principalMinor)}</td></tr>
-          ${s.interestMinor > 0 ? html`<tr><td class="mono">8050</td><td>Late-payment interest revenue (forsinkelsesrente)</td><td class="num"></td><td class="num">${formatMinor(s.interestMinor)}</td></tr>` : ''}
+          ${s.feeMinor > 0 ? html`<tr><td class="mono">7770</td><td>${cfg.brand} · Checkout / factoring fee</td><td class="num">${formatMinor(s.feeMinor)}</td><td class="num"></td></tr>` : ''}
+          <tr><td class="mono">1579</td><td>Settled B2B customer receivable principal</td><td class="num"></td><td class="num">${formatMinor(s.principalMinor)}</td></tr>
+          ${s.interestMinor > 0 ? html`<tr><td class="mono">8050</td><td>Interest / fee adjustment</td><td class="num"></td><td class="num">${formatMinor(s.interestMinor)}</td></tr>` : ''}
         </tbody>
       </table></div>
       ${!isSample && net > 0
@@ -73,7 +59,7 @@ function renderColl(slug, s, isSample) {
 }
 
 /**
- * Handles /app/{inkasso,kravia,two}/* routes.
+ * Handles /app/two/* routes (Kravia inkasso is built natively into ReAI).
  * @param {Request} request
  * @param {import('../lib/types.d.ts').Env} env
  * @param {CollSlug} slug
@@ -101,9 +87,9 @@ export async function handleCollection(request, env, slug) {
             <div class="mapping-grid">
               <div class="field"><label for="cl-d">Date</label><input id="cl-d" name="date" type="date" value="${today}" required></div>
               <div class="field"><label for="cl-r">Statement ref</label><input id="cl-r" name="ref" type="text" placeholder="${cfg.sample.ref}" required></div>
-              <div class="field"><label for="cl-p">Collected principal (1579)</label><input id="cl-p" name="principal" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="cl-i">Default interest (8050)</label><input id="cl-i" name="interest" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="cl-f">Commission / fee (7770)</label><input id="cl-f" name="fee" type="number" step="0.01" min="0" value="0"></div>
+              <div class="field"><label for="cl-p">Settled B2B principal (1579)</label><input id="cl-p" name="principal" type="number" step="0.01" min="0" value="0"></div>
+              <div class="field"><label for="cl-i">Interest adjustment (8050)</label><input id="cl-i" name="interest" type="number" step="0.01" min="0" value="0"></div>
+              <div class="field"><label for="cl-f">Two fee (7770)</label><input id="cl-f" name="fee" type="number" step="0.01" min="0" value="0"></div>
             </div>
             <div class="inline-row">
               <button type="submit" class="button primary">Preview balanced voucher</button>
@@ -157,9 +143,9 @@ export async function handleCollection(request, env, slug) {
         postings.push({ accountNumber: acct, postingDate: s.date, currencyCode: 'NOK', amount: Number((minor / 100).toFixed(2)), vatCode: '0', rowNumber: idx++, description: desc });
       };
       push('1580', net, `${cfg.brand} net settlement`);
-      push('7770', s.feeMinor, `${cfg.brand} commission/fee`);
+      push('7770', s.feeMinor, `${cfg.brand} fee`);
       push('1579', -s.principalMinor, `${cfg.brand} principal cleared`);
-      push('8050', -s.interestMinor, `${cfg.brand} default interest`);
+      push('8050', -s.interestMinor, `${cfg.brand} interest`);
 
       const created = /** @type {{ id: number, number: string }} */ (
         await reaiRequest(env, '/api/manual-vouchers', {
@@ -176,5 +162,5 @@ export async function handleCollection(request, env, slug) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${cfg.brand} error`, body: err instanceof Error ? err.message : 'Failed.' }));
   }
 
-  return errorResponse('Unknown collection route.', 404);
+  return errorResponse('Unknown B2B payment route.', 404);
 }

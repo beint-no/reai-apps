@@ -2,19 +2,20 @@
 
 Web and desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/ui).
 
-**[apps.reai.no](https://apps.reai.no/)** (and legacy [GitHub Pages downloads](https://beint-no.github.io/reai-apps/)) — Web apps run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
+**[apps.reai.no](https://apps.reai.no/)** — 100 free open-source web integrations run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
 
-### Web apps (hosted on `apps.reai.no` — 82 live integrations + UI Lab)
+### Web apps (hosted on `apps.reai.no` — 100 live integrations + UI Lab)
 
 Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`, backed by encrypted `HttpOnly` session cookies and Declarative Shadow DOM `<r-*>` Web Components.
 
 | Category | Apps & routes |
 | --- | --- |
-| **Migration & Exports** | [SAF-T Norway Switcher](/app/saft/), [CSV Import](/app/import/), [BI & Excel Export](/app/export/), [UI Component Lab](/app/lab/) |
-| **Payments, Inkasso & POS** | [Vipps](/app/vipps/), [Klarna](/app/klarna/), [Stripe](/app/stripe/), [Zettle](/app/zettle/), [SumUp](/app/sumup/), [Dintero](/app/dintero/), [Nets Easy](/app/nets/), [PayPal](/app/paypal/), [Two B2B](/app/two/), [Paddle / Chargebee](/app/paddle/), [Inkasso (Kredinor/Intrum/Lowell)](/app/inkasso/), [Kravia / Svea](/app/kravia/), [POS Z-Report](/app/z-report/), [Front Systems](/app/front-systems/), [PCKasse](/app/pckasse/), [ExtendaGO](/app/extendago/), [Susoft](/app/susoft/), [Favrit](/app/favrit/), [Quickorder](/app/quickorder/), [Munu](/app/munu/), [Lightspeed](/app/lightspeed/), [VisBook](/app/visbook/), [Mews](/app/mews/), [Wolt & Foodora](/app/wolt-foodora/) |
+| **Switchers & Exports** | [SAF-T Norway Switcher](/app/saft/), [Tripletex Switcher](/app/tripletex-migrate/), [Fiken Switcher](/app/fiken-migrate/), [PowerOffice Go Switcher](/app/poweroffice-migrate/), [24SevenOffice / Visma / Conta](/app/24sevenoffice-migrate/), [CSV Import](/app/import/), [BI & Excel Export](/app/export/), [UI Component Lab](/app/lab/) |
+| **ReAI API Power Tools** | [Brreg Leads](/app/brreg-leads/), [Aksjonær & Shares](/app/aksjonaer/), [Fixed Assets](/app/assets/), [12-Month Budget](/app/budget/), [SaaS MRR / ARR](/app/mrr/), [Gift Cards (2900)](/app/gift-cards/), [Accountant Hub](/app/accountant-hub/), [Warehouse Stock](/app/stock-count/), [Ads & SaaS VAT 14](/app/ads-spend/), [AutoPASS / EasyPark](/app/autopass/), [Make / Zapier / n8n Hub](/app/automations/) |
+| **Payments & POS** | [Vipps](/app/vipps/), [Klarna](/app/klarna/), [Stripe](/app/stripe/), [Zettle](/app/zettle/), [SumUp](/app/sumup/), [Dintero](/app/dintero/), [Nets Easy](/app/nets/), [PayPal](/app/paypal/), [Two B2B](/app/two/), [Paddle / Chargebee](/app/paddle/), [POS Z-Report](/app/z-report/), [Front Systems](/app/front-systems/), [PCKasse](/app/pckasse/), [ExtendaGO](/app/extendago/), [Susoft](/app/susoft/), [Favrit](/app/favrit/), [Quickorder](/app/quickorder/), [Munu](/app/munu/), [Lightspeed](/app/lightspeed/), [VisBook](/app/visbook/), [Mews](/app/mews/), [Wolt & Foodora](/app/wolt-foodora/) |
 | **Ecommerce, Transport & Fleet** | [Mystore.no](/app/mystore/), [24Nettbutikk](/app/24nettbutikk/), [Magento](/app/magento/), [PrestaShop](/app/prestashop/), [Shopware 6](/app/shopware/), [Wix Stores](/app/wix/), [Squarespace / BigCommerce](/app/squarespace/), [Ongoing WMS](/app/ongoing-wms/), [ABAX Driving Log](/app/abax/), [Opter TMS](/app/opter/), [AutoNet](/app/autonet/), [Logistra](/app/logistra/) |
 | **Trades, Staffing, CRM & HR** | [RecMan](/app/recman/), [SmartDok](/app/smartdok/), [Svenn](/app/svenn/), [Cordel](/app/cordel/), [Holte](/app/holte/), [Handyman](/app/handyman/), [Minuba](/app/minuba/), [HubSpot](/app/hubspot/), [Pipedrive](/app/pipedrive/), [SuperOffice](/app/superoffice/), [Lime CRM](/app/lime/), [Salesforce](/app/salesforce/), [Planday](/app/planday/), [Tamigo](/app/tamigo/), [Quinyx](/app/quinyx/), [Huma HR](/app/huma/), [Simployer](/app/simployer/), [Acubiz](/app/acubiz/), [Busy](/app/busy/), [Milient](/app/milient/), [Severa](/app/severa/), [Toggl](/app/toggl/), [Clockify](/app/clockify/), [Harvest](/app/harvest/), [Tidsbanken](/app/tidsbanken/) |
-| **Clinics, Salons, Events & Property** | [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Opus Dental](/app/opus-dental/), [Fixit](/app/fixit/), [Hano](/app/hano/), [PasientSky](/app/pasientsky/), [Membro](/app/membro/), [EasyPractice](/app/easypractice/), [Booking & Clinic](/app/timma/), [TicketCo](/app/ticketco/), [Checkin](/app/checkin/), [Hoopla](/app/hoopla/), [Spond & Rubic](/app/spond-rubic/), [Hybel](/app/hybel/), [Fazile](/app/fazile/), [Airbnb / Booking.com](/app/airbnb/), [Husleie.no](/app/husleie/), [Fenistra / Propely](/app/fenistra/) |
+| **Salons, Clinics, Events & Property** | [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Timma](/app/timma/), [Fresha](/app/fresha/), [Fixit](/app/fixit/), [Hano](/app/hano/), [Ledigtime](/app/ledigtime/), [Aspit / Physica](/app/aspit/), [PasientSky](/app/pasientsky/), [Opus Dental](/app/opus-dental/), [Membro](/app/membro/), [EasyPractice](/app/easypractice/), [TicketCo](/app/ticketco/), [Checkin](/app/checkin/), [Hoopla](/app/hoopla/), [Spond & Rubic](/app/spond-rubic/), [Fazile](/app/fazile/), [Hybel](/app/hybel/), [Husleie.no](/app/husleie/), [Fenistra](/app/fenistra/), [Propely](/app/propely/), [Unibo](/app/unibo/), [Airbnb / Booking.com](/app/airbnb/) |
 
 ### Maintained native apps
 
@@ -38,7 +39,7 @@ OS-integrated reference apps kept building on the same foundation. Non-native ap
 
 ## Install
 
-Download from the **[app page](https://beint-no.github.io/reai-apps/)**.
+Download from **[apps.reai.no/desktop/](https://apps.reai.no/desktop/)**.
 
 - **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. Shipping and Product Labels offer signed in-app updates; for other apps, quit and replace the app in Applications.
 - **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. Shipping updates itself from **Check for updates** in the app; for the other apps, close the app and extract the new version into a new folder.

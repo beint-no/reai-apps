@@ -528,20 +528,6 @@
     "path": "web/worker/apps/wellness-gym.js",
     "route": "/app/easypractice/"
   },
-  "inkasso-web": {
-    "name": "ReAI Inkasso NO",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/collection.js",
-    "route": "/app/inkasso/"
-  },
-  "kravia-web": {
-    "name": "ReAI Kravia",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/collection.js",
-    "route": "/app/kravia/"
-  },
   "two-web": {
     "name": "ReAI Two B2B",
     "platform": "web",
@@ -632,5 +618,145 @@
     "industry": "operations",
     "path": "web/worker/apps/migration-ecom.js",
     "route": "/app/salesforce/"
+  },
+  "tripletex-migrate-web": {
+    "name": "ReAI Tripletex Switch",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/switchers.js",
+    "route": "/app/tripletex-migrate/"
+  },
+  "fiken-migrate-web": {
+    "name": "ReAI Fiken Switch",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/switchers.js",
+    "route": "/app/fiken-migrate/"
+  },
+  "poweroffice-migrate-web": {
+    "name": "ReAI PowerOffice Switch",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/switchers.js",
+    "route": "/app/poweroffice-migrate/"
+  },
+  "24sevenoffice-migrate-web": {
+    "name": "ReAI 24SevenOffice Switch",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/switchers.js",
+    "route": "/app/24sevenoffice-migrate/"
+  },
+  "brreg-leads-web": {
+    "name": "ReAI Brreg Leads",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/brreg-leads/"
+  },
+  "aksjonaer-web": {
+    "name": "ReAI Aksjon\u00e6r & Shares",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/aksjonaer/"
+  },
+  "assets-web": {
+    "name": "ReAI Fixed Assets",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/assets/"
+  },
+  "budget-web": {
+    "name": "ReAI Company Budget",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/budget/"
+  },
+  "mrr-web": {
+    "name": "ReAI SaaS MRR / ARR",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/mrr/"
+  },
+  "gift-cards-web": {
+    "name": "ReAI Gift Cards",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/gift-cards/"
+  },
+  "accountant-hub-web": {
+    "name": "ReAI Accountant Hub",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/accountant-hub/"
+  },
+  "stock-count-web": {
+    "name": "ReAI Stock Valuation",
+    "platform": "web",
+    "industry": "ecommerce-logistics",
+    "path": "web/worker/apps/reai-power.js",
+    "route": "/app/stock-count/"
+  },
+  "fresha-web": {
+    "name": "ReAI Fresha Salon",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/fresha/"
+  },
+  "aspit-web": {
+    "name": "ReAI Aspit / Physica",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/aspit/"
+  },
+  "ledigtime-web": {
+    "name": "ReAI Ledigtime / Boka",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/ledigtime/"
+  },
+  "propely-web": {
+    "name": "ReAI Propely",
+    "platform": "web",
+    "industry": "real-estate",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/propely/"
+  },
+  "unibo-web": {
+    "name": "ReAI Borettslag / Unibo",
+    "platform": "web",
+    "industry": "real-estate",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/unibo/"
+  },
+  "ads-spend-web": {
+    "name": "ReAI Google / Meta Ads",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/ads-spend/"
+  },
+  "autopass-web": {
+    "name": "ReAI AutoPASS / EasyPark",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/autopass/"
+  },
+  "automations-web": {
+    "name": "ReAI Make / Zapier / n8n",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/norway-deep.js",
+    "route": "/app/automations/"
   }
 }

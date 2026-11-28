@@ -1,8 +1,8 @@
 ---
-title: "Booking, Salon & Clinic Billing (Timma / Fresha / Aspit)"
-seoTitle: "Timma, Fresha & Clinic Accounting Integration for ReAI — Free Settlement Sync"
-description: "Book salon, wellness and healthcare clinic settlements (Timma, Fresha, Fixit, Physica, Aspit) into ReAI with exact separation of VAT-exempt treatments and 25% retail sales."
-summary: "Import Timma, Fresha, Fixit or clinic settlement CSVs with automatic 0% healthcare vs. 25% retail VAT split."
+title: "Timma Salon & Booking Accounting"
+seoTitle: "Timma Salon & Booking Accounting Integration for ReAI — Free"
+description: "Book Timma salon, hair, beauty and wellness settlements into ReAI with exact separation of 25% treatments/retail, 0% exempt healthcare and card/booking fees."
+summary: "Import Timma salon and wellness settlement reports into ReAI with automatic 25% retail/treatment vs 0% healthcare VAT split."
 industry: operations
 icon: icons/timma.svg
 webAppUrl: /app/timma/

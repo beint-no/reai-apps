@@ -229,10 +229,20 @@ export async function handleMigrationEcom(request, env, slug) {
             <thead><tr><th>Account</th><th>Description</th><th class="num">Opening (NOK)</th><th class="num">Closing (NOK)</th></tr></thead>
             <tbody>${parsed.accounts.slice(0, 100).map((a) => html`<tr><td class="mono">${a.accountId}</td><td>${a.description}</td><td class="num">${formatMinor(Math.round(a.openingBalance * 100))}</td><td class="num">${formatMinor(Math.round(a.closingBalance * 100))}</td></tr>`)}</tbody>
           </table></div>
-          <form method="post" action="/app/saft/export">
-            <input type="hidden" name="rowsJson" value="${JSON.stringify(csvRows)}">
-            <button type="submit" class="button secondary">Download Opening Balance CSV ↓</button>
-          </form>
+          <div class="inline-row">
+            <form method="post" action="/app/saft/export">
+              <input type="hidden" name="rowsJson" value="${JSON.stringify(csvRows)}">
+              <button type="submit" class="button secondary">Download Opening Balance CSV ↓</button>
+            </form>
+            ${!isSample && parsed.accounts.length > 0
+              ? html`<form hx-post="/app/saft/push-opening-balance" hx-target="#saft-ob-result" hx-swap="innerHTML">
+                  <input type="hidden" name="year" value="${parsed.year}">
+                  <input type="hidden" name="accountsJson" value="${JSON.stringify(parsed.accounts)}">
+                  <button type="submit" class="button primary">Push closing balances to ReAI Opening Balance →</button>
+                </form>`
+              : ''}
+          </div>
+          <div id="saft-ob-result" class="stack-sm"></div>
         `,
       })}
       ${reaiCard({
@@ -343,6 +353,36 @@ export async function handleMigrationEcom(request, env, slug) {
 
     const session = await readSession(env, request);
     if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
+
+    if (slug === 'saft' && pathname === '/app/saft/push-opening-balance') {
+      const year = String(form.get('year') ?? String(new Date().getUTCFullYear())).replace(/[^0-9]/g, '').slice(0, 4) || String(new Date().getUTCFullYear());
+      const accts = /** @type {SaftAccount[]} */ (JSON.parse(String(form.get('accountsJson') ?? '[]')));
+      const bsLines = accts
+        .filter((a) => /^[12][0-9]{3}$/.test(a.accountId) && Math.abs(a.closingBalance) >= 0.01 && a.accountId !== '1500' && a.accountId !== '2400')
+        .map((a, idx) => ({
+          rowNumber: idx,
+          ...(a.closingBalance > 0 ? { debitAccount: a.accountId } : { creditAccount: a.accountId }),
+          amount: Number(Math.abs(a.closingBalance).toFixed(2)),
+          description: `SAF-T IB ${a.accountId} ${a.description}`.slice(0, 120),
+        }));
+      if (bsLines.length === 0) throw new HttpError(400, 'No non-subledger 1xxx/2xxx balance accounts found to post.');
+      const res = /** @type {{ id: number, number: string, webUrl?: string }} */ (
+        await reaiRequest(env, '/api/opening-balance', {
+          token: session.accessToken,
+          tenantId: session.tenantId,
+          method: 'PUT',
+          body: { voucherDate: `${year}-12-31`, voucherDescription: `SAF-T Opening Balance imported via apps.reai.no`, postingLines: bsLines },
+        })
+      );
+      const url = res.webUrl || `${reaiOrigin(env)}/voucher/${res.id}?tenantId=${session.tenantId}`;
+      return htmlResponse(
+        reaiCallout({
+          tone: 'success',
+          title: `Opening balance saved (${res.number})`,
+          body: html`Posted ${bsLines.length} NS 4102 balance-sheet lines directly to ReAI <code>PUT /api/opening-balance</code>. <a href="${url}" target="_blank" rel="noopener">Open in ReAI ↗</a>`,
+        }),
+      );
+    }
 
     if (slug === 'saft' && pathname === '/app/saft/import-party') {
       const kind = String(form.get('kind') ?? 'customer');

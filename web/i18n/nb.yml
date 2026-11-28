@@ -16,19 +16,19 @@ home_eyebrow: GRATIS INTEGRASJONER FOR REAI
 home_cta_secondary: Se integrasjoner
 home_cta_saft: Bytt med SAF-T
 home_web_heading: Nettintegrasjoner
-home_web_intro: Koble over 80 norske betalings-, kasse-, nettbutikk-, håndverks-, kjørebok-, klinikk-, inkasso-, utleie-, CRM-, HR- og SAF-T-systemer rett i nettleseren — inkludert gratis i ReAI.
-filter_placeholder: "Søk i 80+ integrasjoner (Vipps, SmartDok, ABAX, SAF-T…)"
+home_web_intro: Koble 100 gratis norske betalings-, kasse-, nettbutikk-, håndverks-, salong-, klinikk-, boligforvaltnings-, kjørebok-, CRM-, HR- og SAF-T-verktøy rett i nettleseren.
+filter_placeholder: "Søk i 100 integrasjoner (Vipps, Timma, Fazile, Tripletex, Brreg…)"
 filter_all: Alle
 filter_payments: Betaling & kasse
 filter_ecommerce: Netthandel & logistikk
-filter_operations: Håndverk, HR & drift
-filter_realestate: Eiendom & utleie
+filter_operations: Håndverk, salong, HR & API
+filter_realestate: Eiendom & boligforvaltning
 home_desktop_heading: Mac- og Windows-apper
 home_desktop_intro: Raske apper for Mac og Windows til fraktetiketter, prislapper, timeregistrering og mappeovervåking.
 home_industries_heading: Utforsk etter bransje
 home_industries_intro: Finn riktige integrasjoner og regnskapsguider for din bransje.
 builtin_heading: Allerede innebygd i ReAI
-builtin_body: ReAI inkluderer bankintegrasjon, Altinn (MVA, A-melding, årsoppgjør), EHF/Peppol, eFaktura, Shopify, WooCommerce, Adyen og Bring/PostNord/DHL rett ut av boksen — helt uten ekstra koblingsgebyrer.
+builtin_body: ReAI inkluderer bankintegrasjon, Altinn (MVA, A-melding, årsoppgjør), EHF/Peppol, eFaktura, Kravia helautomatisk inkasso, Shopify, WooCommerce, Adyen og Bring/PostNord/DHL rett ut av boksen — helt uten ekstra koblingsgebyrer.
 cta_heading: Bytt til regnskap uten integrasjonsgebyrer
 cta_body: Alle integrasjoner og apper her er helt gratis å bruke med ReAI. Kom i gang på to minutter.
 contribute_heading: Savner du en integrasjon?
