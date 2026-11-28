@@ -4,7 +4,6 @@ seoTitle: "24Nettbutikk og ReAI: produkter og betalte ordrer"
 description: "Hent produkter og betalte ordrer fra 24Nettbutikk-API-et og overfør dem til ReAI med riktige MVA-satser."
 summary: "Opprett manglende produkter i ReAI og legg betalte ordrer fra 24Nettbutikk inn som ordrer i ReAI."
 industry: ecommerce-logistics
-icon: icons/24nettbutikk.svg
 webAppUrl: /app/24nettbutikk/
 sourcePath: web/worker/apps/24nettbutikk.js
 highlights:
@@ -19,7 +18,7 @@ Integrasjonen henter produktene og de betalte ordrene for én måned fra 24Nettb
 
 Kunden i ReAI finnes ut fra organisasjonsnummer eller e-postadresse. Ordrer som er betalt delvis med gavekort må føres for hånd.
 
-Bruk gjerne integrasjonen sammen med avstemming for [Vipps](/nb/web-apps/vipps/), [Klarna](/nb/web-apps/klarna/) og [Nets Easy](/nb/web-apps/nets/).
+Bruk gjerne integrasjonen sammen med avstemming for [Vipps](/web-apps/vipps/), [Klarna](/web-apps/klarna/) og [Nets Easy](/web-apps/nets/).
 
 ## Slik kobler du 24Nettbutikk til ReAI
 

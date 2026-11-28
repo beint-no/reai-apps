@@ -99,7 +99,7 @@
     "route": "/app/stripe/"
   },
   "zettle-web": {
-    "name": "ReAI Zettle Reconcile",
+    "name": "ReAI PayPal POS (Zettle) Reconcile",
     "platform": "web",
     "industry": "payments",
     "path": "web/worker/apps/zettle.js",
@@ -120,7 +120,7 @@
     "route": "/app/dintero/"
   },
   "nets-web": {
-    "name": "ReAI Nets Easy Reconcile",
+    "name": "ReAI Nexi Checkout Reconcile",
     "platform": "web",
     "industry": "payments",
     "path": "web/worker/apps/nets.js",
@@ -132,13 +132,6 @@
     "industry": "payments",
     "path": "web/worker/apps/paypal.js",
     "route": "/app/paypal/"
-  },
-  "z-report-web": {
-    "name": "ReAI POS Daily Z-Report",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/z-report.js",
-    "route": "/app/z-report/"
   },
   "front-systems-web": {
     "name": "ReAI Front Systems POS",
@@ -245,13 +238,6 @@
     "path": "web/worker/apps/revolut.js",
     "route": "/app/revolut/"
   },
-  "timma-web": {
-    "name": "ReAI Booking & Clinic Settlement",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/timma.js",
-    "route": "/app/timma/"
-  },
   "recman-web": {
     "name": "ReAI RecMan Accounting Bridge",
     "platform": "web",
@@ -301,22 +287,8 @@
     "path": "web/worker/apps/smartdok.js",
     "route": "/app/smartdok/"
   },
-  "svenn-web": {
-    "name": "ReAI Svenn",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/svenn.js",
-    "route": "/app/svenn/"
-  },
-  "cordel-web": {
-    "name": "ReAI Cordel",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/cordel.js",
-    "route": "/app/cordel/"
-  },
   "holte-web": {
-    "name": "ReAI EG Holte",
+    "name": "ReAI EG HoltePortalen",
     "platform": "web",
     "industry": "operations",
     "path": "web/worker/apps/holte.js",
@@ -329,13 +301,6 @@
     "path": "web/worker/apps/handyman.js",
     "route": "/app/handyman/"
   },
-  "minuba-web": {
-    "name": "ReAI Minuba",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/minuba.js",
-    "route": "/app/minuba/"
-  },
   "favrit-web": {
     "name": "ReAI Favrit",
     "platform": "web",
@@ -343,68 +308,12 @@
     "path": "web/worker/apps/favrit.js",
     "route": "/app/favrit/"
   },
-  "quickorder-web": {
-    "name": "ReAI Quickorder",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/quickorder.js",
-    "route": "/app/quickorder/"
-  },
-  "munu-web": {
-    "name": "ReAI Munu POS",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/munu.js",
-    "route": "/app/munu/"
-  },
-  "lightspeed-web": {
-    "name": "ReAI Lightspeed",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/lightspeed.js",
-    "route": "/app/lightspeed/"
-  },
-  "visbook-web": {
-    "name": "ReAI VisBook",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/visbook.js",
-    "route": "/app/visbook/"
-  },
-  "mews-web": {
-    "name": "ReAI Mews PMS",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/mews.js",
-    "route": "/app/mews/"
-  },
-  "wolt-foodora-web": {
-    "name": "ReAI Wolt/Food",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/wolt-foodora.js",
-    "route": "/app/wolt-foodora/"
-  },
-  "pckasse-web": {
-    "name": "ReAI PCKasse",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/pckasse.js",
-    "route": "/app/pckasse/"
-  },
   "extendago-web": {
     "name": "ReAI ExtendaGO",
     "platform": "web",
     "industry": "payments",
     "path": "web/worker/apps/extendago.js",
     "route": "/app/extendago/"
-  },
-  "susoft-web": {
-    "name": "ReAI Susoft",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/susoft.js",
-    "route": "/app/susoft/"
   },
   "superoffice-web": {
     "name": "ReAI SuperOffice",
@@ -442,18 +351,11 @@
     "route": "/app/huma/"
   },
   "busy-web": {
-    "name": "ReAI Busy",
+    "name": "ReAI Finago Busy",
     "platform": "web",
     "industry": "operations",
     "path": "web/worker/apps/busy.js",
     "route": "/app/busy/"
-  },
-  "milient-web": {
-    "name": "ReAI Milient",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/milient.js",
-    "route": "/app/milient/"
   },
   "ticketco-web": {
     "name": "ReAI TicketCo",
@@ -461,27 +363,6 @@
     "industry": "operations",
     "path": "web/worker/apps/ticketco.js",
     "route": "/app/ticketco/"
-  },
-  "checkin-web": {
-    "name": "ReAI Checkin",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/checkin.js",
-    "route": "/app/checkin/"
-  },
-  "spond-rubic-web": {
-    "name": "ReAI Spond/Rubic",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/spond-rubic.js",
-    "route": "/app/spond-rubic/"
-  },
-  "opus-dental-web": {
-    "name": "ReAI Opus Dental",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/opus-dental.js",
-    "route": "/app/opus-dental/"
   },
   "ongoing-wms-web": {
     "name": "ReAI Ongoing WMS",
@@ -497,55 +378,6 @@
     "path": "web/worker/apps/abax.js",
     "route": "/app/abax/"
   },
-  "opter-web": {
-    "name": "ReAI Opter TMS",
-    "platform": "web",
-    "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/opter.js",
-    "route": "/app/opter/"
-  },
-  "autonet-web": {
-    "name": "ReAI AutoNet",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/autonet.js",
-    "route": "/app/autonet/"
-  },
-  "logistra-web": {
-    "name": "ReAI Logistra",
-    "platform": "web",
-    "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/logistra.js",
-    "route": "/app/logistra/"
-  },
-  "fixit-web": {
-    "name": "ReAI Fixit",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/fixit.js",
-    "route": "/app/fixit/"
-  },
-  "hano-web": {
-    "name": "ReAI Hano",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/hano.js",
-    "route": "/app/hano/"
-  },
-  "pasientsky-web": {
-    "name": "ReAI PasientSky",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/pasientsky.js",
-    "route": "/app/pasientsky/"
-  },
-  "membro-web": {
-    "name": "ReAI Membro Gym",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/membro.js",
-    "route": "/app/membro/"
-  },
   "easypractice-web": {
     "name": "ReAI EasyPract",
     "platform": "web",
@@ -560,40 +392,12 @@
     "path": "web/worker/apps/two.js",
     "route": "/app/two/"
   },
-  "airbnb-web": {
-    "name": "ReAI Airbnb",
-    "platform": "web",
-    "industry": "real-estate",
-    "path": "web/worker/apps/airbnb.js",
-    "route": "/app/airbnb/"
-  },
   "husleie-web": {
     "name": "ReAI Husleie.no",
     "platform": "web",
     "industry": "real-estate",
     "path": "web/worker/apps/husleie.js",
     "route": "/app/husleie/"
-  },
-  "fenistra-web": {
-    "name": "ReAI Fenistra",
-    "platform": "web",
-    "industry": "real-estate",
-    "path": "web/worker/apps/fenistra.js",
-    "route": "/app/fenistra/"
-  },
-  "simployer-web": {
-    "name": "ReAI Simployer",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/simployer.js",
-    "route": "/app/simployer/"
-  },
-  "acubiz-web": {
-    "name": "ReAI Acubiz",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/acubiz.js",
-    "route": "/app/acubiz/"
   },
   "quinyx-web": {
     "name": "ReAI Quinyx",
@@ -616,13 +420,6 @@
     "path": "web/worker/apps/saft.js",
     "route": "/app/saft/"
   },
-  "hoopla-web": {
-    "name": "ReAI Hoopla",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/hoopla.js",
-    "route": "/app/hoopla/"
-  },
   "squarespace-web": {
     "name": "ReAI Squarespace",
     "platform": "web",
@@ -644,20 +441,6 @@
     "path": "web/worker/apps/salesforce.js",
     "route": "/app/salesforce/"
   },
-  "tripletex-migrate-web": {
-    "name": "ReAI Tripletex Switch",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/tripletex-migrate.js",
-    "route": "/app/tripletex-migrate/"
-  },
-  "fiken-migrate-web": {
-    "name": "ReAI Fiken Switch",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/fiken-migrate.js",
-    "route": "/app/fiken-migrate/"
-  },
   "poweroffice-migrate-web": {
     "name": "ReAI PowerOffice Switch",
     "platform": "web",
@@ -666,7 +449,7 @@
     "route": "/app/poweroffice-migrate/"
   },
   "24sevenoffice-migrate-web": {
-    "name": "ReAI 24SevenOffice Switch",
+    "name": "ReAI Finago Office Switch",
     "platform": "web",
     "industry": "operations",
     "path": "web/worker/apps/24sevenoffice-migrate.js",
@@ -685,48 +468,6 @@
     "industry": "operations",
     "path": "web/worker/apps/budget.js",
     "route": "/app/budget/"
-  },
-  "fresha-web": {
-    "name": "ReAI Fresha Salon",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/fresha.js",
-    "route": "/app/fresha/"
-  },
-  "aspit-web": {
-    "name": "ReAI Aspit / Physica",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/aspit.js",
-    "route": "/app/aspit/"
-  },
-  "ledigtime-web": {
-    "name": "ReAI Ledigtime / Boka",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/ledigtime.js",
-    "route": "/app/ledigtime/"
-  },
-  "propely-web": {
-    "name": "ReAI Propely",
-    "platform": "web",
-    "industry": "real-estate",
-    "path": "web/worker/apps/propely.js",
-    "route": "/app/propely/"
-  },
-  "unibo-web": {
-    "name": "ReAI Borettslag / Unibo",
-    "platform": "web",
-    "industry": "real-estate",
-    "path": "web/worker/apps/unibo.js",
-    "route": "/app/unibo/"
-  },
-  "autopass-web": {
-    "name": "ReAI AutoPASS / EasyPark",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/autopass.js",
-    "route": "/app/autopass/"
   },
   "automations-web": {
     "name": "ReAI Make / Zapier / n8n",
@@ -785,7 +526,7 @@
     "route": "/app/flow-retail/"
   },
   "fonn-web": {
-    "name": "ReAI Fonn Hours Sync",
+    "name": "ReAI Access Fonn",
     "platform": "web",
     "industry": "operations",
     "path": "web/worker/apps/fonn.js",

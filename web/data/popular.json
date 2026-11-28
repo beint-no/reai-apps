@@ -8,7 +8,7 @@
         "page": "/web-apps/vipps/"
       },
       {
-        "name": "Zettle",
+        "name": "PayPal POS (Zettle)",
         "page": "/web-apps/zettle/"
       },
       {
@@ -16,8 +16,8 @@
         "page": "/web-apps/sumup/"
       },
       {
-        "name": "PCKasse",
-        "page": "/web-apps/pckasse/"
+        "name": "Duell",
+        "page": "/web-apps/duell/"
       },
       {
         "name": "Klarna",
@@ -30,13 +30,9 @@
     ]
   },
   {
-    "nb": "Restaurant og overnatting",
-    "en": "Restaurants and hotels",
+    "nb": "Restaurant og butikk",
+    "en": "Restaurants and retail",
     "systems": [
-      {
-        "name": "Munu",
-        "page": "/web-apps/munu/"
-      },
       {
         "name": "Caspeco",
         "page": "/web-apps/caspeco/"
@@ -46,16 +42,20 @@
         "page": "/web-apps/favrit/"
       },
       {
-        "name": "Wolt / Foodora",
-        "page": "/web-apps/wolt-foodora/"
+        "name": "Baemingo",
+        "page": "/web-apps/baemingo/"
       },
       {
-        "name": "Quickorder",
-        "page": "/web-apps/quickorder/"
+        "name": "Amendo",
+        "page": "/web-apps/amendo/"
       },
       {
-        "name": "VisBook",
-        "page": "/web-apps/visbook/"
+        "name": "Front Systems",
+        "page": "/web-apps/front-systems/"
+      },
+      {
+        "name": "Sitoo",
+        "page": "/web-apps/sitoo/"
       }
     ]
   },
@@ -80,12 +80,12 @@
         "page": "/web-apps/magento/"
       },
       {
-        "name": "Cargonizer",
-        "page": "/web-apps/logistra/"
-      },
-      {
         "name": "Ongoing WMS",
         "page": "/web-apps/ongoing-wms/"
+      },
+      {
+        "name": "Rackbeat",
+        "page": "/web-apps/rackbeat/"
       }
     ]
   },
@@ -98,24 +98,24 @@
         "page": "/web-apps/smartdok/"
       },
       {
-        "name": "Cordel",
-        "page": "/web-apps/cordel/"
-      },
-      {
-        "name": "Holte",
-        "page": "/web-apps/holte/"
+        "name": "Kvalitetskontroll",
+        "page": "/web-apps/kvalitetskontroll/"
       },
       {
         "name": "Fonn",
         "page": "/web-apps/fonn/"
       },
       {
-        "name": "Kvalitetskontroll",
-        "page": "/web-apps/kvalitetskontroll/"
+        "name": "HoltePortalen",
+        "page": "/web-apps/holte/"
       },
       {
-        "name": "Svenn",
-        "page": "/web-apps/svenn/"
+        "name": "Ordrestyring",
+        "page": "/web-apps/ordrestyring/"
+      },
+      {
+        "name": "SpeedyCraft",
+        "page": "/web-apps/speedycraft/"
       }
     ]
   },
@@ -136,12 +136,12 @@
         "page": "/web-apps/quinyx/"
       },
       {
-        "name": "Simployer",
-        "page": "/web-apps/simployer/"
-      },
-      {
         "name": "Huma",
         "page": "/web-apps/huma/"
+      },
+      {
+        "name": "4human",
+        "page": "/web-apps/4human/"
       },
       {
         "name": "Toggl",
@@ -150,32 +150,28 @@
     ]
   },
   {
-    "nb": "Helse og salong",
-    "en": "Health and salons",
+    "nb": "Helse, salong og kurs",
+    "en": "Health, salons and courses",
     "systems": [
       {
-        "name": "Timma",
-        "page": "/web-apps/timma/"
+        "name": "EasyPractice",
+        "page": "/web-apps/easypractice/"
       },
       {
-        "name": "Fresha",
-        "page": "/web-apps/fresha/"
+        "name": "PsykBase",
+        "page": "/web-apps/psykbase/"
       },
       {
-        "name": "Hano",
-        "page": "/web-apps/hano/"
+        "name": "Provet Cloud",
+        "page": "/web-apps/provet-cloud/"
       },
       {
-        "name": "PasientSky",
-        "page": "/web-apps/pasientsky/"
+        "name": "Pindena",
+        "page": "/web-apps/pindena/"
       },
       {
-        "name": "Opus Dental",
-        "page": "/web-apps/opus-dental/"
-      },
-      {
-        "name": "Aspit / Physica",
-        "page": "/web-apps/aspit/"
+        "name": "TicketCo",
+        "page": "/web-apps/ticketco/"
       }
     ]
   },
@@ -183,10 +179,6 @@
     "nb": "Eiendom og utleie",
     "en": "Property and rentals",
     "systems": [
-      {
-        "name": "Unibo",
-        "page": "/web-apps/unibo/"
-      },
       {
         "name": "Fazile",
         "page": "/web-apps/fazile/"
@@ -200,12 +192,8 @@
         "page": "/web-apps/husleie/"
       },
       {
-        "name": "Airbnb / Booking.com",
-        "page": "/web-apps/airbnb/"
-      },
-      {
-        "name": "Propely",
-        "page": "/web-apps/propely/"
+        "name": "Sharefox",
+        "page": "/web-apps/sharefox/"
       }
     ]
   },
@@ -218,20 +206,16 @@
         "page": "/web-apps/abax/"
       },
       {
-        "name": "AutoPASS / EasyPark",
-        "page": "/web-apps/autopass/"
-      },
-      {
-        "name": "Opter",
-        "page": "/web-apps/opter/"
-      },
-      {
-        "name": "AutoNet",
-        "page": "/web-apps/autonet/"
-      },
-      {
         "name": "Autogear",
         "page": "/web-apps/autogear/"
+      },
+      {
+        "name": "nShift",
+        "page": "/web-apps/nshift/"
+      },
+      {
+        "name": "Proteria",
+        "page": "/web-apps/proteria/"
       }
     ]
   }
