@@ -3,6 +3,7 @@ import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiRequest } from '../lib/reai.js';
+import { SWITCHER_EXTRA_API_UI, fetchSwitcherExtraApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 import { extractNorwegianOrg } from './recman-core.js';
@@ -170,7 +171,16 @@ export async function handleSwitchers(request, env, slug) {
                   </div>
                 </form>`,
             })
-          : ''}
+          : (slug === 'poweroffice-migrate' || slug === '24sevenoffice-migrate') && SWITCHER_EXTRA_API_UI[slug]
+            ? renderApiFetchCard({
+                basePath,
+                targetId: 'sw-output',
+                brand: SWITCHER_EXTRA_API_UI[slug].brand,
+                hint: SWITCHER_EXTRA_API_UI[slug].hint,
+                fields: SWITCHER_EXTRA_API_UI[slug].fields,
+                sampleAction: true,
+              })
+            : ''}
         ${reaiCard({
           eyebrow: 'CSV EXPORT IMPORT',
           title: `Upload ${cfg.brand} customer, supplier or product CSV`,
@@ -196,6 +206,13 @@ export async function handleSwitchers(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api` && (slug === 'poweroffice-migrate' || slug === '24sevenoffice-migrate')) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const items = await fetchSwitcherExtraApi(slug, creds);
+      return htmlResponse(renderItems(slug, items, false));
+    }
     if (pathname === `${basePath}/preview-csv`) {
       const file = form.get('file');
       if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file first.');

@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiRequest } from '../lib/reai.js';
 import { currentMonthIso, monthBounds } from '../lib/reconcile.js';
+import { WFM_HR_API_UI, fetchWfmHoursApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 
@@ -309,6 +310,16 @@ export async function handleTimeTracking(request, env, slug) {
 
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} Sync (Web)` })}
+        ${slug === 'tidsbanken'
+          ? renderApiFetchCard({
+              basePath,
+              targetId: 'tm-output',
+              brand: WFM_HR_API_UI.tidsbanken.brand,
+              hint: WFM_HR_API_UI.tidsbanken.hint,
+              fields: WFM_HR_API_UI.tidsbanken.fields,
+              sampleAction: true,
+            })
+          : ''}
 
         ${reaiCard({
           eyebrow: cfg.mode === 'csv' ? 'UPLOAD HOURS CSV' : `CONNECT ${cfg.brand.toUpperCase()}`,
@@ -387,6 +398,15 @@ export async function handleTimeTracking(request, env, slug) {
 
   try {
     const form = await request.formData();
+
+    if (pathname === `${basePath}/fetch-api` && slug === 'tidsbanken') {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const rawRows = await fetchWfmHoursApi('tidsbanken', creds);
+      const rows = rawRows.map((r) => ({ date: r.date, hours: r.hours, description: r.comment, externalProject: r.project }));
+      return htmlResponse(renderTimeTable(slug, { rows, employeeId: 0, projectId: 0 }));
+    }
 
     if (pathname === `${basePath}/preview`) {
       const employeeId = Number(form.get('employeeId') ?? '0');

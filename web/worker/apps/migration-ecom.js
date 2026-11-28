@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { csvAttachment, formatMinor } from '../lib/reconcile.js';
+import { SETTLEMENT_API_UI, fetchPayoutSettlementApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { extractNorwegianOrg } from './recman-core.js';
 
@@ -153,6 +154,16 @@ export async function handleMigrationEcom(request, env, slug) {
       <section class="app-intro"><p class="eyebrow">${meta.eyebrow}</p><h1>${meta.title}</h1><p class="lead">${meta.lead}</p></section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${meta.brand} (Web)` })}
+        ${slug === 'hoopla' || slug === 'paddle'
+          ? renderApiFetchCard({
+              basePath,
+              targetId: 'mg-output',
+              brand: SETTLEMENT_API_UI[slug].brand,
+              hint: SETTLEMENT_API_UI[slug].hint,
+              fields: SETTLEMENT_API_UI[slug].fields,
+              sampleAction: true,
+            })
+          : ''}
         ${slug === 'saft'
           ? reaiCard({
               eyebrow: 'UPLOAD NORWEGIAN SAF-T FINANCIAL XML',
@@ -341,6 +352,12 @@ export async function handleMigrationEcom(request, env, slug) {
       if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a SAF-T XML file or load sample.');
       const xml = new TextDecoder('utf-8').decode(await file.arrayBuffer());
       return htmlResponse(renderSaft(parseSaftXml(xml), false));
+    }
+    if ((slug === 'hoopla' || slug === 'paddle') && pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      return htmlResponse(renderPayout(await fetchPayoutSettlementApi(slug, creds), false));
     }
     if ((slug === 'hoopla' || slug === 'paddle') && pathname === `${basePath}/preview`) {
       /** @param {string} k */

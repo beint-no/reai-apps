@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { WFM_HR_API_UI, fetchHrExpensesApi, fetchWfmHoursApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 
@@ -126,6 +127,14 @@ export async function handleHrExpense(request, env, slug) {
       <section class="app-intro"><p class="eyebrow">${cfg.mode === 'expense' ? 'TRAVEL & EXPENSE MANAGEMENT' : 'WORKFORCE & CONSULTING PSA'}</p><h1>${cfg.title}</h1><p class="lead">${cfg.lead}</p></section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} (Web)` })}
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'hr-output',
+          brand: WFM_HR_API_UI[slug].brand,
+          hint: WFM_HR_API_UI[slug].hint,
+          fields: WFM_HR_API_UI[slug].fields,
+          sampleAction: true,
+        })}
         ${reaiCard({
           eyebrow: `IMPORT FROM ${cfg.brand.toUpperCase()}`,
           title: `Upload ${cfg.brand} export CSV`,
@@ -222,6 +231,19 @@ export async function handleHrExpense(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      if (cfg.mode === 'expense' && (slug === 'simployer' || slug === 'acubiz')) {
+        const rows = await fetchHrExpensesApi(slug, creds);
+        return htmlResponse(renderExpenses(rows, (creds.clearingAccount || '2915').trim(), false));
+      }
+      if (slug === 'quinyx' || slug === 'severa') {
+        const rows = await fetchWfmHoursApi(slug, creds);
+        return htmlResponse(renderHours(rows, 0, 0, false));
+      }
+    }
     if (pathname === `${basePath}/preview`) {
       const file = form.get('file');
       if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file or load sample.');

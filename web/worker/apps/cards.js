@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { CARD_API_UI, fetchCardsApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 
@@ -177,6 +178,14 @@ export async function handleCards(request, env, slug) {
 
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${title} (Web)` })}
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'card-output',
+          brand: CARD_API_UI[slug].brand,
+          hint: CARD_API_UI[slug].hint,
+          fields: CARD_API_UI[slug].fields,
+          sampleAction: true,
+        })}
 
         ${reaiCard({
           eyebrow: 'UPLOAD STATEMENT CSV',
@@ -225,6 +234,15 @@ export async function handleCards(request, env, slug) {
 
   try {
     const form = await request.formData();
+
+    if (pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const clearingAccount = (creds.clearingAccount || defaultClearing).trim();
+      const lines = await fetchCardsApi(slug, creds);
+      return htmlResponse(renderCardPreview(slug, { lines, clearingAccount }));
+    }
 
     if (pathname === `${basePath}/preview`) {
       const clearingAccount = String(form.get('clearingAccount') ?? defaultClearing).trim();

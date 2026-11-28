@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { TRANSPORT_API_UI, fetchAbaxTripsApi, fetchTransportOrdersApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 
@@ -148,6 +149,16 @@ export async function handleTransportAuto(request, env, slug) {
       </section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${title} (Web)` })}
+        ${TRANSPORT_API_UI[slug]
+          ? renderApiFetchCard({
+              basePath,
+              targetId: 'ta-output',
+              brand: TRANSPORT_API_UI[slug].brand,
+              hint: TRANSPORT_API_UI[slug].hint,
+              fields: TRANSPORT_API_UI[slug].fields,
+              sampleAction: true,
+            })
+          : ''}
         ${reaiCard({
           eyebrow: isAbax ? 'ABAX TRIPLOG CSV → REAI DRIVING LOG' : `${(orderCfg?.brand ?? '').toUpperCase()} → REAI ORDERS`,
           title: isAbax ? 'Upload ABAX business trip export CSV' : `Upload ${orderCfg?.brand ?? ''} order export CSV`,
@@ -268,6 +279,17 @@ export async function handleTransportAuto(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api` && slug !== 'autonet') {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      if (isAbax) {
+        const trips = await fetchAbaxTripsApi(creds);
+        return htmlResponse(renderTrips(trips, 0, 0, false));
+      }
+      const orders = await fetchTransportOrdersApi(slug, creds);
+      return htmlResponse(renderOrders(orders.map((row) => ({ row, customerId: null })), 0, false));
+    }
     if (pathname === `${basePath}/preview`) {
       const file = form.get('file');
       if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file or load sample.');

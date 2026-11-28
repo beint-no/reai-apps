@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { TRADE_API_UI, fetchTradeApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 
@@ -223,6 +224,14 @@ export async function handleTrades(request, env, slug) {
 
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} Sync (Web)` })}
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'tr-output',
+          brand: TRADE_API_UI[slug].brand,
+          hint: TRADE_API_UI[slug].hint,
+          fields: TRADE_API_UI[slug].fields,
+          sampleAction: true,
+        })}
 
         ${reaiCard({
           eyebrow: `IMPORT FROM ${cfg.brand.toUpperCase()}`,
@@ -297,6 +306,26 @@ export async function handleTrades(request, env, slug) {
 
   try {
     const form = await request.formData();
+
+    if (pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const parsed = await fetchTradeApi(slug, creds);
+      const session = await readSession(env, request);
+      /** @type {SimpleRef[]} */
+      let custs = [];
+      if (session && session.tenantId > 0) {
+        try {
+          custs = /** @type {SimpleRef[]} */ (await reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } }));
+        } catch {
+          custs = [];
+        }
+      }
+      const byName = new Map(custs.map((c) => [c.name.trim().toLowerCase(), c.id]));
+      const rows = parsed.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null }));
+      return htmlResponse(renderTradePreview(slug, { rows, defaultCustomerId: 0, employeeId: 0, projectId: 0, isSample: false }));
+    }
 
     if (pathname === `${basePath}/preview`) {
       const file = form.get('file');
