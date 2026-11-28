@@ -1,6 +1,6 @@
 ---
-title: Koble systemene dine til ReAI — gratis integrasjoner inkludert.
-seoTitle: ReAI Integrasjoner — 30+ gratis regnskapsintegrasjoner for norske bedrifter
-description: Koble Vipps, Klarna, Stripe, Nets Easy, PayPal, Mystore, 24Nettbutikk, Magento, kasse Z-rapport, HubSpot, Pipedrive, Toggl, Pleo, Revolut og Hybel til ReAI helt gratis.
-summary: Avstem betalinger og dagsoppgjør, synkroniser nettbutikker, importer timer fra Toggl/Clockify/Tidsbanken, synkroniser HubSpot og Pipedrive, og bokfør Pleo/Revolut-utlegg — helt gratis i ReAI.
+title: Koble systemene dine til ReAI — over 55 gratis integrasjoner.
+seoTitle: ReAI Integrasjoner — Over 55 gratis regnskapsintegrasjoner for Norge
+description: Koble Vipps, Klarna, Stripe, Nets Easy, Mystore, SmartDok, Svenn, Cordel, Favrit, VisBook, PCKasse, RecMan, SuperOffice, Planday, Huma, Pleo, Opus Dental m.fl. til ReAI uten integrasjonsgebyr.
+summary: Gratis regnskapsintegrasjoner med åpen kildekode for Norges viktigste betalingstjenester, nettbutikker, kasser, hotell, håndverk, bemanning, CRM, vaktplan, billettsalg og klinikker — inkludert i ReAI.
 ---
