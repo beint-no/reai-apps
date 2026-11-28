@@ -1,19 +1,24 @@
 ---
-title: Klarna-avstemming
-seoTitle: ReAI Klarna-avstemming — Sammenlign Klarna-oppgjør mot bank
-description: Sammenlign oppgjør fra Klarna med uavstemte banktransaksjoner i ReAI og eksporter avstemmings-CSV.
-summary: Sammenlign Klarna-oppgjør mot uavstemte banklinjer i ReAI og eksporter CSV.
+title: Integrasjon mellom Klarna og regnskap
+seoTitle: Integrasjon mellom Klarna og regnskap — Gratis oppgjørsavstemming
+description: Avstem Klarna-oppgjør mot bank i ReAI helt gratis. Slik bokfører du Klarna-salg, returer, gebyrer og netto utbetalinger riktig i norsk regnskap.
+summary: Sammenlign oppgjør fra Klarna med banktransaksjoner i ReAI og eksporter avstemmingsrapport.
 industry: payments
-status: example
+icon: icons/klarna.svg
 webAppUrl: /app/klarna/
 sourcePath: web/worker/apps/reconcile.js
 highlights:
-  - "Henter oppgjør fra Klarna Settlements v1 ved behov uten å lagre API-nøkkelen"
-  - "Fremhever referanse- og beløpstreff mot uavstemte banktransaksjoner i ReAI"
-  - "Inkluderer eksempelmodus og CSV-eksport"
-icon: icons/klarna.avif
+  - "Henter Klarna Settlements v1 med oversikt over salg, gebyrer og returer"
+  - "Finner matchende banktransaksjoner i ReAI på utbetalingsreferanse og beløp"
+  - "Helt gratis med ReAI — ingen fast månedsavgift per integrasjon"
 ---
 
-## Avstemming av Klarna-oppgjør
+## Slik bokfører du Klarna-oppgjør riktig
 
-Lim inn en Klarna API-nøkkel for én kontrolløkt og eksporter avstemmingsresultatene til CSV.
+Klarna samler gjennomførte kjøp, returer og transaksjonsgebyrer i periodiske oppgjør. Utbetalingen som kommer inn på bankkonto (`1920`) er **netto etter gebyrer og returer**. Derfor bør alt Klarna-salg føres mot en mellomregningskonto (typisk `1580`), slik at saldoen går i null når netto utbetaling og gebyr (`7770`, MVA-kode `0`) er bokført.
+
+## Kom i gang på 2 minutter
+
+1. Opprett en API-nøkkel (`klarna_live_api_…`) med lesetilgang til oppgjør i Klarna Merchant Portal.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg bankkonto og måned.
+3. Kontroller alle treff mellom Klarnas utbetalingsreferanser og banklinjene i ReAI, og last ned CSV-rapporten som bilagsdokumentasjon.

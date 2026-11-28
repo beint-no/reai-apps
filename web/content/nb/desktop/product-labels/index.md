@@ -1,19 +1,18 @@
 ---
-title: Produktetiketter
-seoTitle: ReAI Produktetiketter — Prislapper og strekkoder på Mac
-description: Lag og masseutskriv produkt-, pris- og strekkodeetiketter direkte fra varekatalogen i ReAI på Mac.
-summary: Prislapper, produktdetaljer og strekkoder skrevet ut i bulk fra Mac.
+title: Produkt- og prisetiketter for Mac
+seoTitle: ReAI Produktetiketter — Skriv ut prislapper og strekkoder fra Mac
+description: Skriv ut prislapper, variantdetaljer og strekkoder direkte fra varekatalogen i ReAI på Mac med støtte for bulkutskrift og flere valutaer.
+summary: Lag og masseutskriv prislapper, produktdetaljer og strekkoder direkte fra varekatalogen i ReAI.
 industry: ecommerce-logistics
-status: maintained
-icon: icons/product-labels.avif
+icon: icons/product-labels.svg
 appId: product-labels
 sourcePath: apple/product-labels
 highlights:
-  - "Manuelle etiketter eller varer og varianter rett fra ReAI"
-  - "50 x 30 mm prisetiketter, standardformater og egne størrelser"
-  - "Flere valutaer, forhåndsvisning, PDF-eksport og signerte oppdateringer"
+  - "Henter varer, varianter, strekkoder og prislister i flere valutaer rett fra ReAI"
+  - "50 x 30 mm standard prislapp, egne størrelser og direkte forhåndsvisning"
+  - "Én samlet utskriftsjobb med riktig antall kopier per variant"
 ---
 
-## I daglig bruk
+## Raske prislapper for butikk og lager
 
-ReAI Produktetiketter vedlikeholdes for daglig etikettutskrift i butikk og på lager på macOS 15+ (Apple Silicon). Utgivelser er signert, notarisert av Apple og oppdateres i appen via Sparkle.
+Velg produkter eller varianter direkte fra ReAI, velg MVA-sats eller flere valutapriser, sjekk én testetikett og skriv ut hele vareleveransen i én samlet utskriftsjobb.

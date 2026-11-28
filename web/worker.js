@@ -1,5 +1,6 @@
 // @ts-check
-import { handleCloseCheck } from './worker/apps/close-check.js';
+import { handleExport } from './worker/apps/export.js';
+import { handleHubSpot } from './worker/apps/hubspot.js';
 import { handleHybel } from './worker/apps/hybel.js';
 import { handleImport } from './worker/apps/import.js';
 import { handleLab } from './worker/apps/lab.js';
@@ -27,6 +28,12 @@ export default {
       if (pathname === '/app/import' || pathname.startsWith('/app/import/')) {
         return await handleImport(request, env);
       }
+      if (pathname === '/app/export' || pathname.startsWith('/app/export/')) {
+        return await handleExport(request, env);
+      }
+      if (pathname === '/app/hubspot' || pathname.startsWith('/app/hubspot/')) {
+        return await handleHubSpot(request, env);
+      }
       if (pathname === '/app/stripe' || pathname.startsWith('/app/stripe/')) {
         return await handleStripe(request, env);
       }
@@ -42,8 +49,8 @@ export default {
       if (pathname === '/app/dintero' || pathname.startsWith('/app/dintero/')) {
         return await handleReconcile(request, env, 'dintero');
       }
-      if (pathname === '/app/close-check' || pathname.startsWith('/app/close-check/')) {
-        return await handleCloseCheck(request, env);
+      if (pathname === '/app/sumup' || pathname.startsWith('/app/sumup/')) {
+        return await handleReconcile(request, env, 'sumup');
       }
       if (pathname === '/app/lab' || pathname.startsWith('/app/lab/')) {
         return await handleLab(request);

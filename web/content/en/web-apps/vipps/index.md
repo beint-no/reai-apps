@@ -1,19 +1,31 @@
 ---
-title: Vipps Reconcile
-seoTitle: ReAI Vipps Reconcile — Match Vipps payouts against ReAI bank
-description: Compare Vipps MobilePay scheduled payouts against pending ReAI bank transactions for any month and download a CSV report.
-summary: Match Vipps Report API payouts with pending ReAI bank transactions and export CSV.
+title: "Vipps & Accounting Integration"
+seoTitle: Vipps Accounting Integration for ReAI — Free Payout Reconciliation
+description: Reconcile Vipps MobilePay payouts against your ReAI bank feed for free. Learn how gross sales, fees and net settlements should be booked in Norway.
+summary: Match Vipps MobilePay scheduled payouts with pending ReAI bank transactions and export a clean audit CSV.
 industry: payments
-status: example
+icon: icons/vipps.svg
 webAppUrl: /app/vipps/
 sourcePath: web/worker/apps/reconcile.js
 highlights:
-  - "Calls Vipps Report API v2 on demand without storing sales-unit credentials"
-  - "Matches payouts against pending ReAI bank transactions within an 8-day window"
-  - "Read-only review with formula-safe CSV export and built-in sample preview"
-icon: icons/vipps.avif
+  - "Reads Vipps Report API v2 scheduled payouts directly by month"
+  - "Matches payouts against pending ReAI bank transactions within an 8-day settlement window"
+  - "Zero add-on fee — free with every ReAI account, with instant sample preview"
 ---
 
-## Read-only Vipps payout review
+## How Vipps accounting reconciliation works
 
-Uses the shared reconciliation engine in `web/worker/lib/reconcile.js` without creating automatic accounting postings.
+Vipps MobilePay settles sales into your company bank account **net of transaction fees**—meaning the deposit arriving on bank account `1920` is lower than gross customer sales. Proper bookkeeping requires matching each bank payout against its Vipps settlement report so sales, VAT and fees stay auditable.
+
+| Accounting line | Typical Norwegian account | What to verify |
+| --- | --- | --- |
+| Customer sale (gross) | `3000` / `3100` (+ VAT `2700`) | Booked from your webshop, POS or invoice |
+| Vipps clearing / receivable | `1580` | Temporary balance between sale date and bank payout |
+| Vipps transaction fees | `7770` (VAT code `0`) | Financial services fee deducted from payout or invoiced |
+| Net bank deposit | `1920` | Matched against the scheduled Vipps payout amount |
+
+## Step-by-step with ReAI
+
+1. Open your Vipps MobilePay business portal and copy your sales unit's **Client ID**, **Client Secret**, **Subscription Key** and **Merchant Serial Number (MSN)**.
+2. Click **Open integration** above, connect your ReAI company, select your bank account and choose the month to review.
+3. Review every matched bank candidate (reference + amount, or unique amount/date match) and export the CSV as permanent voucher documentation.

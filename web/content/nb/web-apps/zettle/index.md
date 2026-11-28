@@ -1,19 +1,18 @@
 ---
-title: Zettle-avstemming
-seoTitle: ReAI Zettle-avstemming — Sammenlign Zettle-utbetalinger mot bank
-description: Sammenlign Zettle-utbetalinger med uavstemte banktransaksjoner i ReAI og last ned strukturert CSV-rapport.
-summary: Sammenlign Zettle-utbetalinger mot uavstemte banktransaksjoner i ReAI og eksporter CSV.
+title: Integrasjon mellom Zettle og regnskap
+seoTitle: Integrasjon mellom Zettle og regnskap — Avstemming av kasseutbetalinger
+description: Avstem utbetalinger fra Zettle (PayPal POS) mot bank i ReAI helt gratis. Slik holder du styr på kassesalg, kortgebyrer og bankinnskudd.
+summary: Match utbetalinger fra Zettle mot uavstemte banktransaksjoner i ReAI og last ned CSV-rapport.
 industry: payments
-status: example
+icon: icons/zettle.svg
 webAppUrl: /app/zettle/
 sourcePath: web/worker/apps/reconcile.js
 highlights:
-  - "Bruker Zettle READ:FINANCE-nøkkel per gjennomgang uten å lagre nøkkelen"
-  - "Matcher kasseutbetalinger mot uavstemte banktransaksjoner i ReAI"
-  - "Kun lesing med CSV-nedlasting og eksempeldata"
-icon: icons/zettle.avif
+  - "Henter utbetalinger fra Zettle Finance API v2 med READ:FINANCE-tilgang"
+  - "Matcher kasseutbetalinger mot banktransaksjoner i ReAI innenfor 8 dager"
+  - "Inkluderer eksempelmodus og sikker CSV-eksport for regnskapet"
 ---
 
-## Kontroll av kasseutbetalinger
+## Avstemming av Zettle-utbetalinger mot bank
 
-Matcher utbetalinger fra Zettle Finance API mot banktransaksjoner i ReAI uten automatiske posteringer.
+Zettle samler kortbetalinger fra kassen på likviditetskontoen, trekker kortgebyr og utbetaler nettobeløpet til bedriftskontoen. Ved å avstemme Zettle-utbetalingene mot banklinjene i ReAI hver måned sikrer du at dagsoppgjør, kortgebyrer (`7770`) og bankinnskudd (`1920`) alltid stemmer.

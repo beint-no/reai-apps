@@ -1,19 +1,18 @@
 ---
-title: Finder Vault
-seoTitle: ReAI Finder Vault — Last opp bilag og overvåk mapper på Mac
-description: Slipp kvitteringer og fakturaer i en overvåket mappe på Mac og last dem rett opp til bilagsinnboksen i ReAI.
-summary: Last opp dokumenter og overvåk lokale Finder-mapper mens originalene beholdes.
+title: Finder Vault for Mac
+seoTitle: ReAI Finder Vault — Automatisk opplasting av bilag fra Mac-mapper
+description: Overvåk lokale mapper på Mac og last opp PDF-er, kvitteringer og leverandørfakturaer automatisk til bilagsinnboksen i ReAI.
+summary: Slipp kvitteringer og fakturaer i en overvåket Mac-mappe og send dem rett til ReAI.
 industry: operations
-status: example
-icon: icons/finder-vault.avif
+icon: icons/finder-vault.svg
 appId: finder-vault
 sourcePath: apple/finder-vault
 highlights:
-  - "Last opp kvitteringer, leverandørfakturaer og PDF-er til ReAI"
-  - "Overvåk valgte lokale mapper mens appen kjører"
-  - "Originalfilene forblir urørt på Mac-en din"
+  - "Overvåker valgte Finder-mapper og laster opp nye PDF-er og kvitteringer automatisk"
+  - "Beholder alle originalfiler urørt lokalt på Mac-en din"
+  - "Kobles direkte til valgt selskap i ReAI med nøkkel lagret i macOS Keychain"
 ---
 
-## Mappeovervåking
+## Automatisk bilagsmottak fra Mac
 
-Bygget med SwiftUI for å vise bilagsopplasting mot det åpne ReAI-API-et.
+Pek Finder Vault mot skanner- eller nedlastingsmappen din slik at hver ny leverandørfaktura eller kvittering sendes rett til bilagsinnboksen i ReAI mens det lokale arkivet forblir urørt.

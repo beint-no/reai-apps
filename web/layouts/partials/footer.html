@@ -2,6 +2,8 @@
   <a class="brand" href="{{ site.Params.reaiUrl }}">ReAI</a>
   <p>{{ T "footer_license" }}</p>
   <nav class="footer-nav">
+    {{ with site.GetPage "/docs/" }}<a href="{{ .RelPermalink }}">{{ T "footer_docs" }}</a>{{ end }}
+    <a href="/app/lab/">{{ T "footer_lab" }}</a>
     <a href="{{ site.Params.githubUrl }}">{{ T "footer_source" }}</a>
     <a href="{{ site.Params.apiDocsUrl }}">{{ T "footer_api" }}</a>
     <a href="{{ site.Params.issuesUrl }}">{{ T "footer_issues" }}</a>
