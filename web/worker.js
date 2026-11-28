@@ -13,13 +13,16 @@ import { handleLab } from './worker/apps/lab.js';
 import { handleMembership } from './worker/apps/membership.js';
 import { handleMigrationEcom } from './worker/apps/migration-ecom.js';
 import { handleNordicCrm } from './worker/apps/nordic-crm.js';
+import { handleNorwayDeep } from './worker/apps/norway-deep.js';
 import { handlePipedrive } from './worker/apps/pipedrive.js';
 import { handlePos } from './worker/apps/pos.js';
 import { handleProperty } from './worker/apps/property.js';
+import { handleReaiPower } from './worker/apps/reai-power.js';
 import { handleRecMan } from './worker/apps/recman.js';
 import { handleReconcile } from './worker/apps/reconcile.js';
 import { handleRetailPos } from './worker/apps/retail-pos.js';
 import { handleStripe } from './worker/apps/stripe.js';
+import { handleSwitchers } from './worker/apps/switchers.js';
 import { handleTimeTracking } from './worker/apps/timetracking.js';
 import { handleTrades } from './worker/apps/trades.js';
 import { handleTransportAuto } from './worker/apps/transport-auto.js';
@@ -52,13 +55,19 @@ const TRANSPORT_SLUGS = new Set(['abax', 'opter', 'autonet', 'logistra']);
 /** @type {ReadonlySet<import('./worker/apps/wellness-gym.js').WellnessSlug>} */
 const WELLNESS_SLUGS = new Set(['fixit', 'hano', 'pasientsky', 'membro', 'easypractice']);
 /** @type {ReadonlySet<import('./worker/apps/collection.js').CollSlug>} */
-const COLL_SLUGS = new Set(['inkasso', 'kravia', 'two']);
+const COLL_SLUGS = new Set(['two']);
 /** @type {ReadonlySet<import('./worker/apps/property.js').PropSlug>} */
 const PROP_SLUGS = new Set(['airbnb', 'husleie', 'fenistra']);
 /** @type {ReadonlySet<import('./worker/apps/hr-expense.js').HrSlug>} */
 const HR_SLUGS = new Set(['simployer', 'acubiz', 'quinyx', 'severa']);
 /** @type {ReadonlySet<import('./worker/apps/migration-ecom.js').MigSlug>} */
 const MIG_SLUGS = new Set(['saft', 'hoopla', 'squarespace', 'paddle', 'salesforce']);
+/** @type {ReadonlySet<import('./worker/apps/switchers.js').SwitcherSlug>} */
+const SWITCHER_SLUGS = new Set(['tripletex-migrate', 'fiken-migrate', 'poweroffice-migrate', '24sevenoffice-migrate']);
+/** @type {ReadonlySet<import('./worker/apps/reai-power.js').PowerSlug>} */
+const POWER_SLUGS = new Set(['brreg-leads', 'aksjonaer', 'assets', 'budget', 'mrr', 'gift-cards', 'accountant-hub', 'stock-count']);
+/** @type {ReadonlySet<import('./worker/apps/norway-deep.js').DeepSlug>} */
+const DEEP_SLUGS = new Set(['fresha', 'aspit', 'ledigtime', 'propely', 'unibo', 'ads-spend', 'autopass', 'automations']);
 
 /**
  * Single Cloudflare Worker for apps.reai.no.
@@ -103,6 +112,9 @@ export default {
       if (PROP_SLUGS.has(/** @type {any} */ (segment))) return await handleProperty(request, env, /** @type {any} */ (segment));
       if (HR_SLUGS.has(/** @type {any} */ (segment))) return await handleHrExpense(request, env, /** @type {any} */ (segment));
       if (MIG_SLUGS.has(/** @type {any} */ (segment))) return await handleMigrationEcom(request, env, /** @type {any} */ (segment));
+      if (SWITCHER_SLUGS.has(/** @type {any} */ (segment))) return await handleSwitchers(request, env, /** @type {any} */ (segment));
+      if (POWER_SLUGS.has(/** @type {any} */ (segment))) return await handleReaiPower(request, env, /** @type {any} */ (segment));
+      if (DEEP_SLUGS.has(/** @type {any} */ (segment))) return await handleNorwayDeep(request, env, /** @type {any} */ (segment));
 
       if (pathname.startsWith('/app/')) return errorResponse('Unknown app route.', 404);
       return env.ASSETS.fetch(request);

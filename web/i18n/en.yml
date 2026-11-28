@@ -16,19 +16,19 @@ home_eyebrow: FREE INTEGRATIONS FOR REAI
 home_cta_secondary: Browse integrations
 home_cta_saft: Switch via SAF-T
 home_web_heading: Web integrations
-home_web_intro: Connect 80+ Norwegian payment, POS, ecommerce, trade, staffing, driving log, clinic, debt collection, property, CRM, HR and SAF-T tools straight in your browser — included free with ReAI.
-filter_placeholder: "Search 80+ integrations (Vipps, SmartDok, ABAX, SAF-T…)"
+home_web_intro: Connect 100 free Norwegian payment, POS, ecommerce, trade, salon, clinic, property, driving log, CRM, HR, SAF-T switcher and ReAI API tools straight in your browser.
+filter_placeholder: "Search 100 integrations (Vipps, Timma, Fazile, Tripletex, Brreg…)"
 filter_all: All
 filter_payments: Payments & POS
 filter_ecommerce: Ecommerce & Logistics
-filter_operations: Trades, HR & Ops
-filter_realestate: Real estate & Rental
+filter_operations: Trades, Salons, HR & API
+filter_realestate: Property & Boligforvaltning
 home_desktop_heading: Native desktop apps
 home_desktop_intro: Fast Mac and Windows apps for thermal shipping labels, price tags, menu-bar time tracking and local folder uploads.
 home_industries_heading: Browse by industry
 home_industries_intro: Find the right integrations and accounting guides for your workflow.
 builtin_heading: Already built into ReAI
-builtin_body: ReAI includes direct Norwegian bank sync, Altinn (VAT, A-melding, annual accounts), Peppol/EHF, eFaktura, Shopify, WooCommerce, Adyen and Bring/PostNord/DHL out of the box — with zero connector markups.
+builtin_body: ReAI includes direct Norwegian bank sync, Altinn (VAT, A-melding, annual accounts), Peppol/EHF, eFaktura, Kravia automated debt collection (inkasso), Shopify, WooCommerce, Adyen and Bring/PostNord/DHL out of the box — with zero connector markups.
 cta_heading: Switch to accounting without integration fees
 cta_body: Every web integration and desktop app here is free to use with ReAI. Start your account in two minutes.
 contribute_heading: Need another integration?

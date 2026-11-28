@@ -104,7 +104,7 @@ export function htmlResponse(markup, status = 200, extraHeaders = {}) {
       'cache-control': 'no-store',
       'content-security-policy': APP_CSP,
       'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
+      'referrer-policy': 'strict-origin-when-cross-origin',
       'x-frame-options': 'DENY',
       'permissions-policy': 'camera=(), microphone=(), geolocation=()',
       ...extraHeaders,

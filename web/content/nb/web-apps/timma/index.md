@@ -1,8 +1,8 @@
 ---
-title: "Integrasjon for booking, salong og klinikk (Timma / Fresha / Aspit)"
-seoTitle: "Timma, Fresha, Fixit & klinikk regnskapsintegrasjon for ReAI — Gratis"
-description: "Bokfør oppgjørsrapporter fra Timma, Fresha, Fixit, Hano, Physica og Aspit i ReAI med riktig splitt mellom avgiftsfrie helsetjenester (3100) og 25 % varesalg (3000)."
-summary: "Importer oppgjørsrapport fra bookingsystem eller journalsystem med automatisk splitt på 0 % helse og 25 % salg."
+title: "Integrasjon mellom Timma salong og regnskap"
+seoTitle: "Timma salong og booking til ReAI regnskap — Gratis integrasjon"
+description: "Bokfør oppgjørsrapporter fra Timma frisør, skjønnhet og velvære i ReAI med riktig splitt på 25 % behandling/varesalg, 0 % helse og bookinggebyrer."
+summary: "Importer oppgjørsrapporter fra Timma salong og booking i ReAI med automatisk splitt på 25 % salg, 0 % helse og gebyrer."
 industry: operations
 icon: icons/timma.svg
 webAppUrl: /app/timma/

@@ -126,7 +126,7 @@ const APP_LINKS = [
   ['/app/revolut/', 'Revolut / Wise'],
   ['/app/hybel/', 'Hybel'],
   ['/app/fazile/', 'Fazile'],
-  ['/app/timma/', 'Booking & Clinic'],
+  ['/app/timma/', 'Timma'],
   ['/app/recman/', 'RecMan Staffing'],
   ['/app/smartdok/', 'SmartDok'],
   ['/app/svenn/', 'Svenn'],
@@ -165,8 +165,6 @@ const APP_LINKS = [
   ['/app/pasientsky/', 'PasientSky'],
   ['/app/membro/', 'Membro Gym'],
   ['/app/easypractice/', 'EasyPract'],
-  ['/app/inkasso/', 'Inkasso NO'],
-  ['/app/kravia/', 'Kravia'],
   ['/app/two/', 'Two B2B'],
   ['/app/airbnb/', 'Airbnb'],
   ['/app/husleie/', 'Husleie.no'],
@@ -180,6 +178,26 @@ const APP_LINKS = [
   ['/app/squarespace/', 'Squarespace'],
   ['/app/paddle/', 'Paddle'],
   ['/app/salesforce/', 'Salesforce'],
+  ['/app/tripletex-migrate/', 'Tripletex Switch'],
+  ['/app/fiken-migrate/', 'Fiken Switch'],
+  ['/app/poweroffice-migrate/', 'PowerOffice Switch'],
+  ['/app/24sevenoffice-migrate/', '24SevenOffice Switch'],
+  ['/app/brreg-leads/', 'Brreg Leads'],
+  ['/app/aksjonaer/', 'Aksjonær & Shares'],
+  ['/app/assets/', 'Fixed Assets'],
+  ['/app/budget/', 'Company Budget'],
+  ['/app/mrr/', 'SaaS MRR / ARR'],
+  ['/app/gift-cards/', 'Gift Cards'],
+  ['/app/accountant-hub/', 'Accountant Hub'],
+  ['/app/stock-count/', 'Stock Valuation'],
+  ['/app/fresha/', 'Fresha Salon'],
+  ['/app/aspit/', 'Aspit / Physica'],
+  ['/app/ledigtime/', 'Ledigtime / Boka'],
+  ['/app/propely/', 'Propely'],
+  ['/app/unibo/', 'Borettslag / Unibo'],
+  ['/app/ads-spend/', 'Google / Meta Ads'],
+  ['/app/autopass/', 'AutoPASS / EasyPark'],
+  ['/app/automations/', 'Make / Zapier / n8n'],
   ['/app/import/', 'CSV Import'],
   ['/app/export/', 'BI & Excel Export'],
 ];
@@ -217,7 +235,7 @@ export function appShell(props) {
       <a class="button primary nav-cta" href="https://app.reai.no/auth/signup">Try ReAI free →</a>
     </nav>
     <nav id="app-switcher" popover class="app-switcher">
-      <input type="search" id="app-switcher-filter" class="switcher-search" placeholder="Filter 80+ integrations…">
+      <input type="search" id="app-switcher-filter" class="switcher-search" placeholder="Filter 100+ integrations…">
       ${APP_LINKS.map(
         ([href, label]) =>
           html`<a href="${href}"${props.activePath === href ? html` data-current="true"` : ''}>${label}</a>`,

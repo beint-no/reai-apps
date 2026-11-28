@@ -1,6 +1,6 @@
 ---
-title: Koble systemene dine til ReAI — over 80 gratis integrasjoner.
-seoTitle: ReAI Integrasjoner — Over 80 gratis regnskapsintegrasjoner for Norge
-description: Koble Vipps, Klarna, Stripe, Mystore, SmartDok, Svenn, ABAX, SAF-T, Favrit, VisBook, PCKasse, RecMan, SuperOffice, Planday, Simployer, Fixit m.fl. til ReAI gratis.
-summary: Gratis regnskapsintegrasjoner med åpen kildekode for Norges viktigste betalingstjenester, nettbutikker, kasser, hotell, håndverk, elektronisk kjørebok, salong & klinikk, inkasso, eiendom, bemanning, CRM, HR og SAF-T-bytte — inkludert i ReAI.
+title: Koble systemene dine til ReAI — 100 gratis integrasjoner inkludert.
+seoTitle: ReAI Integrasjoner — 100 gratis regnskapsintegrasjoner for Norge
+description: Koble Vipps, Klarna, Stripe, Timma, Fresha, Fazile, SmartDok, ABAX, Tripletex/Fiken/SAF-T-bytte, Brreg Leads, MRR m.fl. til ReAI helt gratis.
+summary: Gratis regnskapsintegrasjoner og API-verktøy med åpen kildekode for Norges viktigste betalingstjenester, nettbutikker, kasser, salonger & klinikker, boligforvaltning, håndverk, HR, CRM og systembytte — inkludert i ReAI.
 ---

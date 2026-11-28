@@ -209,19 +209,19 @@ export function renderConnectPanel(session, opts = {}) {
       title: 'Approve in ReAI',
       badge: reaiBadge({ text: 'Waiting for approval', tone: 'warn' }),
       body: html`
-        <div class="device-box"
-             hx-post="/app/auth/device/poll"
-             hx-trigger="every ${pollSeconds}s"
-             hx-include="find input"
-             hx-target="#reai-connect"
-             hx-swap="outerHTML">
-          <input type="hidden" name="clientId" value="${p.clientId}">
-          <input type="hidden" name="clientName" value="${p.clientName}">
-          <input type="hidden" name="deviceCode" value="${p.deviceCode}">
-          <input type="hidden" name="userCode" value="${p.userCode}">
-          <input type="hidden" name="verificationUriComplete" value="${p.verificationUriComplete}">
-          <input type="hidden" name="interval" value="${pollSeconds}">
-          <p>Confirm this code in ReAI and choose one company:</p>
+        <div class="device-box">
+          <form hx-post="/app/auth/device/poll"
+                hx-trigger="every ${pollSeconds}s"
+                hx-target="#reai-connect"
+                hx-swap="outerHTML">
+            <input type="hidden" name="clientId" value="${p.clientId}">
+            <input type="hidden" name="clientName" value="${p.clientName}">
+            <input type="hidden" name="deviceCode" value="${p.deviceCode}">
+            <input type="hidden" name="userCode" value="${p.userCode}">
+            <input type="hidden" name="verificationUriComplete" value="${p.verificationUriComplete}">
+            <input type="hidden" name="interval" value="${pollSeconds}">
+          </form>
+          <p>Confirm this code in ReAI and choose your company:</p>
           <p class="device-code">${p.userCode}</p>
           <div class="inline-row">
             <a class="button primary" href="${p.verificationUriComplete}" target="_blank" rel="noopener">Open ReAI approval ↗</a>
@@ -240,28 +240,16 @@ export function renderConnectPanel(session, opts = {}) {
     id: 'reai-connect',
     eyebrow: 'REAI CONNECTION',
     title: 'Connect to ReAI',
-    badge: reaiBadge({ text: 'Offline preview mode', tone: 'neutral' }),
+    badge: reaiBadge({ text: 'Ready to connect', tone: 'neutral' }),
     body: html`
       ${opts.error ? reaiCallout({ tone: 'danger', body: opts.error }) : ''}
-      <p class="muted-note">You can preview and validate CSV files without connecting. Connect when ready to validate accounts and create a review voucher in ReAI.</p>
-      <div class="stack-sm">
+      <p class="muted-note">Approve in ReAI to connect your company with an encrypted HttpOnly session cookie — no manual tokens or passwords needed.</p>
+      <div class="inline-row">
         <form hx-post="/app/auth/device/start" hx-target="#reai-connect" hx-swap="outerHTML">
           <input type="hidden" name="clientId" value="${clientId}">
           <input type="hidden" name="clientName" value="${clientName}">
-          <button type="submit" class="button primary">Connect with browser approval</button>
+          <button type="submit" class="button primary">Connect to ReAI →</button>
         </form>
-        <details class="subtle-details">
-          <summary>Or paste a ReAI user access token</summary>
-          <form class="token-form" hx-post="/app/auth/token" hx-target="#reai-connect" hx-swap="outerHTML">
-            <input type="hidden" name="clientId" value="${clientId}">
-            <input type="hidden" name="clientName" value="${clientName}">
-            <label for="reai-token-input">User access token</label>
-            <div class="inline-row">
-              <input id="reai-token-input" type="password" name="token" autocomplete="off" required placeholder="Paste token from ReAI profile">
-              <button type="submit" class="button secondary">Connect</button>
-            </div>
-          </form>
-        </details>
       </div>
     `,
   });

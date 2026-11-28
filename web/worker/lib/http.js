@@ -26,7 +26,7 @@ export function jsonResponse(data, status = 200, extraHeaders = {}) {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
+      'referrer-policy': 'strict-origin-when-cross-origin',
       'x-frame-options': 'DENY',
       ...extraHeaders,
     },
@@ -44,16 +44,41 @@ export function errorResponse(message, status = 400) {
 
 /**
  * Verifies same-origin for mutating browser requests to block CSRF.
+ * Supports both Origin header and unforgeable Fetch Metadata (Sec-Fetch-Site).
  * @param {Request} request
  * @returns {Response | null}
  */
 export function requireSameOrigin(request) {
-  const origin = request.headers.get('origin');
   const expected = new URL(request.url).origin;
-  if (!origin || origin !== expected) {
+  const origin = request.headers.get('origin');
+  const fetchSite = request.headers.get('sec-fetch-site');
+
+  if (origin && origin !== 'null') {
+    if (origin !== expected) {
+      return errorResponse('Cross-origin request rejected.', 403);
+    }
+    return null;
+  }
+
+  if (fetchSite) {
+    if (fetchSite === 'same-origin') {
+      return null;
+    }
     return errorResponse('Cross-origin request rejected.', 403);
   }
-  return null;
+
+  const referer = request.headers.get('referer');
+  if (referer) {
+    try {
+      if (new URL(referer).origin === expected) {
+        return null;
+      }
+    } catch {
+      // Fall through to 403
+    }
+  }
+
+  return errorResponse('Cross-origin request rejected.', 403);
 }
 
 /**
@@ -83,7 +108,7 @@ export function withAppHeaders(response) {
   const headers = new Headers(response.headers);
   headers.set('content-security-policy', APP_CSP);
   headers.set('x-content-type-options', 'nosniff');
-  headers.set('referrer-policy', 'no-referrer');
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
   headers.set('x-frame-options', 'DENY');
   headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()');
   return new Response(response.body, {
