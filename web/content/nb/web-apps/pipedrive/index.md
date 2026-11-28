@@ -4,7 +4,6 @@ seoTitle: "Pipedrive CRM regnskapsintegrasjon for ReAI — Kunder og vunne avtal
 description: "Synkroniser bedrifter fra Pipedrive til ReAI og gjør vunne salgsavtaler direkte om til ordreutkast klare for fakturering — helt gratis."
 summary: "Overfør Pipedrive-organisasjoner til kunderegisteret i ReAI og opprett ordreutkast fra vunne avtaler."
 industry: operations
-icon: icons/pipedrive.svg
 webAppUrl: /app/pipedrive/
 sourcePath: web/worker/apps/pipedrive.js
 highlights:

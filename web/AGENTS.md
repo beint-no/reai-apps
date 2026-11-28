@@ -36,3 +36,10 @@ wrangler secret put SESSION_SECRET --config web/wrangler.jsonc
 ```
 
 Local `wrangler dev` on `localhost`/`127.0.0.1` automatically generates an ephemeral in-memory secret; non-localhost requests fail closed if `SESSION_SECRET` is unset.
+
+## Languages and front page
+
+- Norwegian (`nb`) is the default language and is served at `/`; English lives under `/en/`. In Markdown, write links without a language prefix (`/web-apps/vipps/`); lyn resolves them to the page's own language.
+- `/app/*` Worker apps are English and link to the English catalog (`/en/`, `/en/web-apps/`, `/en/docs/`).
+- The front page's curated "most used systems by industry" list lives in `data/popular.json`. Keep it to the most used Norwegian systems (about 4 to 6 per industry) and point each entry at an existing `/web-apps/<slug>/` page.
+- Switching accounting system is handled by people: link to ReAI's contact page instead of promoting the switcher apps above the fold.

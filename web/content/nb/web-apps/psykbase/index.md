@@ -4,7 +4,6 @@ seoTitle: "PsykBase til ReAI | Gratis integrasjon for psykologpraksiser"
 description: "Hent fakturaer fra PsykBase Online for en periode og lag et balansert bilag til kontroll i ReAI, med mva-fri behandlingsinntekt og betalinger per betalingsmåte."
 summary: "Bokfør fakturaene fra PsykBase Online som ett bilag til kontroll i ReAI per periode, med mva-frie helsetjenester på mva-kode 6."
 industry: operations
-icon: icons/psykbase.svg
 webAppUrl: /app/psykbase/
 sourcePath: web/worker/apps/psykbase.js
 highlights:

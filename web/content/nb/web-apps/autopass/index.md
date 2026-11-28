@@ -4,7 +4,6 @@ seoTitle: "AutoPASS bompassering og EasyPark parkering — Gratis open source fo
 description: "Bokfør AutoPASS/Fremtind bompassering (0 % MVA konto 7080) og EasyPark firmabilparkering (25 % konto 7140) i ReAI."
 summary: "Bokfør AutoPASS/Fremtind bompassering (0 % MVA konto 7080) og EasyPark firmabilparkering (25 % konto 7140) i ReAI."
 industry: operations
-icon: icons/autopass.svg
 webAppUrl: /app/autopass/
 sourcePath: web/worker/apps/autopass.js
 highlights:

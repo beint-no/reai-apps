@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom Klarna og regnskap — Gratis oppgjørsavstemming
 description: Avstem Klarna-oppgjør mot bank i ReAI helt gratis. Slik bokfører du Klarna-salg, returer, gebyrer og netto utbetalinger riktig i norsk regnskap.
 summary: Sammenlign oppgjør fra Klarna med banktransaksjoner i ReAI og eksporter avstemmingsrapport.
 industry: payments
-icon: icons/klarna.svg
 webAppUrl: /app/klarna/
 sourcePath: web/worker/apps/klarna.js
 highlights:

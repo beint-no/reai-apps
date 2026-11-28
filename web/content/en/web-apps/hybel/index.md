@@ -4,7 +4,6 @@ seoTitle: Hybel.no Accounting Integration for ReAI — Monthly Rental Journal
 description: Validate and book your monthly Hybel.no Bilagsjournal CSV into ReAI for free. Complete guide for Norwegian landlords and property accountants.
 summary: Validate a monthly Hybel CSV journal in your browser and post a balanced review voucher to ReAI.
 industry: real-estate
-icon: icons/hybel.svg
 webAppUrl: /app/hybel/
 sourcePath: web/worker/apps/hybel.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "AutoNet / Bilverksted DMS & Accounting — Free Open-Source ReAI Inte
 description: "Import completed Norwegian car workshop orders (parts, labor 25% VAT, EU-kontroll and tire hotel) into ReAI draft orders."
 summary: "Import completed Norwegian car workshop orders (parts, labor 25% VAT, EU-kontroll and tire hotel) into ReAI draft orders."
 industry: operations
-icon: icons/autonet.svg
 webAppUrl: /app/autonet/
 sourcePath: web/worker/apps/autonet.js
 highlights:

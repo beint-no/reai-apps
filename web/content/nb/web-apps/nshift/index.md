@@ -4,7 +4,6 @@ seoTitle: "Viderefakturering av frakt fra nShift Delivery i ReAI"
 description: "Hent lagrede fraktpriser fra nShift Delivery og lag ordreutkast i ReAI for viderefakturering av frakt per sending."
 summary: "Les prishistorikk fra nShift Delivery med din egen API-nøkkel og lag ordreutkast i ReAI per sending."
 industry: ecommerce-logistics
-icon: icons/nshift.svg
 webAppUrl: /app/nshift/
 sourcePath: web/worker/apps/nshift.js
 highlights:

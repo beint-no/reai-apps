@@ -4,7 +4,6 @@ seoTitle: "Shopware 6 Accounting Integration for ReAI — Free Product & Sales S
 description: "Sync Shopware 6 products and paid orders into ReAI via Shopware OAuth client credentials. Included free with ReAI."
 summary: "Authenticate with Shopware 6 Admin API to sync products by SKU and import paid orders into ReAI."
 industry: ecommerce-logistics
-icon: icons/shopware.svg
 webAppUrl: /app/shopware/
 sourcePath: web/worker/apps/shopware.js
 highlights:

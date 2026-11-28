@@ -4,7 +4,6 @@ seoTitle: "Tidsbanken & SmartDok Hours Import for ReAI — Norwegian Workforce S
 description: "Import exported shift and construction project hours from Tidsbanken, SmartDok or Busy CSV exports straight into ReAI Timesheets."
 summary: "Upload CSV hour exports from Tidsbanken, SmartDok or Busy and post validated entries into ReAI Timesheets."
 industry: operations
-icon: icons/tidsbanken.svg
 webAppUrl: /app/tidsbanken/
 sourcePath: web/worker/apps/tidsbanken.js
 highlights:

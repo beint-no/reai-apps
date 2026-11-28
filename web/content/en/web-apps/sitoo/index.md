@@ -4,7 +4,6 @@ seoTitle: "Sitoo POS Z-reports to ReAI | Free open source integration"
 description: "Fetch the day's Sitoo POS Z-reports and create a balanced review voucher in ReAI with payments by tender and sales by Norwegian VAT rate."
 summary: "Turn Sitoo POS Z-reports into one balanced ReAI review voucher per day, with ReAI output VAT codes."
 industry: operations
-icon: icons/sitoo.svg
 webAppUrl: /app/sitoo/
 sourcePath: web/worker/apps/sitoo.js
 highlights:

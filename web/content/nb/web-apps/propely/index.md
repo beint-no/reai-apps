@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Propely eiendomsforvaltning — Gratis open source fo
 description: "Bokfør leie og felleskostnader fra Propely bolig- og næringsforvaltning i ReAI med 25 % og 0 % MVA-splitt."
 summary: "Bokfør leie og felleskostnader fra Propely bolig- og næringsforvaltning i ReAI med 25 % og 0 % MVA-splitt."
 industry: real-estate
-icon: icons/propely.svg
 webAppUrl: /app/propely/
 sourcePath: web/worker/apps/propely.js
 highlights:

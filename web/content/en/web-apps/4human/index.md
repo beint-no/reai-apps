@@ -4,7 +4,6 @@ seoTitle: "4human HRM Employee Integration for ReAI"
 description: "Fetch employees from 4human HRM and create them in ReAI Employees with contact details, start date, position percentage and bank account."
 summary: "Read current employments from the 4human HRM API and create the employees in ReAI one by one."
 industry: operations
-icon: icons/4human.svg
 webAppUrl: /app/4human/
 sourcePath: web/worker/apps/4human.js
 highlights:

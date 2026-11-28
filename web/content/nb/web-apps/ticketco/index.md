@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom TicketCo og regnskap — Gratis integrasjon for Re
 description: "Bokfør oppgjørsrapporter fra TicketCo i ReAI med splitt mellom avgiftsfrie kultur- og konsertbilletter (3100), 25 % salg og gebyrer."
 summary: "Bokfør oppgjørsrapporter fra TicketCo i ReAI med splitt mellom avgiftsfrie kultur- og konsertbilletter (3100), 25 % salg og gebyrer."
 industry: operations
-icon: icons/ticketco.svg
 webAppUrl: /app/ticketco/
 sourcePath: web/worker/apps/ticketco.js
 highlights:

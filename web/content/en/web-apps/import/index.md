@@ -4,7 +4,6 @@ seoTitle: "Import Products, Customers & Suppliers to ReAI — Free CSV Importer"
 description: Migrate products, customers and suppliers from Tripletex, Fiken or spreadsheets into ReAI using CSV/TSV with Norwegian header matching and duplicate checks.
 summary: Match CSV columns, validate Norwegian org numbers, skip existing records and import cleanly into ReAI.
 industry: operations
-icon: icons/import.svg
 webAppUrl: /app/import/
 sourcePath: web/worker/apps/import.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Flow Retail Accounting Integration for ReAI: Daily Postings"
 description: "Book the Flow Retail accounting report for one day in ReAI as a review voucher, using the accounts and VAT codes mapped in Flow Retail. Free and open source."
 summary: "Fetch the Flow Retail accounting report for one day and create one balanced review voucher in ReAI."
 industry: payments
-icon: icons/flow-retail.svg
 webAppUrl: /app/flow-retail/
 sourcePath: web/worker/apps/flow-retail.js
 highlights:

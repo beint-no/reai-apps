@@ -13,22 +13,20 @@ web_badge: Web
 desktop_badge: Desktop
 learn_more: Guide & setup
 home_eyebrow: FREE INTEGRATIONS FOR REAI
-home_cta_secondary: Browse integrations
-home_cta_saft: Switch via SAF-T
+home_cta_secondary: Browse all integrations
 home_web_heading: Web integrations
-home_web_intro: Connect Norwegian payment, POS, ecommerce, trade, salon, clinic, property, driving log, CRM, HR, SAF-T switcher and ReAI API tools straight in your browser. Included free with ReAI.
-filter_placeholder: "Search integrations (Vipps, Timma, Fazile, Tripletex, Brreg…)"
+home_web_intro: Search for your system or filter by industry. Integrations run in the browser and are free with ReAI.
+filter_placeholder: Search for a system
 filter_all: All
-filter_payments: Payments & POS
-filter_ecommerce: Ecommerce & Logistics
-filter_operations: Trades, Salons, HR & API
-filter_realestate: Property & Boligforvaltning
+filter_payments: Payments and POS
+filter_ecommerce: Ecommerce and logistics
+filter_operations: Trades, salons and HR
+filter_realestate: Property and rentals
 home_desktop_heading: Native desktop apps
-home_desktop_intro: Fast Mac and Windows apps for thermal shipping labels, price tags, menu-bar time tracking and document scanning.
-home_industries_heading: Browse by industry
-home_industries_intro: Find the right integrations and accounting guides for your workflow.
+home_desktop_intro: Apps for shipping labels, price tags, time tracking and document scanning.
+home_industries_heading: Industries
 builtin_heading: Already built into ReAI
-builtin_body: ReAI includes direct Norwegian bank sync, Altinn (VAT, A-melding, annual accounts), Peppol/EHF, eFaktura, Kravia automated debt collection (inkasso), Shopify, WooCommerce, Adyen and Bring/PostNord/DHL out of the box, with zero connector markups.
+builtin_body: Bank sync, Altinn (VAT, A-melding and annual accounts), EHF and Peppol, eFaktura, Kravia debt collection, Shopify, WooCommerce, Adyen, Bring, PostNord and DHL are built into ReAI at no extra cost.
 cta_heading: Switch to accounting without integration fees
 cta_body: Every web integration and desktop app here is free to use with ReAI. Start your account in two minutes.
 contribute_heading: Need another integration?
@@ -43,3 +41,9 @@ footer_issues: Issues
 not_found_heading: Page not found
 not_found_body: The page you requested does not exist on apps.reai.no.
 back_home: Back to ReAI Apps
+popular_heading: Most used systems by industry
+popular_intro: A selection of the systems Norwegian businesses use most. The full catalog is below.
+switch_heading: Switching accounting system?
+switch_body: Contact us and we move your data for you.
+switch_cta: Contact us
+switch_more: How switching works

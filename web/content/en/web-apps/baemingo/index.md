@@ -4,7 +4,6 @@ seoTitle: "Baemingo POS Accounting Integration for ReAI: Daily Sales"
 description: "Total a Baemingo business day of orders, refunds and tips into one ReAI review voucher with sales per VAT rate and payments per method. Free and open source."
 summary: "Fetch one Baemingo business day through the public API and create one balanced review voucher in ReAI."
 industry: payments
-icon: icons/baemingo.svg
 webAppUrl: /app/baemingo/
 sourcePath: web/worker/apps/baemingo.js
 highlights:

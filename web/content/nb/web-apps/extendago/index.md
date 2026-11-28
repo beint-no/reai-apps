@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom ExtendaGO og regnskap — Gratis integrasjon for R
 description: "Bokfør dagsoppgjør fra ExtendaGO skybasert kasse direkte i ReAI som balansert kontrollbilag."
 summary: "Bokfør dagsoppgjør fra ExtendaGO skybasert kasse direkte i ReAI som balansert kontrollbilag."
 industry: payments
-icon: icons/extendago.svg
 webAppUrl: /app/extendago/
 sourcePath: web/worker/apps/extendago.js
 highlights:

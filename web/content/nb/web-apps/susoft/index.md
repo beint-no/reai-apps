@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Susoft og regnskap — Gratis integrasjon for ReAI
 description: "Importer dagsoppgjør fra Susoft kasse og nettbutikk rett inn i ReAI med automatisk balansering."
 summary: "Importer dagsoppgjør fra Susoft kasse og nettbutikk rett inn i ReAI med automatisk balansering."
 industry: payments
-icon: icons/susoft.svg
 webAppUrl: /app/susoft/
 sourcePath: web/worker/apps/susoft.js
 highlights:

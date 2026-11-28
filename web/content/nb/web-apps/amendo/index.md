@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Amendo og ReAI: dagsoppgjør til regnskap"
 description: "Bokfør dagsoppgjør fra Amendo som bilag til kontroll i ReAI, fordelt på MVA-satser og betalingsmåter. Gratis og åpen kildekode."
 summary: "Hent dagsoppgjørene fra Amendo for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
-icon: icons/amendo.svg
 webAppUrl: /app/amendo/
 sourcePath: web/worker/apps/amendo.js
 highlights:

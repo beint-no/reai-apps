@@ -4,7 +4,6 @@ seoTitle: Klarna Accounting Integration for ReAI — Settlement Reconciliation
 description: Match Klarna settlement payouts against ReAI bank transactions for free. Complete guide to booking Klarna sales, returns, fees and net bank deposits.
 summary: Compare Klarna Settlements API payouts with pending ReAI bank transactions and export a reconciliation CSV.
 industry: payments
-icon: icons/klarna.svg
 webAppUrl: /app/klarna/
 sourcePath: web/worker/apps/klarna.js
 highlights:

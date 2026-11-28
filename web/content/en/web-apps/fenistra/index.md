@@ -4,7 +4,6 @@ seoTitle: "Fenistra & Propely Commercial Property Sync — Free Open-Source ReAI
 description: "Stage Fenistra / Propely commercial leases and common-cost schedules (felleskostnader) as recurring ReAI subscriptions (0% or 25% voluntary VAT)."
 summary: "Stage Fenistra / Propely commercial leases and common-cost schedules (felleskostnader) as recurring ReAI subscriptions (0% or 25% voluntary VAT)."
 industry: real-estate
-icon: icons/fenistra.svg
 webAppUrl: /app/fenistra/
 sourcePath: web/worker/apps/fenistra.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Switch from PowerOffice Go to ReAI — Free Open-Source ReAI Integrat
 description: "Migrate customers, suppliers and products from PowerOffice Go CSV exports into ReAI alongside SAF-T opening balances."
 summary: "Migrate customers, suppliers and products from PowerOffice Go CSV exports into ReAI alongside SAF-T opening balances."
 industry: operations
-icon: icons/poweroffice-migrate.svg
 webAppUrl: /app/poweroffice-migrate/
 sourcePath: web/worker/apps/poweroffice-migrate.js
 highlights:

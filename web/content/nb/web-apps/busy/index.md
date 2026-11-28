@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Busy og regnskap — Gratis integrasjon for ReAI"
 description: "Importer førte prosjekttimer og kommentarer fra Busy rett inn i ReAI Timelister uten dobbeltføring."
 summary: "Importer førte prosjekttimer og kommentarer fra Busy rett inn i ReAI Timelister uten dobbeltføring."
 industry: operations
-icon: icons/busy.svg
 webAppUrl: /app/busy/
 sourcePath: web/worker/apps/busy.js
 highlights:

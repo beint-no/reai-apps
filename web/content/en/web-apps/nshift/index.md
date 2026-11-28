@@ -4,7 +4,6 @@ seoTitle: "nShift Delivery Freight Rebilling in ReAI"
 description: "Fetch stored freight prices from nShift Delivery and stage them per shipment as ReAI draft customer orders for rebilling."
 summary: "Read nShift Delivery price history with your own API key and stage freight per shipment as ReAI draft orders."
 industry: ecommerce-logistics
-icon: icons/nshift.svg
 webAppUrl: /app/nshift/
 sourcePath: web/worker/apps/nshift.js
 highlights:

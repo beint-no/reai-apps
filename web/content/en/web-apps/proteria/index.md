@@ -4,7 +4,6 @@ seoTitle: "Proteria Frakt Freight Rebilling in ReAI"
 description: "Import the Proteria Frakt invoice report and stage freight per shipment as ReAI draft customer orders for rebilling."
 summary: "Read the Proteria Fakturarapport CSV, map its columns and stage freight lines as ReAI draft orders you review."
 industry: ecommerce-logistics
-icon: icons/proteria.svg
 webAppUrl: /app/proteria/
 sourcePath: web/worker/apps/proteria.js
 highlights:

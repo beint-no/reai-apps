@@ -4,7 +4,6 @@ seoTitle: "Nets Easy / Nexi Checkout Accounting Integration for ReAI"
 description: "Reconcile Nets Easy (Nexi Checkout) settlement payouts against your ReAI bank transactions for free. Complete guide for Norwegian VAT and payout fees."
 summary: "Match Nets Easy / Nexi Checkout payouts against pending ReAI bank transactions and export an audit-ready CSV."
 industry: payments
-icon: icons/nets.svg
 webAppUrl: /app/nets/
 sourcePath: web/worker/apps/nets.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: ReAI Produktetiketter — Skriv ut prislapper og strekkoder fra Mac
 description: Skriv ut prislapper, variantdetaljer og strekkoder direkte fra varekatalogen i ReAI på Mac med støtte for bulkutskrift og flere valutaer.
 summary: Lag og masseutskriv prislapper, produktdetaljer og strekkoder direkte fra varekatalogen i ReAI.
 industry: ecommerce-logistics
-icon: icons/product-labels.svg
 appId: product-labels
 sourcePath: apple/product-labels
 highlights:

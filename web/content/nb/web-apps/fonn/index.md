@@ -4,7 +4,6 @@ seoTitle: "Fonn timekort til ReAI Timelister"
 description: "Hent timekort fra Fonn per prosjekt og før dem som timelisterader i ReAI per ansatt og prosjekt. Gratis og åpen kildekode."
 summary: "Hent timekort fra Fonn via Fonn API og før dem i ReAI Timelister."
 industry: operations
-icon: icons/fonn.svg
 webAppUrl: /app/fonn/
 sourcePath: web/worker/apps/fonn.js
 highlights:

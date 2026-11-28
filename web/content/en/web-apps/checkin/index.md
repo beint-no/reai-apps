@@ -4,7 +4,6 @@ seoTitle: "Checkin Conference & Course Accounting for ReAI — Free Open-Source 
 description: "Book Checkin registration settlements into ReAI separating VAT-exempt courses (3100), 25% conferences/catering (3000) and fees (7770)."
 summary: "Book Checkin registration settlements into ReAI separating VAT-exempt courses (3100), 25% conferences/catering (3000) and fees (7770)."
 industry: operations
-icon: icons/checkin.svg
 webAppUrl: /app/checkin/
 sourcePath: web/worker/apps/checkin.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Power BI og Excel mot regnskapsdata i ReAI"
 description: "Lag Power Query-skript som henter posteringer, resultat, saldoer og fakturaer fra ReAI til Power BI eller Excel med din egen API-nøkkel."
 summary: "Kopier ferdige Power Query-skript for posteringer, resultat, balanse og fakturaer fra ReAI til Power BI Desktop, Power BI-tjenesten eller Excel."
 industry: operations
-icon: icons/power-bi.svg
 webAppUrl: /app/power-bi/
 sourcePath: web/worker/apps/power-bi.js
 highlights:

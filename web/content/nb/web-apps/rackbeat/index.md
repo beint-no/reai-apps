@@ -4,7 +4,6 @@ seoTitle: "Produkter fra Rackbeat til ReAI"
 description: "Sammenlign produktregisteret i Rackbeat med produktene i ReAI på SKU og opprett manglende produkter med priser og strekkode. Gratis og åpen kildekode."
 summary: "Les produkter fra Rackbeat via REST API og opprett de som mangler i ReAI."
 industry: ecommerce-logistics
-icon: icons/rackbeat.svg
 webAppUrl: /app/rackbeat/
 sourcePath: web/worker/apps/rackbeat.js
 highlights:

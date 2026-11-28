@@ -4,7 +4,6 @@ seoTitle: "RecMan Accounting Integration for ReAI — Invoices, PDF, KID & Payro
 description: "Connect RecMan to ReAI for free. Import issued staffing invoices and credit notes with original PDFs and KID numbers, and prepare draft payroll with automatic Kartverket AGA municipality resolution."
 summary: "Book issued RecMan invoices & credit notes with original PDFs and KID, and prepare ReAI draft payroll with Kartverket workplace municipality (AGA zone) detection."
 industry: operations
-icon: icons/recman.svg
 webAppUrl: /app/recman/
 sourcePath: web/worker/apps/recman.js
 highlights:

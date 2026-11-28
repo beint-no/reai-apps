@@ -4,7 +4,6 @@ seoTitle: "Dintero Accounting Integration for ReAI — Payouts & Withheld Fees"
 description: Review Dintero checkout settlements, match net payouts against ReAI bank transactions, and book monthly withheld fees as a review voucher.
 summary: Match paid Dintero settlements against ReAI bank feeds and optionally book withheld monthly fees.
 industry: payments
-icon: icons/dintero.svg
 webAppUrl: /app/dintero/
 sourcePath: web/worker/apps/dintero.js
 highlights:

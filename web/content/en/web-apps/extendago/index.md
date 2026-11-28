@@ -4,7 +4,6 @@ seoTitle: "ExtendaGO Cloud POS & Accounting for ReAI — Free Open-Source Connec
 description: "Import ExtendaGO cloud POS accounting exports directly into balanced ReAI review vouchers."
 summary: "Import ExtendaGO cloud POS accounting exports directly into balanced ReAI review vouchers."
 industry: payments
-icon: icons/extendago.svg
 webAppUrl: /app/extendago/
 sourcePath: web/worker/apps/extendago.js
 highlights:

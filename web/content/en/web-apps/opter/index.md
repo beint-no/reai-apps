@@ -4,7 +4,6 @@ seoTitle: "Opter Transport TMS & Accounting — Free Open-Source ReAI Integratio
 description: "Import completed Opter TMS transport assignments and freight billing lines directly into ReAI draft customer orders."
 summary: "Import completed Opter TMS transport assignments and freight billing lines directly into ReAI draft customer orders."
 industry: ecommerce-logistics
-icon: icons/opter.svg
 webAppUrl: /app/opter/
 sourcePath: web/worker/apps/opter.js
 highlights:

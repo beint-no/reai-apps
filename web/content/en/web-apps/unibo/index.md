@@ -4,7 +4,6 @@ seoTitle: "Borettslag & Sameie (Unibo / OBOS) — Free Open-Source ReAI Integrat
 description: "Book monthly housing-association felleskostnader and boligforvaltning journals from Unibo, OBOS or USBL into ReAI."
 summary: "Book monthly housing-association felleskostnader and boligforvaltning journals from Unibo, OBOS or USBL into ReAI."
 industry: real-estate
-icon: icons/unibo.svg
 webAppUrl: /app/unibo/
 sourcePath: web/worker/apps/unibo.js
 highlights:

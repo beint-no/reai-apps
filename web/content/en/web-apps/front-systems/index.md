@@ -4,7 +4,6 @@ seoTitle: "Front Systems POS Accounting Integration for ReAI — Daily Retail Sa
 description: "Fetch daily retail store sales from Front Systems API v2 and post balanced Z-report review vouchers directly into ReAI for free."
 summary: "Pull daily Front Systems store sales by payment type and VAT rate and create a balanced ReAI review voucher."
 industry: payments
-icon: icons/front-systems.svg
 webAppUrl: /app/front-systems/
 sourcePath: web/worker/apps/front-systems.js
 highlights:

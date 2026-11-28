@@ -4,7 +4,6 @@ seoTitle: "Mynt utgiftseksport til ReAI: kortkjøp som kontrollbilag"
 description: "Gjør en utgiftseksport fra Mynt om til ett balansert kontrollbilag i ReAI med kostnadskontoer, inngående mva og egen konto for Mynt-kortet. Gratis og åpen kildekode."
 summary: "Les inn kortutgifter fra Mynt sin CSV-eksport som ett balansert kontrollbilag i ReAI."
 industry: operations
-icon: icons/mynt.svg
 webAppUrl: /app/mynt/
 sourcePath: web/worker/apps/mynt.js
 highlights:

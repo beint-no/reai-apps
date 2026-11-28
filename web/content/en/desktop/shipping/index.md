@@ -4,7 +4,6 @@ seoTitle: "ReAI Shipping App — One-Click Carrier Labels for Mac & Windows"
 description: Book Bring, PostNord and DHL shipments for ReAI orders and print carrier labels straight to Zebra thermal printers on Mac and Windows with zero dialogs.
 summary: Book carrier shipping on open ReAI orders and print labels straight to Zebra thermal printers.
 industry: ecommerce-logistics
-icon: icons/shipping.svg
 appId: shipping
 sourcePath: apple/shipping
 highlights:

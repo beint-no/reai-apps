@@ -4,7 +4,6 @@ seoTitle: Vipps Accounting Integration for ReAI — Free Payout Reconciliation
 description: Reconcile Vipps MobilePay payouts against your ReAI bank feed for free. Learn how gross sales, fees and net settlements should be booked in Norway.
 summary: Match Vipps MobilePay scheduled payouts with pending ReAI bank transactions and export a clean audit CSV.
 industry: payments
-icon: icons/vipps.svg
 webAppUrl: /app/vipps/
 sourcePath: web/worker/apps/vipps.js
 highlights:

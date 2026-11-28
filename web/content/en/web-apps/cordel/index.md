@@ -4,7 +4,6 @@ seoTitle: "Cordel Contractor & Accounting Integration for ReAI — Free Open-Sou
 description: "Import Cordel electrician, plumbing and HVAC work orders and logged hours directly into ReAI."
 summary: "Import Cordel electrician, plumbing and HVAC work orders and logged hours directly into ReAI."
 industry: operations
-icon: icons/cordel.svg
 webAppUrl: /app/cordel/
 sourcePath: web/worker/apps/cordel.js
 highlights:

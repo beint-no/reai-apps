@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Svenn og regnskap — Gratis integrasjon for ReAI"
 description: "Synkroniser godkjente håndverkertimer og fullførte oppdrag fra Svenn rett til ReAI Timelister og ordreutkast."
 summary: "Synkroniser godkjente håndverkertimer og fullførte oppdrag fra Svenn rett til ReAI Timelister og ordreutkast."
 industry: operations
-icon: icons/svenn.svg
 webAppUrl: /app/svenn/
 sourcePath: web/worker/apps/svenn.js
 highlights:

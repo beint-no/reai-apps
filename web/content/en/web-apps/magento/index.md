@@ -4,7 +4,6 @@ seoTitle: "Magento 2 & Adobe Commerce Accounting Integration for ReAI"
 description: "Connect Magento 2 or Adobe Commerce to ReAI for free product sync (/rest/V1/products) and paid sales sync (/rest/V1/orders)."
 summary: "Sync Magento 2 / Adobe Commerce products by SKU and import paid orders directly into ReAI."
 industry: ecommerce-logistics
-icon: icons/magento.svg
 webAppUrl: /app/magento/
 sourcePath: web/worker/apps/magento.js
 highlights:

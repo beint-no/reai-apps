@@ -4,7 +4,6 @@ seoTitle: "Tamigo Workforce & Shift Sync for ReAI — Free Open-Source Connector
 description: "Import approved Tamigo retail and service shift hours directly into ReAI Timesheets."
 summary: "Import approved Tamigo retail and service shift hours directly into ReAI Timesheets."
 industry: operations
-icon: icons/tamigo.svg
 webAppUrl: /app/tamigo/
 sourcePath: web/worker/apps/tamigo.js
 highlights:

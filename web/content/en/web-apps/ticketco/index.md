@@ -4,7 +4,6 @@ seoTitle: "TicketCo Event & Ticketing Accounting for ReAI — Free Open-Source C
 description: "Book TicketCo payout statements into ReAI separating VAT-exempt culture tickets (3100), 25% bar/merch (3000) and fees (7770)."
 summary: "Book TicketCo payout statements into ReAI separating VAT-exempt culture tickets (3100), 25% bar/merch (3000) and fees (7770)."
 industry: operations
-icon: icons/ticketco.svg
 webAppUrl: /app/ticketco/
 sourcePath: web/worker/apps/ticketco.js
 highlights:

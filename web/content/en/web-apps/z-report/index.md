@@ -4,7 +4,6 @@ seoTitle: "Norwegian POS Daily Z-Report Accounting for ReAI — Amendo, Baemingo
 description: "Book daily Norwegian cash register Z-reports (dagsoppgjør) into ReAI with automatic 25%, 15%, 12% and 0% VAT splitting and cash/card/Vipps balancing."
 summary: "Convert any cash register Z-report (Amendo, Baemingo, Mystore POS, Kassasystem) into a balanced ReAI review voucher."
 industry: payments
-icon: icons/z-report.svg
 webAppUrl: /app/z-report/
 sourcePath: web/worker/apps/z-report.js
 highlights:

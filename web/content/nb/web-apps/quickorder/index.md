@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Quickorder og regnskap — Gratis integrasjon for 
 description: "Gjør daglige Z-rapporter fra Quickorder (Shopbox) om til balanserte bilag i ReAI med 25 % / 15 % MVA og tips."
 summary: "Gjør daglige Z-rapporter fra Quickorder (Shopbox) om til balanserte bilag i ReAI med 25 % / 15 % MVA og tips."
 industry: payments
-icon: icons/quickorder.svg
 webAppUrl: /app/quickorder/
 sourcePath: web/worker/apps/quickorder.js
 highlights:

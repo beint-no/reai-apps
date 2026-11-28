@@ -4,7 +4,6 @@ seoTitle: "GSGroup Handyman & Accounting Integration for ReAI — Free Open-Sour
 description: "Import completed GSGroup Handyman mobile service orders and technician hours directly into ReAI."
 summary: "Import completed GSGroup Handyman mobile service orders and technician hours directly into ReAI."
 industry: operations
-icon: icons/handyman.svg
 webAppUrl: /app/handyman/
 sourcePath: web/worker/apps/handyman.js
 highlights:

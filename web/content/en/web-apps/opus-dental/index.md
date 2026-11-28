@@ -4,7 +4,6 @@ seoTitle: "Opus Dental Clinic & HELFO Accounting for ReAI — Free Open-Source C
 description: "Book daily Opus Dental cashbooks into ReAI separating patient payments (1580), HELFO claims (1570), exempt dental treatments (3100) and 25% retail (3000)."
 summary: "Book daily Opus Dental cashbooks into ReAI separating patient payments (1580), HELFO claims (1570), exempt dental treatments (3100) and 25% retail (3000)."
 industry: operations
-icon: icons/opus-dental.svg
 webAppUrl: /app/opus-dental/
 sourcePath: web/worker/apps/opus-dental.js
 highlights:

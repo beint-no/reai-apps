@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Membro og Xplor treningssenter — Gratis open source
 description: "Bokfør medlemsoppgjør for treningssenter i ReAI med riktig splitt mellom MVA-fri trening (3100) og 25 % varesalg/PT (3000)."
 summary: "Bokfør medlemsoppgjør for treningssenter i ReAI med riktig splitt mellom MVA-fri trening (3100) og 25 % varesalg/PT (3000)."
 industry: operations
-icon: icons/membro.svg
 webAppUrl: /app/membro/
 sourcePath: web/worker/apps/membro.js
 highlights:

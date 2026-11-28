@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom Dintero og regnskap — Oppgjør og gebyrbokføring
 description: Kontroller Dintero-oppgjør, match utbetalinger mot bank i ReAI og bokfør trukne månedlige gebyrer som kontrollbilag.
 summary: Match betalte Dintero-oppgjør mot bank i ReAI og bokfør trukne månedsgebyrer med kontrollflagg.
 industry: payments
-icon: icons/dintero.svg
 webAppUrl: /app/dintero/
 sourcePath: web/worker/apps/dintero.js
 highlights:

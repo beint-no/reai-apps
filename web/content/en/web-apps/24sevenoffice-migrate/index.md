@@ -4,7 +4,6 @@ seoTitle: "Switch from 24SevenOffice, Visma or Conta — Free Open-Source ReAI I
 description: "Migrate customers, suppliers and products from 24SevenOffice, Visma eAccounting or Conta into ReAI."
 summary: "Migrate customers, suppliers and products from 24SevenOffice, Visma eAccounting or Conta into ReAI."
 industry: operations
-icon: icons/24sevenoffice-migrate.svg
 webAppUrl: /app/24sevenoffice-migrate/
 sourcePath: web/worker/apps/24sevenoffice-migrate.js
 highlights:

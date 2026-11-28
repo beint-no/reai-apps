@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom SuperOffice CRM og regnskap — Gratis integrasjon
 description: "Synkroniser bedrifter fra SuperOffice CRM til kunderegisteret i ReAI og gjør vunne salg om til ordreutkast klare for EHF."
 summary: "Synkroniser bedrifter fra SuperOffice CRM til kunderegisteret i ReAI og gjør vunne salg om til ordreutkast klare for EHF."
 industry: operations
-icon: icons/superoffice.svg
 webAppUrl: /app/superoffice/
 sourcePath: web/worker/apps/superoffice.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "ReAI Document Scanner: Scan Receipts and Documents into ReAI from Mac
 description: Scan paper documents, capture receipts from the screen with one shortcut and upload PDFs, images and watched folders to ReAI from your Mac or Windows PC.
 summary: Scan documents, capture receipts with a shortcut and drop files straight into ReAI.
 industry: operations
-icon: icons/document-scanner.svg
 appId: document-scanner
 sourcePath: apple/document-scanner
 highlights:

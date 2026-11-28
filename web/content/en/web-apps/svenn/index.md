@@ -4,7 +4,6 @@ seoTitle: "Svenn Trades & Accounting Integration for ReAI — Free Open-Source C
 description: "Sync Svenn craftsman hours and completed carpentry/trade work orders straight into ReAI Timesheets and draft orders."
 summary: "Sync Svenn craftsman hours and completed carpentry/trade work orders straight into ReAI Timesheets and draft orders."
 industry: operations
-icon: icons/svenn.svg
 webAppUrl: /app/svenn/
 sourcePath: web/worker/apps/svenn.js
 highlights:

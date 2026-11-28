@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Holte og regnskap — Gratis integrasjon for ReAI"
 description: "Overfør prosjekttimer og a-konto fakturagrunnlag (NS 3420) fra HoltePortalen direkte til ReAI."
 summary: "Overfør prosjekttimer og a-konto fakturagrunnlag (NS 3420) fra HoltePortalen direkte til ReAI."
 industry: operations
-icon: icons/holte.svg
 webAppUrl: /app/holte/
 sourcePath: web/worker/apps/holte.js
 highlights:

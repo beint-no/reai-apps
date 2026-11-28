@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom SumUp og regnskap — Gratis avstemming for ReAI
 description: Koble SumUp-betalingsterminal til ReAI regnskap gratis. Avstem utbetalinger og kortgebyrer mot banktransaksjoner og eksporter CSV.
 summary: Sammenlign utbetalinger og kortgebyrer fra SumUp mot uavstemte banktransaksjoner i ReAI.
 industry: payments
-icon: icons/sumup.svg
 webAppUrl: /app/sumup/
 sourcePath: web/worker/apps/sumup.js
 highlights:

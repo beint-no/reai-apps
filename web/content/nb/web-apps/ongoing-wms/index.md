@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Ongoing WMS og regnskap — Gratis integrasjon for
 description: "Synkroniser lagerartikler og varenumre (SKU) fra Ongoing WMS 3PL-lager direkte til produktregisteret i ReAI."
 summary: "Synkroniser lagerartikler og varenumre (SKU) fra Ongoing WMS 3PL-lager direkte til produktregisteret i ReAI."
 industry: ecommerce-logistics
-icon: icons/ongoing-wms.svg
 webAppUrl: /app/ongoing-wms/
 sourcePath: web/worker/apps/ongoing-wms.js
 highlights:

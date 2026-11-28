@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom SmartDok og regnskap — Gratis integrasjon for Re
 description: "Importer godkjente timer, maskintimer og fakturagrunnlag fra SmartDok rett inn i ReAI uten månedlig integrasjonsgebyr."
 summary: "Importer godkjente timer, maskintimer og fakturagrunnlag fra SmartDok rett inn i ReAI uten månedlig integrasjonsgebyr."
 industry: operations
-icon: icons/smartdok.svg
 webAppUrl: /app/smartdok/
 sourcePath: web/worker/apps/smartdok.js
 highlights:

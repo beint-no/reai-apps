@@ -248,11 +248,11 @@ export function appShell(props) {
     Your browser is outdated. Update to the latest Chrome, Safari, Edge, or Firefox to use ReAI Apps.
   </div>
   <header class="app-header wrap">
-    <a class="brand" href="/"><span class="brand-mark">r</span>ReAI <span class="brand-suffix">Apps</span></a>
+    <a class="brand" href="/en/"><span class="brand-mark">r</span>ReAI <span class="brand-suffix">Apps</span></a>
     <nav class="app-nav">
       <button type="button" class="nav-pill" popovertarget="app-switcher">Switch integration ▾</button>
-      <a href="/web-apps/">All integrations</a>
-      <a href="/docs/">Docs</a>
+      <a href="/en/web-apps/">All integrations</a>
+      <a href="/en/docs/">Docs</a>
       <a class="button primary nav-cta" href="https://app.reai.no/auth/signup">Try ReAI free →</a>
     </nav>
     <nav id="app-switcher" popover class="app-switcher">
@@ -267,7 +267,7 @@ export function appShell(props) {
   <footer class="app-footer wrap">
     <span>Free ReAI integration · <a href="https://app.reai.no/auth/signup">Try ReAI free →</a></span>
     <nav class="app-nav">
-      <a href="/docs/">Docs</a>
+      <a href="/en/docs/">Docs</a>
       <a href="/app/lab/">UI Lab</a>
       <a href="https://github.com/beint-no/reai-apps">GitHub ↗</a>
       <a href="https://app.reai.no/user/profile#user-access-tokens">Manage tokens ↗</a>

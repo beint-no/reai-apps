@@ -4,7 +4,6 @@ seoTitle: "Visma Severa Consulting Hours Sync — Free Open-Source ReAI Integrat
 description: "Import approved billable consulting and agency project hours from Visma Severa straight into ReAI Timesheets."
 summary: "Import approved billable consulting and agency project hours from Visma Severa straight into ReAI Timesheets."
 industry: operations
-icon: icons/severa.svg
 webAppUrl: /app/severa/
 sourcePath: web/worker/apps/severa.js
 highlights:

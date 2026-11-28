@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Visma Severa og regnskap — Gratis open source-in
 description: "Importer godkjente prosjekttimer fra Visma Severa rett inn i ReAI Timelister for kundefakturering."
 summary: "Importer godkjente prosjekttimer fra Visma Severa rett inn i ReAI Timelister for kundefakturering."
 industry: operations
-icon: icons/severa.svg
 webAppUrl: /app/severa/
 sourcePath: web/worker/apps/severa.js
 highlights:

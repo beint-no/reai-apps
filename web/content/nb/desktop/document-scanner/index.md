@@ -4,7 +4,6 @@ seoTitle: "ReAI Dokumentskanner: Skann kvitteringer og dokumenter til ReAI fra M
 description: Skann papirdokumenter, ta skjermbilde av kvitteringer med én hurtigtast og last opp PDF-er, bilder og overvåkede mapper til ReAI fra Mac eller Windows.
 summary: Skann dokumenter, ta kvitteringer med en hurtigtast og slipp filer rett inn i ReAI.
 industry: operations
-icon: icons/document-scanner.svg
 appId: document-scanner
 sourcePath: apple/document-scanner
 highlights:

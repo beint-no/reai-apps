@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom PCKasse og regnskap — Gratis integrasjon for ReA
 description: "Importer dagsoppgjør og bilagsjournal fra Confirma PCKasse rett inn i ReAI helt gratis — uten betalt integrasjonsmodul."
 summary: "Importer dagsoppgjør og bilagsjournal fra Confirma PCKasse rett inn i ReAI helt gratis — uten betalt integrasjonsmodul."
 industry: payments
-icon: icons/pckasse.svg
 webAppUrl: /app/pckasse/
 sourcePath: web/worker/apps/pckasse.js
 highlights:

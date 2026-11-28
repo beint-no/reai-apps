@@ -4,7 +4,6 @@ seoTitle: "Sharefox Rental Sales to ReAI Review Vouchers"
 description: "Summarise booked Sharefox rental orders by VAT rate and create one balanced review voucher in ReAI. Free and open source."
 summary: "Fetch Sharefox orders for a period and book the rental sales as a ReAI review voucher against your payment clearing account."
 industry: ecommerce-logistics
-icon: icons/sharefox.svg
 webAppUrl: /app/sharefox/
 sourcePath: web/worker/apps/sharefox.js
 highlights:

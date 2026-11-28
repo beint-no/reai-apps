@@ -1,12 +1,9 @@
 {{ define "main" }}
   <article class="app-detail wrap">
     <header class="detail-head">
-      <div class="detail-title-row">
-        {{ with .Params.icon }}{{ with asset . }}<img class="app-icon-lg" src="{{ .RelPermalink }}" width="116" height="40" alt="">{{ end }}{{ end }}
-        <div class="card-badges">
-          {{ if .Params.webAppUrl }}<span class="badge accent">{{ T "web_badge" }}</span>{{ end }}
-          {{ if or .Params.appId .Params.windowsAppId }}<span class="badge">{{ T "desktop_badge" }}</span>{{ end }}
-        </div>
+      <div class="card-badges">
+        {{ if .Params.webAppUrl }}<span class="badge accent">{{ T "web_badge" }}</span>{{ end }}
+        {{ if or .Params.appId .Params.windowsAppId }}<span class="badge">{{ T "desktop_badge" }}</span>{{ end }}
       </div>
       <h1>{{ .Title }}</h1>
       <p class="lead">{{ .Summary }}</p>

@@ -4,7 +4,6 @@ seoTitle: "PayPal Business Accounting Integration for ReAI — Free Reconciliati
 description: "Reconcile PayPal Business payouts and withdrawals against your ReAI bank feed for free. Learn how to book PayPal sales, FX fees and transfers in Norway."
 summary: "Fetch PayPal Business payout withdrawals via REST Reporting API and match them against ReAI bank transactions."
 industry: payments
-icon: icons/paypal.svg
 webAppUrl: /app/paypal/
 sourcePath: web/worker/apps/paypal.js
 highlights:

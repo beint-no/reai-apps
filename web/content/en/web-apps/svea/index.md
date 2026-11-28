@@ -4,7 +4,6 @@ seoTitle: "Svea Checkout Payout Reconciliation for ReAI"
 description: "Match daily Svea Checkout payouts against ReAI bank transactions and download a reconciliation CSV. Free and open source."
 summary: "Fetch Svea reconciliation reports for each day of a month and match every payout to a pending ReAI bank transaction."
 industry: payments
-icon: icons/svea.svg
 webAppUrl: /app/svea/
 sourcePath: web/worker/apps/svea.js
 highlights:

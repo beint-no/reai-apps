@@ -4,7 +4,6 @@ seoTitle: "Fonn Time Cards to ReAI Timesheets"
 description: "Fetch Fonn time cards per project and log them as ReAI timesheet rows by employee and project. Free and open source."
 summary: "Fetch Fonn time cards through the Fonn API and log them in ReAI Timesheets."
 industry: operations
-icon: icons/fonn.svg
 webAppUrl: /app/fonn/
 sourcePath: web/worker/apps/fonn.js
 highlights:

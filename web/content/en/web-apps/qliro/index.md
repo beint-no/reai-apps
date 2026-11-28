@@ -4,7 +4,6 @@ seoTitle: "Qliro Settlement Reconciliation for ReAI"
 description: "Match Qliro Checkout settlement batches against ReAI bank transactions and download a reconciliation CSV. Free and open source."
 summary: "Fetch Qliro settlement batches through the Admin API and match each bank transfer to a pending ReAI bank transaction."
 industry: payments
-icon: icons/qliro.svg
 webAppUrl: /app/qliro/
 sourcePath: web/worker/apps/qliro.js
 highlights:

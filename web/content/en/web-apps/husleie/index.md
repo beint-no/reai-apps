@@ -4,7 +4,6 @@ seoTitle: "Husleie.no Residential Lease Billing — Free Open-Source ReAI Integr
 description: "Stage Husleie.no residential rental contracts as recurring ReAI billing subscriptions with automatic billing safely kept off until reviewed."
 summary: "Stage Husleie.no residential rental contracts as recurring ReAI billing subscriptions with automatic billing safely kept off until reviewed."
 industry: real-estate
-icon: icons/husleie.svg
 webAppUrl: /app/husleie/
 sourcePath: web/worker/apps/husleie.js
 highlights:

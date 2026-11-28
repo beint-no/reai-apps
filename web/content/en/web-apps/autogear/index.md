@@ -4,7 +4,6 @@ seoTitle: "Autogear Driving Log Integration for ReAI: Business Trips and Road To
 description: "Fetch confirmed business trips and road tolls from the Autogear API and record them in ReAI Driving Log for mileage allowance vouchers. Free and open source."
 summary: "Fetch confirmed Autogear trips with road tolls and record them in ReAI Driving Log after review."
 industry: operations
-icon: icons/autogear.svg
 webAppUrl: /app/autogear/
 sourcePath: web/worker/apps/autogear.js
 highlights:

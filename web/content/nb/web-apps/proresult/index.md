@@ -4,7 +4,6 @@ seoTitle: "Proresult timerapporter til ReAI Timelister og ordrer"
 description: "Importer en timerapport fra Proresult, før timene i ReAI Timelister og legg ufakturerte timer klar som ordreutkast per prosjekt. Gratis og åpen kildekode."
 summary: "Importer rapporten Timelister egendefinert fra Proresult til timelister og ordreutkast i ReAI."
 industry: operations
-icon: icons/proresult.svg
 webAppUrl: /app/proresult/
 sourcePath: web/worker/apps/proresult.js
 highlights:

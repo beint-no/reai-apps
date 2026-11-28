@@ -4,7 +4,6 @@ seoTitle: "Planday Shift & Payroll Hours Sync for ReAI — Free Open-Source Conn
 description: "Import approved Planday shift schedules and worked hours directly into ReAI Timesheets."
 summary: "Import approved Planday shift schedules and worked hours directly into ReAI Timesheets."
 industry: operations
-icon: icons/planday.svg
 webAppUrl: /app/planday/
 sourcePath: web/worker/apps/planday.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Logistra Cargonizer & Shipmondo Freight Sync — Free Open-Source ReA
 description: "Import EDI shipping manifests and billable freight charges from Logistra Cargonizer or Shipmondo directly into ReAI draft orders."
 summary: "Import EDI shipping manifests and billable freight charges from Logistra Cargonizer or Shipmondo directly into ReAI draft orders."
 industry: ecommerce-logistics
-icon: icons/logistra.svg
 webAppUrl: /app/logistra/
 sourcePath: web/worker/apps/logistra.js
 highlights:

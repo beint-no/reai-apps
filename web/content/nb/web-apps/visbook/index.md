@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom VisBook og regnskap — Gratis integrasjon for ReA
 description: "Bokfør dags- og månedsoppgjør fra VisBook i ReAI med riktig splitt på 12 % overnatting (3020), 15 % mat (3010) og 25 % øvrig (3000)."
 summary: "Bokfør dags- og månedsoppgjør fra VisBook i ReAI med riktig splitt på 12 % overnatting (3020), 15 % mat (3010) og 25 % øvrig (3000)."
 industry: payments
-icon: icons/visbook.svg
 webAppUrl: /app/visbook/
 sourcePath: web/worker/apps/visbook.js
 highlights:

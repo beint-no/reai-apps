@@ -4,7 +4,6 @@ seoTitle: "Propely Commercial Property Accounting — Free Open-Source ReAI Inte
 description: "Book Propely property management rent rolls and felleskostnader into ReAI with 25% voluntary VAT vs 0% exempt split."
 summary: "Book Propely property management rent rolls and felleskostnader into ReAI with 25% voluntary VAT vs 0% exempt split."
 industry: real-estate
-icon: icons/propely.svg
 webAppUrl: /app/propely/
 sourcePath: web/worker/apps/propely.js
 highlights:

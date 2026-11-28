@@ -4,7 +4,6 @@ seoTitle: "Avstemming av Qliro oppgjør mot bank i ReAI"
 description: "Avstem oppgjørsbunter fra Qliro Checkout mot banktransaksjoner i ReAI og last ned en CSV for avstemmingen. Gratis og åpen kildekode."
 summary: "Hent oppgjørsbunter fra Qliro via Admin API og match hver bankoverføring mot en uavstemt banktransaksjon i ReAI."
 industry: payments
-icon: icons/qliro.svg
 webAppUrl: /app/qliro/
 sourcePath: web/worker/apps/qliro.js
 highlights:

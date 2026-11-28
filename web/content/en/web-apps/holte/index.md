@@ -4,7 +4,6 @@ seoTitle: "Holte (EG Holte) & Accounting Integration for ReAI — Free Open-Sour
 description: "Bridge HoltePortalen project hours and NS 3420 progress billing basis directly into ReAI Timesheets and draft orders."
 summary: "Bridge HoltePortalen project hours and NS 3420 progress billing basis directly into ReAI Timesheets and draft orders."
 industry: operations
-icon: icons/holte.svg
 webAppUrl: /app/holte/
 sourcePath: web/worker/apps/holte.js
 highlights:

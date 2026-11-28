@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Huma HR og regnskap — Gratis integrasjon for ReA
 description: "Synkroniser nyansatte fra Huma HR (navn, e-post, startdato, stillingsprosent og bankkonto) direkte til ReAI Ansatte."
 summary: "Synkroniser nyansatte fra Huma HR (navn, e-post, startdato, stillingsprosent og bankkonto) direkte til ReAI Ansatte."
 industry: operations
-icon: icons/huma.svg
 webAppUrl: /app/huma/
 sourcePath: web/worker/apps/huma.js
 highlights:

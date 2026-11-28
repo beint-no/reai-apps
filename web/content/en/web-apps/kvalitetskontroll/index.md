@@ -4,7 +4,6 @@ seoTitle: "Kvalitetskontroll (KS) Hours to ReAI Timesheets"
 description: "Fetch approved hour registrations from Kvalitetskontroll and log them as ReAI timesheet rows by employee and project. Free and open source."
 summary: "Fetch approved Kvalitetskontroll hours through the KS API and log them in ReAI Timesheets."
 industry: operations
-icon: icons/kvalitetskontroll.svg
 webAppUrl: /app/kvalitetskontroll/
 sourcePath: web/worker/apps/kvalitetskontroll.js
 highlights:

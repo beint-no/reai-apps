@@ -4,7 +4,6 @@ seoTitle: "Caspeco POS Accounting Integration for ReAI: Daily Sales"
 description: "Total a Caspeco business day of POS sales into one ReAI review voucher with sales per VAT rate, payments per type and tips. Free and open source."
 summary: "Fetch one Caspeco business day through the Sales Export API and create one balanced review voucher in ReAI."
 industry: payments
-icon: icons/caspeco.svg
 webAppUrl: /app/caspeco/
 sourcePath: web/worker/apps/caspeco.js
 highlights:

@@ -13,22 +13,20 @@ web_badge: Nettapp
 desktop_badge: Mac / Windows
 learn_more: Guide og oppsett
 home_eyebrow: GRATIS INTEGRASJONER FOR REAI
-home_cta_secondary: Se integrasjoner
-home_cta_saft: Bytt med SAF-T
+home_cta_secondary: Se alle integrasjoner
 home_web_heading: Nettintegrasjoner
-home_web_intro: Koble norske systemer for betaling, kasse, nettbutikk, håndverk, salong, klinikk, boligforvaltning, kjørebok, CRM, HR og SAF-T rett i nettleseren. Inkludert gratis i ReAI.
-filter_placeholder: "Søk i integrasjoner (Vipps, Timma, Fazile, Tripletex, Brreg…)"
+home_web_intro: Søk etter systemet ditt eller filtrer på bransje. Integrasjonene kjører i nettleseren og er gratis med ReAI.
+filter_placeholder: Søk etter system
 filter_all: Alle
-filter_payments: Betaling & kasse
-filter_ecommerce: Netthandel & logistikk
-filter_operations: Håndverk, salong, HR & API
-filter_realestate: Eiendom & boligforvaltning
+filter_payments: Betaling og kasse
+filter_ecommerce: Netthandel og logistikk
+filter_operations: Håndverk, salong og HR
+filter_realestate: Eiendom og utleie
 home_desktop_heading: Mac- og Windows-apper
-home_desktop_intro: Raske apper for Mac og Windows til fraktetiketter, prislapper, timeregistrering og dokumentskanning.
-home_industries_heading: Utforsk etter bransje
-home_industries_intro: Finn riktige integrasjoner og regnskapsguider for din bransje.
+home_desktop_intro: Apper for fraktetiketter, prislapper, timeregistrering og dokumentskanning.
+home_industries_heading: Bransjer
 builtin_heading: Allerede innebygd i ReAI
-builtin_body: ReAI inkluderer bankintegrasjon, Altinn (MVA, A-melding, årsoppgjør), EHF/Peppol, eFaktura, Kravia helautomatisk inkasso, Shopify, WooCommerce, Adyen og Bring/PostNord/DHL rett ut av boksen, helt uten ekstra koblingsgebyrer.
+builtin_body: Bank, Altinn (MVA, A-melding og årsoppgjør), EHF og Peppol, eFaktura, Kravia inkasso, Shopify, WooCommerce, Adyen, Bring, PostNord og DHL er innebygd i ReAI uten ekstra kostnad.
 cta_heading: Bytt til regnskap uten integrasjonsgebyrer
 cta_body: Alle integrasjoner og apper her er helt gratis å bruke med ReAI. Kom i gang på to minutter.
 contribute_heading: Savner du en integrasjon?
@@ -43,3 +41,9 @@ footer_issues: Feilmeldinger
 not_found_heading: Siden ble ikke funnet
 not_found_body: Siden du ba om finnes ikke på apps.reai.no.
 back_home: Tilbake til ReAI Apps
+popular_heading: Mest brukte systemer per bransje
+popular_intro: Et utvalg av systemene norske bedrifter bruker mest. Hele katalogen finner du under.
+switch_heading: Bytte regnskapssystem?
+switch_body: Kontakt oss, så flytter vi dataene for deg.
+switch_cta: Kontakt oss
+switch_more: Slik går byttet

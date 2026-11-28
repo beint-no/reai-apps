@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Spond Club og Rubic til regnskap — Gratis integrasj
 description: "Bokfør utbetalinger fra Spond Club og Rubic i ReAI med skille mellom MVA-frie kontingenter (3100), 25 % klubbutstyr og gebyrer."
 summary: "Bokfør utbetalinger fra Spond Club og Rubic i ReAI med skille mellom MVA-frie kontingenter (3100), 25 % klubbutstyr og gebyrer."
 industry: operations
-icon: icons/spond-rubic.svg
 webAppUrl: /app/spond-rubic/
 sourcePath: web/worker/apps/spond-rubic.js
 highlights:

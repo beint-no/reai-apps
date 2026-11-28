@@ -4,7 +4,6 @@ seoTitle: "Ansatte fra 4human HRM til ReAI"
 description: "Hent ansatte fra 4human HRM og opprett dem i ReAI Ansatte med kontaktinfo, startdato, stillingsprosent og kontonummer."
 summary: "Les aktive arbeidsforhold fra API-et til 4human HRM og opprett de ansatte i ReAI én og én."
 industry: operations
-icon: icons/4human.svg
 webAppUrl: /app/4human/
 sourcePath: web/worker/apps/4human.js
 highlights:

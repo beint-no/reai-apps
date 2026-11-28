@@ -4,7 +4,6 @@ seoTitle: "Munu Hospitality POS & Accounting for ReAI — Free Open-Source Conne
 description: "Book daily Munu hospitality POS settlements directly into ReAI with exact Norwegian VAT rates and payment clearing."
 summary: "Book daily Munu hospitality POS settlements directly into ReAI with exact Norwegian VAT rates and payment clearing."
 industry: payments
-icon: icons/munu.svg
 webAppUrl: /app/munu/
 sourcePath: web/worker/apps/munu.js
 highlights:

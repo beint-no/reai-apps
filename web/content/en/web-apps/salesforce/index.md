@@ -4,7 +4,6 @@ seoTitle: "Salesforce CRM & Accounting Sync — Free Open-Source ReAI Integratio
 description: "Connect Salesforce REST API to scan Accounts and Closed-Won Opportunities for Norwegian invoicing in ReAI."
 summary: "Connect Salesforce REST API to scan Accounts and Closed-Won Opportunities for Norwegian invoicing in ReAI."
 industry: operations
-icon: icons/salesforce.svg
 webAppUrl: /app/salesforce/
 sourcePath: web/worker/apps/salesforce.js
 highlights:

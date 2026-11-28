@@ -4,7 +4,6 @@ seoTitle: "SAF-T Norway Migration (Tripletex / Fiken / PowerOffice / Visma) — 
 description: "Switch to ReAI from Tripletex, Fiken, PowerOffice Go, Visma or Conta via Norwegian SAF-T Financial XML: inspect balances, export CSV and import customers/suppliers."
 summary: "Switch to ReAI from Tripletex, Fiken, PowerOffice Go, Visma or Conta using standard Norwegian SAF-T Financial XML: inspect closing balances, import customers & suppliers, and export Excel opening balance."
 industry: operations
-icon: icons/saft.svg
 webAppUrl: /app/saft/
 sourcePath: web/worker/apps/saft.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Cordel og regnskap — Gratis integrasjon for ReAI
 description: "Overfør ferdige arbeidsordrer og timer fra Cordel for elektro, VVS og bygg rett inn i ReAI."
 summary: "Overfør ferdige arbeidsordrer og timer fra Cordel for elektro, VVS og bygg rett inn i ReAI."
 industry: operations
-icon: icons/cordel.svg
 webAppUrl: /app/cordel/
 sourcePath: web/worker/apps/cordel.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: SumUp Accounting Integration for ReAI — Card Terminal Reconciliation
 description: Connect SumUp card terminals to ReAI accounting for free. Match SumUp payouts and fees against pending bank transactions and export CSV.
 summary: Compare SumUp card terminal payouts and transaction fees with pending ReAI bank transactions.
 industry: payments
-icon: icons/sumup.svg
 webAppUrl: /app/sumup/
 sourcePath: web/worker/apps/sumup.js
 highlights:

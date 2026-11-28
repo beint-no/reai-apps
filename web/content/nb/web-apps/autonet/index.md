@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for AutoNet og bilverksted til regnskap — Gratis for Re
 description: "Overfør ferdige verkstedordrer med deler, arbeidstimer (25 % MVA), EU-kontroll og dekkhotell direkte til ReAI."
 summary: "Overfør ferdige verkstedordrer med deler, arbeidstimer (25 % MVA), EU-kontroll og dekkhotell direkte til ReAI."
 industry: operations
-icon: icons/autonet.svg
 webAppUrl: /app/autonet/
 sourcePath: web/worker/apps/autonet.js
 highlights:

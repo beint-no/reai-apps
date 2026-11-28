@@ -4,7 +4,6 @@ seoTitle: "Lightspeed Restaurant (Gastrofix) & Accounting for ReAI — Free Open
 description: "Import daily Lightspeed Restaurant / Gastrofix settlements into balanced ReAI vouchers with 25%/15% VAT and tips."
 summary: "Import daily Lightspeed Restaurant / Gastrofix settlements into balanced ReAI vouchers with 25%/15% VAT and tips."
 industry: payments
-icon: icons/lightspeed.svg
 webAppUrl: /app/lightspeed/
 sourcePath: web/worker/apps/lightspeed.js
 highlights:

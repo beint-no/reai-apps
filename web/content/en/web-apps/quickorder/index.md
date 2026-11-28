@@ -4,7 +4,6 @@ seoTitle: "Quickorder (Shopbox) & Accounting for ReAI — Free Open-Source Conne
 description: "Convert daily Quickorder / Shopbox restaurant Z-reports into balanced ReAI review vouchers with 25%/15% VAT and tips."
 summary: "Convert daily Quickorder / Shopbox restaurant Z-reports into balanced ReAI review vouchers with 25%/15% VAT and tips."
 industry: payments
-icon: icons/quickorder.svg
 webAppUrl: /app/quickorder/
 sourcePath: web/worker/apps/quickorder.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Lightspeed Restaurant og regnskap — Gratis integ
 description: "Bokfør dagsoppgjør fra Lightspeed Restaurant (Gastrofix) i ReAI med automatisk splitt på 25 %, 15 % MVA og tips."
 summary: "Bokfør dagsoppgjør fra Lightspeed Restaurant (Gastrofix) i ReAI med automatisk splitt på 25 %, 15 % MVA og tips."
 industry: payments
-icon: icons/lightspeed.svg
 webAppUrl: /app/lightspeed/
 sourcePath: web/worker/apps/lightspeed.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Munu og regnskap — Gratis integrasjon for ReAI"
 description: "Bokfør dagsoppgjør fra Munu kassesystem direkte i ReAI fordelt på 25 % servering, 15 % takeaway og betalingsmidler."
 summary: "Bokfør dagsoppgjør fra Munu kassesystem direkte i ReAI fordelt på 25 % servering, 15 % takeaway og betalingsmidler."
 industry: payments
-icon: icons/munu.svg
 webAppUrl: /app/munu/
 sourcePath: web/worker/apps/munu.js
 highlights:

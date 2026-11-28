@@ -1,17 +1,9 @@
 {{ $p := .page }}
 {{ $h2 := eq .level "h2" }}
 <article class="app-card"{{ with $p.Params.industry }} data-industry="{{ . }}"{{ end }} data-search="{{ $p.Title }} {{ $p.Summary }}">
-  <div class="card-head">
-    {{ with $p.Params.icon }}{{ with asset . }}<img class="app-icon" src="{{ .RelPermalink }}" width="116" height="40" alt="">{{ end }}{{ end }}
-    <div class="card-badges">
-      {{ if $p.Params.webAppUrl }}<span class="badge accent">{{ T "web_badge" }}</span>{{ end }}
-      {{ if or $p.Params.appId $p.Params.windowsAppId }}<span class="badge">{{ T "desktop_badge" }}</span>{{ end }}
-    </div>
-  </div>
   {{ if $h2 }}<h2><a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a></h2>{{ else }}<h3><a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a></h3>{{ end }}
   <p>{{ $p.Summary }}</p>
   <div class="card-actions">
-    {{ with $p.Params.webAppUrl }}<a class="button primary" href="{{ . }}">{{ T "open_web_app" }} →</a>{{ end }}
-    <a class="text-link" href="{{ $p.RelPermalink }}">{{ T "learn_more" }} →</a>
+    {{ with $p.Params.webAppUrl }}<a class="text-link" href="{{ . }}">{{ T "open_web_app" }} →</a>{{ else }}<a class="text-link" href="{{ $p.RelPermalink }}">{{ T "learn_more" }} →</a>{{ end }}
   </div>
 </article>

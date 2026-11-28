@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Wolt og Foodora til regnskap — Gratis integrasjon f
 description: "Avstem og bokfør utbetalinger fra Wolt og Foodora i ReAI med riktig splitt mellom 15 % matsalg (3010), provisjon (7770) og netto bankinnskudd."
 summary: "Avstem og bokfør utbetalinger fra Wolt og Foodora i ReAI med riktig splitt mellom 15 % matsalg (3010), provisjon (7770) og netto bankinnskudd."
 industry: payments
-icon: icons/wolt-foodora.svg
 webAppUrl: /app/wolt-foodora/
 sourcePath: web/worker/apps/wolt-foodora.js
 highlights:

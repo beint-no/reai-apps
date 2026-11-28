@@ -4,7 +4,6 @@ seoTitle: "Fresha Salon & Barbershop Accounting — Free Open-Source ReAI Integr
 description: "Reconcile Fresha salon and barbershop payouts into ReAI separating 25% treatments/retail (3000+2700) and fees (7770)."
 summary: "Reconcile Fresha salon and barbershop payouts into ReAI separating 25% treatments/retail (3000+2700) and fees (7770)."
 industry: operations
-icon: icons/fresha.svg
 webAppUrl: /app/fresha/
 sourcePath: web/worker/apps/fresha.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Caspeco og ReAI: dagsomsetning til regnskap"
 description: "Summer en driftsdag med kassesalg i Caspeco til ett bilag til kontroll i ReAI, fordelt på MVA-satser, betalingstyper og tips. Gratis og åpen kildekode."
 summary: "Hent én driftsdag fra Caspeco via Sales Export API og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
-icon: icons/caspeco.svg
 webAppUrl: /app/caspeco/
 sourcePath: web/worker/apps/caspeco.js
 highlights:

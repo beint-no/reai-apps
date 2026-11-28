@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Mews PMS og regnskap — Gratis integrasjon for Re
 description: "Overfør hotelloppgjør fra Mews PMS til ReAI med riktig fordeling på 12 % rom-MVA (3020), 15 % mat og 25 % tilleggstjenester."
 summary: "Overfør hotelloppgjør fra Mews PMS til ReAI med riktig fordeling på 12 % rom-MVA (3020), 15 % mat og 25 % tilleggstjenester."
 industry: payments
-icon: icons/mews.svg
 webAppUrl: /app/mews/
 sourcePath: web/worker/apps/mews.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Huma HR & Employee Sync for ReAI — Free Open-Source Connector"
 description: "Sync Huma HR employee onboarding records (with Mod11 Norwegian bank account validation) directly into ReAI Employees."
 summary: "Sync Huma HR employee onboarding records (with Mod11 Norwegian bank account validation) directly into ReAI Employees."
 industry: operations
-icon: icons/huma.svg
 webAppUrl: /app/huma/
 sourcePath: web/worker/apps/huma.js
 highlights:

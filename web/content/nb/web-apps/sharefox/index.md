@@ -4,7 +4,6 @@ seoTitle: "Utleiesalg fra Sharefox til bilag i ReAI"
 description: "Summer bookede utleieordrer fra Sharefox per mva-sats og lag ett balansert bilag til kontroll i ReAI. Gratis og åpen kildekode."
 summary: "Hent ordrer fra Sharefox for en periode og før utleiesalget som et bilag til kontroll mot mellomkontoen for betalinger."
 industry: ecommerce-logistics
-icon: icons/sharefox.svg
 webAppUrl: /app/sharefox/
 sourcePath: web/worker/apps/sharefox.js
 highlights:

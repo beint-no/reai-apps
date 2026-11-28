@@ -4,7 +4,6 @@ seoTitle: Eksporter regnskapsdata til Excel og Power BI — Gratis verktøy for 
 description: Eksporter hovedboksposteringer, fakturaer, leverandørfakturaer, kunder og produkter fra ReAI til Excel (UTF-8 BOM CSV) eller JSON for Power BI.
 summary: Hent ut rene hovedboksposteringer, fakturaer, kunder og varer til Excel, Power BI og egne analyser.
 industry: operations
-icon: icons/export.svg
 webAppUrl: /app/export/
 sourcePath: web/worker/apps/export.js
 highlights:

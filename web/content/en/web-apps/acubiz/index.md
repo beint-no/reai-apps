@@ -4,7 +4,6 @@ seoTitle: "Acubiz, Visma Expense & Findity Import — Free Open-Source ReAI Inte
 description: "Import travel and receipt expense batches from Acubiz, Visma Expense or Findity into balanced ReAI review vouchers."
 summary: "Import travel and receipt expense batches from Acubiz, Visma Expense or Findity into balanced ReAI review vouchers."
 industry: operations
-icon: icons/acubiz.svg
 webAppUrl: /app/acubiz/
 sourcePath: web/worker/apps/acubiz.js
 highlights:

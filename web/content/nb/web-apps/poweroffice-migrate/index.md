@@ -4,7 +4,6 @@ seoTitle: "Bytt fra PowerOffice Go til ReAI — Gratis open source for ReAI"
 description: "Flytt kunder, leverandører og produkter fra PowerOffice Go til ReAI sammen med SAF-T inngående balanse."
 summary: "Flytt kunder, leverandører og produkter fra PowerOffice Go til ReAI sammen med SAF-T inngående balanse."
 industry: operations
-icon: icons/poweroffice-migrate.svg
 webAppUrl: /app/poweroffice-migrate/
 sourcePath: web/worker/apps/poweroffice-migrate.js
 highlights:

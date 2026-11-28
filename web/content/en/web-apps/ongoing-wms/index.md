@@ -4,7 +4,6 @@ seoTitle: "Ongoing WMS 3PL & Warehouse Sync for ReAI — Free Open-Source Connec
 description: "Sync Ongoing WMS 3PL warehouse articles and SKU inventory directly into ReAI Products via Ongoing REST API."
 summary: "Sync Ongoing WMS 3PL warehouse articles and SKU inventory directly into ReAI Products via Ongoing REST API."
 industry: ecommerce-logistics
-icon: icons/ongoing-wms.svg
 webAppUrl: /app/ongoing-wms/
 sourcePath: web/worker/apps/ongoing-wms.js
 highlights:

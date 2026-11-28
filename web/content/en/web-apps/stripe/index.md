@@ -4,7 +4,6 @@ seoTitle: "Stripe Accounting Integration for ReAI — Invoices & Subscriptions"
 description: Import paid Stripe invoices and stage recurring subscriptions into ReAI for free. Practical guide to migrating SaaS billing from Stripe to ReAI.
 summary: Bring paid zero-VAT Stripe invoices into ReAI idempotently and stage active subscriptions with auto-billing off.
 industry: payments
-icon: icons/stripe.svg
 webAppUrl: /app/stripe/
 sourcePath: web/worker/apps/stripe.js
 highlights:

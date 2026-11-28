@@ -4,7 +4,6 @@ seoTitle: "PCKasse (Confirma PCK) & Accounting for ReAI — Free Open-Source Con
 description: "Import PCKasse daily Z-report and accounting CSV exports directly into balanced ReAI review vouchers for free."
 summary: "Import PCKasse daily Z-report and accounting CSV exports directly into balanced ReAI review vouchers for free."
 industry: payments
-icon: icons/pckasse.svg
 webAppUrl: /app/pckasse/
 sourcePath: web/worker/apps/pckasse.js
 highlights:

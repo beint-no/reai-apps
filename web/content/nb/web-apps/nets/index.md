@@ -4,7 +4,6 @@ seoTitle: "Nets Easy / Nexi Checkout regnskapsintegrasjon for ReAI — Gratis"
 description: "Avstem utbetalinger fra Nets Easy (Nexi Checkout) mot bank i ReAI helt gratis. Guide til bokføring av nettbetaling, MVA og kortgebyrer."
 summary: "Match utbetalinger fra Nets Easy / Nexi mot banktransaksjoner i ReAI og last ned ferdig avstemmings-CSV."
 industry: payments
-icon: icons/nets.svg
 webAppUrl: /app/nets/
 sourcePath: web/worker/apps/nets.js
 highlights:

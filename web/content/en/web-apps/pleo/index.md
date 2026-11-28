@@ -4,7 +4,6 @@ seoTitle: "Pleo Accounting Integration for ReAI — Corporate Card Expense Impor
 description: "Import Pleo expense CSV exports into balanced ReAI review vouchers mapped to NS 4102 accounts and card clearing (2380). Free with ReAI."
 summary: "Turn Pleo monthly expense exports into balanced ReAI review vouchers with automatic clearing on 2380."
 industry: operations
-icon: icons/pleo.svg
 webAppUrl: /app/pleo/
 sourcePath: web/worker/apps/pleo.js
 highlights:

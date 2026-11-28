@@ -4,7 +4,6 @@ seoTitle: "Mynt Expense Export to ReAI: Card Purchases as a Review Voucher"
 description: "Turn a Mynt expense export into one balanced ReAI review voucher with expense accounts, input VAT and a separate Mynt card account. Free and open source."
 summary: "Import Mynt card expenses from the CSV export into a balanced ReAI review voucher."
 industry: operations
-icon: icons/mynt.svg
 webAppUrl: /app/mynt/
 sourcePath: web/worker/apps/mynt.js
 highlights:

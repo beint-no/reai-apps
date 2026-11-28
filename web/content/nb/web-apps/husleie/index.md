@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Husleie.no og regnskap — Gratis open source-inte
 description: "Overfør boligleiekontrakter fra Husleie.no til faste leieavtaler i ReAI med full kontroll før aktivering."
 summary: "Overfør boligleiekontrakter fra Husleie.no til faste leieavtaler i ReAI med full kontroll før aktivering."
 industry: real-estate
-icon: icons/husleie.svg
 webAppUrl: /app/husleie/
 sourcePath: web/worker/apps/husleie.js
 highlights:

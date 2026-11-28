@@ -4,7 +4,6 @@ seoTitle: "Front Systems POS regnskapsintegrasjon for ReAI — Gratis dagsoppgj�
 description: "Hent dagens butikksalg direkte fra Front Systems API v2 og opprett balansert dagsoppgjørsbilag i ReAI helt gratis."
 summary: "Henter daglig butikkomsetning fra Front Systems fordelt på betalingsmåte og MVA-sats rett inn i ReAI."
 industry: payments
-icon: icons/front-systems.svg
 webAppUrl: /app/front-systems/
 sourcePath: web/worker/apps/front-systems.js
 highlights:

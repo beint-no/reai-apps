@@ -4,7 +4,6 @@ seoTitle: "PsykBase to ReAI | Free open source integration for psychology clinic
 description: "Fetch PsykBase Online invoices for a period and create a balanced review voucher in ReAI with VAT exempt treatment revenue and payments by method."
 summary: "Book PsykBase Online invoices as one ReAI review voucher per period, with VAT exempt health services on VAT code 6."
 industry: operations
-icon: icons/psykbase.svg
 webAppUrl: /app/psykbase/
 sourcePath: web/worker/apps/psykbase.js
 highlights:

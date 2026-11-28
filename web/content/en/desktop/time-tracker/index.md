@@ -4,7 +4,6 @@ seoTitle: ReAI Time Tracker — Native Menu-Bar Timer for ReAI Timesheets
 description: Track billable hours from your Mac menu bar or Windows desktop and save directly to ReAI projects and timesheets.
 summary: Start a timer from your desktop menu bar and save worked minutes straight to ReAI timesheets.
 industry: operations
-icon: icons/time-tracker.svg
 appId: time-tracker
 sourcePath: apple/time-tracker
 highlights:

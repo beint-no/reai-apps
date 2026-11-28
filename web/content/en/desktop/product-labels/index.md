@@ -4,7 +4,6 @@ seoTitle: "ReAI Product Labels — Print Price Tags & Barcodes from ReAI on Mac"
 description: Print price tags, variant details and barcodes directly from your ReAI product catalog in bulk on macOS with multi-currency support.
 summary: Create and batch-print price tags, product details and barcodes directly from your ReAI catalog.
 industry: ecommerce-logistics
-icon: icons/product-labels.svg
 appId: product-labels
 sourcePath: apple/product-labels
 highlights:

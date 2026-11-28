@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for EasyPractice og MakePlans — Gratis open source-inte
 description: "Bokfør månedlige oppgjør fra EasyPractice eller MakePlans i ReAI med skille på 0 % helse (3100) og 25 % avgiftspliktig salg."
 summary: "Bokfør månedlige oppgjør fra EasyPractice eller MakePlans i ReAI med skille på 0 % helse (3100) og 25 % avgiftspliktig salg."
 industry: operations
-icon: icons/easypractice.svg
 webAppUrl: /app/easypractice/
 sourcePath: web/worker/apps/easypractice.js
 highlights:

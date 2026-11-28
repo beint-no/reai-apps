@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Hoopla og Deltager.no til regnskap — Gratis for ReA
 description: "Bokfør oppgjørsrapporter fra Hoopla og Deltager.no i ReAI med splitt mellom 0 % kultur-/idrettsbilletter (3100), 25 % salg og gebyrer."
 summary: "Bokfør oppgjørsrapporter fra Hoopla og Deltager.no i ReAI med splitt mellom 0 % kultur-/idrettsbilletter (3100), 25 % salg og gebyrer."
 industry: operations
-icon: icons/hoopla.svg
 webAppUrl: /app/hoopla/
 sourcePath: web/worker/apps/hoopla.js
 highlights:

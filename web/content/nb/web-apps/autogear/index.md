@@ -4,7 +4,6 @@ seoTitle: "Autogear kjørebok til ReAI: yrkesreiser og bompenger"
 description: "Hent godkjente yrkesreiser og bompenger fra Autogear API og registrer dem i ReAI Kjørebok med kjøregodtgjørelse. Gratis og åpen kildekode."
 summary: "Hent godkjente turer med bompenger fra Autogear og registrer dem i ReAI Kjørebok etter kontroll."
 industry: operations
-icon: icons/autogear.svg
 webAppUrl: /app/autogear/
 sourcePath: web/worker/apps/autogear.js
 highlights:

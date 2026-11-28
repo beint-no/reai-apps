@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Two B2B og regnskap — Gratis open source-integra
 description: "Avstem og bokfør utbetalinger fra Two B2B-faktura og checkout i ReAI med automatisk fordeling av gebyr (7770) og netto oppgjør."
 summary: "Avstem og bokfør utbetalinger fra Two B2B-faktura og checkout i ReAI med automatisk fordeling av gebyr (7770) og netto oppgjør."
 industry: payments
-icon: icons/two.svg
 webAppUrl: /app/two/
 sourcePath: web/worker/apps/two.js
 highlights:

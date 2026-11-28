@@ -4,7 +4,6 @@ seoTitle: "Fazile boligforvaltning og eiendom til ReAI — Leiefakturering"
 description: "Overfør leiekontrakter fra Fazile bolig- og eiendomsforvaltning til faste abonnementer i ReAI — med støtte for både MVA-unntatt utleie (kode 6) og frivillig MVA (kode 3)."
 summary: "Importer leieoversikt fra Fazile boligforvaltning og klargjør månedlig leiefakturering i ReAI med full kontroll før aktivering."
 industry: real-estate
-icon: icons/fazile.svg
 webAppUrl: /app/fazile/
 sourcePath: web/worker/apps/fazile.js
 highlights:

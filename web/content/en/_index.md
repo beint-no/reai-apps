@@ -1,6 +1,6 @@
 ---
 title: Connect your tools to ReAI
-seoTitle: "ReAI Integrations | Free Norwegian Accounting Integrations & Tools"
-description: Connect Vipps, Klarna, Stripe, Timma, Fresha, Fazile, SmartDok, ABAX, Tripletex/Fiken/SAF-T switchers, Brreg Leads, MRR & more to ReAI for free.
-summary: Open-source accounting integrations and ReAI API tools for Norway's top payment gateways, ecommerce stores, POS, salons, clinics, property management, trades, HR, CRM and system switching. Included free with ReAI.
+seoTitle: ReAI Integrations | Free Norwegian Accounting Integrations
+description: Free integrations between ReAI and Norwegian systems for payments, POS, ecommerce, trades, hours, health, property and transport.
+summary: Free, open source integrations between ReAI and the systems Norwegian businesses use for payments, POS, ecommerce, hours, health and property.
 ---

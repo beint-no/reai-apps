@@ -2,7 +2,7 @@
 
 Web and desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/ui).
 
-**[apps.reai.no](https://apps.reai.no/)**: Free open-source web integrations run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
+**[apps.reai.no](https://apps.reai.no/en/)**: Free open-source web integrations run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
 
 ### Web apps (hosted on `apps.reai.no`)
 
@@ -40,7 +40,7 @@ OS-integrated reference apps kept building on the same foundation. Non-native ap
 
 ## Install
 
-Download from **[apps.reai.no/desktop/](https://apps.reai.no/desktop/)**.
+Download from **[apps.reai.no/en/desktop/](https://apps.reai.no/en/desktop/)**.
 
 - **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. Shipping and Product Labels offer signed in-app updates; for other apps, quit and replace the app in Applications.
 - **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. Shipping and Document Scanner update themselves from **Check for updates** in the app; for the other apps, close the app and extract the new version into a new folder.

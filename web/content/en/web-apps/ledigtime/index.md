@@ -4,7 +4,6 @@ seoTitle: "Ledigtime & Bokadirekt Accounting — Free Open-Source ReAI Integrati
 description: "Book Ledigtime and Bokadirekt salon & wellness payouts cleanly into ReAI separating 25% services, 0% health and fees."
 summary: "Book Ledigtime and Bokadirekt salon & wellness payouts cleanly into ReAI separating 25% services, 0% health and fees."
 industry: operations
-icon: icons/ledigtime.svg
 webAppUrl: /app/ledigtime/
 sourcePath: web/worker/apps/ledigtime.js
 highlights:

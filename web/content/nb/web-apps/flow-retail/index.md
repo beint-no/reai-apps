@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Flow Retail og ReAI: daglige posteringer"
 description: "Bokfør regnskapsrapporten fra Flow Retail for én dag som bilag til kontroll i ReAI, med kontoene og MVA-kodene du har satt opp i Flow Retail. Gratis og åpen kildekode."
 summary: "Hent regnskapsrapporten fra Flow Retail for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
-icon: icons/flow-retail.svg
 webAppUrl: /app/flow-retail/
 sourcePath: web/worker/apps/flow-retail.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Proresult Hour Reports to ReAI Timesheets and Orders"
 description: "Import a Proresult hour report, log the hours in ReAI Timesheets and stage unbilled hours as draft ReAI orders per project. Free and open source."
 summary: "Import the Proresult Timelister egendefinert report into ReAI timesheets and draft orders."
 industry: operations
-icon: icons/proresult.svg
 webAppUrl: /app/proresult/
 sourcePath: web/worker/apps/proresult.js
 highlights:

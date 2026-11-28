@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom ABAX Kjørebok og regnskap — Gratis open source-
 description: "Importer godkjente yrkesreiser og bompenger fra ABAX Triplog rett inn i ReAI Kjørebok med automatisk kjøregodtgjørelse og bilag."
 summary: "Importer godkjente yrkesreiser og bompenger fra ABAX Triplog rett inn i ReAI Kjørebok med automatisk kjøregodtgjørelse og bilag."
 industry: operations
-icon: icons/abax.svg
 webAppUrl: /app/abax/
 sourcePath: web/worker/apps/abax.js
 highlights:

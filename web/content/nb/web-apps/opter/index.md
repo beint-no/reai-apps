@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Opter TMS og regnskap — Gratis open source-integ
 description: "Overfør fullførte transportoppdrag og fraktfakturagrunnlag fra Opter TMS direkte til ReAI ordreutkast."
 summary: "Overfør fullførte transportoppdrag og fraktfakturagrunnlag fra Opter TMS direkte til ReAI ordreutkast."
 industry: ecommerce-logistics
-icon: icons/opter.svg
 webAppUrl: /app/opter/
 sourcePath: web/worker/apps/opter.js
 highlights:

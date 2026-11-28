@@ -4,7 +4,6 @@ seoTitle: "Clockify timeregistrering til ReAI — Gratis integrasjon"
 description: "Synkroniser månedens timer fra Clockify direkte til ReAI Timelister for kundefakturering og prosjektregnskap — helt gratis."
 summary: "Hent timeregistreringer fra Clockify via API og importer dem rett inn i ReAI Timelister."
 industry: operations
-icon: icons/clockify.svg
 webAppUrl: /app/clockify/
 sourcePath: web/worker/apps/clockify.js
 highlights:

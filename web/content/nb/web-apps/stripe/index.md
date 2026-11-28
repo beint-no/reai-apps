@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom Stripe og regnskap — Fakturaer og abonnementer i 
 description: Importer betalte Stripe-fakturaer og flytt faste abonnementer til ReAI gratis. Guide til trygg regnskapsføring og overgang fra Stripe.
 summary: Importer betalte Stripe-fakturaer trygt til ReAI og klargjør aktive abonnementer uten dobbeltfakturering.
 industry: payments
-icon: icons/stripe.svg
 webAppUrl: /app/stripe/
 sourcePath: web/worker/apps/stripe.js
 highlights:

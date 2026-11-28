@@ -4,7 +4,6 @@ seoTitle: "Pipedrive CRM Accounting Integration for ReAI — Customers & Won Dea
 description: "Sync Pipedrive CRM organizations into ReAI customers and convert won deals directly into draft ReAI customer orders for free."
 summary: "Sync Pipedrive organizations to ReAI customers (with Norwegian org.nr validation) and stage won deals as ReAI orders."
 industry: operations
-icon: icons/pipedrive.svg
 webAppUrl: /app/pipedrive/
 sourcePath: web/worker/apps/pipedrive.js
 highlights:

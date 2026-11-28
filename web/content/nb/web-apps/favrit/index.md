@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Favrit og regnskap — Gratis integrasjon for ReAI
 description: "Bokfør dagsoppgjør fra Favrit QR-bestilling og kasse i ReAI med automatisk splitt på 25 % servering, 15 % takeaway og tips (2930)."
 summary: "Bokfør dagsoppgjør fra Favrit QR-bestilling og kasse i ReAI med automatisk splitt på 25 % servering, 15 % takeaway og tips (2930)."
 industry: payments
-icon: icons/favrit.svg
 webAppUrl: /app/favrit/
 sourcePath: web/worker/apps/favrit.js
 highlights:

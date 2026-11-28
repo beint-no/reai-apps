@@ -4,7 +4,6 @@ seoTitle: "Mystore.no regnskapsintegrasjon for ReAI — Gratis produkt- og salgs
 description: "Synkroniser produkter og betalte ordrer fra Mystore.no direkte til ReAI helt gratis. Slipp dyre månedlige integrasjonsbroer."
 summary: "Synkroniser varekatalog på varenummer (SKU) og importer betalte Mystore-ordrer idempotent til ReAI."
 industry: ecommerce-logistics
-icon: icons/mystore.svg
 webAppUrl: /app/mystore/
 sourcePath: web/worker/apps/mystore.js
 highlights:

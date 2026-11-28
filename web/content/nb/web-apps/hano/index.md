@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Hano og regnskap — Gratis open source-integrasjo
 description: "Bokfør dagsoppgjør fra Hano i ReAI med automatisk skille mellom avgiftsfrie behandlinger (3100) og 25 % salg (3000)."
 summary: "Bokfør dagsoppgjør fra Hano i ReAI med automatisk skille mellom avgiftsfrie behandlinger (3100) og 25 % salg (3000)."
 industry: payments
-icon: icons/hano.svg
 webAppUrl: /app/hano/
 sourcePath: web/worker/apps/hano.js
 highlights:

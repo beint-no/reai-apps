@@ -4,7 +4,6 @@ seoTitle: "SpeedyCraft arbeidsordrer til ReAI Timelister og ordrer"
 description: "Hent timer og varer fra SpeedyCraft, før timene i ReAI Timelister og legg hver arbeidsordre klar som ordreutkast i ReAI. Gratis og åpen kildekode."
 summary: "Hent timer og varer på arbeidsordrer fra SpeedyCraft REST API til timelister og ordreutkast i ReAI."
 industry: operations
-icon: icons/speedycraft.svg
 webAppUrl: /app/speedycraft/
 sourcePath: web/worker/apps/speedycraft.js
 highlights:

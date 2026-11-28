@@ -4,7 +4,6 @@ seoTitle: "Harvest Timesheet Integration for ReAI — Project Hours Sync"
 description: "Import Harvest API v2 project hours into ReAI Timesheets for Norwegian invoicing, VAT and payroll. Free with ReAI."
 summary: "Fetch monthly project time entries from Harvest API v2 and import them directly into ReAI Timesheets."
 industry: operations
-icon: icons/harvest.svg
 webAppUrl: /app/harvest/
 sourcePath: web/worker/apps/harvest.js
 highlights:
