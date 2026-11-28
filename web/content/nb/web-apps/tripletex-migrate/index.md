@@ -1,30 +1,34 @@
 ---
 title: "Bytt fra Tripletex til ReAI"
-seoTitle: "Bytt fra Tripletex til ReAI — Gratis open source for ReAI"
-description: "Flytt kunder, leverandører og produkter rett fra Tripletex API v2 eller CSV-eksport til ReAI."
-summary: "Flytt kunder, leverandører og produkter rett fra Tripletex API v2 eller CSV-eksport til ReAI."
+seoTitle: "Bytt fra Tripletex til ReAI: kunder og leverandører fra SAF-T"
+description: "Last opp SAF-T-filen fra Tripletex og flytt kunder og leverandører til ReAI med kundenummer, leverandørnummer og organisasjonsnummer."
+summary: "Flytt kunder og leverandører fra Tripletex til ReAI med SAF-T-filen."
 industry: operations
 webAppUrl: /app/tripletex-migrate/
 sourcePath: web/worker/apps/tripletex-migrate.js
 highlights:
-  - "Tilpasset norsk bokføringsskikk (Accounting migration (Tripletex -> ReAI))"
-  - "Direkte kobling mot ReAI sitt åpne API (Tripletex v2 API -> POST /api/customers, /api/suppliers, /api/products)"
-  - "Helt gratis i ReAI — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser kunder og leverandører fra SAF-T Regnskap, standardformatet fra Skatteetaten"
+  - "Tar med kundenummer, leverandørnummer, organisasjonsnummer og e-post"
+  - "Hopper over kontakter som allerede finnes i ReAI med samme organisasjonsnummer"
 ---
 
-## Slik fungerer Bytt fra Tripletex til ReAI med ReAI
+## Dette kommer over i ReAI
 
-Bruk **Bytt fra Tripletex til ReAI** rett i nettleseren på `apps.reai.no/app/tripletex-migrate/` uten ekstra månedlige koblingsgebyrer.
+Integrasjonen leser kunde- og leverandørregisteret i SAF-T-filen og viser alle kontaktene før noe sendes til ReAI. Du importerer hver kontakt med ett klikk. Finnes organisasjonsnummeret allerede i ReAI, opprettes ingen ny kontakt.
 
-| Område | Detaljer |
+| Fra SAF-T | I ReAI |
 | --- | --- |
-| **Bruksområde** | Accounting migration (Tripletex -> ReAI) |
-| **ReAI API / NS 4102** | `Tripletex v2 API -> POST /api/customers, /api/suppliers, /api/products` |
-| **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/tripletex-migrate.js`) |
+| Kunde med kundenummer | Kunde med samme nummer |
+| Leverandør med leverandørnummer | Leverandør med samme nummer |
+| Organisasjonsnummer og e-post | Organisasjonsnummer og e-post på kontakten |
 
-## Kom i gang på 2 minutter
+Inngående balanse fra samme fil fører du i [SAF-T-verktøyet](/app/saft/). Produkter finnes ikke i SAF-T-filen og må legges inn i ReAI eller importeres fra en produktliste.
 
-1. Åpne [apps.reai.no/app/tripletex-migrate/](/app/tripletex-migrate/) og klikk **Connect to ReAI**.
-2. Test først med **Load sample**, eller koble til eksport/API fra systemet ditt.
-3. Kontroller forhåndsvisningen og send direkte inn i ReAI.
+## Slik kommer du i gang
+
+1. Ta ut SAF-T-filen (SAF-T Regnskap) for siste regnskapsår fra Tripletex. Søk etter SAF-T i hjelpesenteret til Tripletex hvis du ikke finner eksporten. Pakk ut filen hvis du får en ZIP-fil.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Last opp XML-filen og kontroller listen over kunder og leverandører.
+4. Klikk **Import to ReAI** på kontaktene du vil flytte.
+
+Filen leses bare for denne forespørselen og lagres ikke.

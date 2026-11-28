@@ -1,29 +1,37 @@
 ---
-title: "Integrasjon for EasyPractice og MakePlans"
-seoTitle: "Integrasjon for EasyPractice og MakePlans — Gratis open source-integrasjon for ReAI"
-description: "Bokfør månedlige oppgjør fra EasyPractice eller MakePlans i ReAI med skille på 0 % helse (3100) og 25 % avgiftspliktig salg."
-summary: "Bokfør månedlige oppgjør fra EasyPractice eller MakePlans i ReAI med skille på 0 % helse (3100) og 25 % avgiftspliktig salg."
+title: "Integrasjon mellom EasyPractice og regnskap"
+seoTitle: "Integrasjon mellom EasyPractice og ReAI: fakturaer til regnskap"
+description: "Bokfør fakturaene fra EasyPractice for en periode som bilag til kontroll i ReAI, fordelt på MVA-sats og betalingsstatus. Gratis og åpen kildekode."
+summary: "Hent fakturaene fra EasyPractice for en periode og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/easypractice/
 sourcePath: web/worker/apps/easypractice.js
 highlights:
-  - "Bygget for norske bokførings- og MVA-regler i Therapists & private clinics (Terapeuter)"
-  - "Direkte kobling mot NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 1580)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser fakturaer fra EasyPractice API med et personlig tilgangstoken"
+  - "Skiller behandlinger uten MVA fra salg med MVA og fører riktig MVA-kode i ReAI"
+  - "Lager et bilag til kontroll som du godkjenner, med sperre mot dobbel føring"
 ---
 
-## Gratis integrasjon mellom EasyPract og ReAI
+## Dette kommer over i ReAI
 
-Koble **EasyPract** rett til ReAI i nettleseren på `apps.reai.no/app/easypractice/` uten dyre månedsgebyrer for eksterne integrasjonsbroer.
+Integrasjonen henter fakturaene med fakturadato i valgt periode. Utkast tas ikke med. Ingenting bokføres før du har kontrollert forhåndsvisningen og opprettet bilaget.
 
-| Område | Detaljer |
+| Linje | Konto i ReAI |
 | --- | --- |
-| Bransje | Therapists & private clinics (Terapeuter) |
-| Kontoplan / API | `3100 (0%), 3000 (25%), 1580` |
-| Trygghet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Betalt kontant | `1900` |
+| Betalt med kort eller annen betalingsmåte | `1580` til avstemming mot banken |
+| Ikke betalt ennå | `1570` |
+| Salg uten MVA | `3100` |
+| Salg med MVA | `3000`, ført inklusive MVA med utgående MVA-kode |
 
-## Kom i gang
+Bare fakturaer i NOK kan bokføres.
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Klikk **Load sample** for å teste hvordan bilaget eller synken ser ut umiddelbart.
-3. Last opp eksporten fra EasyPract eller legg inn tall/API-nøkkel for å overføre direkte til ReAI.
+## Slik kommer du i gang
+
+1. Gå til **Apper** i EasyPractice og aktiver appen **API**.
+2. Åpne **API-innstillinger**, klikk **Opprett nytt token** under personlige tilgangstoken, velg tilgangen **invoices-read** og kopier tokenet.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Fyll inn tokenet og perioden.
+5. Kontroller forhåndsvisningen mot fakturalisten i EasyPractice, kryss av for bekreftelse og opprett bilaget.
+
+Tokenet brukes bare til denne ene forespørselen og lagres aldri.

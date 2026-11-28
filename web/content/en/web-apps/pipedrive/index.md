@@ -1,23 +1,33 @@
 ---
-title: "Pipedrive CRM & Accounting Integration"
-seoTitle: "Pipedrive CRM Accounting Integration for ReAI — Customers & Won Deals"
-description: "Sync Pipedrive CRM organizations into ReAI customers and convert won deals directly into draft ReAI customer orders for free."
-summary: "Sync Pipedrive organizations to ReAI customers (with Norwegian org.nr validation) and stage won deals as ReAI orders."
+title: "Pipedrive & Accounting Integration"
+seoTitle: "Pipedrive Accounting Integration for ReAI: Customers and Won Deals"
+description: "Move Pipedrive organizations into the ReAI customer register and turn won deals into draft orders ready to invoice. Free and open source."
+summary: "Move Pipedrive organizations into ReAI customers and stage won deals as ReAI draft orders."
 industry: operations
 webAppUrl: /app/pipedrive/
 sourcePath: web/worker/apps/pipedrive.js
 highlights:
-  - "Scans Pipedrive Organizations and Won Deals in one click"
-  - "Creates missing ReAI customers with built-in Norwegian Mod11 org.nr validation"
-  - "Converts won Pipedrive deals into idempotent ReAI draft orders ready to invoice"
+  - "Reads organizations and won deals through the Pipedrive API with your personal API token"
+  - "Checks the Norwegian organization number before the customer is created in ReAI"
+  - "Creates draft orders with a fixed external reference per deal, so a deal is not invoiced twice"
 ---
 
-## Turn won Pipedrive deals into ReAI invoices without re-keying
+## What moves into ReAI
 
-Sales teams live in Pipedrive while finance works in ReAI. This integration bridges both cleanly: missing organizations become validated ReAI customers, and won deals become draft ReAI orders tagged with `pipedrive-deal-<id>` so nothing is ever invoiced twice.
+The integration reads your Pipedrive organizations and won deals. Organizations without a ReAI customer of the same name can be created as customers once you enter their organization number. Won deals for a known customer become ReAI draft orders with the deal title, value, currency and won date.
 
-## Step-by-step setup
+| From Pipedrive | In ReAI |
+| --- | --- |
+| Organization | Customer, with the organization number you enter |
+| Won deal | Draft order with one line and external reference `pipedrive-deal-<id>` |
 
-1. Copy your personal API token in Pipedrive (**Settings → Personal preferences → API**).
-2. Click **Open integration**, connect your ReAI company and scan Pipedrive.
-3. Create any missing customers (entering their 9-digit Norwegian org.nr inline) and click **Stage order** on any won deal.
+If an order with the same external reference already exists, the integration links to it instead of creating another. Check the VAT code and amount on the order before you invoice.
+
+## Setup
+
+1. In Pipedrive, click your name in the top right and open **Company settings → Personal preferences → API**. Copy your personal API token.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Paste the token and click **Scan Pipedrive**.
+4. Create any missing customers and click **Stage order** on the won deals you want to invoice.
+
+The token is used only for that scan and is never stored.

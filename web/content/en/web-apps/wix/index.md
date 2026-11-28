@@ -1,23 +1,34 @@
 ---
-title: "Wix Stores & Accounting Integration"
-seoTitle: "Wix Stores Accounting Integration for ReAI — Free Product & Sales Sync"
-description: "Connect Wix Stores and Wix eCommerce to ReAI for free product sync and paid order import."
-summary: "Sync Wix Stores products by SKU and import paid Wix eCommerce orders directly into ReAI."
+title: "Wix & Accounting Integration"
+seoTitle: "Wix Accounting Integration for ReAI: Paid Store Orders"
+description: "Fetch paid Wix orders and stage them as ReAI orders with item lines, shipping and VAT rate. Free and open source."
+summary: "Fetch paid Wix orders for a period and stage them as orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/wix/
 sourcePath: web/worker/apps/wix.js
 highlights:
-  - "Connects to Wix Stores v1 and Wix eCommerce v1 REST APIs"
-  - "Syncs missing catalog SKUs into ReAI automatically"
-  - "Imports paid Wix orders idempotently without add-on fees"
+  - "Reads paid orders through the Wix eCommerce API with an API key and site ID"
+  - "One order line per item and for shipping, with the VAT rate Wix charged"
+  - "Finds or creates the customer and skips orders that are already staged"
 ---
 
-## Connect Wix Stores directly to ReAI
+## What moves into ReAI
 
-Small retailers and creators running on Wix Stores can synchronize catalog items and paid eCommerce orders directly into ReAI for free—then match Vipps, Stripe or PayPal payouts using ReAI's built-in payout reconcilers.
+The integration fetches paid orders (payment status *Paid*) created in the chosen period. Each order is shown with its item and shipping lines, excluding VAT. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
-## Step-by-step setup
+| From Wix | In ReAI |
+| --- | --- |
+| Item line | Order line with quantity, price excluding VAT and the VAT code for the rate Wix charged |
+| Shipping | Separate order line with the shipping VAT rate |
+| Buyer | Customer matched by email or name, or a new customer |
+| Order ID | External reference, so the same order is not staged twice |
 
-1. In your **Wix Account API Keys** manager, create an API key with **Wix Stores** and **Wix eCommerce** read access and note your **Site ID**.
-2. Open the integration above, connect your ReAI company and enter your Site ID and API key.
-3. Scan your Wix catalog and orders, then create missing products and import paid orders in one click.
+## Setup
+
+1. Open the **API Keys Manager** in your Wix account and create an API key that can read Wix eCommerce orders for the site.
+2. Copy the site ID from the URL of the site dashboard. It follows `/dashboard/`.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Paste the site ID and API key, choose the period and fetch the orders.
+5. Check the lines and stage the orders you want to invoice or book in ReAI.
+
+The API key is used only for that request and is never stored.

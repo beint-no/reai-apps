@@ -1,6 +1,6 @@
 ---
 title: "SumUp & Accounting Integration"
-seoTitle: SumUp Accounting Integration for ReAI — Card Terminal Reconciliation
+seoTitle: "SumUp Accounting Integration for ReAI: Payout Reconciliation"
 description: Connect SumUp card terminals to ReAI accounting for free. Match SumUp payouts and fees against pending bank transactions and export CSV.
 summary: Compare SumUp card terminal payouts and transaction fees with pending ReAI bank transactions.
 industry: payments
@@ -12,6 +12,17 @@ highlights:
   - "Exports clean reconciliation CSV for monthly bookkeeping"
 ---
 
-## How SumUp fits into your Norwegian accounting
+## What it does
 
-SumUp settles card terminal sales net of transaction fees into your business bank account. Using your SumUp Merchant Code and API key, this integration pulls every `SUCCESSFUL` payout for the month, highlights its fee and matches it against pending bank deposits in ReAI—giving small retail, salon and hospitality businesses an easy monthly close without paid middleware.
+The integration fetches every successful SumUp payout for one month and matches it against pending ReAI bank transactions by amount, date and reference. You get a CSV report as documentation. Nothing is booked.
+
+SumUp deducts the card fee before paying out. Gross sales, the card fee (`7770`, VAT code `0`) and the net bank deposit are posted separately.
+
+## Setup
+
+1. Sign in at **me.sumup.com**, open your profile and go to **Settings → For Developers → Toolkit → API Keys**. Click **Create** and copy the key.
+2. Find your merchant code under your SumUp profile.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Enter the merchant code, API key and month, choose the ReAI bank account and download the report.
+
+The key is used only for that request and is never stored.

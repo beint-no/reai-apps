@@ -1,30 +1,32 @@
 ---
-title: "Nets Easy & Accounting Integration"
-seoTitle: "Nets Easy / Nexi Checkout Accounting Integration for ReAI"
-description: "Reconcile Nets Easy (Nexi Checkout) settlement payouts against your ReAI bank transactions for free. Complete guide for Norwegian VAT and payout fees."
-summary: "Match Nets Easy / Nexi Checkout payouts against pending ReAI bank transactions and export an audit-ready CSV."
+title: "Nexi Checkout & Accounting Integration"
+seoTitle: "Nexi Checkout (formerly Nets Easy) Payout Reconciliation for ReAI"
+description: "Fetch Nexi Checkout payouts for one month and reconcile them against bank transactions in ReAI. Free and open source."
+summary: "Reconcile Nexi Checkout payouts, formerly Nets Easy, against the bank in ReAI and download the result as CSV."
 industry: payments
 webAppUrl: /app/nets/
 sourcePath: web/worker/apps/nets.js
 highlights:
-  - "Reads Nets Easy Reporting API (/report/v1/payouts) directly by month"
-  - "Matches bank deposits against Nets settlement references within an 8-day window"
-  - "Included free with ReAI — zero per-connector add-on cost"
+  - "Reads payouts from the Nexi Checkout Reporting API with your secret key"
+  - "Shows amount, fees and reference for every payout"
+  - "Matches payouts against pending bank transactions in ReAI"
 ---
 
-## How Nets Easy accounting reconciliation works
+## What the integration does
 
-Nets Easy (Nexi Checkout) aggregates online card, Vipps and invoice payments into periodic bank settlements. Because payouts often group multiple days of sales and may deduct processing fees, clean Norwegian bookkeeping matches every settlement report against bank account `1920`.
+The integration reads the payouts for the chosen month from the Nexi Checkout Reporting API. Each payout shows its date, reference, paid amount and the fees Nexi withheld. When you choose a ReAI bank account, payouts are matched against pending bank transactions by reference or amount. Nothing is booked. You can download the reconciliation as CSV for the month end.
 
-| Accounting line | Typical Norwegian account | Notes |
-| --- | --- | --- |
-| Online sales (gross) | `3000` (+ VAT `2700`) | Booked from your webshop orders |
-| Nets Easy clearing | `1580` | Bridges order date and bank settlement date |
-| Card / payment fees | `7770` (VAT code `0`) | Financial service fee (exempt from VAT) |
-| Net bank deposit | `1920` | Reconciled against Nets Easy payout batch |
+| Posting | Typical account |
+| --- | --- |
+| Clearing for online card sales | `1580` |
+| Nexi fees | `7770` |
+| Payout to bank | `1920` |
 
-## Step-by-step with ReAI
+## Setup
 
-1. Copy your **Live Secret API key** from the Nets Easy / Nexi Checkout portal (ensure Reporting API access is enabled).
-2. Click **Open integration**, connect your ReAI company, select your bank account and choose the month.
-3. Review every matched deposit and download the reconciliation CSV as permanent voucher documentation.
+1. Log in to the Nexi Checkout portal, open **Company → Integration** and copy the live secret key (it starts with `live-secret-key-`).
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Paste the key, choose the month and optionally a bank account. The merchant number is only needed for partner keys.
+4. Check the matches and download the CSV if you need it.
+
+The key is used only for that request and is never stored.

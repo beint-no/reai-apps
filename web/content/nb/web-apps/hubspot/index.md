@@ -1,17 +1,24 @@
 ---
 title: Integrasjon mellom HubSpot CRM og regnskap
-seoTitle: Integrasjon mellom HubSpot og regnskap — Gratis kundesynk til ReAI
-description: Synkroniser bedrifter fra HubSpot CRM rett inn i kunderegisteret i ReAI gratis, med duplikatsjekk og validering av norsk organisasjonsnummer.
+seoTitle: Integrasjon mellom HubSpot og regnskap for ReAI
+description: Hent bedrifter fra HubSpot CRM, finn dem som allerede er kunder i ReAI og opprett resten med kontroll av norsk organisasjonsnummer.
 summary: Skann bedrifter i HubSpot, finn eksisterende kunder i ReAI og opprett manglende kunder med ett klikk.
 industry: operations
 webAppUrl: /app/hubspot/
 sourcePath: web/worker/apps/hubspot.js
 highlights:
-  - "Leser bedrifter fra HubSpot CRM v3 med lesetilgang (Private App-token)"
-  - "Oppdager automatisk eksisterende ReAI-kunder på organisasjonsnummer eller navn"
-  - "Validerer 9-sifret norsk organisasjonsnummer (Mod11) før kunden opprettes i ReAI"
+  - "Leser bedrifter fra HubSpot CRM med en tjenestenøkkel med lesetilgang"
+  - "Finner eksisterende ReAI-kunder på organisasjonsnummer eller navn"
+  - "Kontrollerer norsk organisasjonsnummer før kunden opprettes i ReAI"
 ---
 
-## Fra vunnet salg i HubSpot til klar fakturakunde i ReAI
+## Fra HubSpot til fakturakunde i ReAI
 
-Når salgsteamet bruker HubSpot og økonomiansvarlig fakturerer i ReAI, fører manuell kopiering ofte til duplikater eller manglende organisasjonsnummer som stopper EHF-fakturering. Med denne gratis integrasjonen matcher du HubSpot-bedrifter mot kunderegisteret i ReAI, fyller inn eventuelle manglende organisasjonsnummer og oppretter kundene direkte—uten dyre tredjeparts broer.
+Når salget skjer i HubSpot og faktureringen i ReAI, gir manuell kopiering lett duplikater eller kunder uten organisasjonsnummer, og da stopper EHF. Her henter du bedriftene fra HubSpot, ser hvilke som allerede finnes i ReAI og oppretter resten med ett klikk.
+
+## Slik setter du det opp
+
+1. Gå til **Development → Keys → Service keys** i HubSpot og velg **Create service key**. Gi nøkkelen tilgangen `crm.objects.companies.read`. Et eksisterende token fra en privat app med samme tilgang fungerer også.
+2. HubSpot har ikke et eget felt for organisasjonsnummer. Bruker dere en egen egenskap til dette, finner du det interne navnet under **Settings → Properties → Company properties**.
+3. Klikk **Åpne integrasjon**, koble til ReAI og lim inn nøkkelen og eventuelt navnet på egenskapen.
+4. Kontroller listen. Norske bedrifter uten gyldig organisasjonsnummer får et felt der du fyller det inn før kunden opprettes.

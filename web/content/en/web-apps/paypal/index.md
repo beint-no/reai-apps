@@ -1,29 +1,32 @@
 ---
 title: "PayPal & Accounting Integration"
-seoTitle: "PayPal Business Accounting Integration for ReAI — Free Reconciliation"
-description: "Reconcile PayPal Business payouts and withdrawals against your ReAI bank feed for free. Learn how to book PayPal sales, FX fees and transfers in Norway."
-summary: "Fetch PayPal Business payout withdrawals via REST Reporting API and match them against ReAI bank transactions."
+seoTitle: "PayPal Withdrawal Reconciliation for ReAI"
+description: "Fetch PayPal Business withdrawals to your bank for one month and reconcile them against bank transactions in ReAI. Free and open source."
+summary: "Reconcile PayPal Business withdrawals against the bank in ReAI and download the result as CSV."
 industry: payments
 webAppUrl: /app/paypal/
 sourcePath: web/worker/apps/paypal.js
 highlights:
-  - "Authenticates with PayPal REST OAuth client credentials on demand"
-  - "Reads payout withdrawals and fees from PayPal Transaction Search API"
-  - "Matches withdrawals against pending ReAI bank transactions and exports CSV"
+  - "Reads bank withdrawals from the PayPal Transaction Search API"
+  - "Uses your own live REST app with Transaction search turned on"
+  - "Matches withdrawals against pending bank transactions in ReAI"
 ---
 
-## How PayPal bookkeeping works in Norway
+## What the integration does
 
-A PayPal Business account acts like a separate payment wallet: customer receipts land in PayPal first, PayPal deducts transaction and currency fees, and you later transfer funds to your Norwegian bank account (`1920`).
+The integration reads the transactions for the chosen month from the PayPal Transaction Search API and lists the withdrawals from your PayPal balance to the bank. When you choose a ReAI bank account, withdrawals are matched against pending bank transactions by reference or amount. Nothing is booked. You can download the reconciliation as CSV.
 
-| Accounting line | Typical Norwegian account | Notes |
-| --- | --- | --- |
-| PayPal wallet balance | `1930` / `1580` | Tracks balance held at PayPal |
-| PayPal processing fees | `7770` (VAT code `0`) | Deducted per customer payment |
-| Bank transfer from PayPal | `1920` | Matched against PayPal withdrawal events |
+| Posting | Typical account |
+| --- | --- |
+| PayPal balance | `1580` or a separate PayPal account |
+| PayPal fees | `7770` |
+| Withdrawal to bank | `1920` |
 
-## Step-by-step with ReAI
+## Setup
 
-1. In the **PayPal Developer Dashboard**, create a live REST app with **Transaction Search** enabled and copy Client ID + Secret.
-2. Open the integration above, connect your ReAI company and choose your bank account and month.
-3. Review every matched PayPal withdrawal and export the CSV for your monthly close.
+1. Log in to the PayPal Developer Dashboard with your business account, choose **Live** under **Apps & Credentials** and create an app.
+2. Turn on **Transaction search** in the app features and copy the **Client ID** and **Secret**. Access can take a few hours to start working.
+3. Click **Open integration**, connect ReAI and choose the company, the month and optionally a bank account.
+4. Paste the Client ID and Secret and check the matches.
+
+The credentials are used only for that request and are never stored.

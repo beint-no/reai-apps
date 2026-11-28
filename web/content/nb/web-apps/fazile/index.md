@@ -1,23 +1,26 @@
 ---
-title: "Integrasjon mellom Fazile boligforvaltning og regnskap"
-seoTitle: "Fazile boligforvaltning og eiendom til ReAI — Leiefakturering"
-description: "Overfør leiekontrakter fra Fazile bolig- og eiendomsforvaltning til faste abonnementer i ReAI — med støtte for både MVA-unntatt utleie (kode 6) og frivillig MVA (kode 3)."
-summary: "Importer leieoversikt fra Fazile boligforvaltning og klargjør månedlig leiefakturering i ReAI med full kontroll før aktivering."
+title: "Integrasjon mellom Fazile eiendomsforvaltning og regnskap"
+seoTitle: "Fazile eiendomsforvaltning til ReAI: leiefakturering"
+description: "Hent aktive leiekontrakter fra Fazile via API og klargjør dem som faste abonnementer i ReAI, med MVA-kode etter satsen på hver kontraktslinje."
+summary: "Hent aktive leiekontrakter fra Fazile og klargjør leiefakturering i ReAI med full kontroll før aktivering."
 industry: real-estate
 webAppUrl: /app/fazile/
 sourcePath: web/worker/apps/fazile.js
 highlights:
-  - "Matcher leietakere automatisk mot kunderegisteret i ReAI"
-  - "Støtter både MVA-unntatt utleie (kode 6) og frivillig MVA-registrert utleie (kode 3)"
-  - "Oppretter utkast med automatisk fakturering avslått til du godkjenner i ReAI"
+  - "Leser aktive kontrakter og leietakere med en API-nøkkel fra Fazile"
+  - "Finner leietakeren i ReAI på organisasjonsnummer, e-post eller navn"
+  - "Oppretter abonnementer med automatisk fakturering avslått til du godkjenner dem"
 ---
 
-## Enklere leiefakturering fra Fazile til ReAI
+## Leiefakturering fra Fazile i ReAI
 
-Eiendomsselskaper og utleiere som administrerer kontrakter i **Fazile** kan laste opp leieoversikten og klargjøre repeterende månedlige leieavtaler direkte i ReAI—både for vanlig utleie uten MVA (kode `6`) og frivillig MVA-registrert næringsutleie (kode `3`).
+Fazile lagrer leie, felleskostnader og markedsføringsbidrag som årsbeløp på kontraktslinjene. Integrasjonen henter de aktive kontraktene, deler årsbeløpet på faktureringsfrekvensen og lager ett abonnement i ReAI per kontrakt og frekvens. Linjer med MVA får ReAI sin utgående MVA-kode med samme sats, og linjer uten MVA får koden du velger. Rabatter, leiefritak og periodiseringer tas ikke med og må legges inn i ReAI ved behov.
+
+Fazile sender vanligvis fakturagrunnlaget til økonomisystemet selv. Bruk integrasjonen for kontrakter som skal faktureres fra ReAI.
 
 ## Slik setter du det opp
 
-1. Eksporter aktiv leieoversikt som CSV fra Fazile (`LeaseID`, `Tenant`, `Email`, `Unit`, `StartDate`, `MonthlyRent`).
-2. Klikk **Åpne integrasjon**, koble til ReAI, velg MVA-kode og last opp filen.
-3. Klikk **Stage subscription** på hver leietaker og aktiver faktureringen i ReAI når du har kontrollert vilkårene.
+1. Gå til **Firmaprofil → API Nøkler** i Fazile og velg **Opprett API-nøkkel**. Gi nøkkelen lesetilgang til kontrakter og leietakere. Nøkkelen vises bare én gang. Fazile fakturerer API-tilgang etter avtale.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg MVA-kode for linjer uten MVA.
+3. Lim inn nøkkelen og hent kontraktene.
+4. Kontroller beløp, frekvens og startdato, og klikk **Stage subscription**. Slå på automatisk fakturering i ReAI når vilkårene stemmer.

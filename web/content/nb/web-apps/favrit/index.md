@@ -1,29 +1,35 @@
 ---
 title: "Integrasjon mellom Favrit og regnskap"
-seoTitle: "Integrasjon mellom Favrit og regnskap — Gratis integrasjon for ReAI"
-description: "Bokfør dagsoppgjør fra Favrit QR-bestilling og kasse i ReAI med automatisk splitt på 25 % servering, 15 % takeaway og tips (2930)."
-summary: "Bokfør dagsoppgjør fra Favrit QR-bestilling og kasse i ReAI med automatisk splitt på 25 % servering, 15 % takeaway og tips (2930)."
+seoTitle: "Integrasjon mellom Favrit og ReAI: oppgjør til regnskap"
+description: "Bokfør oppgjørene fra Favrit som bilag til kontroll i ReAI, med salg per konto og MVA-sats, tips og betalingsgebyr. Gratis og åpen kildekode."
+summary: "Hent oppgjørene fra Favrit for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/favrit/
 sourcePath: web/worker/apps/favrit.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Restaurants, bars & cafés (Servering)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (3000 (25%), 3010 (15%), 2930 (Tips))"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser oppgjørsrapporter fra Favrit Accounting API med klient-id og hemmelighet"
+  - "Beholder salgskontoene fra Favrit og fører salg med utgående MVA-kode i ReAI"
+  - "Lager et bilag til kontroll som du godkjenner, med sperre mot dobbel føring"
 ---
 
-## Slik kobler du Favrit til ReAI uten tilleggskostnad
+## Dette kommer over i ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **Favrit** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/favrit/`.
+Integrasjonen henter oppgjørene som Favrit opprettet på valgt dato for ett utsalgssted, sammen med regnskapsrapporten for hvert oppgjør. Ingenting bokføres før du har kontrollert forhåndsvisningen og opprettet bilaget.
 
-| Område | Oppsett i ReAI |
+| Linje | Konto i ReAI |
 | --- | --- |
-| Bransje | Restaurants, bars & cafés (Servering) |
-| Kontoplan / API | `3000 (25%), 3010 (15%), 2930 (Tips)` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Salg per konto og MVA-sats | Kontoreferansen fra Favrit, ført inklusive MVA med utgående MVA-kode |
+| Leveringsgebyr | `3000` med 25 % MVA |
+| Tips | `2930` |
+| Betalingsgebyr | `7770` |
+| Utbetaling fra Favrit | `1580` til avstemming mot banken |
 
-## Kom i gang på 2 minutter
+## Slik kommer du i gang
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra Favrit og overfør direkte til ReAI.
+1. Logg inn i Favrit admin, velg utsalgssted og gå til **Company Settings → Integration**.
+2. Velg **Integrate to Favrit** under **Developer**, kryss av for **prod/accounting** og gjerne **prod/user**, og klikk **Create Client APP**. Kopier **ClientId** og **SecretId**.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Fyll inn ClientId, SecretId og dato. Har du flere utsalgssteder, fyller du også inn id for utsalgsstedet.
+5. Kontroller forhåndsvisningen mot oppgjørsrapporten i Favrit, kryss av for bekreftelse og opprett bilaget.
+
+Nøklene brukes bare til denne ene forespørselen og lagres aldri.

@@ -4,72 +4,152 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiRequest } from '../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
-import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 import { extractNorwegianOrg } from './recman-core.js';
 
-/** @typedef {{ kind: 'customer' | 'supplier' | 'product', externalId: string, name: string, orgnr: string, email: string, price: number }} MigrateItem */
+/** @typedef {{ kind: 'customer' | 'supplier', externalId: string, name: string, orgnr: string, email: string }} MigrateItem */
 
-/** @type {MigrateItem[]} */
-const SAMPLE = [{"kind": "customer", "externalId": "10010", "name": "Nordic Design Studio AS", "orgnr": "935606403", "email": "post@nordicdesign.no", "price": 0}, {"kind": "supplier", "externalId": "20010", "name": "Skytjenester Norge AS", "orgnr": "923609016", "email": "billing@skytjenester.no", "price": 0}, {"kind": "product", "externalId": "PRD-20", "name": "Månedlig driftsavtale", "orgnr": "", "email": "", "price": 4900}];
+const SLUG = 'fiken-migrate';
+const BRAND = 'Fiken';
+const BASE_PATH = `/app/${SLUG}`;
+const TITLE = 'Switch from Fiken to ReAI';
+const LEAD = 'Upload the SAF-T Financial file from Fiken and import its customers and suppliers into ReAI, with their customer and supplier numbers.';
+const EXPORT_HINT = 'Export the SAF-T Financial file (SAF-T Regnskap) from Fiken for the latest year and upload the XML file here. Unzip it first if Fiken gives you a ZIP file.';
+const MAX_ITEMS = 2000;
 
+const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<n1:AuditFile xmlns:n1="urn:StandardAuditFile-Taxation-Financial:NO">
+  <n1:MasterFiles>
+    <n1:Customers>
+      <n1:Customer><n1:RegistrationNumber>935606403</n1:RegistrationNumber><n1:Name>Fjord Bygg AS</n1:Name><n1:Contact><n1:Email>post+fjordbygg@aiak.no</n1:Email></n1:Contact><n1:CustomerID>10001</n1:CustomerID><n1:AccountID>1500</n1:AccountID></n1:Customer>
+    </n1:Customers>
+    <n1:Suppliers>
+      <n1:Supplier><n1:RegistrationNumber>923609016</n1:RegistrationNumber><n1:Name>Norsk Grossist AS</n1:Name><n1:Contact><n1:Email>post+grossist@aiak.no</n1:Email></n1:Contact><n1:SupplierID>20001</n1:SupplierID><n1:AccountID>2400</n1:AccountID></n1:Supplier>
+    </n1:Suppliers>
+  </n1:MasterFiles>
+</n1:AuditFile>`;
 
+/**
+ * Returns the text of the first direct or nested element with this local name (any namespace prefix).
+ * @param {string} xml
+ * @param {string} tag
+ */
+function xmlText(xml, tag) {
+  const m = new RegExp(`<(?:[A-Za-z0-9_]+:)?${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[A-Za-z0-9_]+:)?${tag}>`).exec(xml);
+  return m ? decodeXml((m[1] ?? '').trim()) : '';
+}
 
-/** @param {string} csvText @returns {MigrateItem[]} */
-function parseMigrationCsv(csvText) {
-  const doc = parseCsv(csvText);
-  const h = doc.headers.map((x) => x.toLowerCase().trim());
-  const typeIdx = h.findIndex((x) => x.includes('type') || x.includes('kind'));
-  const idIdx = h.findIndex((x) => x.includes('number') || x.includes('nummer') || x.includes('sku') || x.includes('id'));
-  const nameIdx = h.findIndex((x) => x.includes('name') || x.includes('navn') || x.includes('title') || x.includes('kunde') || x.includes('leverand'));
-  const orgIdx = h.findIndex((x) => x.includes('org'));
-  const emailIdx = h.findIndex((x) => x.includes('email') || x.includes('epost'));
-  const priceIdx = h.findIndex((x) => x.includes('price') || x.includes('pris'));
-  if (nameIdx < 0) throw new HttpError(400, 'CSV needs a Name / Navn / Title column.');
-  return doc.rows
-    .map((r, idx) => {
-      const rawType = typeIdx >= 0 ? (r[typeIdx] ?? '').toLowerCase() : '';
-      const price = priceIdx >= 0 ? Number((r[priceIdx] ?? '0').replace(',', '.').replace(/[^0-9.-]/g, '')) || 0 : 0;
-      /** @type {'customer' | 'supplier' | 'product'} */
-      const kind = rawType.includes('supp') || rawType.includes('lev') ? 'supplier' : rawType.includes('prod') || rawType.includes('vare') || price > 0 ? 'product' : 'customer';
-      return { kind, externalId: idIdx >= 0 ? (r[idIdx] ?? '').trim() : String(idx + 1), name: (r[nameIdx] ?? '').trim(), orgnr: orgIdx >= 0 ? extractNorwegianOrg(r[orgIdx] ?? '') : '', email: emailIdx >= 0 ? (r[emailIdx] ?? '').trim() : '', price };
-    })
-    .filter((i) => i.name.length > 0);
+/**
+ * Returns the inner XML of every element with this local name.
+ * @param {string} xml
+ * @param {string} tag
+ */
+function xmlBlocks(xml, tag) {
+  const re = new RegExp(`<(?:[A-Za-z0-9_]+:)?${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[A-Za-z0-9_]+:)?${tag}>`, 'g');
+  return [...xml.matchAll(re)].map((m) => m[1] ?? '');
+}
+
+/** @param {string} s */
+function decodeXml(s) {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+}
+
+/**
+ * Reads customers and suppliers from the MasterFiles section of a Norwegian SAF-T Financial file.
+ * Format: Skatteetaten SAF-T Financial v1.30, https://github.com/Skatteetaten/saf-t
+ * (Customer: RegistrationNumber, Name, Contact/Email, CustomerID; Supplier: same with SupplierID).
+ * @param {string} xml
+ * @returns {MigrateItem[]}
+ */
+export function parseSaftParties(xml) {
+  const start = xml.search(/<(?:[A-Za-z0-9_]+:)?MasterFiles[\s>]/);
+  const end = xml.search(/<\/(?:[A-Za-z0-9_]+:)?MasterFiles>/);
+  if (start < 0 || end < start) throw new HttpError(400, 'This is not a SAF-T Financial file. The MasterFiles section is missing.');
+  const master = xml.slice(start, end);
+  /** @type {MigrateItem[]} */
+  const items = [];
+  for (const [kind, tag, idTag] of /** @type {const} */ ([['customer', 'Customer', 'CustomerID'], ['supplier', 'Supplier', 'SupplierID']])) {
+    for (const block of xmlBlocks(master, tag)) {
+      const name = xmlText(block, 'Name');
+      if (!name) continue;
+      const contact = xmlText(block, 'Contact');
+      items.push({
+        kind,
+        externalId: xmlText(block, idTag),
+        name,
+        orgnr: extractNorwegianOrg(xmlText(block, 'RegistrationNumber') || xmlText(block, 'TaxRegistrationNumber')),
+        email: contact ? xmlText(contact, 'Email') : '',
+      });
+    }
+  }
+  if (items.length === 0) throw new HttpError(400, 'The SAF-T file has no customers or suppliers.');
+  return items.slice(0, MAX_ITEMS);
+}
+
+/** @param {MigrateItem} it @param {import('../lib/html.js').HtmlValue} action */
+function itemRow(it, action) {
+  return html`<td>${reaiBadge({ text: it.kind, tone: it.kind === 'supplier' ? 'accent' : 'neutral' })}</td>
+    <td class="mono">${it.externalId || '—'}</td>
+    <td><strong>${it.name}</strong>${it.email ? html`<br><span class="muted-note">${it.email}</span>` : ''}</td>
+    <td class="mono">${it.orgnr || '—'}</td>
+    <td>${action}</td>`;
 }
 
 /** @param {MigrateItem[]} items @param {boolean} isSample */
 function renderItems(items, isSample) {
   const custs = items.filter((i) => i.kind === 'customer').length;
   const supps = items.filter((i) => i.kind === 'supplier').length;
-  const prods = items.filter((i) => i.kind === 'product').length;
   return reaiCard({
-    eyebrow: 'FIKEN → REAI MIGRATION',
-    title: `${items.length} records ready to import`,
-    badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready to import', tone: 'success' }),
+    eyebrow: `${BRAND.toUpperCase()} SAF-T → REAI`,
+    title: 'Customers and suppliers ready to import',
+    badge: isSample ? reaiBadge({ text: 'Sample', tone: 'accent' }) : reaiBadge({ text: 'Ready to import', tone: 'success' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Customers', value: String(custs), detail: 'POST /api/customers' })}
-        ${reaiMetric({ label: 'Suppliers', value: String(supps), detail: 'POST /api/suppliers' })}
-        ${reaiMetric({ label: 'Products', value: String(prods), detail: 'POST /api/products' })}
+        ${reaiMetric({ label: 'Customers', value: String(custs) })}
+        ${reaiMetric({ label: 'Suppliers', value: String(supps) })}
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Type</th><th>ID / SKU</th><th>Name</th><th>Org.nr / Price</th><th>Action</th></tr></thead>
-        <tbody>${items.slice(0, 120).map(
-          (it, idx) => html`<tr id="sw-row-${idx}">
-            <td>${reaiBadge({ text: it.kind, tone: it.kind === 'product' ? 'accent' : 'neutral' })}</td>
-            <td class="mono">${it.externalId || '—'}</td>
-            <td><strong>${it.name}</strong>${it.email ? html`<br><span class="muted-note">${it.email}</span>` : ''}</td>
-            <td class="mono">${it.kind === 'product' ? `${it.price.toFixed(2)} NOK` : it.orgnr || '—'}</td>
-            <td>${isSample
-              ? html`<span class="muted-note">Demo only</span>`
-              : html`<form hx-post="/app/fiken-migrate/import-one" hx-target="#sw-row-${idx}" hx-swap="outerHTML">
-                  <input type="hidden" name="itemJson" value="${JSON.stringify(it)}"><button type="submit" class="button primary">Import to ReAI</button>
-                </form>`}</td>
-          </tr>`,
-        )}</tbody>
+        <thead><tr><th>Type</th><th>Number</th><th>Name</th><th>Org.nr</th><th>Action</th></tr></thead>
+        <tbody>${items.map((it, idx) => html`<tr id="sw-row-${idx}">${itemRow(it, isSample
+          ? html`<span class="muted-note">Sample only</span>`
+          : html`<form hx-post="${BASE_PATH}/import-one" hx-target="#sw-row-${idx}" hx-swap="outerHTML">
+              <input type="hidden" name="row" value="${idx}"><input type="hidden" name="itemJson" value="${JSON.stringify(it)}"><button type="submit" class="button primary">Import to ReAI</button>
+            </form>`)}</tr>`)}</tbody>
       </table></div>
-      ${reaiCallout({ tone: 'info', body: html`Also bringing over your opening trial balance? Upload your SAF-T XML in our <a href="/app/saft/">SAF-T Norway Switcher →</a> to post directly to <code>PUT /api/opening-balance</code>.` })}
+      ${reaiCallout({ tone: 'info', body: html`Opening balances come from the same file in the <a href="/app/saft/">SAF-T tool</a>.` })}
     `,
   });
+}
+
+/**
+ * Creates one customer or supplier in ReAI unless the organization number already exists there.
+ * @param {import('../lib/types.d.ts').Env} env
+ * @param {{ accessToken: string, tenantId: number }} session
+ * @param {MigrateItem} it
+ * @returns {Promise<string>}
+ */
+async function importItem(env, session, it) {
+  const path = it.kind === 'supplier' ? '/api/suppliers' : '/api/customers';
+  const auth = { token: session.accessToken, tenantId: session.tenantId };
+  if (it.orgnr) {
+    const found = /** @type {{ items?: Array<{ id: number }> }} */ (await reaiRequest(env, path, { ...auth, query: { organizationNumber: it.orgnr, pageSize: '1' } }));
+    const hit = found.items?.[0];
+    if (hit) return `Already in ReAI #${hit.id}`;
+  }
+  const created = /** @type {{ id: number }} */ (await reaiRequest(env, path, {
+    ...auth,
+    method: 'POST',
+    body: {
+      name: it.name.slice(0, 75),
+      ...(it.externalId ? { number: it.externalId.slice(0, 50) } : {}),
+      ...(it.orgnr ? { organizationNumber: it.orgnr } : {}),
+      ...(it.email ? { email: it.email } : {}),
+      countryCode: 'NO',
+      privateContact: false,
+    },
+  }));
+  return `Imported #${created.id}`;
 }
 
 /**
@@ -80,92 +160,57 @@ function renderItems(items, isSample) {
  */
 export async function handle(request, env) {
   const { pathname } = new URL(request.url);
-  const basePath = '/app/fiken-migrate';
-  const title = "Fiken Direct Migration Tool";
-  const lead = "Connect your Fiken API token (or upload Fiken CSV exports) to migrate contacts, suppliers and products straight into ReAI in minutes.";
-
-  if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${basePath}/`, request.url), 301);
-  if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
+  if (pathname === BASE_PATH && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${BASE_PATH}/`, request.url), 301);
+  if (pathname === `${BASE_PATH}/` && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
     const body = html`
-      <section class="app-intro"><p class="eyebrow">SWITCH FROM FIKEN TO REAI</p><h1>${title}</h1><p class="lead">${lead}</p></section>
+      <section class="app-intro"><p class="eyebrow">SWITCH FROM ${BRAND.toUpperCase()}</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
-        ${renderConnectPanel(session, { clientId: 'reai-fiken-migrate-web', clientName: 'ReAI Fiken Switcher' })}
+        ${renderConnectPanel(session, { clientId: `reai-${SLUG}-web`, clientName: `ReAI ${BRAND} Switcher (Web)` })}
         ${reaiCard({
-          eyebrow: 'DIRECT FIKEN API IMPORT',
-          title: 'Fetch live contacts & products from Fiken',
-          body: html`<p class="muted-note">Your Fiken Personal API token is used for this single HTTPS request and never stored.</p>
-            <form class="stack" hx-post="${basePath}/scan-api" hx-target="#sw-output" hx-swap="innerHTML">
-              <div class="inline-row">
-                <div class="field"><label for="sw-slug">Fiken company slug</label><input id="sw-slug" name="companySlug" type="text" required placeholder="min-bedrift-as"></div>
-                <div class="field"><label for="sw-tok">Fiken Personal API token</label><input id="sw-tok" name="apiToken" type="password" autocomplete="off" required placeholder="Paste token"></div>
-              </div>
-              <div class="inline-row"><button type="submit" class="button primary">Fetch from Fiken API</button><button type="button" class="button secondary" hx-post="${basePath}/sample" hx-target="#sw-output" hx-swap="innerHTML">Load sample migration</button></div>
+          eyebrow: 'SAF-T FINANCIAL FILE',
+          title: `Upload the SAF-T file from ${BRAND}`,
+          body: html`<p class="muted-note">${EXPORT_HINT}</p>
+            <form class="stack" hx-post="${BASE_PATH}/preview" hx-encoding="multipart/form-data" hx-target="#sw-output" hx-swap="innerHTML">
+              ${reaiDropzone({ inputId: 'sw-file', name: 'file', accept: '.xml,application/xml,text/xml', label: 'Choose SAF-T XML file', hint: 'SAF-T Financial XML from Skatteetaten format 1.10 or 1.30.' })}
+              <div class="inline-row"><button type="submit" class="button primary">Preview customers and suppliers</button><button type="button" class="button secondary" hx-post="${BASE_PATH}/sample" hx-target="#sw-output" hx-swap="innerHTML">Load sample</button></div>
             </form>`,
-        })}
-        ${reaiCard({
-          eyebrow: 'CSV EXPORT IMPORT',
-          title: 'Upload Fiken customer, supplier or product CSV',
-          body: html`<form class="stack" hx-post="${basePath}/preview-csv" hx-encoding="multipart/form-data" hx-target="#sw-output" hx-swap="innerHTML">
-            ${reaiDropzone({ inputId: 'sw-csv', name: 'file', accept: '.csv,text/csv', label: 'Choose CSV file', hint: 'Columns: Type (customer/supplier/product), Number/SKU, Name, OrgNr, Email, Price.' })}
-            <div class="inline-row"><button type="submit" class="button primary">Preview CSV records</button><button type="button" class="button secondary" hx-post="${basePath}/sample" hx-target="#sw-output" hx-swap="innerHTML">Load sample migration</button></div>
-          </form>`,
         })}
         <div id="sw-output" class="stack"></div>
       </div>
     `;
-    return htmlResponse(appShell({ title, description: lead, activePath: `${basePath}/`, body }));
+    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${BASE_PATH}/`, body }));
   }
 
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) return htmlResponse(renderItems(SAMPLE, true));
+  if (pathname === `${BASE_PATH}/sample`) return htmlResponse(renderItems(parseSaftParties(SAMPLE_XML), true));
 
-  try {
-    const form = await request.formData();
-    if (pathname === `${basePath}/scan-api`) {
-      const token = String(form.get('apiToken') ?? '').trim();
-      const companySlug = String(form.get('companySlug') ?? '').trim().replace(/[^a-zA-Z0-9_-]/g, '');
-      if (!token || !companySlug) throw new HttpError(400, 'Enter your Fiken company slug and API token.');
-      const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
-      const [cRes, pRes] = await Promise.all([
-        fetch(`https://api.fiken.no/api/v2/companies/${companySlug}/contacts?pageSize=50`, { headers, signal: AbortSignal.timeout(20_000) }),
-        fetch(`https://api.fiken.no/api/v2/companies/${companySlug}/products?pageSize=50`, { headers, signal: AbortSignal.timeout(20_000) }),
-      ]);
-      if (!cRes.ok) throw new HttpError(400, `Fiken API returned HTTP ${cRes.status}. Verify company slug and token.`);
-      const [contacts, products] = await Promise.all([cRes.json(), pRes.ok ? pRes.json() : []]);
-      /** @type {MigrateItem[]} */
-      const items = [];
-      for (const c of /** @type {any[]} */ (Array.isArray(contacts) ? contacts : [])) {
-        if (c.customer) items.push({ kind: 'customer', externalId: String(c.customerNumber ?? c.contactId ?? ''), name: String(c.name ?? ''), orgnr: extractNorwegianOrg(String(c.organizationNumber ?? '')), email: String(c.email ?? ''), price: 0 });
-        if (c.supplier) items.push({ kind: 'supplier', externalId: String(c.supplierNumber ?? c.contactId ?? ''), name: String(c.name ?? ''), orgnr: extractNorwegianOrg(String(c.organizationNumber ?? '')), email: String(c.email ?? ''), price: 0 });
-      }
-      for (const p of /** @type {any[]} */ (Array.isArray(products) ? products : [])) {
-        items.push({ kind: 'product', externalId: String(p.productNumber ?? p.productId ?? ''), name: String(p.name ?? ''), orgnr: '', email: '', price: Number(p.unitPrice ?? 0) / 100 });
-      }
-      return htmlResponse(renderItems(items.filter((i) => i.name), false));
-    }
-    if (pathname === `${basePath}/preview-csv`) {
-      const file = form.get('file');
-      if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file first.');
-      return htmlResponse(renderItems(parseMigrationCsv(decodeCsvBytes(new Uint8Array(await file.arrayBuffer()))), false));
-    }
-    if (pathname === `${basePath}/import-one`) {
+  const form = await request.formData();
+  if (pathname === `${BASE_PATH}/import-one`) {
+    /** @type {MigrateItem} */
+    let it = { kind: 'customer', externalId: '', name: '', orgnr: '', email: '' };
+    try { it = { ...it, ...JSON.parse(String(form.get('itemJson') ?? '{}')) }; } catch { /* rejected below */ }
+    const row = Number(form.get('row') ?? 0) || 0;
+    try {
       const session = await readSession(env, request);
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
-      const it = /** @type {MigrateItem} */ (JSON.parse(String(form.get('itemJson') ?? '{}')));
-      /** @type {{ id: number }} */
-      let created;
-      if (it.kind === 'product') {
-        created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { title: it.name.slice(0, 120), sku: it.externalId || undefined, price: Number(it.price.toFixed(2)), vatCode: '3' } }));
-      } else {
-        created = /** @type {{ id: number }} */ (await reaiRequest(env, it.kind === 'supplier' ? '/api/suppliers' : '/api/customers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { name: it.name.slice(0, 75), ...(it.orgnr ? { organizationNumber: it.orgnr } : {}), ...(it.email ? { email: it.email } : {}), countryCode: 'NO', privateContact: !it.orgnr, skipRegistryLookup: true } }));
-      }
-      return htmlResponse(html`<tr><td>${reaiBadge({ text: it.kind, tone: 'neutral' })}</td><td class="mono">${it.externalId || '—'}</td><td><strong>${it.name}</strong></td><td class="mono">${it.kind === 'product' ? `${it.price.toFixed(2)} NOK` : it.orgnr || '—'}</td><td>${reaiBadge({ text: `Imported #${created.id}`, tone: 'success' })}</td></tr>`);
+      if ((it.kind !== 'customer' && it.kind !== 'supplier') || !it.name) throw new HttpError(400, 'Invalid record.');
+      const result = await importItem(env, session, it);
+      return htmlResponse(html`<tr id="sw-row-${row}">${itemRow(it, reaiBadge({ text: result, tone: 'success' }))}</tr>`);
+    } catch (err) {
+      return htmlResponse(html`<tr id="sw-row-${row}">${itemRow(it, reaiBadge({ text: err instanceof Error ? err.message : 'Failed.', tone: 'danger' }))}</tr>`);
+    }
+  }
+  try {
+    if (pathname === `${BASE_PATH}/preview`) {
+      const file = form.get('file');
+      if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a SAF-T XML file first.');
+      return htmlResponse(renderItems(parseSaftParties(new TextDecoder('utf-8').decode(await file.arrayBuffer())), false));
     }
   } catch (err) {
-    return htmlResponse(reaiCallout({ tone: 'danger', title: 'Fiken error', body: err instanceof Error ? err.message : 'Failed.' }));
+    return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));
   }
-  return errorResponse('Unknown switcher route.', 404);
+  return errorResponse('Unknown route.', 404);
 }

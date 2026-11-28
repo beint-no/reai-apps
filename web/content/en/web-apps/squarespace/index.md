@@ -1,29 +1,33 @@
 ---
-title: "Squarespace & BigCommerce Accounting Sync"
-seoTitle: "Squarespace & BigCommerce Accounting Sync — Free Open-Source ReAI Integration"
-description: "Connect Squarespace Commerce or BigCommerce REST APIs to scan products and sync online sales into ReAI."
-summary: "Connect Squarespace Commerce or BigCommerce REST APIs to scan products and sync online sales into ReAI."
+title: "Squarespace & Accounting Integration"
+seoTitle: "Squarespace Accounting Integration for ReAI: Store Orders"
+description: "Fetch Squarespace Commerce orders and stage them as ReAI orders with item lines, shipping and VAT. Free and open source."
+summary: "Fetch Squarespace orders for a period and stage them as orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/squarespace/
 sourcePath: web/worker/apps/squarespace.js
 highlights:
-  - "Tailored to Norwegian VAT & bookkeeping rules for Design & DTC online stores (Nettbutikk)"
-  - "Direct mapping to NS 4102 / ReAI Public API (Commerce REST API -> ReAI)"
-  - "Included free with ReAI — MIT open source with instant 1-click sample preview"
+  - "Reads orders through the Squarespace Orders API with a developer API key"
+  - "One order line per item, shipping and discount, excluding VAT"
+  - "Finds or creates the customer and skips orders that are already staged"
 ---
 
-## How Squarespace integrates with ReAI
+## What moves into ReAI
 
-Connect **Squarespace** directly to ReAI in your browser at `apps.reai.no/app/squarespace/` without paying monthly third-party connector fees.
+The integration fetches orders created in the chosen period and leaves out canceled orders. Squarespace reports tax per order, so the integration derives the order rate and applies it to every line when it is 25, 15, 12 or 0 percent. Otherwise the lines get the ReAI default VAT code. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
-| Dimension | Details |
+| From Squarespace | In ReAI |
 | --- | --- |
-| Vertical | Design & DTC online stores (Nettbutikk) |
-| Norwegian ledger / API | `Commerce REST API -> ReAI` |
-| Safety | Preview before posting, duplicate protection & review-first accounting |
+| Item line | Order line with quantity and price excluding VAT |
+| Shipping and discount | Separate order lines |
+| Buyer | Customer matched by email or name, or a new customer |
+| Order ID | External reference, so the same order is not staged twice |
 
-## Quick start
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company.
-2. Click **Load sample** to preview the exact accounting voucher or sync output in seconds.
-3. Upload your Squarespace file or enter your totals/API token to sync straight into ReAI.
+1. In Squarespace open **Settings → Advanced → Developer API Keys**, click **Generate Key** and give the key the **Orders** permission. Developer API keys require a Commerce plan.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Paste the API key, choose the period and fetch the orders.
+4. Check the lines and VAT rate, and stage the orders you want to invoice or book in ReAI.
+
+The API key is used only for that request and is never stored.

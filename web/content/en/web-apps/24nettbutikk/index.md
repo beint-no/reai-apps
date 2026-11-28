@@ -1,23 +1,28 @@
 ---
 title: "24Nettbutikk & Accounting Integration"
-seoTitle: "24Nettbutikk Accounting Integration for ReAI — Free Product & Sales Sync"
-description: "Sync 24Nettbutikk products and paid online orders into ReAI for free. No middleware subscription required."
-summary: "Connect your 24Nettbutikk store to ReAI for SKU-matched product sync and idempotent sales import."
+seoTitle: "24Nettbutikk and ReAI: products and paid orders"
+description: "Fetch products and paid orders from the 24Nettbutikk API and move them to ReAI with the correct VAT rates."
+summary: "Create missing products in ReAI and stage paid 24Nettbutikk orders as ReAI orders."
 industry: ecommerce-logistics
 webAppUrl: /app/24nettbutikk/
 sourcePath: web/worker/apps/24nettbutikk.js
 highlights:
-  - "Fetches products and paid orders directly from your 24Nettbutikk store API"
-  - "Prevents duplicate SKUs and duplicate imported orders automatically"
-  - "Includes a built-in synthetic sample mode to test before connecting"
+  - "Reads products, paid orders and customers from the 24Nettbutikk API"
+  - "Uses the VAT rate of each order line from the shop"
+  - "Blocks duplicates by SKU and order number"
 ---
 
-## Product and sales sync for 24Nettbutikk
+## Products and orders from 24Nettbutikk
 
-Keep your ReAI product catalog and online sales history aligned with 24Nettbutikk without manual spreadsheets or paid third-party bridges. Pair this integration with ReAI's free [Vipps](/web-apps/vipps/), [Klarna](/web-apps/klarna/) or [Nets Easy](/web-apps/nets/) payout reconcilers for a complete Norwegian ecommerce close.
+The integration fetches the products and the paid orders for one month from 24Nettbutikk. Products missing in ReAI can be created with one click. Paid orders become ReAI orders with the same lines and VAT rates as in the shop, and the order number is stored as the external reference so the same order cannot be added twice.
 
-## Step-by-step setup
+The ReAI customer is matched by organisation number or email address. Orders paid partly with a gift card must be booked by hand.
 
-1. Copy your store HTTPS URL and API Bearer token from 24Nettbutikk Kontrollpanel.
-2. Open the integration above, connect your ReAI company and choose your fallback customer and product.
-3. Scan your catalog and paid orders, then sync new products and import orders with one click.
+Pair it with the [Vipps](/web-apps/vipps/), [Klarna](/web-apps/klarna/) and [Nets Easy](/web-apps/nets/) reconcilers.
+
+## Setup
+
+1. Sign in to 24Nettbutikk, click your name and choose **API Nøkler**.
+2. Click **Generer tilfeldig kode** and copy the key. It is shown only once.
+3. Click **Open integration**, connect ReAI and enter the shop address, the API key and the month.
+4. Review the products and orders and move them to ReAI.

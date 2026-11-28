@@ -1,29 +1,37 @@
 ---
-title: "Integrasjon mellom Salesforce CRM og regnskap"
-seoTitle: "Integrasjon mellom Salesforce CRM og regnskap — Gratis open source-integrasjon for ReAI"
-description: "Koble Salesforce CRM mot ReAI for kundesynkronisering og fakturagrunnlag uten kostbar mellomvare."
-summary: "Koble Salesforce CRM mot ReAI for kundesynkronisering og fakturagrunnlag uten kostbar mellomvare."
+title: "Integrasjon mellom Salesforce og regnskap"
+seoTitle: "Integrasjon mellom Salesforce og ReAI: vunne salgsmuligheter til fakturering"
+description: "Hent vunne salgsmuligheter fra Salesforce og legg dem inn som ordrer i ReAI med produktene og kontoen som kunde. Gratis og åpen kildekode."
+summary: "Hent salgsmuligheter med status Closed Won og legg dem inn som ordrer i ReAI."
 industry: operations
 webAppUrl: /app/salesforce/
 sourcePath: web/worker/apps/salesforce.js
 highlights:
-  - "Bygget for norske bokførings- og MVA-regler i Enterprise B2B sales (CRM)"
-  - "Direkte kobling mot NS 4102 / ReAI Public API (Salesforce REST API -> ReAI)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser vunne salgsmuligheter fra Salesforce REST API med client credentials"
+  - "Én ordrelinje per produkt på salgsmuligheten, ellers beløpet"
+  - "Finner kunden på organisasjonsnummer eller navn, og hopper over salgsmuligheter som allerede er lagt inn"
 ---
 
-## Gratis integrasjon mellom Salesforce og ReAI
+## Dette kommer over i ReAI
 
-Koble **Salesforce** rett til ReAI i nettleseren på `apps.reai.no/app/salesforce/` uten dyre månedsgebyrer for eksterne integrasjonsbroer.
+Integrasjonen henter salgsmuligheter som er vunnet (*Closed Won*) med avslutningsdato i valgt periode. Når du klikker **Stage in ReAI**, blir salgsmuligheten en ordre i ReAI som du kontrollerer før fakturering.
 
-| Område | Detaljer |
+| Fra Salesforce | I ReAI |
 | --- | --- |
-| Bransje | Enterprise B2B sales (CRM) |
-| Kontoplan / API | `Salesforce REST API -> ReAI` |
-| Trygghet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Produkter på salgsmuligheten | Ordrelinjer med antall og totalpris, med standard MVA-kode |
+| Beløp, når det ikke finnes produkter | Én ordrelinje |
+| Konto | Kunde som finnes på organisasjonsnummer eller navn, ellers en ny bedriftskunde |
+| Salgsmulighetens ID | Ekstern referanse, slik at den ikke legges inn to ganger |
 
-## Kom i gang
+Salesforce har ikke noe standardfelt for organisasjonsnummer. Har dere et eget felt på kontoen, skriver du API-navnet, for eksempel `Organisasjonsnummer__c`.
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Klikk **Load sample** for å teste hvordan bilaget eller synken ser ut umiddelbart.
-3. Last opp eksporten fra Salesforce eller legg inn tall/API-nøkkel for å overføre direkte til ReAI.
+## Slik kommer du i gang
+
+1. Opprett en external client app (eller connected app) under **Setup** i Salesforce med OAuth-omfanget **api**.
+2. Slå på **Enable Client Credentials Flow** i OAuth-innstillingene og velg en bruker under **Run As** med lesetilgang til salgsmuligheter og kontoer.
+3. Kopier **Consumer Key** og **Consumer Secret**, og finn My Domain-adressen under **Setup → My Domain**.
+4. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+5. Fyll inn adressen, nøklene, periode og valuta, og hent salgsmulighetene.
+6. Kontroller linjene og legg inn ordrene du vil fakturere.
+
+Nøklene brukes bare til denne forespørselen og lagres aldri.

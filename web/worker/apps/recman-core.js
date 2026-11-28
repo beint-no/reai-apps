@@ -38,6 +38,15 @@ export const REAI_WAGE_CODES = [
 ];
 
 /**
+ * Returns a YYYY-MM-DD date or an empty string for values such as "ongoing".
+ * @param {unknown} v
+ */
+function isoDay(v) {
+  const d = String(v ?? '').slice(0, 10);
+  return /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d) && d !== '0000-00-00' ? d : '';
+}
+
+/**
  * Normalizes RecMan API v2 `data` / `lines` which may be either an array or an ID-keyed object.
  * @param {unknown} raw
  * @returns {any[]}
@@ -380,8 +389,9 @@ export function parseRecManCandidates(rawRows) {
       const name = [String(c.firstName ?? '').trim(), String(c.lastName ?? '').trim()].filter(Boolean).join(' ');
       const employments = recmanRows(c.employment).map((e) => ({
         employmentId: Number(e.employmentId ?? 0),
-        startDate: String(e.startDate ?? '').slice(0, 10),
-        endDate: String(e.endDate ?? '').slice(0, 10),
+        // RecMan sends endDate "ongoing" for open employments (Postman collection, Get Candidate's Fields).
+        startDate: isoDay(e.startDate),
+        endDate: isoDay(e.endDate),
         positionPercent: Number(e.positionPercent ?? 0),
         bankAccount: String(e.bankAccount ?? '').trim(),
         iban: String(e.iban ?? '').trim(),

@@ -1,23 +1,34 @@
 ---
-title: "Integrasjon mellom Shopware 6 og regnskap"
-seoTitle: "Shopware 6 regnskapsintegrasjon for ReAI — Gratis produkt- og salgssynk"
-description: "Koble Shopware 6 direkte til ReAI med OAuth-integrasjon for synkronisering av produkter og betalte ordrer — helt gratis."
-summary: "Koble til Shopware 6 Admin API for å synkronisere produkter og importere betalte ordrer til ReAI."
+title: "Integrasjon mellom Shopware og regnskap"
+seoTitle: "Integrasjon mellom Shopware 6 og ReAI: betalte ordrer til regnskap"
+description: "Hent betalte ordrer fra Shopware 6 og legg dem inn som ordrer i ReAI med varelinjer, frakt og MVA-sats. Gratis og åpen kildekode."
+summary: "Hent betalte Shopware-ordrer for en periode og legg dem inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/shopware/
 sourcePath: web/worker/apps/shopware.js
 highlights:
-  - "Logger på med Shopware 6 OAuth client credentials uten lagring av nøkler"
-  - "Henter produkter og ordrer via Shopware Search API"
-  - "Duplikatsjekker SKU og ordrenummer automatisk mot ReAI"
+  - "Leser betalte ordrer fra Shopware Admin API med en integrasjon"
+  - "Én ordrelinje per vare, rabatt og frakt, med MVA-satsen Shopware beregnet"
+  - "Finner eller oppretter kunden og hopper over ordrer som allerede er lagt inn"
 ---
 
-## Koble Shopware 6 rett til ReAI
+## Dette kommer over i ReAI
 
-Med en vanlig integrasjonsnøkkel i Shopware 6 kan du synkronisere varekatalogen og betalte ordrer rett inn i ReAI uten tredjeparts mellomvare.
+Integrasjonen henter ordrer med ordredato i valgt periode der betalingen har status *betalt*. Priser inklusive MVA regnes om til beløp uten MVA med skatten Shopware har beregnet per linje. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
 
-## Slik setter du opp Shopware 6
+| Fra Shopware | I ReAI |
+| --- | --- |
+| Varelinje og rabatt | Ordrelinje med antall, pris uten MVA og MVA-kode for satsen |
+| Frakt | Egen ordrelinje med fraktens MVA-sats |
+| Kunde | Kunde som finnes på e-post eller navn, ellers en ny kunde |
+| Ordre-ID | Ekstern referanse, slik at samme ordre ikke legges inn to ganger |
 
-1. Gå til **Settings → System → Integrations** i Shopware 6 Admin og opprett en nøkkel med lesetilgang til Products og Orders.
-2. Klikk **Åpne integrasjon**, koble til ReAI og lim inn butikkens URL, Access Key ID og Secret Access Key.
-3. Skann katalogen og synkroniser produkter og betalte ordrer.
+## Slik kommer du i gang
+
+1. Gå til **Innstillinger → System → Integrasjoner** i Shopware Administration og opprett en integrasjon med lesetilgang til ordrer.
+2. Kopier **tilgangsnøkkel-ID** og **hemmelig tilgangsnøkkel**. Den hemmelige nøkkelen vises bare når integrasjonen opprettes.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Fyll inn adressen til butikken, nøklene og perioden, og hent ordrene.
+5. Kontroller linjene og legg inn ordrene du vil fakturere eller bokføre i ReAI.
+
+Nøklene brukes bare til denne forespørselen og lagres aldri.

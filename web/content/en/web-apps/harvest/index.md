@@ -1,23 +1,24 @@
 ---
 title: "Harvest & Accounting Integration"
-seoTitle: "Harvest Timesheet Integration for ReAI — Project Hours Sync"
-description: "Import Harvest API v2 project hours into ReAI Timesheets for Norwegian invoicing, VAT and payroll. Free with ReAI."
-summary: "Fetch monthly project time entries from Harvest API v2 and import them directly into ReAI Timesheets."
+seoTitle: "Harvest Hours to ReAI | Free Integration"
+description: "Fetch project hours from the Harvest API v2 and post them to ReAI Timesheets for invoicing and payroll."
+summary: "Fetch Harvest time entries through API v2 and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/harvest/
 sourcePath: web/worker/apps/harvest.js
 highlights:
-  - "Connects to Harvest REST API v2 with Personal Access Token + Account ID"
-  - "Preserves project names and task notes as ReAI timesheet comments"
-  - "Free open-source integration included with every ReAI company"
+  - "Uses the Harvest API v2 with a Personal Access Token and Account ID"
+  - "Shows the Harvest project, user and notes"
+  - "Skips timers that are still running"
 ---
 
-## Bridge Harvest time tracking with Norwegian accounting in ReAI
+## Move Harvest hours into ReAI
 
-Harvest is popular among international design and engineering studios, while ReAI handles Norwegian MVA, EHF invoicing, A-melding and annual accounts. Sync your Harvest hours directly into ReAI Timesheets each month in seconds.
+The integration fetches finished time entries for a month from Harvest, with project, user and notes. You choose the employee and, if you like, the project in ReAI and post the entries one by one.
 
-## Step-by-step setup
+## Set up Harvest with ReAI
 
-1. Create a **Personal Access Token** at `id.getharvest.com/developers` and copy both Token and Account ID.
-2. Click **Open integration**, connect your ReAI company and choose employee, project and month.
-3. Review every entry and post directly into ReAI Timesheets.
+1. Create a **Personal Access Token** at `id.getharvest.com/developers` and copy the token and Account ID.
+2. Click **Open integration**, connect ReAI and choose the employee, project and month.
+3. Optionally enter a Harvest user ID to fetch one person's hours. Without it you get every entry the token can see.
+4. Review the hours and click **Post to ReAI** for each entry.

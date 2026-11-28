@@ -1,4 +1,5 @@
 // @ts-check
+import { fetchJson, isoDate } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -28,45 +29,62 @@ function validNorwegianOrg(value) {
   return check < 10 && check === Number(value[8]);
 }
 
+const PIPEDRIVE_API = 'https://api.pipedrive.com/api/v2';
+
 /**
+ * Reads every page of a Pipedrive API v2 list endpoint (cursor pagination, at most 500 items per page).
+ * @param {string} path
+ * @param {Record<string, string>} query
  * @param {string} token
+ * @param {import('../lib/api-http.js').FetchLike} fetchImpl
+ * @returns {Promise<any[]>}
+ */
+async function listAll(path, query, token, fetchImpl) {
+  /** @type {any[]} */
+  const all = [];
+  let cursor = '';
+  for (let page = 0; page < 20; page++) {
+    const params = new URLSearchParams({ ...query, limit: '500', ...(cursor ? { cursor } : {}) });
+    const body = await fetchJson(`${PIPEDRIVE_API}${path}?${params}`, { headers: { 'x-api-token': token, accept: 'application/json' } }, 'Pipedrive', fetchImpl);
+    if (Array.isArray(body?.data)) all.push(...body.data);
+    cursor = typeof body?.additional_data?.next_cursor === 'string' ? body.additional_data.next_cursor : '';
+    if (!cursor) return all;
+  }
+  return all;
+}
+
+/**
+ * Reads organizations and won deals from the Pipedrive API v2.
+ * Docs: https://developers.pipedrive.com/docs/api/v1/Organizations#getOrganizations (GET /api/v2/organizations),
+ * https://developers.pipedrive.com/docs/api/v1/Deals#getDeals (GET /api/v2/deals?status=won),
+ * https://pipedrive.readme.io/docs/how-to-find-the-api-token (personal token, sent as the x-api-token header per the v2 OpenAPI api_key scheme) and
+ * https://developers.pipedrive.com/changelog/post/deprecated-apiv1-endpoints-become-out-of-support (v1 lists replaced).
+ * @param {string} token
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ orgs: PipedriveOrg[], deals: PipedriveDeal[] }>}
  */
-async function fetchPipedrive(token) {
-  const [oRes, dRes] = await Promise.all([
-    fetch(`https://api.pipedrive.com/v1/organizations?limit=100&api_token=${encodeURIComponent(token)}`, {
-      headers: { accept: 'application/json' },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(20_000),
-    }),
-    fetch(`https://api.pipedrive.com/v1/deals?status=won&limit=50&api_token=${encodeURIComponent(token)}`, {
-      headers: { accept: 'application/json' },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(20_000),
-    }),
+export async function fetchApi(token, fetchImpl = fetch) {
+  const [orgRows, dealRows] = await Promise.all([
+    listAll('/organizations', {}, token, fetchImpl),
+    listAll('/deals', { status: 'won', sort_by: 'update_time', sort_direction: 'desc' }, token, fetchImpl),
   ]);
-  if (!oRes.ok || !dRes.ok) {
-    throw new HttpError(400, 'Pipedrive rejected this API token. Copy your personal API token from Settings → Personal preferences → API.');
-  }
-  const oBody = /** @type {{ data?: Array<any> }} */ (await oRes.json());
-  const dBody = /** @type {{ data?: Array<any> }} */ (await dRes.json());
-  const orgs = (oBody.data ?? [])
-    .map((o) => ({
-      id: Number(o.id),
-      name: String(o.name ?? '').trim(),
-      address: String(o.address ?? '').trim(),
-      country: 'NO',
-      orgnr: '',
-    }))
+  /** @type {Map<number, string>} */
+  const orgNames = new Map();
+  const orgs = orgRows
+    .map((o) => {
+      const name = String(o.name ?? '').trim();
+      orgNames.set(Number(o.id), name);
+      return { id: Number(o.id), name, address: String(o.address?.value ?? '').trim(), country: String(o.address?.country ?? '').trim(), orgnr: '' };
+    })
     .filter((o) => o.name.length > 0);
-  const deals = (dBody.data ?? [])
+  const deals = dealRows
     .map((d) => ({
       id: Number(d.id),
       title: String(d.title ?? `Deal #${d.id}`).trim(),
       value: Number(d.value ?? 0),
       currency: String(d.currency ?? 'NOK').toUpperCase(),
-      orgName: String(d.org_name ?? d.org_id?.name ?? '').trim(),
-      wonDate: String(d.won_time ?? new Date().toISOString()).slice(0, 10),
+      orgName: d.org_id ? (orgNames.get(Number(d.org_id)) ?? '') : '',
+      wonDate: isoDate(d.local_won_date ?? d.won_time),
     }))
     .filter((d) => d.value > 0);
   return { orgs, deals };
@@ -197,7 +215,7 @@ export async function handlePipedrive(request, env) {
           eyebrow: 'SCAN PIPEDRIVE',
           title: 'Connect a Pipedrive API token',
           body: html`
-            <p class="muted-note">Find your API token in Pipedrive under Settings → Personal preferences → API. Used only for this scan and never stored.</p>
+            <p class="muted-note">In Pipedrive, click your account name, then Company settings → Personal preferences → API, and copy your personal API token. Used only for this scan and never stored.</p>
             <form class="stack" hx-post="/app/pipedrive/scan" hx-target="#pd-output" hx-swap="innerHTML">
               <div class="inline-row">
                 <div class="field">
@@ -261,7 +279,7 @@ export async function handlePipedrive(request, env) {
         throw new HttpError(400, 'Enter your Pipedrive API token.');
       }
       const [pd, customersRaw] = await Promise.all([
-        fetchPipedrive(token),
+        fetchApi(token),
         reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
       ]);
       const customers = /** @type {ReAICustomer[]} */ (customersRaw);
@@ -309,6 +327,20 @@ export async function handlePipedrive(request, env) {
       if (!dealId || value <= 0 || customerId <= 0) {
         throw new HttpError(400, 'Valid deal ID, positive value and customer are required.');
       }
+      const externalReference = `pipedrive-deal-${dealId}`;
+      const existing = /** @type {{ items: Array<{ id: number | null }> }} */ (
+        await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, query: { externalReference, pageSize: '1' } })
+      );
+      const dupId = existing.items[0]?.id;
+      if (dupId) {
+        return htmlResponse(html`<tr>
+        <td><strong>${title}</strong></td>
+        <td>Customer #${customerId}</td>
+        <td class="mono">${wonDate}</td>
+        <td class="num">${formatMinor(Math.round(value * 100))} ${currency}</td>
+        <td><a href="${reaiOrigin(env)}/order/${dupId}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already staged #${dupId} ↗</a></td>
+      </tr>`);
+      }
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/orders', {
           token: session.accessToken,
@@ -320,7 +352,7 @@ export async function handlePipedrive(request, env) {
             daysUntilDue: 14,
             issueDate: wonDate,
             orderDate: wonDate,
-            externalReference: `pipedrive-deal-${dealId}`,
+            externalReference,
             comment: `Won in Pipedrive (#${dealId})`,
             orderLines: [{ itemName: title, quantity: 1, unitPrice: Number(value.toFixed(2)) }],
           },

@@ -1,23 +1,34 @@
 ---
-title: "Integrasjon mellom Wix Stores og regnskap"
-seoTitle: "Wix Stores regnskapsintegrasjon for ReAI — Gratis produkt- og salgssynk"
-description: "Koble Wix Stores gratis til ReAI for synkronisering av produkter og betalte nettbutikkordrer uten ekstra integrasjonskostnad."
-summary: "Synkroniser varekatalog og betalte ordrer fra Wix Stores direkte til ReAI."
+title: "Integrasjon mellom Wix og regnskap"
+seoTitle: "Integrasjon mellom Wix og ReAI: betalte nettbutikkordrer til regnskap"
+description: "Hent betalte ordrer fra Wix og legg dem inn som ordrer i ReAI med varelinjer, frakt og MVA-sats. Gratis og åpen kildekode."
+summary: "Hent betalte Wix-ordrer for en periode og legg dem inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/wix/
 sourcePath: web/worker/apps/wix.js
 highlights:
-  - "Bruker Wix Stores og Wix eCommerce REST API direkte"
-  - "Oppretter nye produkter med SKU og pris i ReAI"
-  - "Importerer betalte Wix-ordrer idempotent uten tilleggskostnad"
+  - "Leser betalte ordrer fra Wix eCommerce API med API-nøkkel og site ID"
+  - "Én ordrelinje per vare og frakt, med MVA-satsen Wix beregnet"
+  - "Finner eller oppretter kunden og hopper over ordrer som allerede er lagt inn"
 ---
 
-## Gratis Wix Stores-integrasjon til ReAI
+## Dette kommer over i ReAI
 
-Driver du nettbutikk på Wix Stores kan du synkronisere produkter og betalte ordrer direkte inn i ReAI uten betalt integrasjonstjeneste—og avstemme utbetalingene fra Stripe, PayPal eller Vipps i samme løsning.
+Integrasjonen henter betalte ordrer (betalingsstatus *Paid*) opprettet i valgt periode. Hver ordre vises med varelinjer og frakt, med beløp uten MVA. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
+
+| Fra Wix | I ReAI |
+| --- | --- |
+| Varelinje | Ordrelinje med antall, pris uten MVA og MVA-kode for satsen Wix beregnet |
+| Frakt | Egen ordrelinje med fraktens MVA-sats |
+| Kjøper | Kunde som finnes på e-post eller navn, ellers en ny kunde |
+| Ordre-ID | Ekstern referanse, slik at samme ordre ikke legges inn to ganger |
 
 ## Slik kommer du i gang
 
-1. Opprett en API-nøkkel i **Wix API Keys** med lesetilgang til *Wix Stores* og *Wix eCommerce*, og kopier *Site ID*.
-2. Klikk **Åpne integrasjon**, koble til ReAI og lim inn Site ID og API-nøkkel.
-3. Skann butikken for å opprette nye produkter og importere betalte ordrer.
+1. Åpne **API Keys Manager** i Wix-kontoen din og lag en API-nøkkel med tilgang til å lese ordrer i Wix eCommerce for nettstedet.
+2. Kopier site ID fra adressen til nettstedets dashbord. Den står etter `/dashboard/`.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Lim inn site ID og API-nøkkel, velg periode og hent ordrene.
+5. Kontroller linjene og legg inn ordrene du vil fakturere eller bokføre i ReAI.
+
+API-nøkkelen brukes bare til denne forespørselen og lagres aldri.

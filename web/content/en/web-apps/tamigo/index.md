@@ -1,29 +1,28 @@
 ---
-title: "Tamigo Workforce & Shift Sync"
-seoTitle: "Tamigo Workforce & Shift Sync for ReAI — Free Open-Source Connector"
-description: "Import approved Tamigo retail and service shift hours directly into ReAI Timesheets."
-summary: "Import approved Tamigo retail and service shift hours directly into ReAI Timesheets."
+title: "Tamigo & Accounting Integration"
+seoTitle: "Tamigo Timesheet Integration for ReAI: Worked Shifts to Timesheets"
+description: "Fetch worked shifts from the Tamigo timesheet and post them to ReAI Timesheets for the employee and project you choose. Free and open source."
+summary: "Fetch worked Tamigo shifts for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/tamigo/
 sourcePath: web/worker/apps/tamigo.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Retail & service workforce management (Turnus)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Reads worked hours through the Tamigo API with an application key"
+  - "Shows employee, department and shift time before anything is posted"
+  - "Posts each shift as a timesheet entry for the chosen ReAI employee and project"
 ---
 
-## How Tamigo integrates with ReAI
+## What moves into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **Tamigo** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/tamigo/` using ReAI's documented Public API.
+The integration reads the shifts in the Tamigo timesheet for all departments within the chosen period, at most 93 days at a time. Shifts without worked hours are left out. You can limit it to one employee by name or Tamigo employee ID. Each line shows date, employee, department, shift time and hours.
 
-| Dimension | Mapping in ReAI |
-| --- | --- |
-| Target industry | Retail & service workforce management (Turnus) |
-| Norwegian ledger / API | `POST /api/timesheets` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+You post lines one by one to ReAI Timesheets for the employee and project you choose.
 
-## Getting started
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your Tamigo export or enter your credentials/settlement totals to post directly into ReAI.
+1. Sign in to Tamigo as an administrator and open **Configuration → Web Services (API)**. Enter an application name, for example ReAI, and choose **Create Key**.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Enter the application name, the key and the period, then choose the ReAI employee and an optional project.
+4. Check the hours and click **Post to ReAI** on the lines you want to record.
+
+The key is used only for that request and is never stored.

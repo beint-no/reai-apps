@@ -1,30 +1,34 @@
 ---
 title: "Switch from Fiken to ReAI"
-seoTitle: "Switch from Fiken to ReAI — Free Open-Source ReAI Integration"
-description: "Connect your Fiken API token or CSV exports to migrate contacts, suppliers and products straight into ReAI."
-summary: "Connect your Fiken API token or CSV exports to migrate contacts, suppliers and products straight into ReAI."
+seoTitle: "Switch from Fiken to ReAI: customers and suppliers from SAF-T"
+description: "Upload the SAF-T file from Fiken and move customers and suppliers into ReAI with their customer numbers, supplier numbers and organization numbers."
+summary: "Move customers and suppliers from Fiken to ReAI with the SAF-T file."
 industry: operations
 webAppUrl: /app/fiken-migrate/
 sourcePath: web/worker/apps/fiken-migrate.js
 highlights:
-  - "Built for Norwegian bookkeeping rules (Accounting migration (Fiken -> ReAI))"
-  - "Direct integration with ReAI Public API (Fiken API v2 -> POST /api/customers, /api/suppliers, /api/products)"
-  - "Included free with ReAI — MIT open source with 1-click sample preview"
+  - "Reads customers and suppliers from SAF-T Financial, the standard format from the Norwegian Tax Administration"
+  - "Keeps customer numbers, supplier numbers, organization numbers and email addresses"
+  - "Skips contacts that already exist in ReAI with the same organization number"
 ---
 
-## How Switch from Fiken to ReAI works with ReAI
+## What moves into ReAI
 
-Use **Switch from Fiken to ReAI** directly in your browser at `apps.reai.no/app/fiken-migrate/` with zero add-on fees.
+The integration reads the customer and supplier register in the SAF-T file and lists every contact before anything is sent to ReAI. You import each contact with one click. When the organization number already exists in ReAI, no new contact is created.
 
-| Dimension | Details |
+| From SAF-T | In ReAI |
 | --- | --- |
-| **Workflow** | Accounting migration (Fiken -> ReAI) |
-| **ReAI API / NS 4102** | `Fiken API v2 -> POST /api/customers, /api/suppliers, /api/products` |
-| **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/fiken-migrate.js`) |
+| Customer with customer number | Customer with the same number |
+| Supplier with supplier number | Supplier with the same number |
+| Organization number and email | Organization number and email on the contact |
 
-## Getting started
+Book the opening balance from the same file in the [SAF-T tool](/app/saft/). Products are not part of the SAF-T file, so add them in ReAI or import them from a product list.
 
-1. Open [apps.reai.no/app/fiken-migrate/](/app/fiken-migrate/) and click **Connect to ReAI**.
-2. Try the built-in **Load sample** button or connect your live account/export.
-3. Verify the preview table and push directly to your ReAI company.
+## Setup
+
+1. Export the SAF-T file (SAF-T Financial) for the latest financial year from Fiken. Search for SAF-T in the Fiken help centre if you cannot find the export. Unzip it if you get a ZIP file.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Upload the XML file and check the list of customers and suppliers.
+4. Click **Import to ReAI** on the contacts you want to move.
+
+The file is read only for that request and is never stored.

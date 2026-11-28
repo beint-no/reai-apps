@@ -13,6 +13,7 @@ import {
   monthBounds,
 } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
+import { pairVoucherRows } from '../lib/voucher-rows.js';
 
 const CFG = {
   "brand": "Dintero",
@@ -43,9 +44,10 @@ const CFG = {
  * @param {string} url
  * @param {RequestInit} init
  * @param {string} errPrefix
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  */
-async function providerJson(url, init, errPrefix) {
-  const res = await fetch(url, {
+async function providerJson(url, init, errPrefix, fetchImpl = fetch) {
+  const res = await fetchImpl(url, {
     ...init,
     redirect: 'manual',
     signal: AbortSignal.timeout(25_000),
@@ -58,19 +60,19 @@ async function providerJson(url, init, errPrefix) {
 }
 
 /**
+ * Lists paid Dintero settlements for a month.
+ * Docs: https://docs.dintero.com/docs/checkout/checkout-client.md (Backoffice API client, client credentials),
+ * https://docs.dintero.com/api-reference/authenticate/aid_auths_oauth_token_post.md (POST /accounts/{aid}/auth/token
+ * with Basic client_id:client_secret and audience), https://docs.dintero.com/api-reference/settlements/aid_settlements_list.md
+ * (GET /accounts/{aid}/settlements: limit, created_at.gte/lte on settled_at, starting_after_id/date paging,
+ * items[].amounts[] with amount = capture - refund - fee in minor units, payment_status paid or postponed).
  * @param {Record<string, string>} fields
  * @param {string} start
  * @param {string} end
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
  */
-
-/**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
- */
-async function fetchDinteroSettlements(fields, start, end) {
+export async function fetchApi(fields, start, end, fetchImpl = fetch) {
   const account = fields.accountID ?? '';
   if (!/^[PT][0-9]{8}$/.test(account)) {
     throw new HttpError(400, 'Enter a valid Dintero account ID (P12345678 or T12345678).');
@@ -85,6 +87,7 @@ async function fetchDinteroSettlements(fields, start, end) {
       body: JSON.stringify({ grant_type: 'client_credentials', audience: base }),
     },
     'Dintero',
+    fetchImpl,
   );
   if (!tokRes.ok || !tokRes.data?.access_token) {
     throw new HttpError(400, 'Dintero rejected these credentials. Check settlement report permissions.');
@@ -108,7 +111,7 @@ async function fetchDinteroSettlements(fields, start, end) {
       url.searchParams.set('starting_after_id', cursor.id);
       url.searchParams.set('starting_after_date', cursor.settled_at);
     }
-    const r = await providerJson(url.toString(), { headers }, 'Dintero');
+    const r = await providerJson(url.toString(), { headers }, 'Dintero', fetchImpl);
     if (!r.ok) {
       throw new HttpError(400, `Dintero settlements returned HTTP ${r.status}.`);
     }
@@ -142,14 +145,6 @@ async function fetchDinteroSettlements(fields, start, end) {
   }
   return payouts;
 }
-
-/**
- * Fetches SumUp payouts for a merchant code and date range.
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
- */
 
 /**
  * @returns {{ payouts: import('../lib/reconcile.js').PayoutItem[], bankTx: import('../lib/reconcile.js').BankTx[], month: string, currency: string }}
@@ -332,7 +327,7 @@ export async function handle(request, env) {
         fields[f.key] = val;
       }
       const [fetched, bankTx] = await Promise.all([
-        fetchDinteroSettlements(fields, bounds.start, bounds.end),
+        fetchApi(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));
@@ -389,10 +384,10 @@ export async function handle(request, env) {
             date: bounds.lastDay,
             description: marker,
             reviewReason: 'Verify Dintero payout reports, invoicing, fee VAT treatment, and the payout clearing account before finalizing.',
-            postings: [
-              { accountNumber: expense, postingDate: bounds.lastDay, currencyCode: company.currencyCode, amount, vatCode: '0', rowNumber: 0, description: marker },
-              { accountNumber: clearing, postingDate: bounds.lastDay, currencyCode: company.currencyCode, amount: -amount, vatCode: '0', rowNumber: 1, description: marker },
-            ],
+            postings: pairVoucherRows([
+              { accountNumber: expense, postingDate: bounds.lastDay, currencyCode: company.currencyCode, amount, vatCode: '0', description: marker },
+              { accountNumber: clearing, postingDate: bounds.lastDay, currencyCode: company.currencyCode, amount: -amount, vatCode: '0', description: marker },
+            ]).map((p) => ({ ...p, description: marker })),
           },
         })
       );

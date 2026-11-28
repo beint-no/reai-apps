@@ -1,29 +1,26 @@
 ---
-title: "Visma Severa Consulting Hours Sync"
-seoTitle: "Visma Severa Consulting Hours Sync — Free Open-Source ReAI Integration"
-description: "Import approved billable consulting and agency project hours from Visma Severa straight into ReAI Timesheets."
-summary: "Import approved billable consulting and agency project hours from Visma Severa straight into ReAI Timesheets."
+title: "Severa & Accounting Integration"
+seoTitle: "Severa Timesheet Integration for ReAI: Work Hours to Timesheets"
+description: "Fetch work hours from the Severa REST API and post them to ReAI Timesheets for the employee and project you choose. Free and open source."
+summary: "Fetch Severa work hours for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/severa/
 sourcePath: web/worker/apps/severa.js
 highlights:
-  - "Tailored to Norwegian VAT & bookkeeping rules for Consulting & professional services (Konsulent)"
-  - "Direct mapping to NS 4102 / ReAI Public API (POST /api/timesheets)"
-  - "Included free with ReAI — MIT open source with instant 1-click sample preview"
+  - "Reads work hours through the Severa REST API with a client ID and client secret"
+  - "Shows date, user, project and phase before anything is posted"
+  - "Posts each line as a timesheet entry for the chosen ReAI employee and project"
 ---
 
-## How Severa integrates with ReAI
+## What moves into ReAI
 
-Connect **Severa** directly to ReAI in your browser at `apps.reai.no/app/severa/` without paying monthly third-party connector fees.
+The integration reads the Severa (formerly Visma Severa) work hours dated within the chosen period, at most 93 days at a time. You can limit it to one Severa user. Each line shows date, user, project with phase, comment and hours. You post lines one by one to ReAI Timesheets for the employee and project you choose.
 
-| Dimension | Details |
-| --- | --- |
-| Vertical | Consulting & professional services (Konsulent) |
-| Norwegian ledger / API | `POST /api/timesheets` |
-| Safety | Preview before posting, duplicate protection & review-first accounting |
+## Setup
 
-## Quick start
+1. Sign in to Severa as an administrator and open **Settings → REST API**. Accept the terms the first time and choose **Create client credentials**. Give the client the **hours:read** scope. If the menu is missing, the REST API add-on must be enabled for the account.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Enter the client ID, the client secret and the period, then choose the ReAI employee and an optional project.
+4. Check the hours and click **Post to ReAI** on the lines you want to record.
 
-1. Click **Open integration** above and connect your ReAI company.
-2. Click **Load sample** to preview the exact accounting voucher or sync output in seconds.
-3. Upload your Severa file or enter your totals/API token to sync straight into ReAI.
+The client secret is used only for that request and is never stored.

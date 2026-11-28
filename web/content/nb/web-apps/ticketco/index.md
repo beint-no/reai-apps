@@ -1,29 +1,35 @@
 ---
 title: "Integrasjon mellom TicketCo og regnskap"
-seoTitle: "Integrasjon mellom TicketCo og regnskap — Gratis integrasjon for ReAI"
-description: "Bokfør oppgjørsrapporter fra TicketCo i ReAI med splitt mellom avgiftsfrie kultur- og konsertbilletter (3100), 25 % salg og gebyrer."
-summary: "Bokfør oppgjørsrapporter fra TicketCo i ReAI med splitt mellom avgiftsfrie kultur- og konsertbilletter (3100), 25 % salg og gebyrer."
+seoTitle: "Integrasjon mellom TicketCo og ReAI: billettsalg til regnskap"
+description: "Bokfør billettsalg fra TicketCo som bilag til kontroll i ReAI, med salg per MVA-sats, gebyrer og tilgode hos TicketCo. Gratis og åpen kildekode."
+summary: "Hent transaksjonene fra TicketCo for en periode eller ett arrangement og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/ticketco/
 sourcePath: web/worker/apps/ticketco.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Festivals, venues & culture (Arrangement)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (3100 (0%), 3000 (25%), 7770)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser billettransaksjoner fra TicketCo Public API"
+  - "Fører salg inklusive MVA med riktig MVA-kode, også for avgiftsfrie billetter"
+  - "Lager et bilag til kontroll som du godkjenner, med sperre mot dobbel føring"
 ---
 
-## Slik kobler du TicketCo til ReAI uten tilleggskostnad
+## Dette kommer over i ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **TicketCo** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/ticketco/`.
+Integrasjonen henter alle billettransaksjoner i valgt periode, eventuelt for ett arrangement, og summerer dem per MVA-sats. Refusjoner trekkes fra. Bilaget dateres siste dag i perioden. Ingenting bokføres før du har kontrollert forhåndsvisningen og opprettet bilaget.
 
-| Område | Oppsett i ReAI |
+| Linje | Konto i ReAI |
 | --- | --- |
-| Bransje | Festivals, venues & culture (Arrangement) |
-| Kontoplan / API | `3100 (0%), 3000 (25%), 7770` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Tilgode hos TicketCo (salg minus gebyrer) | `1580` |
+| TicketCo-gebyrer | `7770`, med inngående MVA når TicketCo oppgir MVA på gebyret |
+| Billettsalg uten MVA | `3100`, med kode for unntatt omsetning |
+| Billettsalg med 25 %, 15 % eller 12 % MVA | `3000`, `3010` eller `3020`, ført inklusive MVA med utgående MVA-kode |
 
-## Kom i gang på 2 minutter
+ReAI deler hvert salgsbeløp i grunnlag og MVA. Tilgodebeløpet blir stående på `1580` til utbetalingen fra TicketCo avstemmes mot banken.
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra TicketCo og overfør direkte til ReAI.
+## Slik kommer du i gang
+
+1. Send en e-post til TicketCo på **cs@ticketco.net** fra e-postadressen som er knyttet til TicketCo-brukeren din, og be om en API-token med tilgang til transaksjonsdata (*item grosses*).
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Lim inn tokenet, velg periode og eventuelt arrangement-ID, og hent transaksjonene.
+4. Kontroller forhåndsvisningen mot oppgjørsrapporten i TicketCo, kryss av for bekreftelse og opprett bilaget. Legg ved rapporten i ReAI.
+
+Tokenet brukes bare til denne forespørselen og lagres aldri.

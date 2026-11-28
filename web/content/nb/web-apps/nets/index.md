@@ -1,30 +1,32 @@
 ---
-title: "Integrasjon mellom Nets Easy og regnskap"
-seoTitle: "Nets Easy / Nexi Checkout regnskapsintegrasjon for ReAI — Gratis"
-description: "Avstem utbetalinger fra Nets Easy (Nexi Checkout) mot bank i ReAI helt gratis. Guide til bokføring av nettbetaling, MVA og kortgebyrer."
-summary: "Match utbetalinger fra Nets Easy / Nexi mot banktransaksjoner i ReAI og last ned ferdig avstemmings-CSV."
+title: "Integrasjon mellom Nexi Checkout og regnskap"
+seoTitle: "Nexi Checkout (tidligere Nets Easy) og ReAI: avstem utbetalinger"
+description: "Hent utbetalingene fra Nexi Checkout for en måned og avstem dem mot banktransaksjonene i ReAI. Gratis og åpen kildekode."
+summary: "Avstem utbetalinger fra Nexi Checkout, tidligere Nets Easy, mot banken i ReAI og last ned avstemmingen som CSV."
 industry: payments
 webAppUrl: /app/nets/
 sourcePath: web/worker/apps/nets.js
 highlights:
-  - "Henter utbetalinger direkte fra Nets Easy Reporting API per måned"
-  - "Matcher bankinnskudd mot referanser og beløp (±8 dager)"
-  - "0 kr i månedlig integrasjonsgebyr — inkludert gratis i ReAI"
+  - "Leser utbetalinger fra Nexi Checkout Reporting API med den hemmelige nøkkelen"
+  - "Viser beløp, gebyr og referanse for hver utbetaling"
+  - "Matcher utbetalingene mot ventende banktransaksjoner i ReAI"
 ---
 
-## Hvordan bokføres Nets Easy i regnskapet?
+## Dette gjør integrasjonen
 
-Nets Easy (Nexi Checkout) samler kortbetalinger og nettbetalinger i felles utbetalinger til bedriftskontoen. For å sikre ryddig avstemming etter bokføringsloven bør hver utbetaling matches mot innskuddet på konto `1920`.
+Integrasjonen henter utbetalingene for valgt måned fra Nexi Checkout Reporting API. Hver utbetaling vises med dato, referanse, utbetalt beløp og gebyrene Nexi har trukket. Har du valgt en bankkonto i ReAI, matches utbetalingene mot ventende banktransaksjoner på referanse eller beløp. Ingenting bokføres. Du kan laste ned avstemmingen som CSV til månedsavslutningen.
 
-| Postering | Typisk norsk konto | Forklaring |
-| --- | --- | --- |
-| Salgsinntekt nettbutikk | `3000` (+ MVA `2700`) | Bokføres fra ordre/faktura |
-| Mellomregning Nets Easy | `1580` | Utligner tidsforskjell mellom salg og utbetaling |
-| Transaksjonsgebyrer | `7770` (MVA-kode `0`) | Gebyr for betalingstjenester (unntatt MVA) |
-| Utbetaling til bank | `1920` | Avstemmes mot utbetalingsrapport fra Nets |
+| Postering | Vanlig konto |
+| --- | --- |
+| Mellomregning for kortsalg på nett | `1580` |
+| Gebyrer fra Nexi | `7770` |
+| Utbetaling til bank | `1920` |
 
 ## Slik kommer du i gang
 
-1. Finn din **Secret API key** i Nets Easy / Nexi-portalen (med tilgang til Reporting API).
-2. Klikk **Åpne integrasjon**, koble til ReAI-selskapet ditt og velg bankkonto og måned.
-3. Kontroller alle matchede utbetalinger og last ned avstemmingsrapporten som dokumentasjon.
+1. Logg inn i Nexi Checkout portalen, åpne **Company → Integration** og kopier den hemmelige nøkkelen for live (den starter med `live-secret-key-`).
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Lim inn nøkkelen, velg måned og eventuelt bankkonto. Merchant number trengs bare for partnernøkler.
+4. Kontroller matchene og last ned CSV ved behov.
+
+Nøkkelen brukes bare til denne ene forespørselen og lagres aldri.

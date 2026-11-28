@@ -1,29 +1,34 @@
 ---
-title: "Integrasjon mellom Two B2B og regnskap"
-seoTitle: "Integrasjon mellom Two B2B og regnskap — Gratis open source-integrasjon for ReAI"
-description: "Avstem og bokfør utbetalinger fra Two B2B-faktura og checkout i ReAI med automatisk fordeling av gebyr (7770) og netto oppgjør."
-summary: "Avstem og bokfør utbetalinger fra Two B2B-faktura og checkout i ReAI med automatisk fordeling av gebyr (7770) og netto oppgjør."
+title: "Integrasjon mellom Two og regnskap"
+seoTitle: "Integrasjon mellom Two og ReAI: utbetalinger til regnskap"
+description: "Hent oppgjørsrapporten fra Two og bokfør hver utbetaling som bilag til kontroll i ReAI, med fakturabeløp, gebyr og netto utbetaling. Gratis og åpen kildekode."
+summary: "Hent oppgjørsrapporten fra Two for en periode og lag ett balansert bilag til kontroll i ReAI per utbetaling."
 industry: payments
 webAppUrl: /app/two/
 sourcePath: web/worker/apps/two.js
 highlights:
-  - "Bygget for norske bokførings- og MVA-regler i B2B ecommerce & wholesale (B2B-betaling)"
-  - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 1579, 7770)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser oppgjørsrapporten fra Two API med din egen API-nøkkel"
+  - "Ett bilag per utbetaling, gruppert på betalingsreferansen fra Two"
+  - "Lager et bilag til kontroll med sperre mot dobbel føring"
 ---
 
-## Gratis integrasjon mellom Two B2B og ReAI
+## Dette kommer over i ReAI
 
-Koble **Two B2B** rett til ReAI i nettleseren på `apps.reai.no/app/two/` uten dyre månedsgebyrer for eksterne integrasjonsbroer.
+Integrasjonen henter oppgjørsrapporten fra Two for perioden du velger og samler linjene per betalingsreferanse. Bare linjer som Two har betalt ut tas med. For hver utbetaling ser du ett bilag:
 
-| Område | Detaljer |
+| Linje | Konto i ReAI |
 | --- | --- |
-| Bransje | B2B ecommerce & wholesale (B2B-betaling) |
-| Kontoplan / API | `1580, 1579, 7770` |
-| Trygghet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Netto utbetaling | `1580`, eller kontoen du velger, til den avstemmes mot banken |
+| Gebyr til Two | `7770`, med inngående MVA hvis rapporten oppgir MVA på gebyret |
+| Fakturaer Two har betalt ut, brutto | `1579`, eller kontoen der du fører fordringen på Two |
 
-## Kom i gang
+Kreditnotaer i rapporten trekkes fra i samme utbetaling. Bare oppgjør i NOK tas med.
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Klikk **Load sample** for å teste hvordan bilaget eller synken ser ut umiddelbart.
-3. Last opp eksporten fra Two B2B eller legg inn tall/API-nøkkel for å overføre direkte til ReAI.
+## Slik kommer du i gang
+
+1. Logg inn i Two Merchant Portal, gå til **Settings → Integration**, velg fanen **Production** og klikk **Create key**. Bare administratorer kan lage nøkler for produksjon.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Lim inn API-nøkkelen, velg periode og kontroller kontoene.
+4. Kontroller hver utbetaling mot oppgjørsrapporten i Two, kryss av for bekreftelse og opprett bilaget.
+
+API-nøkkelen brukes bare til denne ene forespørselen og lagres aldri.

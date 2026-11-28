@@ -1,29 +1,35 @@
 ---
-title: "Favrit Restaurant POS & Accounting"
-seoTitle: "Favrit Restaurant POS & Accounting for ReAI — Free Open-Source Connector"
-description: "Book daily Favrit QR-ordering and restaurant settlements into ReAI splitting 25% dine-in, 15% takeaway, tips (2930) and fees."
-summary: "Book daily Favrit QR-ordering and restaurant settlements into ReAI splitting 25% dine-in, 15% takeaway, tips (2930) and fees."
+title: "Favrit & Accounting Integration"
+seoTitle: "Favrit Accounting Integration for ReAI: Settlement Reports"
+description: "Book Favrit settlements in ReAI as review vouchers, with sales per account and VAT rate, tips and payment fees. Free and open source."
+summary: "Fetch the Favrit settlements for one day and create one balanced review voucher in ReAI."
 industry: payments
 webAppUrl: /app/favrit/
 sourcePath: web/worker/apps/favrit.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Restaurants, bars & cafés (Servering)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (3000 (25%), 3010 (15%), 2930 (Tips))"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Reads settlement reports through the Favrit Accounting API with a client id and secret"
+  - "Keeps the sales accounts from Favrit and posts sales with the matching ReAI output VAT code"
+  - "Creates a review voucher in ReAI that you confirm, with a duplicate check per day"
 ---
 
-## How Favrit integrates with ReAI
+## What moves into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **Favrit** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/favrit/` using ReAI's documented Public API.
+The integration reads the settlements Favrit created on the chosen day for one location, with the accounting report for each settlement. Nothing is booked until you check the preview and create the review voucher.
 
-| Dimension | Mapping in ReAI |
+| Line | Account in ReAI |
 | --- | --- |
-| Target industry | Restaurants, bars & cafés (Servering) |
-| Norwegian ledger / API | `3000 (25%), 3010 (15%), 2930 (Tips)` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+| Sales per account and VAT rate | The account reference from Favrit, posted including VAT with the ReAI output VAT code |
+| Delivery fee | `3000` with 25 % VAT |
+| Tips | `2930` |
+| Payment fees | `7770` |
+| Payout from Favrit | `1580` for bank matching |
 
-## Getting started
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your Favrit export or enter your credentials/settlement totals to post directly into ReAI.
+1. Sign in to Favrit admin, choose a location and open **Company Settings → Integration**.
+2. Under **Developer**, choose **Integrate to Favrit**, tick **prod/accounting** and preferably **prod/user**, and click **Create Client APP**. Copy the **ClientId** and **SecretId**.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Enter the ClientId, the SecretId and the date. If you have more than one location, also enter the location id.
+5. Check the preview against the settlement report in Favrit, tick the confirmation box and create the review voucher.
+
+The credentials are used only for that request and are never stored.

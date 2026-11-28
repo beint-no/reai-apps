@@ -1,29 +1,37 @@
 ---
-title: "Salesforce CRM & Accounting Sync"
-seoTitle: "Salesforce CRM & Accounting Sync — Free Open-Source ReAI Integration"
-description: "Connect Salesforce REST API to scan Accounts and Closed-Won Opportunities for Norwegian invoicing in ReAI."
-summary: "Connect Salesforce REST API to scan Accounts and Closed-Won Opportunities for Norwegian invoicing in ReAI."
+title: "Salesforce & Accounting Integration"
+seoTitle: "Salesforce Accounting Integration for ReAI: Won Opportunities to Invoicing"
+description: "Fetch won Salesforce opportunities and stage them as ReAI orders with their products and the account as customer. Free and open source."
+summary: "Fetch Closed Won opportunities and stage them as orders in ReAI."
 industry: operations
 webAppUrl: /app/salesforce/
 sourcePath: web/worker/apps/salesforce.js
 highlights:
-  - "Tailored to Norwegian VAT & bookkeeping rules for Enterprise B2B sales (CRM)"
-  - "Direct mapping to NS 4102 / ReAI Public API (Salesforce REST API -> ReAI)"
-  - "Included free with ReAI — MIT open source with instant 1-click sample preview"
+  - "Reads won opportunities through the Salesforce REST API with client credentials"
+  - "One order line per opportunity product, otherwise the amount"
+  - "Matches the customer by organization number or name and skips opportunities that are already staged"
 ---
 
-## How Salesforce integrates with ReAI
+## What moves into ReAI
 
-Connect **Salesforce** directly to ReAI in your browser at `apps.reai.no/app/salesforce/` without paying monthly third-party connector fees.
+The integration fetches won (*Closed Won*) opportunities with a close date in the chosen period. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
-| Dimension | Details |
+| From Salesforce | In ReAI |
 | --- | --- |
-| Vertical | Enterprise B2B sales (CRM) |
-| Norwegian ledger / API | `Salesforce REST API -> ReAI` |
-| Safety | Preview before posting, duplicate protection & review-first accounting |
+| Opportunity products | Order lines with quantity and total price, with the default VAT code |
+| Amount, when there are no products | One order line |
+| Account | Customer matched by organization number or name, or a new company customer |
+| Opportunity ID | External reference, so it is not staged twice |
 
-## Quick start
+Salesforce has no standard field for the Norwegian organization number. If your accounts have a custom field, enter its API name, for example `Organisasjonsnummer__c`.
 
-1. Click **Open integration** above and connect your ReAI company.
-2. Click **Load sample** to preview the exact accounting voucher or sync output in seconds.
-3. Upload your Salesforce file or enter your totals/API token to sync straight into ReAI.
+## Setup
+
+1. In Salesforce **Setup**, create an external client app (or connected app) with the OAuth scope **api**.
+2. Turn on **Enable Client Credentials Flow** in the OAuth settings and choose a **Run As** user who can read opportunities and accounts.
+3. Copy the **Consumer Key** and **Consumer Secret**, and find your My Domain URL under **Setup → My Domain**.
+4. Click **Open integration**, connect ReAI and choose the company.
+5. Enter the URL, the keys, the period and the currency, and fetch the opportunities.
+6. Check the lines and stage the orders you want to invoice.
+
+The keys are used only for that request and are never stored.

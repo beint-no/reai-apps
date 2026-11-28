@@ -1,5 +1,5 @@
 // @ts-check
-import { assertPublicHttpsUrl } from '../lib/api-http.js';
+import { assertPublicHttpsUrl, fetchJson, isoDate, num } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -10,36 +10,62 @@ import { extractNorwegianOrg } from './recman-core.js';
 
 /**
  * @typedef {{ id: string, name: string, orgnr: string, city: string }} CrmCompany
- * @typedef {{ id: string, title: string, companyName: string, value: number, date: string }} CrmSale
+ * @typedef {{ id: string, title: string, companyId: string, companyName: string, value: number, date: string }} CrmSale
  * @typedef {{ id: number, name?: string | null, organizationNumber?: string | null }} ReAICust
  */
 
 /**
- * @param {string} baseUrl
- * @param {string} token
+ * Reads the list envelope of a Limeobject collection: HAL `_embedded.limeobjects`, or a plain array as in the
+ * published example specification.
+ * @param {any} body
+ * @returns {any[]}
+ */
+function limeobjects(body) {
+  if (Array.isArray(body)) return body;
+  return Array.isArray(body?._embedded?.limeobjects) ? body._embedded.limeobjects : [];
+}
+
+/**
+ * Normalizes the Lime CRM application URL to its Limeobject API root.
+ * @param {string} raw e.g. https://customer.lime-crm.com/lime-crm or .../api/v1/
+ */
+export function limeobjectRoot(raw) {
+  const parsed = assertPublicHttpsUrl(raw);
+  const app = parsed.pathname.replace(/\/+$/, '').replace(/\/api\/v1(\/(limeobject|docs))?$/i, '');
+  return `${parsed.origin}${app}/api/v1/limeobject`;
+}
+
+/**
+ * Fetches won Lime CRM deals and their companies with the Limeobject API.
+ * Docs: https://docs.lime-crm.com/integration/rest-apis/start (x-api-key header, API users in LISA,
+ * interactive docs at <application>/api/v1/docs/) and the example Limeobject specification
+ * http://static.lime-crm.com/crm-api-docs/spec/limeobject (GET /deal/ with filters such as dealstatus and
+ * min-closeddate, _sort and _limit up to 50; GET /company/{id}/; deal fields name, company, value, dealstatus,
+ * closeddate; company fields name, registrationno, visitingcity). Property names follow the standard Lime CRM
+ * data model and can differ in customized applications.
+ * @param {Record<string, string>} creds
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ companies: CrmCompany[], sales: CrmSale[] }>}
  */
-async function fetchCrm(baseUrl, token) {
-  const parsed = assertPublicHttpsUrl(baseUrl);
-  const base = parsed.origin + parsed.pathname.replace(/\/+$/, '');
-  const headers = { 'x-api-key': token, accept: 'application/json' };
-  const [cUrl, sUrl] = [`${base}/company/?_limit=50`, `${base}/deal/?_limit=50`];
-  const [cRes, sRes] = await Promise.all([
-    fetch(cUrl, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) }),
-    fetch(sUrl, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) }),
-  ]);
-  if (!cRes.ok || !sRes.ok) throw new HttpError(400, `Lime CRM rejected the URL or API credentials (HTTP ${!cRes.ok ? cRes.status : sRes.status}).`);
-  const cJson = /** @type {any} */ (await cRes.json());
-  const sJson = /** @type {any} */ (await sRes.json());
-  const cArr = Array.isArray(cJson.value) ? cJson.value : Array.isArray(cJson._embedded?.limeobject) ? cJson._embedded.limeobject : Array.isArray(cJson) ? cJson : [];
-  const sArr = Array.isArray(sJson.value) ? sJson.value : Array.isArray(sJson._embedded?.limeobject) ? sJson._embedded.limeobject : Array.isArray(sJson) ? sJson : [];
-  const companies = cArr
-    .map((/** @type {any} */ c) => ({ id: String(c.ContactId ?? c._id ?? c.id ?? ''), name: String(c.Name ?? c.name ?? '').trim(), orgnr: extractNorwegianOrg(String(c.OrgNr ?? c.orgnr ?? c.registrationno ?? '')), city: String(c.City ?? c.visitingcity ?? c.city ?? '').trim() }))
-    .filter((/** @type {CrmCompany} */ x) => x.name.length > 0);
-  const sales = sArr
-    .map((/** @type {any} */ s) => ({ id: String(s.SaleId ?? s._id ?? s.id ?? ''), title: String(s.Heading ?? s.name ?? s.title ?? 'CRM Deal').trim(), companyName: String(s.ContactName ?? s.company?.name ?? '').trim(), value: Number(s.Amount ?? s.value ?? 0), date: String(s.Saledate ?? s.closeddate ?? new Date().toISOString()).slice(0, 10) }))
-    .filter((/** @type {CrmSale} */ x) => x.value > 0);
-  return { companies, sales };
+export async function fetchApi(creds, fetchImpl = fetch) {
+  const root = limeobjectRoot(creds.baseUrl ?? '');
+  const key = (creds.apiToken ?? '').trim();
+  if (!key) throw new HttpError(400, 'Enter the Lime CRM API key.');
+  const since = isoDate(creds.since, `${new Date().toISOString().slice(0, 7)}-01`);
+  const headers = { 'x-api-key': key, accept: 'application/hal+json, application/json' };
+  const query = new URLSearchParams({ dealstatus: 'agreement', 'min-closeddate': since, _sort: '-closeddate', _limit: '50' });
+  const deals = limeobjects(await fetchJson(`${root}/deal/?${query}`, { headers }, 'Lime CRM', fetchImpl));
+  /** @type {Map<string, CrmCompany>} */
+  const companies = new Map();
+  for (const id of [...new Set(deals.map((d) => String(d.company ?? '')).filter((id) => /^[0-9]+$/.test(id)))]) {
+    const c = await fetchJson(`${root}/company/${id}/`, { headers }, 'Lime CRM', fetchImpl);
+    const name = String(c?.name ?? '').trim();
+    if (name) companies.set(id, { id, name, orgnr: extractNorwegianOrg(String(c.registrationno ?? '')), city: String(c.visitingcity ?? c.postalcity ?? '').trim() });
+  }
+  const sales = deals
+    .map((d) => ({ id: String(d.id ?? ''), title: String(d.name ?? '').trim() || `Lime deal ${d.id}`, companyId: String(d.company ?? ''), companyName: companies.get(String(d.company ?? ''))?.name ?? '', value: Number(num(d.value).toFixed(2)), date: isoDate(d.closeddate, since) }))
+    .filter((x) => x.id && x.value > 0);
+  return { companies: [...companies.values()], sales };
 }
 
 /** @param {{ companies: Array<{ c: CrmCompany, reaiId: number | null }>, sales: Array<{ s: CrmSale, customerId: number | null }>, isSample?: boolean }} state */
@@ -50,7 +76,7 @@ function renderCrm(state) {
     <div class="metric-grid">
       ${reaiMetric({ label: 'Companies scanned', value: String(state.companies.length), detail: `${missing} new to ReAI` })}
       ${reaiMetric({ label: 'Won sales scanned', value: String(state.sales.length), detail: `${ready} matched to ReAI customer` })}
-      ${reaiMetric({ label: 'Order protection', value: 'External ref', detail: 'Idempotent per CRM deal ID' })}
+      ${reaiMetric({ label: 'Duplicate check', value: 'External ref', detail: 'One ReAI order per Lime deal' })}
     </div>
     ${reaiCard({
       eyebrow: 'LIME CRM COMPANIES → REAI',
@@ -105,7 +131,7 @@ export async function handle(request, env) {
   const { pathname } = new URL(request.url);
   const basePath = '/app/lime';
   const title = "Lime CRM Sync";
-  const lead = "Sync Lime CRM companies into ReAI customers and turn won Lime deals directly into idempotent ReAI draft orders ready for EHF invoicing.";
+  const lead = "Read won Lime CRM deals and their companies, create missing ReAI customers and stage each won deal as one ReAI order.";
 
   if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${basePath}/`, request.url), 301);
   if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
@@ -116,12 +142,13 @@ export async function handle(request, env) {
         ${renderConnectPanel(session, { clientId: 'reai-lime-web', clientName: 'ReAI Lime CRM (Web)' })}
         ${reaiCard({
           eyebrow: 'CONNECT LIME CRM',
-          title: 'Scan companies & won sales',
+          title: 'Scan won deals',
           body: html`<p class="muted-note">Credentials are used only for this single HTTPS scan and are never stored.</p>
             <form class="stack" hx-post="${basePath}/scan" hx-target="#crm-output" hx-swap="innerHTML">
-              <div class="inline-row">
-                <div class="field"><label for="crm-url">Lime CRM API Base URL</label><input id="crm-url" name="baseUrl" type="url" required placeholder="https://company.lime-crm.com/company/api/v1/limeobject"></div>
-                <div class="field"><label for="crm-tok">Lime x-api-key</label><input id="crm-tok" name="apiToken" type="password" autocomplete="off" required placeholder="API token"></div>
+              <div class="mapping-grid">
+                <div class="field"><label for="crm-url">Lime CRM application URL</label><input id="crm-url" name="baseUrl" type="url" required placeholder="https://customer.lime-crm.com/lime-crm"></div>
+                <div class="field"><label for="crm-tok">Lime CRM API key</label><input id="crm-tok" name="apiToken" type="password" autocomplete="off" required placeholder="API key of the API user"></div>
+                <div class="field"><label for="crm-since">Won since</label><input id="crm-since" name="since" type="date" value="${new Date().toISOString().slice(0, 7)}-01" required></div>
               </div>
               <div class="inline-row">
                 <button type="submit" class="button primary">Scan Lime CRM</button>
@@ -147,8 +174,8 @@ export async function handle(request, env) {
         { c: { id: '2', name: 'Sørlandet Industri AS', orgnr: '923609016', city: 'Kristiansand' }, reaiId: null },
       ],
       sales: [
-        { s: { id: '701', title: 'Annual Support SLA 2027', companyName: 'Nordic Maritime AS', value: 145000, date: '2026-10-20' }, customerId: 21 },
-        { s: { id: '702', title: 'Onboarding Workshop', companyName: 'Sørlandet Industri AS', value: 38000, date: '2026-10-22' }, customerId: null },
+        { s: { id: '701', title: 'Annual Support SLA 2027', companyId: '1', companyName: 'Nordic Maritime AS', value: 145000, date: '2026-10-20' }, customerId: 21 },
+        { s: { id: '702', title: 'Onboarding Workshop', companyId: '2', companyName: 'Sørlandet Industri AS', value: 38000, date: '2026-10-22' }, customerId: null },
       ],
     }));
   }
@@ -160,7 +187,7 @@ export async function handle(request, env) {
 
     if (pathname === `${basePath}/scan`) {
       const [crm, custRaw] = await Promise.all([
-        fetchCrm(String(form.get('baseUrl') ?? ''), String(form.get('apiToken') ?? '').trim()),
+        fetchApi({ baseUrl: String(form.get('baseUrl') ?? ''), apiToken: String(form.get('apiToken') ?? ''), since: String(form.get('since') ?? '') }),
         reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
       ]);
       const custs = /** @type {ReAICust[]} */ (custRaw);
@@ -168,7 +195,9 @@ export async function handle(request, env) {
       const findId = (name, org = '') =>
         (org ? custs.find((x) => (x.organizationNumber ?? '').replace(/\s+/g, '') === org)?.id : undefined) ??
         custs.find((x) => (x.name ?? '').trim().toLowerCase() === name.trim().toLowerCase())?.id ?? null;
-      return htmlResponse(renderCrm({ companies: crm.companies.map((c) => ({ c, reaiId: findId(c.name, c.orgnr) })), sales: crm.sales.map((s) => ({ s, customerId: s.companyName ? findId(s.companyName) : null })) }));
+      const companies = crm.companies.map((c) => ({ c, reaiId: findId(c.name, c.orgnr) }));
+      const byLimeId = new Map(companies.map((x) => [x.c.id, x.reaiId]));
+      return htmlResponse(renderCrm({ companies, sales: crm.sales.map((s) => ({ s, customerId: byLimeId.get(s.companyId) ?? null })) }));
     }
     if (pathname === `${basePath}/create-customer`) {
       const name = String(form.get('name') ?? '').trim().slice(0, 75);
@@ -184,10 +213,14 @@ export async function handle(request, env) {
       const date = String(form.get('date') ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
       const customerId = Number(form.get('customerId') ?? '0');
       if (!dealId || value <= 0 || customerId <= 0) throw new HttpError(400, 'Valid deal ID, value and customer required.');
+      const externalReference = `lime-${dealId}`.slice(0, 100);
+      const existing = /** @type {{ items: Array<{ id: number, number?: string }> }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, query: { externalReference, status: 'all' } }));
+      const dup = existing.items?.[0];
+      if (dup) return htmlResponse(html`<tr><td><strong>${dealTitle}</strong></td><td>Customer #${customerId}</td><td class="mono">${date}</td><td class="num">${formatMinor(Math.round(value * 100))}</td><td><a href="${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already staged ↗</a></td></tr>`);
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/orders', {
           token: session.accessToken, tenantId: session.tenantId, method: 'POST',
-          body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `lime-${dealId}`.slice(0, 100), comment: `Won in Lime CRM (#${dealId})`, orderLines: [{ itemName: dealTitle, quantity: 1, unitPrice: Number(value.toFixed(2)) }] },
+          body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `Won in Lime CRM (#${dealId})`, orderLines: [{ itemName: dealTitle, quantity: 1, unitPrice: Number(value.toFixed(2)) }] },
         })
       );
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;

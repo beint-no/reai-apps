@@ -1,5 +1,6 @@
 // @ts-check
-import { fetchJson, isoDate, num, pickList, renderApiFetchCard } from '../lib/api-http.js';
+import { pairVoucherRows } from '../lib/voucher-rows.js';
+import { fetchJson, isoDate, num, renderApiFetchCard } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -7,68 +8,171 @@ import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
-/** @typedef {{ date: string, ref: string, cardMinor: number, cashMinor: number, claimMinor: number, feeMinor: number, exemptMinor: number, taxable25Minor: number }} WellnessVoucher */
+/** @typedef {{ label: string, amountMinor: number, account: string }} Payment */
+/** @typedef {{ ratePct: number, grossMinor: number, account: string, label: string }} SalesRate */
+/** @typedef {{ date: string, ref: string, payments: Payment[], sales: SalesRate[] }} Settlement */
+/** @typedef {{ account: string, description: string, signedMinor: number, ratePct: number | null }} VoucherLine */
+/** @typedef {{ date: string, ref: string, lines: VoucherLine[], debitMinor: number, creditMinor: number }} Voucher */
+/** @typedef {{ code: string, rate: number, vatType: string, amountBasis: string, reverseCharge: boolean }} VatCode */
 
-const BRAND = "EasyPractice";
-const TITLE = "EasyPractice / MakePlans Therapist Billing";
-const LEAD = "Book therapist, psychologist, osteopath and clinic settlements from EasyPractice into ReAI separating 0% exempt treatments (3100) from 25% taxable sessions (3000).";
-const SAMPLE = {"date": "2026-10-31", "ref": "EP-2026-10", "cardMinor": 5240000, "cashMinor": 0, "claimMinor": 960000, "feeMinor": 110000, "exemptMinor": 5810000, "taxable25Minor": 500000};
+const SLUG = 'easypractice';
+const BRAND = 'EasyPractice';
+const BASE_PATH = '/app/easypractice';
+const TITLE = 'EasyPractice Invoice Accounting';
+const EYEBROW = 'CLINICS & THERAPISTS';
+const LEAD = 'Turn the EasyPractice invoices dated in a period into one balanced ReAI review voucher, split by VAT rate and payment status.';
+const API_HINT = 'In EasyPractice, activate the API app under Apps, open API Settings and create a personal access token with the invoices-read scope.';
+/** @type {import('../lib/api-http.js').ApiFieldSpec[]} */
+const API_FIELDS = [
+  { name: 'apiToken', label: 'Personal access token', type: 'password', placeholder: 'invoices-read token' },
+  { name: 'fromDate', label: 'Invoice date from', type: 'date', defaultValue: '$MONTH_START' },
+  { name: 'toDate', label: 'Invoice date to', type: 'date', defaultValue: '$TODAY' },
+];
+const API = 'https://system.easypractice.net/api/v1';
 
-/** @param {Record<string, string>} creds @param {import('../lib/api-http.js').FetchLike} [fetchImpl] */
-export async function fetchApi(creds, fetchImpl = fetch) {
-  const token = (creds.apiToken ?? '').trim();
-  const date = isoDate(creds.toDate ?? creds.date);
-  const from = isoDate(creds.fromDate, date);
-  if (!token) throw new HttpError(400, 'Enter your EasyPractice Personal Access Token.');
-  const data = await fetchJson(`https://system.easypractice.net/api/v1/invoices?from=${from}&to=${date}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } }, 'EasyPractice', fetchImpl);
-  let cardMinor = 0, claimMinor = 0, exemptMinor = 0, taxable25Minor = 0;
-  for (const inv of pickList(data)) {
-    const grossMinor = Math.round(Math.abs(num(inv.total ?? inv.amount ?? 0)) * 100);
-    if (num(inv.vat ?? inv.tax ?? 0) > 0) taxable25Minor += grossMinor; else exemptMinor += grossMinor;
-    if (String(inv.status ?? '').toLowerCase() === 'paid') cardMinor += grossMinor; else claimMinor += grossMinor;
-  }
-  return { date, ref: `EP-${date}`, cardMinor, cashMinor: 0, claimMinor, feeMinor: 0, exemptMinor, taxable25Minor };
+/** @type {Settlement} */
+const SAMPLE = {
+  date: '2026-10-31',
+  ref: 'invoices 1201 to 1248',
+  payments: [
+    { label: 'Paid by card', amountMinor: 5240000, account: '1580' },
+    { label: 'Not yet paid', amountMinor: 1070000, account: '1570' },
+  ],
+  sales: [
+    { ratePct: 0, grossMinor: 5810000, account: '3100', label: 'Treatments without VAT' },
+    { ratePct: 25, grossMinor: 500000, account: '3000', label: 'Sales 25% VAT' },
+  ],
+};
+
+/** @param {unknown} v */
+function minor(v) {
+  return Math.round(num(v) * 100);
 }
 
-/** @param {WellnessVoucher} v @param {boolean} isSample */
+/**
+ * Fetches the EasyPractice invoices dated in a period.
+ * Docs (Documentarian reference, served at https://system.easypractice.net/api/ and now behind the
+ * EasyPractice login; last public copy https://web.archive.org/web/20260718211007/https://system.easypractice.net/api/index.html):
+ * personal access tokens are sent as Authorization: Bearer {token}; GET api/v1/invoices (scope invoices-read)
+ * takes id, number, client_id, paid, unpaid, order_by_number, page_size and page, and returns { data, links, meta }
+ * where each invoice has draft, date, paid, paid_date, payment_type, currency, total and lines with
+ * vat, vat_rate and total. The endpoint has no date filter, so invoices are read newest first by number
+ * and filtered by invoice date here.
+ * @param {Record<string, string>} creds
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
+ * @returns {Promise<Settlement>}
+ */
+export async function fetchApi(creds, fetchImpl = fetch) {
+  const token = (creds.apiToken ?? '').trim();
+  const to = isoDate(creds.toDate ?? creds.date);
+  const from = isoDate(creds.fromDate, to);
+  if (!token) throw new HttpError(400, 'Enter your EasyPractice personal access token.');
+  if (from > to) throw new HttpError(400, 'The from date must be on or before the to date.');
+  const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
+
+  /** @type {any[]} */ const invoices = [];
+  for (let page = 1; page <= 50; page++) {
+    const query = new URLSearchParams({ order_by_number: 'desc', page_size: '100', page: String(page) });
+    const data = await fetchJson(`${API}/invoices?${query}`, { headers }, BRAND, fetchImpl);
+    /** @type {any[]} */ const items = Array.isArray(data?.data) ? data.data : [];
+    invoices.push(...items.filter((i) => { const d = String(i.date ?? '').slice(0, 10); return d >= from && d <= to; }));
+    const lastPage = Number(data?.meta?.last_page ?? 0);
+    const allOlder = items.length > 0 && items.every((i) => String(i.date ?? '').slice(0, 10) < from);
+    if (items.length === 0 || allOlder || (lastPage > 0 && page >= lastPage)) break;
+  }
+
+  const booked = invoices.filter((i) => i.draft !== true);
+  if (booked.length === 0) throw new HttpError(400, `EasyPractice has no invoices dated ${from} to ${to}.`);
+  const foreign = booked.find((i) => String(i.currency ?? 'NOK').toUpperCase() !== 'NOK');
+  if (foreign) throw new HttpError(400, `Invoice ${String(foreign.number)} is in ${String(foreign.currency)}. Only NOK invoices can be booked.`);
+
+  /** @type {Map<string, SalesRate>} */ const sales = new Map();
+  /** @type {Map<string, Payment>} */ const payments = new Map();
+  for (const inv of booked) {
+    let invoiceMinor = 0;
+    for (const l of /** @type {any[]} */ (Array.isArray(inv.lines) ? inv.lines : [])) {
+      const grossMinor = minor(l.total);
+      if (grossMinor === 0) continue;
+      const ratePct = l.vat === true ? num(l.vat_rate) : 0;
+      const account = ratePct > 0 ? '3000' : '3100';
+      const key = `${account}|${ratePct}`;
+      const prev = sales.get(key);
+      sales.set(key, { ratePct, account, label: ratePct > 0 ? `Sales ${ratePct}% VAT` : 'Sales without VAT', grossMinor: (prev?.grossMinor ?? 0) + grossMinor });
+      invoiceMinor += grossMinor;
+    }
+    if (invoiceMinor === 0) continue;
+    const type = String(inv.payment_type ?? '').trim();
+    const payment = inv.paid !== true
+      ? { label: 'Not yet paid', account: '1570' }
+      : /(cash|kontant)/i.test(type)
+        ? { label: 'Paid in cash', account: '1900' }
+        : { label: `Paid${type ? ` by ${type}` : ''}`, account: '1580' };
+    const prev = payments.get(payment.label);
+    payments.set(payment.label, { ...payment, amountMinor: (prev?.amountMinor ?? 0) + invoiceMinor });
+  }
+  const numbers = booked.map((i) => Number(i.number)).filter(Number.isFinite).sort((a, b) => a - b);
+  const ref = numbers.length > 0 ? `invoices ${numbers[0]} to ${numbers.at(-1)}` : `invoices ${from}`;
+  return { date: to, ref, payments: [...payments.values()], sales: [...sales.values()] };
+}
+
+/** @param {Settlement} s @returns {Voucher} */
+function buildVoucher(s) {
+  /** @type {VoucherLine[]} */ const lines = [];
+  const pfx = `${BRAND} ${s.ref}`;
+  for (const p of s.payments) {
+    if (p.amountMinor !== 0) lines.push({ account: p.account, description: `${pfx} · ${p.label}`, signedMinor: p.amountMinor, ratePct: null });
+  }
+  for (const r of s.sales) {
+    if (r.grossMinor !== 0) lines.push({ account: r.account, description: `${pfx} · ${r.label}`, signedMinor: -r.grossMinor, ratePct: r.ratePct });
+  }
+  const debitMinor = lines.filter((l) => l.signedMinor > 0).reduce((t, l) => t + l.signedMinor, 0);
+  const creditMinor = lines.filter((l) => l.signedMinor < 0).reduce((t, l) => t - l.signedMinor, 0);
+  return { date: s.date, ref: s.ref, lines, debitMinor, creditMinor };
+}
+
+/** @param {Voucher} v @param {boolean} isSample */
 function renderPreview(v, isSample) {
-  const vatNet = Math.round((v.taxable25Minor * 100) / 125);
-  const vatAmt = v.taxable25Minor - vatNet;
-  const debit = v.cardMinor + v.cashMinor + v.claimMinor + v.feeMinor;
-  const credit = v.exemptMinor + vatNet + vatAmt;
-  const diff = debit - credit;
-  const balanced = diff === 0 && debit > 0;
+  const diff = v.debitMinor - v.creditMinor;
+  const balanced = diff === 0 && v.debitMinor > 0;
   return reaiCard({
-    eyebrow: `${BRAND.toUpperCase()} SETTLEMENT VOUCHER`,
+    eyebrow: `${BRAND.toUpperCase()} → REAI REVIEW VOUCHER`,
     title: `${v.ref} · ${v.date}`,
-    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(diff)} NOK`, tone: 'danger' }),
+    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} NOK`, tone: 'danger' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Settlements + fees (Debit)', value: `${formatMinor(debit)} NOK` })}
-        ${reaiMetric({ label: 'Exempt 0% (3100)', value: `${formatMinor(v.exemptMinor)} NOK` })}
-        ${reaiMetric({ label: '25% taxable (3000+2700)', value: `${formatMinor(v.taxable25Minor)} NOK` })}
+        ${reaiMetric({ label: 'Paid and unpaid (debit)', value: `${formatMinor(v.debitMinor)} NOK` })}
+        ${reaiMetric({ label: 'Sales incl. VAT (credit)', value: `${formatMinor(v.creditMinor)} NOK` })}
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Account</th><th>Posting</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
-        <tbody>
-          ${v.cardMinor > 0 ? html`<tr><td class="mono">1580</td><td>${BRAND} card / Vipps</td><td class="num">${formatMinor(v.cardMinor)}</td><td class="num"></td></tr>` : ''}
-          ${v.cashMinor > 0 ? html`<tr><td class="mono">1900</td><td>${BRAND} cash</td><td class="num">${formatMinor(v.cashMinor)}</td><td class="num"></td></tr>` : ''}
-          ${v.claimMinor > 0 ? html`<tr><td class="mono">1570</td><td>Invoiced / insurance (1570)</td><td class="num">${formatMinor(v.claimMinor)}</td><td class="num"></td></tr>` : ''}
-          ${v.feeMinor > 0 ? html`<tr><td class="mono">7770</td><td>Fees</td><td class="num">${formatMinor(v.feeMinor)}</td><td class="num"></td></tr>` : ''}
-          ${v.exemptMinor > 0 ? html`<tr><td class="mono">3100</td><td>VAT-exempt therapy 0% (3100)</td><td class="num"></td><td class="num">${formatMinor(v.exemptMinor)}</td></tr>` : ''}
-          ${vatNet > 0 ? html`<tr><td class="mono">3000</td><td>25% taxable net</td><td class="num"></td><td class="num">${formatMinor(vatNet)}</td></tr>` : ''}
-          ${vatAmt > 0 ? html`<tr><td class="mono">2700</td><td>Output VAT 25%</td><td class="num"></td><td class="num">${formatMinor(vatAmt)}</td></tr>` : ''}
-        </tbody>
+        <thead><tr><th>Account</th><th>Posting</th><th>VAT</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+        <tbody>${v.lines.map((l) => html`<tr><td class="mono">${l.account}</td><td>${l.description}</td><td>${l.ratePct === null ? 'None' : `${l.ratePct}%`}</td><td class="num">${l.signedMinor > 0 ? formatMinor(l.signedMinor) : ''}</td><td class="num">${l.signedMinor < 0 ? formatMinor(-l.signedMinor) : ''}</td></tr>`)}</tbody>
       </table></div>
+      <p class="muted-note">Sales lines are posted including VAT with the matching ReAI output VAT code, so ReAI separates the taxable base and VAT. Paid invoices go to 1900 for cash and to clearing account 1580 for other payment types. Unpaid invoices go to 1570 until the payment arrives.</p>
       ${balanced && !isSample
-        ? html`<form class="stack-sm confirm-box" hx-post="/app/easypractice/book" hx-target="#wl-book" hx-swap="innerHTML">
+        ? html`<form class="stack-sm confirm-box" hx-post="${BASE_PATH}/book" hx-target="#${SLUG}-book" hx-swap="innerHTML">
             <input type="hidden" name="voucherJson" value="${JSON.stringify(v)}">
-            <label class="check-row"><input type="checkbox" name="c_wl" required> I verified these figures against ${BRAND} and will attach the report PDF in ReAI.</label>
+            <label class="check-row"><input type="checkbox" name="confirm" required> I verified these figures against the ${BRAND} invoice list and will attach it in ReAI.</label>
             <div><button type="submit" class="button primary">Create review voucher in ReAI</button></div>
-          </form><div id="wl-book" class="stack-sm"></div>`
-        : isSample ? reaiCallout({ tone: 'info', body: `Sample ${BRAND} preview loaded. Fetch or enter real totals above to book.` }) : ''}
+          </form><div id="${SLUG}-book" class="stack-sm"></div>`
+        : isSample
+          ? reaiCallout({ tone: 'info', body: `Sample ${BRAND} settlement loaded. Connect to ReAI and fetch a real period above to book it.` })
+          : reaiCallout({ tone: 'warn', body: `Payments and sales do not balance for this period in ${BRAND}. Check the invoices there before booking.` })}
     `,
   });
+}
+
+/**
+ * Picks the ReAI output VAT code for a sales rate (VAT-inclusive amounts).
+ * @param {VatCode[]} codes
+ * @param {number} ratePct
+ */
+function outputVatCode(codes, ratePct) {
+  const usable = codes.filter((c) => !c.reverseCharge && c.amountBasis === 'vat_inclusive' && Math.abs(c.rate - ratePct) < 0.001);
+  const match = ratePct > 0
+    ? usable.find((c) => c.vatType === 'output_vat')
+    : (usable.find((c) => c.vatType === 'output_vat') ?? usable.find((c) => c.vatType === 'exempt') ?? usable.find((c) => c.vatType === 'outside_scope'));
+  if (!match) throw new HttpError(400, `ReAI has no output VAT code for ${ratePct}% in this company.`);
+  return match.code;
 }
 
 /**
@@ -79,73 +183,61 @@ function renderPreview(v, isSample) {
  */
 export async function handle(request, env) {
   const { pathname } = new URL(request.url);
-  const basePath = '/app/easypractice';
-  if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${basePath}/`, request.url), 301);
-  if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
+  if (pathname === BASE_PATH && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${BASE_PATH}/`, request.url), 301);
+  if (pathname === `${BASE_PATH}/` && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
-    const today = new Date().toISOString().slice(0, 10);
     const body = html`
-      <section class="app-intro"><p class="eyebrow">THERAPISTS & BOOKING CLINICS</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
+      <section class="app-intro"><p class="eyebrow">${EYEBROW}</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
-        ${renderConnectPanel(session, { clientId: 'reai-easypractice-web', clientName: `ReAI ${BRAND} (Web)` })}
-        ${renderApiFetchCard({ basePath, targetId: 'wl-output', brand: BRAND, hint: "Enable the API app in EasyPractice Apps and paste your Personal Access Token (GET /api/v1/invoices).", fields: [{"name": "apiToken", "label": "EasyPractice Personal Access Token", "type": "password", "placeholder": "Bearer token"}, {"name": "fromDate", "label": "From date", "type": "date", "defaultValue": "$MONTH_START"}, {"name": "toDate", "label": "To date", "type": "date", "defaultValue": "$TODAY"}], sampleAction: true })}
-        ${reaiCard({
-          eyebrow: `${BRAND.toUpperCase()} SETTLEMENT ENTRY`,
-          title: 'Enter settlement totals (NOK incl. VAT)',
-          body: html`<form class="stack" hx-post="${basePath}/preview" hx-target="#wl-output" hx-swap="innerHTML">
-            <div class="mapping-grid">
-              <div class="field"><label for="wl-d">Date</label><input id="wl-d" name="date" type="date" value="${today}" required></div>
-              <div class="field"><label for="wl-r">Ref</label><input id="wl-r" name="ref" type="text" placeholder="${SAMPLE.ref}" required></div>
-              <div class="field"><label for="wl-c">Card / Vipps (1580)</label><input id="wl-c" name="card" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="wl-k">Cash (1900)</label><input id="wl-k" name="cash" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="wl-cl">Invoiced / insurance (1570)</label><input id="wl-cl" name="claim" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="wl-f">Fees (7770)</label><input id="wl-f" name="fee" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="wl-ex">VAT-exempt therapy 0% (3100)</label><input id="wl-ex" name="exempt" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="wl-25">25% gross (3000)</label><input id="wl-25" name="taxable25" type="number" step="0.01" min="0" value="0"></div>
-            </div>
-            <div class="inline-row"><button type="submit" class="button primary">Preview balanced voucher</button><button type="button" class="button secondary" hx-post="${basePath}/sample" hx-target="#wl-output" hx-swap="innerHTML">Load sample settlement</button></div>
-          </form>`,
-        })}
-        <div id="wl-output" class="stack"></div>
+        ${renderConnectPanel(session, { clientId: `reai-${SLUG}-web`, clientName: `ReAI ${BRAND} (Web)` })}
+        ${renderApiFetchCard({ basePath: BASE_PATH, targetId: `${SLUG}-output`, brand: BRAND, hint: API_HINT, fields: API_FIELDS, sampleAction: true })}
+        <div id="${SLUG}-output" class="stack"></div>
       </div>
     `;
-    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${basePath}/`, body }));
+    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${BASE_PATH}/`, body }));
   }
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) return htmlResponse(renderPreview(SAMPLE, true));
+  if (pathname === `${BASE_PATH}/sample`) return htmlResponse(renderPreview(buildVoucher(SAMPLE), true));
   try {
     const form = await request.formData();
-    if (pathname === `${basePath}/fetch-api`) {
+    if (pathname === `${BASE_PATH}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      return htmlResponse(renderPreview(await fetchApi(creds), false));
+      return htmlResponse(renderPreview(buildVoucher(await fetchApi(creds)), false));
     }
-    if (pathname === `${basePath}/preview`) {
-      /** @param {string} k */ const m = (k) => Math.round(Math.max(0, Number(form.get(k) ?? '0') || 0) * 100);
-      const date = String(form.get('date') ?? '').trim();
-      const ref = String(form.get('ref') ?? '').trim().slice(0, 60);
-      if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !ref) throw new HttpError(400, 'Enter valid date and ref.');
-      return htmlResponse(renderPreview({ date, ref, cardMinor: m('card'), cashMinor: m('cash'), claimMinor: m('claim'), feeMinor: m('fee'), exemptMinor: m('exempt'), taxable25Minor: m('taxable25') }, false));
-    }
-    if (pathname === `${basePath}/book`) {
+    if (pathname === `${BASE_PATH}/book`) {
       const session = await readSession(env, request);
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
-      if (form.get('c_wl') !== 'on') throw new HttpError(400, 'Confirm verification checkbox first.');
-      const v = /** @type {WellnessVoucher} */ (JSON.parse(String(form.get('voucherJson') ?? '{}')));
-      const vatNet = Math.round((v.taxable25Minor * 100) / 125);
-      const vatAmt = v.taxable25Minor - vatNet;
-      if (v.cardMinor + v.cashMinor + v.claimMinor + v.feeMinor !== v.exemptMinor + vatNet + vatAmt) throw new HttpError(400, 'Voucher must balance to 0.00.');
-      const marker = `${BRAND} ${v.ref} ${v.date}`;
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
+      if (form.get('confirm') !== 'on') throw new HttpError(400, 'Confirm the verification checkbox first.');
+      const v = /** @type {Voucher} */ (JSON.parse(String(form.get('voucherJson') ?? '{}')));
+      if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
+      const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);
+      if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
+      const marker = `${BRAND} ${String(v.ref).slice(0, 80)} ${v.date}`;
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
-      /** @type {Array<Record<string, unknown>>} */ const postings = [];
-      let idx = 0;
-      const push = (/** @type {string} */ acct, /** @type {number} */ minor, /** @type {string} */ desc) => { if (minor !== 0) postings.push({ accountNumber: acct, postingDate: v.date, currencyCode: 'NOK', amount: Number((minor / 100).toFixed(2)), vatCode: '0', rowNumber: idx++, description: desc }); };
-      push('1580', v.cardMinor, `${BRAND} card/Vipps`); push('1900', v.cashMinor, `${BRAND} cash`); push('1570', v.claimMinor, 'Invoiced / insurance (1570)'); push('7770', v.feeMinor, `${BRAND} fees`); push('3100', -v.exemptMinor, 'VAT-exempt therapy 0% (3100)'); push('3000', -vatNet, '25% net sales'); push('2700', -vatAmt, 'Output VAT 25%');
-      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: v.date, description: marker, reviewReason: `${BRAND} settlement imported via apps.reai.no.`, postings } }));
+      const vatCodes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', auth));
+      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', {
+        ...auth,
+        method: 'POST',
+        body: {
+          date: v.date,
+          description: marker,
+          reviewReason: `${BRAND} POS settlement imported via apps.reai.no. Check against the ${BRAND} invoice list.`,
+          postings: pairVoucherRows(v.lines.map((l) => ({
+            accountNumber: String(l.account),
+            postingDate: v.date,
+            currencyCode: 'NOK',
+            amount: Number((Math.round(Number(l.signedMinor)) / 100).toFixed(2)),
+            vatCode: l.ratePct === null ? '0' : outputVatCode(vatCodes, Number(l.ratePct)),
+            description: String(l.description).slice(0, 200),
+          }))),
+        },
+      }));
       return htmlResponse(reaiCallout({ tone: 'success', title: `Created review voucher ${created.number}`, body: html`Open in ReAI: <a href="${reaiOrigin(env)}/voucher/${created.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${created.number} ↗</a>.` }));
     }
   } catch (err) {

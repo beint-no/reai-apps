@@ -1,29 +1,28 @@
 ---
 title: "Integrasjon mellom Tamigo og regnskap"
-seoTitle: "Integrasjon mellom Tamigo og regnskap — Gratis integrasjon for ReAI"
-description: "Overfør godkjente skift og arbeidstimer fra Tamigo direkte inn i ReAI Timelister."
-summary: "Overfør godkjente skift og arbeidstimer fra Tamigo direkte inn i ReAI Timelister."
+seoTitle: "Integrasjon mellom Tamigo og ReAI: arbeidede vakter til timelister"
+description: "Hent arbeidede vakter fra timearket i Tamigo og før dem i timelistene i ReAI på valgt ansatt og prosjekt. Gratis og åpen kildekode."
+summary: "Hent arbeidede vakter fra Tamigo for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/tamigo/
 sourcePath: web/worker/apps/tamigo.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Retail & service workforce management (Turnus)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser arbeidede timer fra Tamigo API med en applikasjonsnøkkel"
+  - "Viser ansatt, avdeling og vakttid før du fører noe"
+  - "Fører hver vakt som en timeregistrering på valgt ansatt og prosjekt i ReAI"
 ---
 
-## Slik kobler du Tamigo til ReAI uten tilleggskostnad
+## Dette kommer over i ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **Tamigo** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/tamigo/`.
+Integrasjonen henter vaktene fra timearket i Tamigo for alle avdelinger i valgt periode, høyst 93 dager om gangen. Vakter uten arbeidede timer tas ikke med. Du kan begrense til én ansatt med navn eller ansatt-ID i Tamigo. Hver linje viser dato, ansatt, avdeling, vakttid og antall timer.
 
-| Område | Oppsett i ReAI |
-| --- | --- |
-| Bransje | Retail & service workforce management (Turnus) |
-| Kontoplan / API | `POST /api/timesheets` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
 
-## Kom i gang på 2 minutter
+## Slik kommer du i gang
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra Tamigo og overfør direkte til ReAI.
+1. Logg inn i Tamigo som administrator og åpne **Configuration → Web Services (API)**. Skriv inn et navn på applikasjonen, for eksempel ReAI, og velg **Create Key**.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Fyll inn applikasjonsnavnet, nøkkelen og perioden, og velg ansatt og eventuelt prosjekt i ReAI.
+4. Kontroller timene og klikk **Post to ReAI** på linjene du vil føre.
+
+Nøkkelen brukes bare til denne ene forespørselen og lagres aldri.

@@ -1,23 +1,34 @@
 ---
 title: "Magento / Adobe Commerce & Accounting"
-seoTitle: "Magento 2 & Adobe Commerce Accounting Integration for ReAI"
-description: "Connect Magento 2 or Adobe Commerce to ReAI for free product sync (/rest/V1/products) and paid sales sync (/rest/V1/orders)."
-summary: "Sync Magento 2 / Adobe Commerce products by SKU and import paid orders directly into ReAI."
+seoTitle: "Magento 2 and Adobe Commerce Integration for ReAI: Products and Orders"
+description: "Create missing ReAI products by SKU and stage Magento 2 or Adobe Commerce orders as ReAI orders. Free and open source."
+summary: "Read products and invoiced orders from Magento 2 or Adobe Commerce and create products and orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/magento/
 sourcePath: web/worker/apps/magento.js
 highlights:
-  - "Uses standard Magento REST API v1 Integration Bearer tokens"
-  - "Syncs SKUs, pricing and stock-item flags straight to ReAI"
-  - "Idempotent paid order import with external order ID protection"
+  - "Reads products and orders through the Magento REST API with an integration token"
+  - "Creates products missing in ReAI with SKU, price and stock item flag"
+  - "Skips SKUs and orders that already exist in ReAI"
 ---
 
-## Direct Magento 2 / Adobe Commerce integration
+## What moves into ReAI
 
-Avoid heavy ERP middleware for standard Norwegian ecommerce accounting. Connect Magento 2 directly to ReAI using a read-only Integration token to synchronize your SKU catalog and import paid sales orders cleanly.
+The integration reads the product catalog and orders with state **processing** or **complete** from the chosen date. You see everything before anything is sent to ReAI.
 
-## Step-by-step setup
+| From Magento | In ReAI |
+| --- | --- |
+| Product with SKU, name and price | Product with the same SKU, created only when you click **Create in ReAI** |
+| Order with grand total | Order with one line, amount excluding VAT (grand total minus tax), external reference `magento-<id>` |
 
-1. In Magento Admin, go to **System → Extensions → Integrations**, add an integration with Catalog and Sales read access, and activate it to get the Access Token.
-2. Open the integration above, connect your ReAI company and enter your store HTTPS URL and Bearer token.
-3. Sync missing SKUs and import paid orders idempotently into ReAI.
+Each order is linked to a ReAI customer with the same email or name. If the customer is missing, create it in ReAI first. Product prices are taken as Magento stores them, so check whether your store uses prices including or excluding VAT.
+
+## Setup
+
+1. In Magento Admin, open **System → Extensions → Integrations**, click **Add New Integration**, grant read access to **Catalog** and **Sales**, save and click **Activate**. Copy the **Access Token**.
+2. On Magento 2.4.4 or later, set **Stores → Configuration → Services → OAuth → Consumer Settings → Allow OAuth Access Tokens to be used as standalone Bearer tokens** to **Yes**.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Enter the store address, the token and the date, and click **Scan**.
+5. Create missing products and stage the orders you want to invoice.
+
+The token is used only for that request and is never stored.

@@ -1,23 +1,29 @@
 ---
-title: "Integrasjon for Tidsbanken, SmartDok og Busy"
-seoTitle: "Tidsbanken & SmartDok timeimport til ReAI — Gratis integrasjon"
-description: "Importer godkjente vakter og prosjekttimer fra Tidsbanken, SmartDok eller Busy (CSV) direkte inn i ReAI Timelister."
-summary: "Last opp CSV-eksport fra Tidsbanken, SmartDok eller Busy og overfør godkjente timer direkte til ReAI."
+title: "Integrasjon mellom Tidsbanken og regnskap"
+seoTitle: "Integrasjon mellom Tidsbanken og ReAI: godkjente timer til timelister"
+description: "Hent godkjente timer fra Tidsbanken API og før dem i timelistene i ReAI på valgt ansatt og prosjekt. Gratis og åpen kildekode."
+summary: "Hent godkjente timer fra Tidsbanken for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/tidsbanken/
 sourcePath: web/worker/apps/tidsbanken.js
 highlights:
-  - "Gjenkjenner automatisk norske kolonnenavn (Dato, Timer, Prosjekt, Kommentar)"
-  - "Støtter semikolon- og komma-separerte filer samt desimalkomma (7,50)"
-  - "Poster timene direkte på ansatt og prosjekt i ReAI"
+  - "Leser godkjente timelinjer fra Tidsbanken API med abonnementsnøkkel og tb-key"
+  - "Viser ansatt, prosjekt og notat før du fører noe"
+  - "Fører hver linje som en timeregistrering på valgt ansatt og prosjekt i ReAI"
 ---
 
-## Overfør godkjente timer fra Tidsbanken og SmartDok til ReAI
+## Dette kommer over i ReAI
 
-Bedrifter innen bygg, håndverk, servering og varehandel bruker ofte **Tidsbanken**, **SmartDok**, **Busy** eller **Planday** til vaktplan og feltregistrering. Eksporter månedens godkjente timer til CSV og importer dem direkte inn i ReAI Timelister.
+Integrasjonen henter godkjente timelinjer fra Tidsbanken med dato i valgt periode, høyst 93 dager om gangen. Du kan begrense til én ansatt med navn. Hver linje viser dato, ansatt, prosjekt, notat og antall timer.
 
-## Slik gjør du det
+Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
 
-1. Eksporter godkjente timer som CSV fra Tidsbanken, SmartDok eller Busy.
-2. Klikk **Åpne integrasjon**, koble til ReAI, velg ansatt og prosjekt, og slipp CSV-filen i opplastingsfeltet.
-3. Kontroller timene og send dem direkte til ReAI.
+## Slik kommer du i gang
+
+1. Opprett en bruker på [developer.tidsbanken.net](https://developer.tidsbanken.net/products), abonner på produktet **Public** og kopier abonnementsnøkkelen.
+2. Logg inn i Tidsbanken som administrator, klikk skiftenøkkelen nederst til høyre og gå til **Integrasjon → API-nøkkel → Hent API-nøkkel**. Dette er tb-key. Ser du ikke valget, må API-lisens bestilles hos Tidsbanken.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Fyll inn begge nøklene og perioden, og velg ansatt og eventuelt prosjekt i ReAI.
+5. Kontroller timene og klikk **Post to ReAI** på linjene du vil føre.
+
+Nøklene brukes bare til denne ene forespørselen og lagres aldri.

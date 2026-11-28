@@ -1,4 +1,5 @@
 // @ts-check
+import { fetchJson } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -16,8 +17,8 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/u
 const CFG = {
   "brand": "PrestaShop",
   "title": "PrestaShop Product & Sales Sync",
-  "lead": "Sync PrestaShop catalog products and paid orders into ReAI via the PrestaShop Webservice API.",
-  "hint": "Enable Webservice in PrestaShop Advanced Parameters \u2192 Webservice.",
+  "lead": "Create PrestaShop products in ReAI and stage the latest valid PrestaShop orders as ReAI draft orders through the PrestaShop Webservice.",
+  "hint": "In the PrestaShop back office, open Advanced Parameters \u2192 Webservice, enable the webservice and add a key with GET access to products, orders and customers.",
   "fields": [
     {
       "key": "storeUrl",
@@ -61,64 +62,59 @@ function assertPublicHttpsBase(raw) {
 }
 
 /**
- * @param {string} url
- * @param {RequestInit} init
- * @param {string} label
- */
-async function storeJson(url, init, label) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${label} returned an unexpected redirect. Verify the exact store URL.`);
-  }
-  const text = await res.text();
-  if (!res.ok) {
-    throw new HttpError(
-      400,
-      res.status === 401 || res.status === 403
-        ? `${label} rejected these API credentials (HTTP ${res.status}).`
-        : `${label} returned HTTP ${res.status}.`,
-    );
-  }
-  return text ? JSON.parse(text) : {};
-}
-
-
-/**
+ * Reads products and the latest valid orders through the PrestaShop Webservice.
+ * Docs: https://devdocs.prestashop-project.org/9/webservice/ (Basic auth with the key as username, output_format=JSON),
+ * https://devdocs.prestashop-project.org/9/webservice/tutorials/advanced-use/additional-list-parameters/ (display, filter, sort, limit),
+ * https://devdocs.prestashop-project.org/9/webservice/resources/products/, .../resources/orders/ (valid, id_customer,
+ * total_paid_tax_excl) and .../resources/customers/.
  * @param {Record<string, string>} fields
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ products: StoreProduct[], orders: StoreOrder[], storeLabel: string }>}
  */
-async function fetchStoreCatalogAndOrders(fields) {
-    const base = assertPublicHttpsBase(fields.storeUrl ?? '');
-    const basic = btoa(`${fields.apiKey ?? ''}:`);
-    const headers = { authorization: `Basic ${basic}`, accept: 'application/json' };
-    const [pBody, oBody] = await Promise.all([
-      storeJson(`${base}/api/products?output_format=JSON&display=[id,reference,name,price]&limit=50`, { headers }, 'PrestaShop'),
-      storeJson(`${base}/api/orders?output_format=JSON&display=[id,reference,date_add,total_paid_tax_excl,current_state]&limit=50`, { headers }, 'PrestaShop'),
-    ]);
-    return {
-      products: (Array.isArray(pBody.products) ? pBody.products : []).map((/** @type {any} */ p) => ({
-        sku: String(p.reference || `PS-${p.id}`).trim(),
-        title: String(typeof p.name === 'string' ? p.name : p.name?.[0]?.value ?? `Product ${p.id}`).trim(),
-        priceExVat: Number(p.price ?? 0),
-        currency: 'NOK',
-        stockItem: true,
-      })),
-      orders: (Array.isArray(oBody.orders) ? oBody.orders : []).map((/** @type {any} */ o) => ({
+export async function fetchApi(fields, fetchImpl = fetch) {
+  const base = assertPublicHttpsBase(fields.storeUrl ?? '');
+  const key = (fields.apiKey ?? '').trim();
+  if (!key) throw new HttpError(400, 'Enter the PrestaShop Webservice key.');
+  const headers = { authorization: `Basic ${btoa(`${key}:`)}`, accept: 'application/json' };
+  /** @param {string} resource @param {Record<string, string>} q */
+  const get = (resource, q) => fetchJson(`${base}/api/${resource}?${new URLSearchParams({ output_format: 'JSON', ...q })}`, { headers }, 'PrestaShop', fetchImpl);
+  const [pBody, oBody] = await Promise.all([
+    get('products', { display: '[id,reference,name,price]', sort: '[id_DESC]', limit: '100' }),
+    get('orders', { display: '[id,reference,id_customer,date_add,total_paid_tax_excl,valid]', 'filter[valid]': '[1]', sort: '[id_DESC]', limit: '50' }),
+  ]);
+  /** @type {any[]} */ const rawOrders = Array.isArray(oBody?.orders) ? oBody.orders : [];
+  const customerIds = [...new Set(rawOrders.map((o) => String(o.id_customer ?? '')).filter((id) => /^[0-9]+$/.test(id) && id !== '0'))];
+  /** @type {Map<string, any>} */ const customers = new Map();
+  if (customerIds.length) {
+    const cBody = await get('customers', { display: '[id,firstname,lastname,company,email]', 'filter[id]': `[${customerIds.join('|')}]` });
+    for (const c of Array.isArray(cBody?.customers) ? cBody.customers : []) customers.set(String(c.id), c);
+  }
+  /** @param {unknown} name */
+  const text = (name) => String(typeof name === 'string' ? name : Array.isArray(name) ? (name[0]?.value ?? '') : '').trim();
+  return {
+    products: (Array.isArray(pBody?.products) ? pBody.products : []).map((/** @type {any} */ p) => ({
+      sku: String(p.reference || `PS-${p.id}`).trim(),
+      title: text(p.name) || `Product ${p.id}`,
+      priceExVat: Number(p.price ?? 0),
+      currency: 'NOK',
+      stockItem: true,
+    })),
+    orders: rawOrders.map((o) => {
+      const c = customers.get(String(o.id_customer));
+      const person = c ? `${String(c.firstname ?? '').trim()} ${String(c.lastname ?? '').trim()}`.trim() : '';
+      return {
         id: String(o.id),
-        number: String(o.reference ?? o.id),
+        number: String(o.reference || o.id),
         date: String(o.date_add ?? new Date().toISOString()).slice(0, 10),
-        customerName: `PrestaShop #${o.reference ?? o.id}`,
-        customerEmail: '',
+        customerName: String(c?.company ?? '').trim() || person || `PrestaShop customer ${o.id_customer}`,
+        customerEmail: String(c?.email ?? '').trim().toLowerCase(),
         totalExVat: Number(o.total_paid_tax_excl ?? 0),
         currency: 'NOK',
-        status: String(o.current_state ?? 'paid'),
-      })),
-      storeLabel: new URL(base).hostname,
-    };
+        status: 'valid',
+      };
+    }),
+    storeLabel: new URL(base).hostname,
+  };
 }
 
 /** @param {{ products: Array<{ p: StoreProduct, exists: boolean }>, orders: Array<{ o: StoreOrder, customerId: number | null }>, storeLabel: string, isSample?: boolean }} state */
@@ -127,7 +123,7 @@ function renderStoreSync(state) {
   return html`
     <div class="metric-grid">
       ${reaiMetric({ label: 'Store products', value: String(state.products.length), detail: `${newProds} new SKUs` })}
-      ${reaiMetric({ label: 'Paid orders', value: String(state.orders.length), detail: state.storeLabel })}
+      ${reaiMetric({ label: 'Valid orders', value: String(state.orders.length), detail: state.storeLabel })}
       ${reaiMetric({ label: 'Idempotency', value: 'SKU & Order #', detail: 'Zero duplicate imports' })}
     </div>
     ${reaiCard({
@@ -150,7 +146,7 @@ function renderStoreSync(state) {
     })}
     ${reaiCard({
       eyebrow: `${CFG.brand.toUpperCase()} ORDERS → REAI DRAFT ORDERS`,
-      title: 'Paid orders',
+      title: 'Valid orders',
       body: html`<div class="table-wrap"><table class="data-table">
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="num">Total ex. VAT</th><th>Action</th></tr></thead>
         <tbody>${state.orders.slice(0, 80).map(({ o, customerId }, idx) => html`<tr id="ec-o-${idx}">
@@ -233,7 +229,7 @@ export async function handle(request, env) {
       const fields = {};
       for (const f of CFG.fields) fields[f.key] = String(form.get(f.key) ?? '').trim();
       const [store, pRaw, cRaw] = await Promise.all([
-        fetchStoreCatalogAndOrders(fields),
+        fetchApi(fields),
         reaiAll(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId }),
         reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
       ]);
@@ -247,7 +243,7 @@ export async function handle(request, env) {
         products: store.products.map((p) => ({ p, exists: Boolean(p.sku && skus.has(p.sku.trim().toLowerCase())) })),
         orders: store.orders.map((o) => ({
           o,
-          customerId: custs.find((c) => (o.customerEmail && (c.email === o.customerEmail || c.invoiceEmail === o.customerEmail)) || c.name.trim().toLowerCase() === o.customerName.trim().toLowerCase())?.id ?? null,
+          customerId: custs.find((c) => (o.customerEmail && ((c.email ?? '').toLowerCase() === o.customerEmail || (c.invoiceEmail ?? '').toLowerCase() === o.customerEmail)) || (c.name ?? '').trim().toLowerCase() === o.customerName.trim().toLowerCase())?.id ?? null,
         })),
       }));
     }
@@ -266,11 +262,15 @@ export async function handle(request, env) {
       const date = String(form.get('date') ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
       const total = Number(form.get('total') ?? '0');
       const customerId = Number(form.get('customerId') ?? '0');
+      const externalReference = `prestashop-${orderId}`.slice(0, 100);
+      const existing = /** @type {{ items: Array<{ id: number | null }> }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, query: { externalReference, pageSize: '1' } }));
+      const dupId = existing.items[0]?.id;
+      if (dupId) return htmlResponse(html`<tr><td class="mono">${number}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td class="num">${formatMinor(Math.round(total * 100))}</td><td><a href="${reaiOrigin(env)}/order/${dupId}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already staged #${dupId} ↗</a></td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', {
         token: session.accessToken,
         tenantId: session.tenantId,
         method: 'POST',
-        body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `prestashop-${orderId}`.slice(0, 100), comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
+        body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
       }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
       return htmlResponse(html`<tr><td class="mono">${number}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td class="num">${formatMinor(Math.round(total * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);

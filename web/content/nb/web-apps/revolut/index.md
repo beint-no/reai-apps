@@ -1,23 +1,35 @@
 ---
-title: "Integrasjon for Revolut Business og Wise"
-seoTitle: "Revolut Business & Wise regnskapsintegrasjon for ReAI — Gratis import"
-description: "Importer kontoutskrifter fra Revolut Business og Wise til balanserte bilag i ReAI med automatisk utskilling av valutagebyrer på konto 7770."
-summary: "Leser CSV-utskrifter fra Revolut og Wise, skiller ut gebyrer på 7770 og oppretter balansert kontrollbilag i ReAI."
+title: "Integrasjon mellom Revolut Business og regnskap"
+seoTitle: "Integrasjon mellom Revolut Business og ReAI: kortkjøp til regnskap"
+description: "Hent kortkjøp og gebyrer fra Revolut Business API og lag ett bilag til kontroll i ReAI mot bankkontoen for Revolut. Gratis og åpen kildekode."
+summary: "Hent fullførte kortkjøp i NOK fra Revolut Business for en periode og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/revolut/
 sourcePath: web/worker/apps/revolut.js
 highlights:
-  - "Støtter kontoutskrift i CSV fra både Revolut Business og Wise Business"
-  - "Skiller automatisk ut kort- og valutagebyrer på konto 7770"
-  - "Balanserer mot egen bank-/kortkonto i regnskapet (f.eks. 1925)"
+  - "Leser kortkjøp og gebyrer fra Revolut Business API med din egen API-nøkkel"
+  - "Fører gebyrer på konto 7770 og kortkjøp på kostnadskontoen du velger"
+  - "Lager et bilag til kontroll med sperre mot dobbel føring"
 ---
 
-## Enkel bokføring av Revolut Business og Wise i Norge
+## Dette kommer over i ReAI
 
-Mange norske selskaper bruker **Revolut Business** eller **Wise** til utenlandske programvareabonnementer og leverandører. Denne nettappen leser CSV-utskriften, skiller ut valutagebyrer på konto `7770` og lager et ferdig balansert kontrollbilag mot konto `1925`.
+Integrasjonen henter fullførte kortkjøp og gebyrer i NOK for perioden du velger. Hvert kjøp føres på kostnadskontoen du oppgir, og hvert gebyr på `7770`. Motposten er kontoen for Revolut-kontoen i ReAI, for eksempel `1925`.
 
-## Slik gjør du det i ReAI
+| Linje | Konto i ReAI |
+| --- | --- |
+| Kortkjøp | Kostnadskontoen du velger, for eksempel `6800` |
+| Gebyr fra Revolut | `7770` |
+| Motpost | Kontoen for Revolut-kontoen, for eksempel `1925` |
 
-1. Last ned månedens kontoutskrift som CSV fra **Revolut Business** eller **Wise**.
-2. Klikk **Åpne integrasjon**, koble til ReAI, bekreft motkonto (`1925`) og slipp filen i opplastingsfeltet.
-3. Kontroller forhåndsvisningen og opprett kontrollbilaget i ReAI.
+Linjene føres uten MVA. Sett riktig MVA-kode i ReAI når du legger ved kvitteringen, for eksempel omvendt avgiftsplikt for tjenester kjøpt fra utlandet. Transaksjoner i andre valutaer enn NOK hoppes over.
+
+## Slik kommer du i gang
+
+1. Åpne API-konsollet på **developer.revolut.com/console**, velg **API keys** og klikk **New**. Gi nøkkelen tilgangen **Accounts → Transactions → Read**.
+2. Lagre API-nøkkelen og den private signeringsnøkkelen (`private.pem`) som konsollet lager.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Lim inn API-nøkkelen og innholdet i `private.pem`, velg periode og kontoer, og hent transaksjonene.
+5. Kontroller forhåndsvisningen, kryss av for bekreftelse og opprett bilaget.
+
+Nøklene brukes bare til denne ene forespørselen og lagres aldri.
