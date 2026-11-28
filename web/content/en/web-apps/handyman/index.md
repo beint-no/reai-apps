@@ -1,29 +1,25 @@
 ---
-title: "GSGroup Handyman & Accounting Integration"
-seoTitle: "GSGroup Handyman & Accounting Integration for ReAI — Free Open-Source Connector"
-description: "Import completed GSGroup Handyman mobile service orders and technician hours directly into ReAI."
-summary: "Import completed GSGroup Handyman mobile service orders and technician hours directly into ReAI."
+title: "Handyman & Accounting Integration"
+seoTitle: "Handyman Service Orders to ReAI | Free Integration"
+description: "Fetch completed service orders with hours and materials from the Handyman API and add them to ReAI as orders and timesheets."
+summary: "Fetch completed service orders from the Handyman API and add them to ReAI as orders and timesheets."
 industry: operations
 webAppUrl: /app/handyman/
 sourcePath: web/worker/apps/handyman.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Field service & technical installation (Servicebedrifter)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Orders)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Uses the Handyman API on your own Handyman server"
+  - "Totals hours, labour and materials for each completed order"
+  - "Uses the order's fixed price when one is set"
 ---
 
-## How Handyman integrates with ReAI
+## Move Handyman service orders into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **Handyman** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/handyman/` using ReAI's documented Public API.
+Handyman from GSGroup has a REST API that runs on the customer's own Handyman server. The integration fetches orders completed in the period, totals hours from salary codes measured in hours, and values the order from the customer price of labour and materials or from the fixed price. You can stage the order in ReAI and log the hours on an employee.
 
-| Dimension | Mapping in ReAI |
-| --- | --- |
-| Target industry | Field service & technical installation (Servicebedrifter) |
-| Norwegian ledger / API | `3000 / Orders` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+## Set up Handyman with ReAI
 
-## Getting started
-
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your Handyman export or enter your credentials/settlement totals to post directly into ReAI.
+1. Open **Handyman ControlCenter**, go to the **Integration** tab, enter an API key and a name for the integration and click **Apply**.
+2. Install and start the **HandymanAPI** service under **Services** as described by [GSGroup support](https://support.gsgroup.no/hc/en-us/articles/17674524711441).
+3. Ask your IT partner to publish the API over https from the internet with your own certificate, see the [remote access guide](https://support.gsgroup.no/hc/en-us/articles/17762953047953).
+4. Click **Open integration**, connect ReAI and enter the https address of the API, the API key and the client number from ControlCenter.
+5. Review the orders and click **Stage order** or **Log hours**.

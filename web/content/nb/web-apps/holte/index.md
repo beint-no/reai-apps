@@ -1,29 +1,25 @@
 ---
-title: "Integrasjon mellom Holte og regnskap"
-seoTitle: "Integrasjon mellom Holte og regnskap — Gratis integrasjon for ReAI"
-description: "Overfør prosjekttimer og a-konto fakturagrunnlag (NS 3420) fra HoltePortalen direkte til ReAI."
-summary: "Overfør prosjekttimer og a-konto fakturagrunnlag (NS 3420) fra HoltePortalen direkte til ReAI."
+title: "Integrasjon mellom EG HoltePortalen og regnskap"
+seoTitle: "EG HoltePortalen timer til ReAI | Gratis integrasjon"
+description: "Hent prosjekttimer fra HoltePortalen API og før dem i ReAI Timelister per ansatt og prosjekt."
+summary: "Hent prosjekttimer fra HoltePortalen API og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/holte/
 sourcePath: web/worker/apps/holte.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Contractors & builders (Entreprenører)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Orders)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Bruker HoltePortalen API med et API-token fra innstillingene"
+  - "Viser prosjektnummer, prosjektnavn og bruker fra HoltePortalen"
+  - "Tar ikke med fravær og negative føringer"
 ---
 
-## Slik kobler du EG Holte til ReAI uten tilleggskostnad
+## Overfør timer fra EG HoltePortalen til ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **EG Holte** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/holte/`.
+Holte er nå en del av EG, og løsningen heter EG HoltePortalen. Integrasjonen henter timeregistreringer på prosjekter for en periode og viser prosjekt, bruker og kommentar. Du velger ansatt og eventuelt prosjekt i ReAI og fører timene én og én.
 
-| Område | Oppsett i ReAI |
-| --- | --- |
-| Bransje | Contractors & builders (Entreprenører) |
-| Kontoplan / API | `3000 / Orders` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+## Slik setter du opp HoltePortalen mot ReAI
 
-## Kom i gang på 2 minutter
-
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra EG Holte og overfør direkte til ReAI.
+1. Logg inn i HoltePortalen og åpne **Innstillinger**, fanen **API tokens**.
+2. Gi tokenet et navn og en utløpsdato, klikk **Create new token** og kopier verdien. Den vises bare én gang.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt prosjekt.
+4. Lim inn tokenet, velg periode og eventuelt e-posten til brukeren i HoltePortalen for å hente timene til én person.
+5. Kontroller timene og klikk **Post to ReAI** for hver føring.

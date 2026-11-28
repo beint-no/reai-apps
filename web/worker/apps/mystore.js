@@ -1,4 +1,5 @@
 // @ts-check
+import { fetchJson, num } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -7,86 +8,131 @@ import { formatMinor } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
- * @typedef {{ sku: string, title: string, priceExVat: number, currency: string, stockItem: boolean }} StoreProduct
- * @typedef {{ id: string, number: string, date: string, customerName: string, customerEmail: string, totalExVat: number, currency: string, status: string }} StoreOrder
+ * @typedef {{ sku: string, title: string, priceExVat: number }} StoreProduct
+ * @typedef {{ name: string, quantity: number, unitPriceExVat: number, ratePct: number }} StoreLine
+ * @typedef {{ id: string, date: string, customerName: string, customerEmail: string, currency: string, lines: StoreLine[], netMinor: number, vatMinor: number, totalMinor: number | null }} StoreOrder
  * @typedef {{ id: number, variants?: Array<{ sku?: string | null }> }} ReAIProduct
- * @typedef {{ id: number, name: string, email?: string | null, invoiceEmail?: string | null }} ReAICustomer
+ * @typedef {{ id: number, name: string | null, email?: string | null, invoiceEmail?: string | null }} ReAICustomer
+ * @typedef {{ code: string, rate: number, vatType: string, reverseCharge: boolean }} ReAIVatCode
  */
 
-const CFG = {
-  slug: 'mystore',
-  brand: 'Mystore.no',
-  title: 'Mystore.no Ecommerce Sync',
-  lead: 'Sync products (by SKU) and paid online orders from Mystore.no straight into your ReAI company.',
-  hint: 'Generate a personal API token in your Mystore admin panel.',
-  fields: [
-    { key: 'shopName', label: 'Mystore shop slug', placeholder: 'minbutikk', secret: false },
-    { key: 'apiToken', label: 'Mystore API Bearer token', placeholder: 'Bearer token', secret: true },
-  ],
-};
+const SLUG = 'mystore';
+const BRAND = 'Mystore';
+const BASE_PATH = '/app/mystore';
+const TITLE = 'Mystore Product and Order Sync';
+const LEAD = 'Create missing Mystore products in ReAI by SKU and stage recent Mystore orders as ReAI orders with one line per product and the VAT rate from Mystore.';
+const API = 'https://api.mystore.no/shops';
+const USER_AGENT = 'ReAI Apps (apps.reai.no)';
 
 /**
+ * Reads one JSON:API listing page by page (page[size] max 50).
  * @param {string} url
- * @param {RequestInit} init
- * @param {string} label
+ * @param {Record<string, string>} headers
+ * @param {number} maxPages
+ * @param {import('../lib/api-http.js').FetchLike} fetchImpl
  */
-async function storeJson(url, init, label) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${label} returned an unexpected redirect. Verify the exact store URL.`);
+async function listPages(url, headers, maxPages, fetchImpl) {
+  /** @type {any[]} */ const data = [];
+  /** @type {any[]} */ const included = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const sep = url.includes('?') ? '&' : '?';
+    const body = await fetchJson(`${url}${sep}page[number]=${page}&page[size]=50`, { headers }, BRAND, fetchImpl);
+    const items = Array.isArray(body?.data) ? body.data : [];
+    data.push(...items);
+    if (Array.isArray(body?.included)) included.push(...body.included);
+    if (items.length < 50 || !body?.links?.next) break;
   }
-  const text = await res.text();
-  if (!res.ok) {
-    throw new HttpError(
-      400,
-      res.status === 401 || res.status === 403
-        ? `${label} rejected these API credentials (HTTP ${res.status}).`
-        : `${label} returned HTTP ${res.status}.`,
-    );
-  }
-  return text ? JSON.parse(text) : {};
+  return { data, included };
 }
 
+/** @param {unknown} v */
+function minor(v) {
+  return Math.round(num(v) * 100);
+}
 
 /**
- * @param {Record<string, string>} fields
+ * Fetches products and the latest orders from the Mystore API.
+ * Docs: https://api-docs.mystore.no/ (OpenAPI at https://api-docs.mystore.no/mystore_api_docs.json):
+ * GET /shops/{shop}/products and GET /shops/{shop}/orders?include=order-products,order-totals&sort=-created_at,
+ * Bearer personal access token from https://auth.mystore.no/login with scopes products:read and orders:read,
+ * Accept application/vnd.api+json, JSON:API pagination page[number] and page[size] (max 50).
+ * Order product final_price is the net unit price and tax_rate its VAT rate; order totals of type "line"
+ * (shipping, fees, discounts) carry value_without_tax and tax_rate; ot_total holds the order total incl. VAT.
+ * @param {Record<string, string>} creds
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ products: StoreProduct[], orders: StoreOrder[], storeLabel: string }>}
  */
-async function fetchStoreCatalogAndOrders(fields) {
-    const shop = (fields.shopName ?? '').trim().replace(/[^a-zA-Z0-9_-]/g, '');
-    if (!shop) {
-      throw new HttpError(400, 'Enter your Mystore shop slug.');
+export async function fetchApi(creds, fetchImpl = fetch) {
+  const shop = (creds.shopName ?? '').trim().toLowerCase();
+  const token = (creds.apiToken ?? '').trim();
+  if (!/^[a-z0-9._-]+$/.test(shop) || !token) throw new HttpError(400, 'Enter your Mystore store name and personal access token.');
+  const headers = { authorization: `Bearer ${token}`, accept: 'application/vnd.api+json', 'user-agent': USER_AGENT };
+  const base = `${API}/${encodeURIComponent(shop)}`;
+  const [pRes, oRes] = await Promise.all([
+    listPages(`${base}/products`, headers, 4, fetchImpl),
+    listPages(`${base}/orders?include=order-products,order-totals&sort=-created_at`, headers, 1, fetchImpl),
+  ]);
+
+  /** @type {StoreProduct[]} */
+  const products = pRes.data.map((/** @type {any} */ item) => {
+    const a = item?.attributes ?? {};
+    const name = a.name && typeof a.name === 'object' ? (a.name.no ?? Object.values(a.name).find((x) => typeof x === 'string' && x.trim())) : a.name;
+    return { sku: String(a.sku ?? '').trim(), title: String(name ?? `Product ${item?.id}`).trim(), priceExVat: num(a.price) };
+  }).filter((p) => p.sku);
+
+  /** @type {Map<string, any[]>} */ const linesByOrder = new Map();
+  /** @type {Map<string, any[]>} */ const totalsByOrder = new Map();
+  for (const inc of oRes.included) {
+    const orderId = String(inc?.relationships?.order?.data?.id ?? '');
+    if (!orderId) continue;
+    const target = inc.type === 'order-products' ? linesByOrder : inc.type === 'order-totals' ? totalsByOrder : null;
+    if (!target) continue;
+    target.set(orderId, [...(target.get(orderId) ?? []), inc]);
+  }
+
+  /** @type {StoreOrder[]} */
+  const orders = oRes.data.map((/** @type {any} */ item) => {
+    const id = String(item?.id ?? '');
+    const a = item?.attributes ?? {};
+    /** @type {StoreLine[]} */ const lines = [];
+    for (const op of linesByOrder.get(id) ?? []) {
+      const o = op.attributes ?? {};
+      const quantity = num(o.quantity);
+      if (quantity === 0) continue;
+      lines.push({ name: `${String(o.name ?? 'Product').trim()}${o.sku ? ` (${String(o.sku).trim()})` : ''}`, quantity, unitPriceExVat: num(o.final_price), ratePct: num(o.tax_rate) });
     }
-    const headers = {
-      authorization: `Bearer ${fields.apiToken ?? ''}`,
-      accept: 'application/vnd.api+json',
+    let totalMinor = /** @type {number | null} */ (null);
+    for (const t of totalsByOrder.get(id) ?? []) {
+      const o = t.attributes ?? {};
+      if (o.class === 'ot_total') totalMinor = minor(o.value);
+      else if (o.order_total_type === 'line' && minor(o.value_without_tax) !== 0) {
+        lines.push({ name: String(o.title ?? 'Order total line').replace(/:\s*$/, '').trim(), quantity: 1, unitPriceExVat: num(o.value_without_tax), ratePct: num(o.tax_rate) });
+      }
+    }
+    const netMinor = lines.reduce((s, l) => s + Math.round(l.quantity * l.unitPriceExVat * 100), 0);
+    const vatMinor = lines.reduce((s, l) => s + Math.round(l.quantity * l.unitPriceExVat * l.ratePct), 0);
+    return {
+      id,
+      date: String(a.created_at ?? '').slice(0, 10),
+      customerName: String(a.customer_address_company || a.customer_address_name || a.billing_address_name || 'Webshop customer').trim(),
+      customerEmail: String(a.customer_address_email || a.billing_address_email || '').trim().toLowerCase(),
+      currency: String(a.currency ?? 'NOK').toUpperCase(),
+      lines,
+      netMinor,
+      vatMinor,
+      totalMinor,
     };
-    const [pBody, oBody] = await Promise.all([
-      storeJson(`https://api.mystore.no/${encodeURIComponent(shop)}/products?page[limit]=50`, { headers }, 'Mystore'),
-      storeJson(`https://api.mystore.no/${encodeURIComponent(shop)}/orders?page[limit]=50`, { headers }, 'Mystore'),
-    ]);
-    const products = (Array.isArray(pBody.data) ? pBody.data : []).map((/** @type {any} */ item) => ({
-      sku: String(item.attributes?.sku ?? item.id ?? '').trim(),
-      title: String(item.attributes?.title ?? item.attributes?.name ?? `Product ${item.id}`).trim(),
-      priceExVat: Number(item.attributes?.price ?? 0),
-      currency: 'NOK',
-      stockItem: true,
-    }));
-    const orders = (Array.isArray(oBody.data) ? oBody.data : []).map((/** @type {any} */ item) => ({
-      id: String(item.id),
-      number: String(item.attributes?.order_number ?? item.id),
-      date: String(item.attributes?.created_at ?? new Date().toISOString()).slice(0, 10),
-      customerName: String(item.attributes?.customer_name ?? 'Webshop Customer'),
-      customerEmail: String(item.attributes?.customer_email ?? ''),
-      totalExVat: Number(item.attributes?.subtotal ?? item.attributes?.total ?? 0),
-      currency: String(item.attributes?.currency ?? 'NOK').toUpperCase(),
-      status: String(item.attributes?.status ?? 'paid'),
-    }));
-    return { products, orders, storeLabel: `mystore:${shop}` };
+  }).filter((o) => o.id && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(o.date));
+  return { products, orders, storeLabel: shop };
+}
+
+/** @param {StoreOrder} o */
+function orderProblem(o) {
+  if (o.currency !== 'NOK') return `Currency ${o.currency} is not supported.`;
+  if (o.lines.length === 0) return 'Order has no lines.';
+  if (o.totalMinor === null) return 'Order has no total.';
+  if (Math.abs(o.netMinor + o.vatMinor - o.totalMinor) > 100) return `Lines (${formatMinor(o.netMinor + o.vatMinor)}) do not match the order total (${formatMinor(o.totalMinor)}). Check gift cards or discounts in Mystore.`;
+  return null;
 }
 
 /** @param {{ products: Array<{ p: StoreProduct, exists: boolean }>, orders: Array<{ o: StoreOrder, customerId: number | null }>, storeLabel: string, isSample?: boolean }} state */
@@ -94,22 +140,22 @@ function renderStoreSync(state) {
   const newProds = state.products.filter((x) => !x.exists).length;
   return html`
     <div class="metric-grid">
-      ${reaiMetric({ label: 'Store products', value: String(state.products.length), detail: `${newProds} new SKUs` })}
-      ${reaiMetric({ label: 'Paid orders', value: String(state.orders.length), detail: state.storeLabel })}
-      ${reaiMetric({ label: 'Idempotency', value: 'SKU & Order #', detail: 'Zero duplicate imports' })}
+      ${reaiMetric({ label: 'Products with SKU', value: String(state.products.length), detail: `${newProds} not in ReAI` })}
+      ${reaiMetric({ label: 'Latest orders', value: String(state.orders.length), detail: state.storeLabel })}
+      ${reaiMetric({ label: 'Duplicate check', value: 'SKU and order id', detail: 'Checked in ReAI before creating' })}
     </div>
     ${reaiCard({
-      eyebrow: `${CFG.brand.toUpperCase()} CATALOG → REAI PRODUCTS`,
+      eyebrow: `${BRAND.toUpperCase()} PRODUCTS → REAI PRODUCTS`,
       title: 'Products',
       badge: reaiBadge({ text: `${newProds} new`, tone: newProds > 0 ? 'accent' : 'success' }),
       body: html`<div class="table-wrap"><table class="data-table">
         <thead><tr><th>SKU</th><th>Product</th><th class="num">Price ex. VAT</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>${state.products.slice(0, 80).map(({ p, exists }, idx) => html`<tr id="ec-p-${idx}">
-          <td class="mono">${p.sku || '—'}</td><td><strong>${p.title}</strong></td><td class="num">${formatMinor(Math.round(p.priceExVat * 100))} ${p.currency}</td>
+        <tbody>${state.products.slice(0, 200).map(({ p, exists }, idx) => html`<tr id="ec-p-${idx}">
+          <td class="mono">${p.sku}</td><td><strong>${p.title}</strong></td><td class="num">${formatMinor(Math.round(p.priceExVat * 100))} NOK</td>
           <td>${exists ? reaiBadge({ text: 'In ReAI', tone: 'neutral' }) : reaiBadge({ text: 'New SKU', tone: 'success' })}</td>
           <td>${exists || state.isSample
             ? html`<span class="muted-note">${state.isSample && !exists ? 'Demo only' : 'Synced'}</span>`
-            : html`<form hx-post="/app/mystore/sync-product" hx-target="#ec-p-${idx}" hx-swap="outerHTML">
+            : html`<form hx-post="${BASE_PATH}/sync-product" hx-target="#ec-p-${idx}" hx-swap="outerHTML">
                 <input type="hidden" name="sku" value="${p.sku}"><input type="hidden" name="title" value="${p.title}"><input type="hidden" name="price" value="${p.priceExVat.toFixed(2)}">
                 <button type="submit" class="button primary">Create in ReAI</button>
               </form>`}</td>
@@ -117,23 +163,60 @@ function renderStoreSync(state) {
       </table></div>`,
     })}
     ${reaiCard({
-      eyebrow: `${CFG.brand.toUpperCase()} ORDERS → REAI DRAFT ORDERS`,
-      title: 'Paid orders',
+      eyebrow: `${BRAND.toUpperCase()} ORDERS → REAI ORDERS`,
+      title: 'Latest orders',
       body: html`<div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="num">Total ex. VAT</th><th>Action</th></tr></thead>
-        <tbody>${state.orders.slice(0, 80).map(({ o, customerId }, idx) => html`<tr id="ec-o-${idx}">
-          <td class="mono">${o.number}</td><td class="mono">${o.date}</td><td><strong>${o.customerName}</strong></td><td class="num">${formatMinor(Math.round(o.totalExVat * 100))} ${o.currency}</td>
-          <td>${state.isSample || !customerId
-            ? html`<span class="muted-note">${state.isSample ? 'Demo only' : 'No matching ReAI customer'}</span>`
-            : html`<form hx-post="/app/mystore/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
-                <input type="hidden" name="orderId" value="${o.id}"><input type="hidden" name="number" value="${o.number}"><input type="hidden" name="date" value="${o.date}"><input type="hidden" name="total" value="${o.totalExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${customerId}">
-                <button type="submit" class="button primary">Stage order</button>
-              </form>`}</td>
-        </tr>`)}</tbody>
-      </table></div>`,
+        <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="num">Net</th><th class="num">VAT</th><th>Action</th></tr></thead>
+        <tbody>${state.orders.map(({ o, customerId }, idx) => {
+          const problem = orderProblem(o);
+          return html`<tr id="ec-o-${idx}">
+            <td class="mono">${o.id}</td><td class="mono">${o.date}</td><td><strong>${o.customerName}</strong>${o.customerEmail ? html`<br><span class="muted-note">${o.customerEmail}</span>` : ''}</td>
+            <td class="num">${formatMinor(o.netMinor)}</td><td class="num">${formatMinor(o.vatMinor)}</td>
+            <td>${state.isSample
+              ? html`<span class="muted-note">Demo only</span>`
+              : problem
+                ? html`<span class="muted-note">${problem}</span>`
+                : !customerId
+                  ? html`<span class="muted-note">No ReAI customer with this email or name</span>`
+                  : html`<form hx-post="${BASE_PATH}/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
+                      <input type="hidden" name="orderJson" value="${JSON.stringify(o)}"><input type="hidden" name="customerId" value="${customerId}">
+                      <button type="submit" class="button primary">Create order in ReAI</button>
+                    </form>`}</td>
+          </tr>`;
+        })}</tbody>
+      </table></div>
+      <p class="muted-note">Each order becomes a ReAI order with one line per product, shipping or fee, priced excluding VAT with the ReAI output VAT code for the Mystore VAT rate. Orders are only offered when the lines add up to the Mystore order total.</p>`,
     })}
   `;
 }
+
+/**
+ * Picks the ReAI invoice VAT code for a Mystore VAT rate.
+ * @param {ReAIVatCode[]} codes
+ * @param {number} ratePct
+ */
+function invoiceVatCode(codes, ratePct) {
+  const usable = codes.filter((c) => !c.reverseCharge && Math.abs(c.rate - ratePct) < 0.001);
+  const match = usable.find((c) => c.vatType === 'output_vat') ?? (ratePct === 0 ? (usable.find((c) => c.vatType === 'exempt') ?? usable.find((c) => c.vatType === 'outside_scope')) : undefined);
+  if (!match) throw new HttpError(400, `ReAI has no invoice VAT code for ${ratePct}% in this company.`);
+  return match.code;
+}
+
+/** @type {StoreOrder} */
+const SAMPLE_ORDER = {
+  id: '5001',
+  date: '2026-10-20',
+  customerName: 'Nordic Retail AS',
+  customerEmail: 'post+mystore@aiak.no',
+  currency: 'NOK',
+  lines: [
+    { name: 'Nordic Wool Sweater (SKU-101)', quantity: 1, unitPriceExVat: 959.2, ratePct: 25 },
+    { name: 'Posten Brevpost', quantity: 1, unitPriceExVat: 79.2, ratePct: 25 },
+  ],
+  netMinor: 103840,
+  vatMinor: 25960,
+  totalMinor: 129800,
+};
 
 /**
  * Handles /app/mystore/* routes.
@@ -143,28 +226,28 @@ function renderStoreSync(state) {
  */
 export async function handle(request, env) {
   const { pathname } = new URL(request.url);
-  const basePath = '/app/mystore';
-  if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) {
-    return Response.redirect(new URL(`${basePath}/`, request.url), 301);
+  if (pathname === BASE_PATH && (request.method === 'GET' || request.method === 'HEAD')) {
+    return Response.redirect(new URL(`${BASE_PATH}/`, request.url), 301);
   }
-  if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
+  if (pathname === `${BASE_PATH}/` && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
     const body = html`
-      <section class="app-intro"><p class="eyebrow">ECOMMERCE · PRODUCT & SALES SYNC</p><h1>${CFG.title}</h1><p class="lead">${CFG.lead}</p></section>
+      <section class="app-intro"><p class="eyebrow">ECOMMERCE · PRODUCTS AND ORDERS</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
-        ${renderConnectPanel(session, { clientId: 'reai-mystore-web', clientName: `ReAI ${CFG.brand} Sync (Web)` })}
+        ${renderConnectPanel(session, { clientId: `reai-${SLUG}-web`, clientName: `ReAI ${BRAND} Sync (Web)` })}
         ${reaiCard({
-          eyebrow: `CONNECT ${CFG.brand.toUpperCase()}`,
-          title: `Scan ${CFG.brand} products & orders`,
+          eyebrow: `CONNECT ${BRAND.toUpperCase()}`,
+          title: `Scan ${BRAND} products and orders`,
           body: html`
-            <p class="muted-note">${CFG.hint} Credentials are used only for this single HTTPS scan and never stored.</p>
-            <form class="stack" hx-post="${basePath}/scan" hx-target="#ec-output" hx-swap="innerHTML">
+            <p class="muted-note">Log in at auth.mystore.no with your store name and admin user, open Personal Access Tokens and create a token with products:read and orders:read. The token is used only for this scan and is never stored.</p>
+            <form class="stack" hx-post="${BASE_PATH}/scan" hx-target="#ec-output" hx-swap="innerHTML">
               <div class="mapping-grid">
-                ${CFG.fields.map((f) => html`<div class="field"><label for="ec-${f.key}">${f.label}</label><input id="ec-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}"${f.secret ? html` autocomplete="off"` : ''} required placeholder="${f.placeholder}"></div>`)}
+                <div class="field"><label for="ec-shopName">Store name</label><input id="ec-shopName" name="shopName" type="text" required placeholder="minbutikk"></div>
+                <div class="field"><label for="ec-apiToken">Personal access token</label><input id="ec-apiToken" name="apiToken" type="password" autocomplete="off" required placeholder="Token"></div>
               </div>
               <div class="inline-row">
-                <button type="submit" class="button primary">Scan ${CFG.brand}</button>
-                <button type="button" class="button secondary" hx-post="${basePath}/sample" hx-target="#ec-output" hx-swap="innerHTML">Load sample store</button>
+                <button type="submit" class="button primary">Scan ${BRAND}</button>
+                <button type="button" class="button secondary" hx-post="${BASE_PATH}/sample" hx-target="#ec-output" hx-swap="innerHTML">Load sample store</button>
               </div>
             </form>
           `,
@@ -172,38 +255,36 @@ export async function handle(request, env) {
         <div id="ec-output" class="stack"></div>
       </div>
     `;
-    return htmlResponse(appShell({ title: CFG.title, description: CFG.lead, activePath: `${basePath}/`, body }));
+    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${BASE_PATH}/`, body }));
   }
 
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
 
-  if (pathname === `${basePath}/sample`) {
+  if (pathname === `${BASE_PATH}/sample`) {
     return htmlResponse(renderStoreSync({
       isSample: true,
-      storeLabel: `${CFG.brand} demo`,
+      storeLabel: `${BRAND} demo`,
       products: [
-        { p: { sku: 'SKU-101', title: 'Nordic Wool Sweater', priceExVat: 959.2, currency: 'NOK', stockItem: true }, exists: true },
-        { p: { sku: 'SKU-102', title: 'Fjord Insulated Bottle', priceExVat: 399.2, currency: 'NOK', stockItem: true }, exists: false },
+        { p: { sku: 'SKU-101', title: 'Nordic Wool Sweater', priceExVat: 959.2 }, exists: true },
+        { p: { sku: 'SKU-102', title: 'Fjord Insulated Bottle', priceExVat: 399.2 }, exists: false },
       ],
-      orders: [{ o: { id: '5001', number: '#5001', date: '2026-10-20', customerName: 'Nordic Retail AS', customerEmail: 'order@example.no', totalExVat: 1358.4, currency: 'NOK', status: 'paid' }, customerId: 1 }],
+      orders: [{ o: SAMPLE_ORDER, customerId: 1 }],
     }));
   }
 
   try {
     const session = await readSession(env, request);
     if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
+    const auth = { token: session.accessToken, tenantId: session.tenantId };
     const form = await request.formData();
 
-    if (pathname === `${basePath}/scan`) {
-      /** @type {Record<string, string>} */
-      const fields = {};
-      for (const f of CFG.fields) fields[f.key] = String(form.get(f.key) ?? '').trim();
+    if (pathname === `${BASE_PATH}/scan`) {
       const [store, pRaw, cRaw] = await Promise.all([
-        fetchStoreCatalogAndOrders(fields),
-        reaiAll(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId }),
-        reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
+        fetchApi({ shopName: String(form.get('shopName') ?? ''), apiToken: String(form.get('apiToken') ?? '') }),
+        reaiAll(env, '/api/products', auth),
+        reaiAll(env, '/api/customers', auth),
       ]);
       const skus = new Set();
       for (const p of /** @type {ReAIProduct[]} */ (pRaw)) {
@@ -212,39 +293,53 @@ export async function handle(request, env) {
       const custs = /** @type {ReAICustomer[]} */ (cRaw);
       return htmlResponse(renderStoreSync({
         storeLabel: store.storeLabel,
-        products: store.products.map((p) => ({ p, exists: Boolean(p.sku && skus.has(p.sku.trim().toLowerCase())) })),
+        products: store.products.map((p) => ({ p, exists: skus.has(p.sku.toLowerCase()) })),
         orders: store.orders.map((o) => ({
           o,
-          customerId: custs.find((c) => (o.customerEmail && (c.email === o.customerEmail || c.invoiceEmail === o.customerEmail)) || c.name.trim().toLowerCase() === o.customerName.trim().toLowerCase())?.id ?? null,
+          customerId: custs.find((c) => (o.customerEmail && [c.email, c.invoiceEmail].some((e) => (e ?? '').trim().toLowerCase() === o.customerEmail)) || (c.name ?? '').trim().toLowerCase() === o.customerName.toLowerCase())?.id ?? null,
         })),
       }));
     }
 
-    if (pathname === `${basePath}/sync-product`) {
-      const sku = String(form.get('sku') ?? '').trim();
-      const title = String(form.get('title') ?? '').trim();
+    if (pathname === `${BASE_PATH}/sync-product`) {
+      const sku = String(form.get('sku') ?? '').trim().slice(0, 100);
+      const title = String(form.get('title') ?? '').trim().slice(0, 200);
       const price = Number(form.get('price') ?? '0');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { title, stockItem: true, variants: [{ sku, sellingPrice: price >= 0 ? price : 0 }] } }));
-      return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))}</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
+      if (!sku || !title || !Number.isFinite(price)) throw new HttpError(400, 'Product needs a SKU, a title and a price.');
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { ...auth, method: 'POST', body: { title, stockItem: true, variants: [{ sku, sellingPrice: Math.max(0, Number(price.toFixed(2))) }] } }));
+      return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))} NOK</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
     }
 
-    if (pathname === `${basePath}/sync-order`) {
-      const orderId = String(form.get('orderId') ?? '').trim();
-      const number = String(form.get('number') ?? orderId).trim();
-      const date = String(form.get('date') ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
-      const total = Number(form.get('total') ?? '0');
+    if (pathname === `${BASE_PATH}/sync-order`) {
+      const o = /** @type {StoreOrder} */ (JSON.parse(String(form.get('orderJson') ?? '{}')));
       const customerId = Number(form.get('customerId') ?? '0');
+      if (!o || !Array.isArray(o.lines) || !/^[0-9]+$/.test(String(o.id)) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(o.date)) || customerId <= 0) throw new HttpError(400, 'Order data is incomplete.');
+      const problem = orderProblem(o);
+      if (problem) throw new HttpError(400, problem);
+      const externalReference = `mystore-${o.id}`;
+      const existing = /** @type {Array<{ id: number | null, externalReference?: string | null }>} */ (await reaiAll(env, '/api/orders', { ...auth, query: { externalReference } }));
+      const dup = existing.find((x) => x.id && x.externalReference === externalReference);
+      if (dup) return htmlResponse(html`<tr><td class="mono">${o.id}</td><td class="mono">${o.date}</td><td>${o.customerName}</td><td class="num">${formatMinor(o.netMinor)}</td><td class="num">${formatMinor(o.vatMinor)}</td><td><a href="${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already in ReAI ↗</a></td></tr>`);
+      const vatCodes = /** @type {ReAIVatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } }));
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', {
-        token: session.accessToken,
-        tenantId: session.tenantId,
+        ...auth,
         method: 'POST',
-        body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `mystore-${orderId}`.slice(0, 100), comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
+        body: {
+          customerId,
+          currencyCode: 'NOK',
+          daysUntilDue: 14,
+          issueDate: o.date,
+          orderDate: o.date,
+          externalReference,
+          comment: `${BRAND} order ${o.id}`,
+          orderLines: o.lines.map((l) => ({ itemName: String(l.name).slice(0, 200), quantity: Number(l.quantity), unitPrice: Number(Number(l.unitPriceExVat).toFixed(2)), vatCode: invoiceVatCode(vatCodes, Number(l.ratePct)) })),
+        },
       }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
-      return htmlResponse(html`<tr><td class="mono">${number}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td class="num">${formatMinor(Math.round(total * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
+      return htmlResponse(html`<tr><td class="mono">${o.id}</td><td class="mono">${o.date}</td><td>${o.customerName}</td><td class="num">${formatMinor(o.netMinor)}</td><td class="num">${formatMinor(o.vatMinor)}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
     }
   } catch (err) {
-    return htmlResponse(reaiCallout({ tone: 'danger', title: `${CFG.brand} error`, body: err instanceof Error ? err.message : 'Store sync failed.' }));
+    return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Store sync failed.' }));
   }
   return errorResponse('Unknown store route.', 404);
 }

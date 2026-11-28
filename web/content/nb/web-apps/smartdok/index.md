@@ -1,29 +1,28 @@
 ---
 title: "Integrasjon mellom SmartDok og regnskap"
-seoTitle: "Integrasjon mellom SmartDok og regnskap — Gratis integrasjon for ReAI"
-description: "Importer godkjente timer, maskintimer og fakturagrunnlag fra SmartDok rett inn i ReAI uten månedlig integrasjonsgebyr."
-summary: "Importer godkjente timer, maskintimer og fakturagrunnlag fra SmartDok rett inn i ReAI uten månedlig integrasjonsgebyr."
+seoTitle: "Integrasjon mellom SmartDok og ReAI: attesterte timer til timelister"
+description: "Hent attesterte timer fra SmartDok API og før dem i timelistene i ReAI på valgt ansatt og prosjekt. Gratis og åpen kildekode."
+summary: "Hent attesterte timer fra SmartDok for en periode og før dem i ReAI Timelister."
 industry: operations
 webAppUrl: /app/smartdok/
 sourcePath: web/worker/apps/smartdok.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Construction & civil engineering (Bygg og anlegg)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Timesheets)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser attesterte timer fra SmartDok API med API-tilgangsnøkkel"
+  - "Viser ansatt, prosjekt, underprosjekt og lønnsart før du fører noe"
+  - "Fører hver linje som en timeregistrering på valgt ansatt og prosjekt i ReAI"
 ---
 
-## Slik kobler du SmartDok til ReAI uten tilleggskostnad
+## Dette kommer over i ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **SmartDok** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/smartdok/`.
+Integrasjonen henter attesterte timer fra SmartDok i valgt periode, høyst 93 dager om gangen. Også timer som allerede er sendt til lønn, kommer med. Tillegg, diett og maskintimer tas ikke med. Du kan begrense til én ansatt med navn eller ansattnummer. Antall timer er nettotimer etter pause når SmartDok oppgir dem.
 
-| Område | Oppsett i ReAI |
-| --- | --- |
-| Bransje | Construction & civil engineering (Bygg og anlegg) |
-| Kontoplan / API | `3000 / Timesheets` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
 
-## Kom i gang på 2 minutter
+## Slik kommer du i gang
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra SmartDok og overfør direkte til ReAI.
+1. Logg inn i SmartDok som administrator og åpne **Company settings → API administration**. Lag en API-tilgangsnøkkel. Mangler menyvalget, må API-tilgang bestilles hos SmartDok.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Fyll inn nøkkelen og perioden, og velg ansatt og eventuelt prosjekt i ReAI.
+4. Kontroller timene og klikk **Post to ReAI** på linjene du vil føre.
+
+Nøkkelen brukes bare til denne ene forespørselen og lagres aldri.

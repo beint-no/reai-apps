@@ -1,29 +1,33 @@
 ---
 title: "Integrasjon mellom Planday og regnskap"
-seoTitle: "Integrasjon mellom Planday og regnskap — Gratis integrasjon for ReAI"
-description: "Importer godkjente vaktplaner og arbeidstimer fra Planday rett inn i ReAI Timelister for lønn og prosjektoppfølging."
-summary: "Importer godkjente vaktplaner og arbeidstimer fra Planday rett inn i ReAI Timelister for lønn og prosjektoppfølging."
+seoTitle: "Integrasjon mellom Planday og ReAI: godkjente vakter til timelister"
+description: "Hent godkjente vakter fra Planday for én ansatt og før timene i ReAI Timelister. Gratis og åpen kildekode."
+summary: "Hent godkjente vakter fra Planday og før timene i ReAI Timelister."
 industry: operations
 webAppUrl: /app/planday/
 sourcePath: web/worker/apps/planday.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Retail & hospitality shift planning (Vaktplan)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser godkjente vakter fra Planday Open API med App ID og refresh token"
+  - "Trekker fra ubetalte pauser og viser avdelingen for hver vakt"
+  - "Fører timene på valgt ansatt og prosjekt i ReAI Timelister"
 ---
 
-## Slik kobler du Planday til ReAI uten tilleggskostnad
+## Dette kommer over i ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **Planday** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/planday/`.
+Integrasjonen henter vaktene med status godkjent for én ansatt i Planday i valgt periode. Timene regnes fra start til slutt på vakten, minus ubetalte pauser. Du ser hver vakt med dato, avdeling og kommentar, og fører den på en ansatt og eventuelt et prosjekt i ReAI med ett klikk.
 
-| Område | Oppsett i ReAI |
+| Fra Planday | I ReAI |
 | --- | --- |
-| Bransje | Retail & hospitality shift planning (Vaktplan) |
-| Kontoplan / API | `POST /api/timesheets` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Godkjent vakt | Timeliste for valgt ansatt og dato |
+| Avdeling | Vises i forhåndsvisningen |
+| Kommentar på vakten | Kommentar på timelisten |
 
-## Kom i gang på 2 minutter
+## Slik kommer du i gang
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra Planday og overfør direkte til ReAI.
+1. En administrator i Planday går til **Settings → Integrations → API Access** og oppretter en API-applikasjon med tilgangene `shift:read` og `department:read`.
+2. Godkjenn applikasjonen i Planday og kopier **App ID** og **refresh token**.
+3. Finn ansattnummeret (id) til den ansatte i Planday.
+4. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap, ansatt og eventuelt prosjekt.
+5. Fyll inn App ID, refresh token, ansattens id og periode, og hent vaktene. Kontroller timene og klikk **Post to ReAI** på hver linje.
+
+Refresh token brukes bare til denne ene forespørselen og lagres aldri.

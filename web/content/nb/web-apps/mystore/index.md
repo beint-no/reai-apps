@@ -1,28 +1,34 @@
 ---
-title: "Integrasjon mellom Mystore.no og regnskap"
-seoTitle: "Mystore.no regnskapsintegrasjon for ReAI — Gratis produkt- og salgssynk"
-description: "Synkroniser produkter og betalte ordrer fra Mystore.no direkte til ReAI helt gratis. Slipp dyre månedlige integrasjonsbroer."
-summary: "Synkroniser varekatalog på varenummer (SKU) og importer betalte Mystore-ordrer idempotent til ReAI."
+title: "Integrasjon mellom Mystore og regnskap"
+seoTitle: "Integrasjon mellom Mystore og ReAI: produkter og ordrer"
+description: "Opprett produkter fra Mystore i ReAI etter varenummer og overfør ordrer med riktig MVA-kode. Gratis og åpen kildekode."
+summary: "Hent produkter og de siste ordrene fra Mystore API og overfør dem til ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/mystore/
 sourcePath: web/worker/apps/mystore.js
 highlights:
-  - "Kobler rett mot Mystore.no sitt offisielle JSON:API"
-  - "Sammenligner SKU-er og oppretter manglende produkter i ReAI"
-  - "Importerer betalte ordrer uten fare for duplikater"
+  - "Leser produkter og ordrer fra Mystore API med en personlig tilgangsnøkkel"
+  - "Oppretter produkter som mangler i ReAI, sammenlignet på varenummer"
+  - "Lager en ordre i ReAI per Mystore-ordre med sperre mot dobbel føring"
 ---
 
-## Gratis Mystore-integrasjon uten mellomledd
+## Dette kommer over i ReAI
 
-Mange nettbutikker på Mystore.no betaler flere hundre kroner i måneden for en ekstern regnskapskobling. Med ReAI får du **produktsynkronisering og salgssynkronisering** rett i nettleseren uten tilleggskostnad.
+Integrasjonen henter produktene med varenummer og de siste ordrene fra Mystore API. Du velger selv hva som skal opprettes i ReAI.
 
-| Dataflyt | Kilde i Mystore.no | Mål i ReAI |
-| --- | --- | --- |
-| Produktsynk | `GET /{butikk}/products` | `POST /api/products` (duplikatsjekk på SKU) |
-| Salgssynk | `GET /{butikk}/orders` | `POST /api/invoices/import` (unik ordre-ID) |
+| Fra Mystore | I ReAI |
+| --- | --- |
+| Produkt med varenummer | Produkt med samme varenummer og pris eks. MVA |
+| Ordrelinjer | Ordrelinjer med pris eks. MVA og utgående MVA-kode for satsen i Mystore |
+| Frakt, gebyrer og rabatter | Egne ordrelinjer med MVA-satsen fra Mystore |
 
-## Slik kobler du Mystore.no til ReAI
+Ordren knyttes til kunden i ReAI med samme e-post eller navn. En ordre tilbys bare når linjene summerer seg til ordretotalen i Mystore, og hver ordre kan bare overføres én gang.
 
-1. Lag en API-nøkkel i **Mystore Kontrollpanel** med lesetilgang til produkter og ordrer.
-2. Klikk **Åpne integrasjon**, koble til ReAI-selskapet ditt og velg standard nettbutikkunde og varelinje.
-3. Skann butikken for å opprette nye produkter og importere betalte ordrer.
+## Slik kommer du i gang
+
+1. Logg inn på [auth.mystore.no](https://auth.mystore.no/login) med butikknavn og administratorbrukeren din.
+2. Åpne **Personal Access Tokens**, velg **Create New Token** og gi tokenet tilgangene `products:read` og `orders:read`. Kopier tokenet, det vises bare én gang.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Fyll inn butikknavn og token og skann butikken. Opprett produktene som mangler, og overfør ordrene du vil fakturere fra ReAI.
+
+Tokenet brukes bare til skanningen og lagres aldri.

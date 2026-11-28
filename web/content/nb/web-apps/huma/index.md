@@ -1,29 +1,24 @@
 ---
-title: "Integrasjon mellom Huma HR og regnskap"
-seoTitle: "Integrasjon mellom Huma HR og regnskap — Gratis integrasjon for ReAI"
-description: "Synkroniser nyansatte fra Huma HR (navn, e-post, startdato, stillingsprosent og bankkonto) direkte til ReAI Ansatte."
-summary: "Synkroniser nyansatte fra Huma HR (navn, e-post, startdato, stillingsprosent og bankkonto) direkte til ReAI Ansatte."
+title: "Integrasjon mellom Huma og regnskap"
+seoTitle: "Huma ansatte til ReAI | Gratis integrasjon"
+description: "Hent aktive ansatte fra Huma Open API og opprett de som mangler i ReAI Ansatte, med startdato og bankkonto."
+summary: "Hent aktive ansatte fra Huma Open API og opprett de som mangler i ReAI Ansatte."
 industry: operations
 webAppUrl: /app/huma/
 sourcePath: web/worker/apps/huma.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Norwegian SMB HR & onboarding (HR)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/employees)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Bruker Huma Open API med klient-ID og klienthemmelighet"
+  - "Finner ansatte som allerede finnes i ReAI på e-post eller navn"
+  - "Kontrollerer norske kontonumre før de sendes til ReAI"
 ---
 
-## Slik kobler du Huma HR til ReAI uten tilleggskostnad
+## Overfør ansatte fra Huma til ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **Huma HR** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/huma/`.
+Integrasjonen henter aktive ansatte fra Huma med navn, e-post, startdato, stillingsprosent og norsk bankkonto. Ansatte som allerede finnes i ReAI vises som koblet, og du oppretter resten én og én. Integrasjonen sender ingen invitasjoner og leverer ingen A-melding.
 
-| Område | Oppsett i ReAI |
-| --- | --- |
-| Bransje | Norwegian SMB HR & onboarding (HR) |
-| Kontoplan / API | `POST /api/employees` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+## Slik setter du opp Huma mot ReAI
 
-## Kom i gang på 2 minutter
-
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra Huma HR og overfør direkte til ReAI.
+1. I Huma går du til **Systeminnstillinger → Open API** og klikker **Legg til API-nøkkel**. Kopier klient-ID og klienthemmelighet. Hemmeligheten vises bare én gang.
+2. Gi API-nøkkelen en rolle som kan lese ansatte, stillinger og bankkonto. En ny nøkkel har ingen tilgang før den får en rolle.
+3. Klikk **Åpne integrasjon**, koble til ReAI og lim inn klient-ID og klienthemmelighet.
+4. Kontroller listen og klikk **Create in ReAI** for hver ansatt som skal opprettes.

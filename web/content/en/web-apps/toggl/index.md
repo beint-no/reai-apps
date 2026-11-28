@@ -1,23 +1,25 @@
 ---
 title: "Toggl Track & Accounting Integration"
-seoTitle: "Toggl Track Timesheet Integration for ReAI — Billable Hours & Projects"
-description: "Import worked hours from Toggl Track API v9 directly into ReAI Timesheets for project invoicing and payroll. Included free with ReAI."
-summary: "Fetch monthly Toggl Track time entries and post them straight into ReAI Timesheets by employee and project."
+seoTitle: "Toggl Track Timesheet Integration for ReAI: Hours to Timesheets"
+description: "Fetch tracked hours from the Toggl Track API and post them to ReAI Timesheets for the employee and project you choose. Free and open source."
+summary: "Fetch a month of Toggl Track time entries and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/toggl/
 sourcePath: web/worker/apps/toggl.js
 highlights:
-  - "Reads Toggl Track API v9 time entries by month"
-  - "Maps worked hours cleanly to any ReAI employee and project"
-  - "Validates 0.01–24.00 decimal hour bounds before posting to /api/timesheets"
+  - "Reads your Toggl Track time entries for the chosen month"
+  - "Maps the hours to a ReAI employee and optional project"
+  - "Ready for project invoicing and payroll without double entry"
 ---
 
-## Sync Toggl Track hours into ReAI Timesheets
+## What moves into ReAI
 
-Consultancies and agencies tracking billable work in Toggl Track can move monthly entries directly into ReAI Timesheets—ready for customer invoicing, project profitability reporting and payroll without double entry.
+The integration reads your own Toggl Track time entries that start in the chosen month. Running entries are left out. You post lines one by one to ReAI Timesheets for the employee and project you choose.
 
-## Step-by-step setup
+## Setup
 
-1. Copy your **API Token** from Toggl Track under **Profile Settings → API Token**.
-2. Open the integration above, connect your ReAI company and choose target employee, optional project and month.
-3. Review the decimal hours and post each entry directly to ReAI Timesheets.
+1. Open **Profile settings** in Toggl Track and copy the **API Token** at the bottom of the page.
+2. Click **Open integration**, connect ReAI and choose the employee, an optional project and the month.
+3. Check the hours and click **Post to ReAI** on the lines you want to record.
+
+The token is used only for that request and is never stored.

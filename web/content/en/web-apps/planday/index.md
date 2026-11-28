@@ -1,29 +1,33 @@
 ---
-title: "Planday Shift & Payroll Hours Sync"
-seoTitle: "Planday Shift & Payroll Hours Sync for ReAI — Free Open-Source Connector"
-description: "Import approved Planday shift schedules and worked hours directly into ReAI Timesheets."
-summary: "Import approved Planday shift schedules and worked hours directly into ReAI Timesheets."
+title: "Planday & Accounting Integration"
+seoTitle: "Planday Integration for ReAI: Approved Shifts to Timesheets"
+description: "Fetch approved Planday shifts for one employee and post the hours to ReAI Timesheets. Free and open source."
+summary: "Fetch approved Planday shifts and post the hours to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/planday/
 sourcePath: web/worker/apps/planday.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Retail & hospitality shift planning (Vaktplan)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Reads approved shifts through the Planday Open API with an App ID and refresh token"
+  - "Subtracts unpaid breaks and shows the department of each shift"
+  - "Posts the hours to the chosen employee and project in ReAI Timesheets"
 ---
 
-## How Planday integrates with ReAI
+## What moves into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **Planday** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/planday/` using ReAI's documented Public API.
+The integration reads the approved shifts of one Planday employee in the chosen period. Hours run from shift start to shift end, minus unpaid breaks. Each shift is shown with date, department and comment, and you post it to a ReAI employee and an optional project with one click.
 
-| Dimension | Mapping in ReAI |
+| From Planday | In ReAI |
 | --- | --- |
-| Target industry | Retail & hospitality shift planning (Vaktplan) |
-| Norwegian ledger / API | `POST /api/timesheets` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+| Approved shift | Timesheet entry for the chosen employee and date |
+| Department | Shown in the preview |
+| Shift comment | Timesheet comment |
 
-## Getting started
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your Planday export or enter your credentials/settlement totals to post directly into ReAI.
+1. A Planday administrator opens **Settings → Integrations → API Access** and creates an API application with the `shift:read` and `department:read` scopes.
+2. Authorize the application in Planday and copy the **App ID** and **refresh token**.
+3. Look up the employee id of the person in Planday.
+4. Click **Open integration**, connect ReAI and choose the company, employee and optional project.
+5. Enter the App ID, refresh token, employee id and period, then fetch the shifts. Check the hours and click **Post to ReAI** on each line.
+
+The refresh token is used only for that request and is never stored.

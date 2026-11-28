@@ -1,23 +1,24 @@
 ---
 title: "Clockify & Accounting Integration"
-seoTitle: "Clockify Timesheet Integration for ReAI — Free Hours Sync"
-description: "Sync monthly Clockify time entries straight into ReAI Timesheets for customer invoicing and project accounting. Free with ReAI."
-summary: "Fetch Clockify workspace time entries via API and import them into ReAI Timesheets by employee and project."
+seoTitle: "Clockify Hours to ReAI | Free Integration"
+description: "Fetch a month of Clockify time entries through the API and post them to ReAI Timesheets for invoicing and project accounting."
+summary: "Fetch Clockify time entries through the API and post them to ReAI Timesheets by employee and project."
 industry: operations
 webAppUrl: /app/clockify/
 sourcePath: web/worker/apps/clockify.js
 highlights:
-  - "Connects to Clockify API v1 using your personal X-Api-Key"
-  - "Parses ISO-8601 durations into accurate two-decimal ReAI hours"
-  - "Links imported entries directly to your ReAI employee and project"
+  - "Uses the Clockify API v1 with your personal API key"
+  - "Works with workspaces in every Clockify data region"
+  - "Shows Clockify project names and skips running timers"
 ---
 
-## Sync Clockify hours into ReAI
+## Move Clockify hours into ReAI
 
-Bring your team's logged Clockify hours straight into ReAI Timesheets so project billing, payroll basis and accounting stay in sync—with zero per-seat connector cost.
+The integration fetches your finished time entries for a month in the active Clockify workspace, converts the duration to hours and shows the project name and description. You choose the employee and, if you like, the project in ReAI and post the entries one by one.
 
-## Step-by-step setup
+## Set up Clockify with ReAI
 
-1. Copy your **API Key** from Clockify (**Preferences → Advanced → API Key**).
-2. Click **Open integration**, connect your ReAI company, select employee, optional project and month.
-3. Preview the fetched time entries and post them to ReAI Timesheets.
+1. In Clockify, open the profile menu and choose **Preferences → Advanced → Manage API keys**. Click **Generate new**, name the key and copy it.
+2. Click **Open integration**, connect ReAI and choose the employee, project and month.
+3. Choose the workspace data region. Use **Global** if you have not picked a region in Clockify.
+4. Review the hours and click **Post to ReAI** for each entry.

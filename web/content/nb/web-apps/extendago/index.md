@@ -1,29 +1,33 @@
 ---
 title: "Integrasjon mellom ExtendaGO og regnskap"
-seoTitle: "Integrasjon mellom ExtendaGO og regnskap — Gratis integrasjon for ReAI"
-description: "Bokfør dagsoppgjør fra ExtendaGO skybasert kasse direkte i ReAI som balansert kontrollbilag."
-summary: "Bokfør dagsoppgjør fra ExtendaGO skybasert kasse direkte i ReAI som balansert kontrollbilag."
+seoTitle: "Integrasjon mellom ExtendaGO og ReAI: GBAT10 til regnskap"
+description: "Bokfør den daglige GBAT10-filen fra ExtendaGO som bilag til kontroll i ReAI, med kontoene og MVA-kodene fra ExtendaGO. Gratis og åpen kildekode."
+summary: "Last opp den daglige GBAT10-filen fra ExtendaGO og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
 webAppUrl: /app/extendago/
 sourcePath: web/worker/apps/extendago.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Retail chains & mobile POS (Varehandel)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (1900, 1580, 3000, 2700)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser GBAT10-filen som ExtendaGO leverer til SFTP hver natt"
+  - "Beholder kontoene og MVA-kodene fra regnskapsoppsettet i ExtendaGO"
+  - "Lager et bilag til kontroll som du godkjenner, med sperre mot dobbel føring"
 ---
 
-## Slik kobler du ExtendaGO til ReAI uten tilleggskostnad
+## Dette kommer over i ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **ExtendaGO** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/extendago/`.
+ExtendaGO lager én GBAT10-fil per dag med betalinger per betalingsmåte og omsetning per MVA-sats. Integrasjonen viser ett bilag med betalinger på debetsiden og omsetning på kreditsiden. Ingenting bokføres før du har kontrollert forhåndsvisningen og opprettet bilaget.
 
-| Område | Oppsett i ReAI |
+| Linje | Konto i ReAI |
 | --- | --- |
-| Bransje | Retail chains & mobile POS (Varehandel) |
-| Kontoplan / API | `1900, 1580, 3000, 2700` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+| Betalinger | Kontoen satt for betalingsmåten i ExtendaGO |
+| Omsetning per MVA-sats | Kontoen og MVA-koden satt for satsen i ExtendaGO, ført inklusive MVA |
+| Avvik | Avvikskontoen satt i ExtendaGO |
 
-## Kom i gang på 2 minutter
+MVA-kodene i ExtendaGO må være utgående MVA-koder i ReAI, for eksempel `3` for 25 %.
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra ExtendaGO og overfør direkte til ReAI.
+## Slik kommer du i gang
+
+1. Gå til **Settings → Integrations → Accounting** i ExtendaGO og fyll inn SFTP-serveren filen skal leveres til.
+2. Sett konto for hver betalingsmåte, konto og MVA-kode for hver MVA-sats, avdelingsnummer for butikken og en avvikskonto.
+3. Hent filen for dagen fra SFTP-serveren.
+4. Klikk **Åpne integrasjon**, koble til ReAI, velg selskap og last opp filen.
+5. Kontroller forhåndsvisningen mot Z-rapporten, kryss av for bekreftelse og opprett bilaget.

@@ -1,23 +1,28 @@
 ---
 title: "Integrasjon mellom 24Nettbutikk og regnskap"
-seoTitle: "24Nettbutikk regnskapsintegrasjon for ReAI — Gratis produkt- og salgssynk"
-description: "Koble 24Nettbutikk gratis til ReAI for synkronisering av produkter og betalte nettbutikkordrer uten ekstra månedskostnad."
-summary: "Synkroniser produkter på varenummer og importer betalte ordrer fra 24Nettbutikk direkte til ReAI."
+seoTitle: "24Nettbutikk og ReAI: produkter og betalte ordrer"
+description: "Hent produkter og betalte ordrer fra 24Nettbutikk-API-et og overfør dem til ReAI med riktige MVA-satser."
+summary: "Opprett manglende produkter i ReAI og legg betalte ordrer fra 24Nettbutikk inn som ordrer i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/24nettbutikk/
 sourcePath: web/worker/apps/24nettbutikk.js
 highlights:
-  - "Henter produkter og betalte ordrer rett fra 24Nettbutikk-API-et"
-  - "Duplikatsjekker både varenummer (SKU) og ordrenummer automatisk"
-  - "Kombineres sømløst med gratis Vipps-, Klarna- og Nets-avstemming"
+  - "Henter produkter, betalte ordrer og kunder fra 24Nettbutikk-API-et"
+  - "Bruker MVA-satsen på hver ordrelinje fra nettbutikken"
+  - "Stopper duplikater på varenummer og ordrenummer"
 ---
 
-## Produkt- og salgssynk for 24Nettbutikk
+## Produkter og ordrer fra 24Nettbutikk
 
-Hold varekatalogen og nettbutikksalget oppdatert i ReAI uten betalt tilleggsmodul. Kombiner 24Nettbutikk-synken med gratis avstemming for [Vipps](/web-apps/vipps/), [Klarna](/web-apps/klarna/) og [Nets Easy](/web-apps/nets/) for en helhetlig månedsavslutning.
+Integrasjonen henter produktene og de betalte ordrene for én måned fra 24Nettbutikk. Produkter som mangler i ReAI kan opprettes med ett klikk. Betalte ordrer legges inn som ordrer i ReAI med samme linjer og MVA-satser som i nettbutikken, og ordrenummeret lagres som ekstern referanse slik at samme ordre ikke kan legges inn to ganger.
+
+Kunden i ReAI finnes ut fra organisasjonsnummer eller e-postadresse. Ordrer som er betalt delvis med gavekort må føres for hånd.
+
+Bruk gjerne integrasjonen sammen med avstemming for [Vipps](/web-apps/vipps/), [Klarna](/web-apps/klarna/) og [Nets Easy](/web-apps/nets/).
 
 ## Slik kobler du 24Nettbutikk til ReAI
 
-1. Hent nettbutikkens HTTPS-adresse og API-nøkkel fra kontrollpanelet i 24Nettbutikk.
-2. Klikk **Åpne integrasjon**, koble til ReAI og velg standard nettbutikkunde og salgsprodukt.
-3. Skann katalogen og importer nye produkter og betalte ordrer med ett klikk.
+1. Logg inn i 24Nettbutikk, klikk på navnet ditt og velg **API Nøkler**.
+2. Klikk **Generer tilfeldig kode** og kopier nøkkelen. Den vises bare én gang.
+3. Klikk **Åpne integrasjon**, koble til ReAI og fyll inn adressen til nettbutikken, API-nøkkelen og måneden.
+4. Kontroller produktene og ordrene, og overfør dem til ReAI.

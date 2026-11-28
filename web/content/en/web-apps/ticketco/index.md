@@ -1,29 +1,35 @@
 ---
-title: "TicketCo Event & Ticketing Accounting"
-seoTitle: "TicketCo Event & Ticketing Accounting for ReAI — Free Open-Source Connector"
-description: "Book TicketCo payout statements into ReAI separating VAT-exempt culture tickets (3100), 25% bar/merch (3000) and fees (7770)."
-summary: "Book TicketCo payout statements into ReAI separating VAT-exempt culture tickets (3100), 25% bar/merch (3000) and fees (7770)."
+title: "TicketCo & Accounting Integration"
+seoTitle: "TicketCo Accounting Integration for ReAI: Ticket Sales"
+description: "Book TicketCo ticket sales in ReAI as review vouchers, with sales per VAT rate, fees and the amount due from TicketCo. Free and open source."
+summary: "Fetch TicketCo transactions for a period or one event and create one balanced review voucher in ReAI."
 industry: operations
 webAppUrl: /app/ticketco/
 sourcePath: web/worker/apps/ticketco.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Festivals, venues & culture (Arrangement)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (3100 (0%), 3000 (25%), 7770)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Reads ticket transactions through the TicketCo Public API"
+  - "Posts sales including VAT with the matching VAT code, also for tickets without VAT"
+  - "Creates a review voucher in ReAI that you confirm, with a duplicate check"
 ---
 
-## How TicketCo integrates with ReAI
+## What moves into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **TicketCo** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/ticketco/` using ReAI's documented Public API.
+The integration reads every ticket transaction in the chosen period, optionally for one event, and sums them per VAT rate. Refunds are subtracted. The voucher is dated the last day of the period. Nothing is booked until you check the preview and create the review voucher.
 
-| Dimension | Mapping in ReAI |
+| Line | Account in ReAI |
 | --- | --- |
-| Target industry | Festivals, venues & culture (Arrangement) |
-| Norwegian ledger / API | `3100 (0%), 3000 (25%), 7770` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+| Due from TicketCo (sales less fees) | `1580` |
+| TicketCo fees | `7770`, with input VAT when TicketCo reports VAT on the fee |
+| Ticket sales without VAT | `3100`, with the exempt sales code |
+| Ticket sales at 25 %, 15 % or 12 % VAT | `3000`, `3010` or `3020`, posted including VAT with the output VAT code |
 
-## Getting started
+ReAI splits each sales amount into taxable base and VAT. The amount due stays on `1580` until the TicketCo payout is matched against the bank.
 
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your TicketCo export or enter your credentials/settlement totals to post directly into ReAI.
+## Setup
+
+1. Email TicketCo at **cs@ticketco.net** from the address on your TicketCo user and ask for an API token with access to transaction data (*item grosses*).
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Paste the token, choose the period and optionally an event ID, and fetch the transactions.
+4. Check the preview against the TicketCo settlement report, tick the confirmation box and create the review voucher. Attach the report in ReAI.
+
+The token is used only for that request and is never stored.

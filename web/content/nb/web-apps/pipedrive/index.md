@@ -1,23 +1,33 @@
 ---
-title: "Integrasjon mellom Pipedrive CRM og regnskap"
-seoTitle: "Pipedrive CRM regnskapsintegrasjon for ReAI — Kunder og vunne avtaler"
-description: "Synkroniser bedrifter fra Pipedrive til ReAI og gjør vunne salgsavtaler direkte om til ordreutkast klare for fakturering — helt gratis."
-summary: "Overfør Pipedrive-organisasjoner til kunderegisteret i ReAI og opprett ordreutkast fra vunne avtaler."
+title: "Integrasjon mellom Pipedrive og regnskap"
+seoTitle: "Integrasjon mellom Pipedrive og ReAI: kunder og vunne avtaler"
+description: "Overfør organisasjoner fra Pipedrive til kunderegisteret i ReAI og gjør vunne avtaler om til ordreutkast klare for fakturering. Gratis og åpen kildekode."
+summary: "Overfør organisasjoner fra Pipedrive til kunderegisteret i ReAI og opprett ordreutkast fra vunne avtaler."
 industry: operations
 webAppUrl: /app/pipedrive/
 sourcePath: web/worker/apps/pipedrive.js
 highlights:
-  - "Henter både organisasjoner og vunne avtaler (won deals) fra Pipedrive"
-  - "Validerer 9-sifret norsk organisasjonsnummer (Mod11) før kundeopprettelse"
-  - "Oppretter ordreutkast i ReAI med unik ekstern referanse mot dobbeltfakturering"
+  - "Leser organisasjoner og vunne avtaler fra Pipedrive API med din personlige API-nøkkel"
+  - "Kontrollerer norsk organisasjonsnummer før kunden opprettes i ReAI"
+  - "Oppretter ordreutkast med fast ekstern referanse per avtale, så samme avtale ikke blir fakturert to ganger"
 ---
 
-## Fra vunnet avtale i Pipedrive til faktura i ReAI
+## Dette kommer over i ReAI
 
-Slipp manuell kopiering mellom salg og regnskap. Når en avtale markeres som vunnet i Pipedrive, oppretter du kunden og et ferdig ordreutkast i ReAI med ett klikk—klar til å sendes som EHF eller e-postfaktura.
+Integrasjonen henter organisasjonene og de vunne avtalene i Pipedrive. Organisasjoner som ikke finnes i ReAI med samme navn, kan du opprette som kunder etter at du har lagt inn organisasjonsnummeret. Vunne avtaler for en kjent kunde blir ordreutkast i ReAI med avtalens tittel, verdi, valuta og vinnerdato.
 
-## Slik setter du opp Pipedrive mot ReAI
+| Fra Pipedrive | I ReAI |
+| --- | --- |
+| Organisasjon | Kunde, med organisasjonsnummeret du skriver inn |
+| Vunnet avtale | Ordreutkast med én linje og ekstern referanse `pipedrive-deal-<id>` |
 
-1. Finn din personlige API-nøkkel i Pipedrive under **Innstillinger → Personlige innstillinger → API**.
-2. Klikk **Åpne integrasjon**, koble til ReAI og skann Pipedrive.
-3. Opprett manglende kunder og klikk **Stage order** på vunne avtaler.
+Finnes det allerede en ordre med samme eksterne referanse, lenker integrasjonen til den i stedet for å lage en ny. Kontroller MVA-kode og beløp på ordren før du fakturerer.
+
+## Slik kommer du i gang
+
+1. I Pipedrive klikker du på navnet ditt øverst til høyre og går til **Company settings → Personal preferences → API**. Kopier den personlige API-nøkkelen.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Lim inn nøkkelen og klikk **Scan Pipedrive**.
+4. Opprett manglende kunder og klikk **Stage order** på de vunne avtalene du vil fakturere.
+
+Nøkkelen brukes bare til denne skanningen og lagres aldri.

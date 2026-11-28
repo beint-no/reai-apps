@@ -1,104 +1,111 @@
 // @ts-check
-import { fetchJson, isoDate, num, pickList, renderApiFetchCard } from '../lib/api-http.js';
+import { fetchJson, isoDate, num, renderApiFetchCard } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
-import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
-import { formatMinor } from '../lib/reconcile.js';
-import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
-import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
+import { reaiAll, reaiRequest } from '../lib/reai.js';
+import { appShell, reaiBadge, reaiCallout, reaiCard } from '../lib/ui.js';
 
-/** @typedef {{ ref: string, date: string, customerName: string, description: string, hours: number, amountExVat: number, project: string }} TradeRow */
-/** @typedef {{ id: number, name: string }} SimpleRef */
+/** @typedef {{ date: string, hours: number, project: string, user: string, comment: string }} HoursRow */
+/** @typedef {{ id: number, name: string }} SimpleOpt */
 
-const BRAND = "EG Holte";
-const TITLE = "Holte / HoltePortalen Sync";
-const LEAD = "Import HoltePortalen construction project hours and NS 3420 progress billing rows directly into ReAI Timesheets and draft orders.";
-const SAMPLE_CSV = "OrdreNr;Dato;Prosjekt;Kunde;Timer;Belop;Beskrivelse\nHLT-901;2026-10-10;Nybygg Skolefl\u00f8y;Kommune Drift AS;37,50;41250,00;A-konto fremdrift uke 41 (NS 3420)\nHLT-902;2026-10-17;Tilbygg Kontor;Fjord Invest AS;15,00;16500,00;HMS-befaring og prosjektering";
-/** @type {import('../lib/api-http.js').ApiFieldSpec[]} */
-const API_FIELDS = [{"name": "apiToken", "label": "HoltePortalen API token", "type": "password", "placeholder": "Bearer token"}, {"name": "fromDate", "label": "From date", "type": "date", "defaultValue": "$MONTH_START"}, {"name": "toDate", "label": "To date", "type": "date", "defaultValue": "$TODAY"}];
+const BRAND = 'EG HoltePortalen';
+const TITLE = 'EG HoltePortalen Timesheet Sync';
+const LEAD = 'Fetch time registrations from the HoltePortalen API and post them to ReAI Timesheets by employee and project.';
+const API = 'https://smartapizulu.holte.no';
+const PAGE = 500;
+
+/** @type {HoursRow[]} */
+const SAMPLE_ROWS = [
+  { date: '2026-10-14', hours: 7.5, project: '2207 Rehabilitering Storgata 12', user: 'Demo Tømrer', comment: 'Riving og bæring' },
+  { date: '2026-10-15', hours: 8, project: '2207 Rehabilitering Storgata 12', user: 'Demo Tømrer', comment: 'Montering av bjelkelag' },
+];
+
+/** @param {any} payload @returns {any[]} */
+function odataList(payload) {
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload?.value) ? payload.value : [];
+}
 
 /**
- * Fetches work orders / approved hours from EG Holte REST API.
+ * Reads an OData collection page by page, stopping when a page brings nothing new.
+ * @param {string} path
+ * @param {Record<string, string>} params
+ * @param {Record<string, string>} headers
+ * @param {import('../lib/api-http.js').FetchLike} fetchImpl
+ * @returns {Promise<any[]>}
+ */
+async function odataAll(path, params, headers, fetchImpl) {
+  /** @type {Map<string, any>} */ const byId = new Map();
+  for (let page = 0; page < 20; page++) {
+    const query = new URLSearchParams({ ...params, $top: String(PAGE), $skip: String(page * PAGE) });
+    const items = odataList(await fetchJson(`${API}${path}?${query}`, { headers }, BRAND, fetchImpl));
+    const before = byId.size;
+    for (const item of items) byId.set(String(item.id), item);
+    if (items.length < PAGE || byId.size === before) return [...byId.values()];
+  }
+  throw new HttpError(400, `${BRAND} returned too many registrations. Choose a shorter period.`);
+}
+
+/**
+ * Fetches project time registrations from the HoltePortalen API.
+ * Docs: https://smartapizulu.holte.no/index.html (Swagger at /swagger/1.0/swagger.json: OData collections
+ * /odata/Registration with date, totalHours, projectId, userId, comment, absenceCodeId; /odata/Project with
+ * projectName and projectNumber; /odata/User with firstName, lastName, email) and
+ * https://smartapizulu.holte.no/Documentation/Tokens.pdf (API token from HoltePortalen settings, sent in the
+ * X-Holte-Token header, not as a bearer token). Filtering uses standard OData $filter, $top and $skip.
  * @param {Record<string, string>} creds
  * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<TradeRow[]>}
+ * @returns {Promise<HoursRow[]>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
   const token = (creds.apiToken ?? '').trim();
   const from = isoDate(creds.fromDate);
   const to = isoDate(creds.toDate);
   if (!token) throw new HttpError(400, `Enter your ${BRAND} API token.`);
-  const payload = await fetchJson(`https://api.holte.no/v1/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } }, 'EG Holte', fetchImpl);
-  const rows = pickList(payload).map((r, i) => ({
-    ref: String(r.orderNumber ?? r.ref ?? r.id ?? `HOLTE-${i + 1}`),
-    date: isoDate(r.date ?? r.workDate ?? r.completedAt ?? r.createdAt, to),
-    project: String(r.projectName ?? r.project?.name ?? r.project ?? '—'),
-    customerName: String(r.customerName ?? r.customer?.name ?? r.customer ?? '—'),
-    hours: Number(num(r.hours ?? r.ordinaryHours ?? r.durationHours ?? (num(r.minutes) / 60)).toFixed(2)),
-    amountExVat: Number(num(r.amountExVat ?? r.totalExVat ?? r.netAmount ?? r.amount ?? 0).toFixed(2)),
-    description: String(r.description ?? r.comment ?? r.workDescription ?? `${BRAND} work order`),
-  })).filter((x) => x.hours > 0 || x.amountExVat > 0);
-  if (rows.length === 0) throw new HttpError(400, `${BRAND} returned 0 billable entries for ${from}–${to}.`);
+  if (to < from) throw new HttpError(400, 'The to date must be on or after the from date.');
+  const headers = { 'x-holte-token': token, accept: 'application/json' };
+  const next = new Date(Date.parse(`${to}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  const users = await odataAll('/odata/User', { $select: 'id,firstName,lastName,email' }, headers, fetchImpl);
+  const email = (creds.userEmail ?? '').trim().toLowerCase();
+  let filter = `date ge ${from}T00:00:00Z and date lt ${next}T00:00:00Z`;
+  if (email) {
+    const user = users.find((u) => String(u.email ?? '').trim().toLowerCase() === email);
+    if (!user) throw new HttpError(400, `No ${BRAND} user has the email ${creds.userEmail}.`);
+    filter += ` and userId eq ${String(user.id).replace(/[^0-9a-f-]/gi, '')}`;
+  }
+  const registrations = (await odataAll('/odata/Registration', { $filter: filter }, headers, fetchImpl))
+    .filter((r) => r.projectId && !r.absenceCodeId && !r.isNegative);
+  /** @type {Map<string, string>} */ const userNames = new Map(users.map((u) => [String(u.id), [u.firstName, u.lastName].filter(Boolean).join(' ')]));
+  /** @type {Map<string, string>} */ const projectNames = new Map();
+  if (registrations.length > 0) {
+    for (const p of await odataAll('/odata/Project', { $select: 'id,projectName,projectNumber' }, headers, fetchImpl)) {
+      projectNames.set(String(p.id), [p.projectNumber, p.projectName].filter(Boolean).join(' '));
+    }
+  }
+  const rows = registrations
+    .map((r) => ({
+      date: isoDate(r.date, ''),
+      hours: Number(num(r.totalHours).toFixed(2)),
+      project: projectNames.get(String(r.projectId)) ?? 'Project',
+      user: userNames.get(String(r.userId)) ?? '',
+      comment: String(r.comment ?? '').trim() || `${BRAND} hours`,
+    }))
+    .filter((r) => r.date >= from && r.date <= to && r.hours >= 0.01 && r.hours <= 24);
+  if (rows.length === 0) throw new HttpError(400, `${BRAND} returned no project hours for ${from} to ${to}.`);
   return rows;
 }
 
-/** @param {string} csvText @returns {TradeRow[]} */
-function parseTradeCsv(csvText) {
-  const doc = parseCsv(csvText);
-  const norm = doc.headers.map((h) => h.toLowerCase().trim());
-  const refIdx = norm.findIndex((h) => h.includes('ordre') || h.includes('order') || h.includes('ref') || h.includes('id'));
-  const dateIdx = norm.findIndex((h) => h.includes('dato') || h.includes('date'));
-  const projIdx = norm.findIndex((h) => h.includes('prosjekt') || h.includes('project'));
-  const custIdx = norm.findIndex((h) => h.includes('kunde') || h.includes('customer'));
-  const hrsIdx = norm.findIndex((h) => h.includes('timer') || h.includes('hour'));
-  const amtIdx = norm.findIndex((h) => h.includes('belop') || h.includes('beløp') || h.includes('amount') || h.includes('sum'));
-  const descIdx = norm.findIndex((h) => h.includes('beskrivelse') || h.includes('desc') || h.includes('tekst'));
-  if (dateIdx < 0 || (hrsIdx < 0 && amtIdx < 0)) throw new HttpError(400, 'CSV must include Dato/Date and Timer/Hours or Beløp/Amount columns.');
-  return doc.rows.map((r, i) => ({
-    ref: refIdx >= 0 && (r[refIdx] ?? '').trim() ? (r[refIdx] ?? '').trim() : `HOLTE-${i + 1}`,
-    date: (r[dateIdx] ?? '').trim().slice(0, 10),
-    project: projIdx >= 0 ? (r[projIdx] ?? '').trim() || '—' : '—',
-    customerName: custIdx >= 0 ? (r[custIdx] ?? '').trim() || '—' : '—',
-    hours: hrsIdx >= 0 ? Number(Math.max(0, num(r[hrsIdx])).toFixed(2)) : 0,
-    amountExVat: amtIdx >= 0 ? Number(Math.max(0, num(r[amtIdx])).toFixed(2)) : 0,
-    description: descIdx >= 0 ? (r[descIdx] ?? '').trim() || 'Work order' : 'Work order',
-  })).filter((x) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(x.date) && (x.hours > 0 || x.amountExVat > 0));
-}
-
-/** @param {{ rows: Array<{ row: TradeRow, customerId: number | null }>, defaultCustomerId: number, employeeId: number, projectId: number, isSample?: boolean }} state */
-function renderPreview(state) {
-  const totalHours = state.rows.reduce((s, r) => s + r.row.hours, 0);
-  const totalAmt = state.rows.reduce((s, r) => s + r.row.amountExVat, 0);
+/** @param {HoursRow[]} rows @param {number} empId @param {number} projId @param {boolean} isSample */
+function renderHours(rows, empId, projId, isSample) {
   return reaiCard({
-    eyebrow: `${BRAND.toUpperCase()} → REAI ORDERS & TIMESHEETS`,
-    title: `${state.rows.length} work-order / hour rows parsed`,
-    badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready to sync', tone: 'success' }),
-    body: html`
-      <div class="metric-grid">
-        ${reaiMetric({ label: 'Rows', value: String(state.rows.length), detail: 'Idempotent externalReference per order' })}
-        ${reaiMetric({ label: 'Total hours', value: `${totalHours.toFixed(2)} h`, detail: 'Postable to /api/timesheets' })}
-        ${reaiMetric({ label: 'Billable ex. VAT', value: `${formatMinor(Math.round(totalAmt * 100))} NOK`, detail: 'ReAI draft orders (25% VAT)' })}
-      </div>
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Ref</th><th>Date</th><th>Customer / Project</th><th class="num">Hours</th><th class="num">Ex. VAT</th><th>Action</th></tr></thead>
-        <tbody>${state.rows.map(({ row, customerId }, idx) => {
-          const cid = customerId ?? state.defaultCustomerId;
-          return html`<tr id="tr-r-${idx}">
-            <td class="mono">${row.ref}</td><td class="mono">${row.date}</td>
-            <td><strong>${row.customerName}</strong><br><span class="muted-note">${row.project} · ${row.description}</span></td>
-            <td class="num">${row.hours.toFixed(2)}</td><td class="num">${formatMinor(Math.round(row.amountExVat * 100))}</td>
-            <td>${state.isSample
-              ? html`<span class="muted-note">Demo only</span>`
-              : html`<div class="inline-row">
-                  ${row.amountExVat > 0 && cid > 0 ? html`<form hx-post="/app/holte/create-order" hx-target="#tr-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="ref" value="${row.ref}"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="description" value="${row.description}"><input type="hidden" name="amount" value="${row.amountExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${cid}"><button type="submit" class="button primary">Stage order</button></form>` : ''}
-                  ${row.hours > 0 && state.employeeId > 0 ? html`<form hx-post="/app/holte/log-hours" hx-target="#tr-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="hours" value="${row.hours.toFixed(2)}"><input type="hidden" name="description" value="[${BRAND}] ${row.description}"><input type="hidden" name="employeeId" value="${state.employeeId}"><input type="hidden" name="projectId" value="${state.projectId}"><button type="submit" class="button secondary">Log hours</button></form>` : ''}
-                  ${(row.amountExVat <= 0 || cid <= 0) && (row.hours <= 0 || state.employeeId <= 0) ? html`<span class="muted-note">Select customer/employee</span>` : ''}
-                </div>`}</td>
-          </tr>`;
-        })}</tbody>
-      </table></div>
-    `,
+    eyebrow: 'EG HOLTEPORTALEN → REAI TIMESHEETS',
+    title: `${rows.length} registrations (${rows.reduce((s, r) => s + r.hours, 0).toFixed(2)} h)`,
+    badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready', tone: 'success' }),
+    body: html`<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Date</th><th>Project</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
+      <tbody>${rows.map((r, idx) => html`<tr id="ho-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}${r.user ? html`<br><span class="muted-note">${r.user}</span>` : ''}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/holte/import" hx-target="#ho-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[Holte] ${r.project}: ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
+    </table></div>`,
   });
 }
 
@@ -114,98 +121,65 @@ export async function handle(request, env) {
   if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${basePath}/`, request.url), 301);
   if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
-    /** @type {SimpleRef[]} */ let customers = [];
-    /** @type {SimpleRef[]} */ let employees = [];
-    /** @type {SimpleRef[]} */ let projects = [];
+    /** @type {SimpleOpt[]} */ let employees = [];
+    /** @type {SimpleOpt[]} */ let projects = [];
     if (session && session.tenantId > 0) {
-      try {
-        const [c, e, p] = await Promise.all([
-          reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } }),
-          reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId }).catch(() => []),
-          reaiAll(env, '/api/projects', { token: session.accessToken, tenantId: session.tenantId }).catch(() => []),
-        ]);
-        customers = /** @type {SimpleRef[]} */ (c);
-        employees = Array.isArray(e) ? /** @type {SimpleRef[]} */ (e) : [];
-        projects = /** @type {Array<SimpleRef & { archived?: boolean }>} */ (p).filter((x) => !x.archived);
-      } catch { /* ignore */ }
+      const [e, p] = await Promise.all([
+        reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId }).catch(() => []),
+        reaiAll(env, '/api/projects', { token: session.accessToken, tenantId: session.tenantId }).catch(() => []),
+      ]);
+      employees = Array.isArray(e) ? /** @type {SimpleOpt[]} */ (e) : [];
+      projects = /** @type {Array<SimpleOpt & { archived?: boolean }>} */ (p).filter((x) => !x.archived);
     }
+    const extraFields = html`<div class="mapping-grid">
+      <div class="field"><label for="ho-emp">ReAI employee</label><select id="ho-emp" name="employeeId"><option value="0">${employees.length > 0 ? 'Select employee…' : 'Connect to ReAI first'}</option>${employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
+      <div class="field"><label for="ho-proj">ReAI project (optional)</label><select id="ho-proj" name="projectId"><option value="0">No project</option>${projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
+    </div>`;
     const body = html`
-      <section class="app-intro"><p class="eyebrow">CONSTRUCTION, CRAFTS & FIELD SERVICE</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
+      <section class="app-intro"><p class="eyebrow">CONSTRUCTION & TRADES</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: 'reai-holte-web', clientName: `ReAI ${BRAND} (Web)` })}
-        ${renderApiFetchCard({ basePath, targetId: 'tr-output', brand: BRAND, hint: "Create an API token inside HoltePortalen \u2192 User settings \u2192 API tokens.", fields: API_FIELDS, sampleAction: true })}
-        ${reaiCard({
-          eyebrow: `CSV IMPORT · ${BRAND.toUpperCase()}`,
-          title: `Or upload ${BRAND} work-order / hours CSV`,
-          body: html`<form class="stack" hx-post="${basePath}/preview" hx-encoding="multipart/form-data" hx-target="#tr-output" hx-swap="innerHTML">
-            <div class="mapping-grid">
-              <div class="field"><label for="tr-cust">Fallback ReAI customer</label><select id="tr-cust" name="defaultCustomerId"><option value="0">${customers.length > 0 ? 'Match by name or choose…' : 'Connect to ReAI first'}</option>${customers.slice(0, 200).map((c) => html`<option value="${c.id}">${c.name}</option>`)}</select></div>
-              <div class="field"><label for="tr-emp">ReAI employee (timesheets)</label><select id="tr-emp" name="employeeId"><option value="0">${employees.length > 0 ? 'Select employee…' : 'Connect to ReAI first'}</option>${employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
-              <div class="field"><label for="tr-proj">ReAI project (optional)</label><select id="tr-proj" name="projectId"><option value="0">No project</option>${projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
-            </div>
-            ${reaiDropzone({ inputId: 'tr-csv', name: 'file', accept: '.csv,text/csv,text/plain', label: `Choose ${BRAND} CSV`, hint: 'CSV with Dato, Prosjekt, Kunde, Timer, Beløp, Beskrivelse.' })}
-            <div class="inline-row"><button type="submit" class="button primary">Preview CSV</button></div>
-          </form>`,
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'ho-output',
+          brand: BRAND,
+          hint: 'Create an API token in HoltePortalen under Settings → API tokens. Enter a user email to fetch one person only. Absence and negative registrations are skipped.',
+          fields: [
+            { name: 'apiToken', label: 'HoltePortalen API token', type: 'password', placeholder: 'X-Holte-Token' },
+            { name: 'userEmail', label: 'HoltePortalen user email (optional)', required: false },
+            { name: 'fromDate', label: 'From date', type: 'date', defaultValue: '$MONTH_START' },
+            { name: 'toDate', label: 'To date', type: 'date', defaultValue: '$TODAY' },
+          ],
+          extraFields,
+          sampleAction: true,
         })}
-        <div id="tr-output" class="stack"></div>
+        <div id="ho-output" class="stack"></div>
       </div>
     `;
     return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${basePath}/`, body }));
   }
-
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) {
-    return htmlResponse(renderPreview({ rows: parseTradeCsv(SAMPLE_CSV).map((row) => ({ row, customerId: 1 })), defaultCustomerId: 1, employeeId: 1, projectId: 0, isSample: true }));
-  }
-
+  if (pathname === `${basePath}/sample`) return htmlResponse(renderHours(SAMPLE_ROWS, 1, 0, true));
   try {
     const form = await request.formData();
     if (pathname === `${basePath}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      const parsed = await fetchApi(creds);
+      return htmlResponse(renderHours(await fetchApi(creds), Number(form.get('employeeId') ?? '0'), Number(form.get('projectId') ?? '0'), false));
+    }
+    if (pathname === `${basePath}/import`) {
       const session = await readSession(env, request);
-      /** @type {SimpleRef[]} */ let custs = [];
-      if (session && session.tenantId > 0) {
-        try { custs = /** @type {SimpleRef[]} */ (await reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } })); } catch { custs = []; }
-      }
-      const byName = new Map(custs.map((c) => [c.name.trim().toLowerCase(), c.id]));
-      return htmlResponse(renderPreview({ rows: parsed.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null })), defaultCustomerId: 0, employeeId: 0, projectId: 0 }));
-    }
-    if (pathname === `${basePath}/preview`) {
-      const file = form.get('file');
-      if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file first.');
-      const parsed = parseTradeCsv(decodeCsvBytes(new Uint8Array(await file.arrayBuffer())));
-      const session = await readSession(env, request);
-      /** @type {SimpleRef[]} */ let custs = [];
-      if (session && session.tenantId > 0) {
-        try { custs = /** @type {SimpleRef[]} */ (await reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } })); } catch { custs = []; }
-      }
-      const byName = new Map(custs.map((c) => [c.name.trim().toLowerCase(), c.id]));
-      return htmlResponse(renderPreview({ rows: parsed.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null })), defaultCustomerId: Number(form.get('defaultCustomerId') ?? '0'), employeeId: Number(form.get('employeeId') ?? '0'), projectId: Number(form.get('projectId') ?? '0') }));
-    }
-    const session = await readSession(env, request);
-    if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
-    if (pathname === `${basePath}/create-order`) {
-      const ref = String(form.get('ref') ?? '').trim();
-      const date = String(form.get('date') ?? '').slice(0, 10);
-      const description = String(form.get('description') ?? BRAND).trim().slice(0, 255);
-      const amount = Number(form.get('amount') ?? '0');
-      const customerId = Number(form.get('customerId') ?? '0');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `holte-${ref}`.slice(0, 100), comment: `${BRAND} ${ref}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
-      const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
-      return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${description}</td><td class="num">—</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
-    }
-    if (pathname === `${basePath}/log-hours`) {
-      const date = String(form.get('date') ?? '').slice(0, 10);
-      const hours = Number(form.get('hours') ?? '0');
+      if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
       const employeeId = Number(form.get('employeeId') ?? '0');
       const projectId = Number(form.get('projectId') ?? '0');
-      const comment = String(form.get('description') ?? BRAND).slice(0, 1000);
+      const date = String(form.get('date') ?? '').slice(0, 10);
+      const hours = Number(form.get('hours') ?? '0');
+      const comment = String(form.get('comment') ?? BRAND).slice(0, 1000);
+      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
-      return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
+      return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

@@ -1,4 +1,5 @@
 // @ts-check
+import { fetchJson, isoDate, num } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -16,8 +17,8 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/u
 const CFG = {
   "brand": "Magento / Adobe Commerce",
   "title": "Magento / Adobe Commerce Sync",
-  "lead": "Sync products (/rest/V1/products) and paid orders (/rest/V1/orders) from Magento 2 or Adobe Commerce into ReAI.",
-  "hint": "Create a Magento Integration token under System \u2192 Extensions \u2192 Integrations.",
+  "lead": "Create missing products in ReAI by SKU and stage processing and complete Magento 2 or Adobe Commerce orders as ReAI orders.",
+  "hint": "Create an integration under System \u2192 Extensions \u2192 Integrations with read access to Catalog and Sales, activate it and copy the Access Token. On Magento 2.4.4 or later, set Stores \u2192 Configuration \u2192 Services \u2192 OAuth \u2192 Consumer Settings \u2192 Allow OAuth Access Tokens to be used as standalone Bearer tokens to Yes.",
   "fields": [
     {
       "key": "storeUrl",
@@ -61,63 +62,60 @@ function assertPublicHttpsBase(raw) {
 }
 
 /**
- * @param {string} url
- * @param {RequestInit} init
- * @param {string} label
- */
-async function storeJson(url, init, label) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${label} returned an unexpected redirect. Verify the exact store URL.`);
-  }
-  const text = await res.text();
-  if (!res.ok) {
-    throw new HttpError(
-      400,
-      res.status === 401 || res.status === 403
-        ? `${label} rejected these API credentials (HTTP ${res.status}).`
-        : `${label} returned HTTP ${res.status}.`,
-    );
-  }
-  return text ? JSON.parse(text) : {};
-}
-
-
-/**
+ * Fetches products and invoiced orders from the Magento 2 / Adobe Commerce REST API.
+ * Docs: https://developer.adobe.com/commerce/webapi/rest/use-rest/performing-searches/ (searchCriteria filter_groups,
+ * condition_type in/gteq, sortOrders, pageSize), https://developer.adobe.com/commerce/webapi/rest/quick-reference/
+ * (GET /rest/V1/products catalogProductRepositoryV1, GET /rest/V1/orders salesOrderRepositoryV1) and
+ * https://developer.adobe.com/commerce/webapi/get-started/authentication/gs-authentication-token/ (integration access
+ * token sent as Bearer; since 2.4.4 this needs Stores > Configuration > Services > OAuth > Consumer Settings >
+ * Allow OAuth Access Tokens to be used as standalone Bearer tokens = Yes).
  * @param {Record<string, string>} fields
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ products: StoreProduct[], orders: StoreOrder[], storeLabel: string }>}
  */
-async function fetchStoreCatalogAndOrders(fields) {
-    const base = assertPublicHttpsBase(fields.storeUrl ?? '');
-    const headers = { authorization: `Bearer ${fields.apiToken ?? ''}`, accept: 'application/json' };
-    const [pBody, oBody] = await Promise.all([
-      storeJson(`${base}/rest/V1/products?searchCriteria[pageSize]=50`, { headers }, 'Magento'),
-      storeJson(`${base}/rest/V1/orders?searchCriteria[pageSize]=50`, { headers }, 'Magento'),
-    ]);
-    return {
-      products: (Array.isArray(pBody.items) ? pBody.items : []).map((/** @type {any} */ p) => ({
-        sku: String(p.sku ?? p.id ?? '').trim(),
-        title: String(p.name ?? p.sku ?? 'Product').trim(),
-        priceExVat: Number(p.price ?? 0),
-        currency: 'NOK',
-        stockItem: p.type_id !== 'virtual' && p.type_id !== 'downloadable',
-      })),
-      orders: (Array.isArray(oBody.items) ? oBody.items : []).map((/** @type {any} */ o) => ({
-        id: String(o.entity_id ?? o.increment_id),
-        number: String(o.increment_id ?? o.entity_id),
-        date: String(o.created_at ?? new Date().toISOString()).slice(0, 10),
-        customerName: `${o.customer_firstname ?? ''} ${o.customer_lastname ?? ''}`.trim() || 'Magento Customer',
-        customerEmail: String(o.customer_email ?? ''),
-        totalExVat: Number(o.subtotal ?? o.grand_total ?? 0),
-        currency: String(o.order_currency_code ?? 'NOK').toUpperCase(),
-        status: String(o.status ?? 'complete'),
-      })),
-      storeLabel: new URL(base).hostname,
-    };
+export async function fetchApi(fields, fetchImpl = fetch) {
+  const base = assertPublicHttpsBase(fields.storeUrl ?? '');
+  const token = (fields.apiToken ?? '').trim();
+  if (!token) throw new HttpError(400, 'Enter the Magento integration access token.');
+  const from = isoDate(fields.fromDate, `${new Date().toISOString().slice(0, 7)}-01`);
+  const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
+  const productQuery = new URLSearchParams({ 'searchCriteria[pageSize]': '50', 'searchCriteria[currentPage]': '1' });
+  const orderQuery = new URLSearchParams({
+    'searchCriteria[filter_groups][0][filters][0][field]': 'state',
+    'searchCriteria[filter_groups][0][filters][0][value]': 'processing,complete',
+    'searchCriteria[filter_groups][0][filters][0][condition_type]': 'in',
+    'searchCriteria[filter_groups][1][filters][0][field]': 'created_at',
+    'searchCriteria[filter_groups][1][filters][0][value]': `${from} 00:00:00`,
+    'searchCriteria[filter_groups][1][filters][0][condition_type]': 'gteq',
+    'searchCriteria[sortOrders][0][field]': 'created_at',
+    'searchCriteria[sortOrders][0][direction]': 'DESC',
+    'searchCriteria[pageSize]': '50',
+    'searchCriteria[currentPage]': '1',
+  });
+  const [pBody, oBody] = await Promise.all([
+    fetchJson(`${base}/rest/V1/products?${productQuery}`, { headers }, 'Magento', fetchImpl),
+    fetchJson(`${base}/rest/V1/orders?${orderQuery}`, { headers }, 'Magento', fetchImpl),
+  ]);
+  return {
+    products: (Array.isArray(pBody?.items) ? pBody.items : []).map((/** @type {any} */ p) => ({
+      sku: String(p.sku ?? '').trim(),
+      title: String(p.name ?? p.sku ?? 'Product').trim(),
+      priceExVat: Number(num(p.price).toFixed(2)),
+      currency: 'NOK',
+      stockItem: p.type_id !== 'virtual' && p.type_id !== 'downloadable',
+    })).filter((/** @type {StoreProduct} */ p) => p.sku),
+    orders: (Array.isArray(oBody?.items) ? oBody.items : []).map((/** @type {any} */ o) => ({
+      id: String(o.entity_id ?? o.increment_id),
+      number: String(o.increment_id ?? o.entity_id),
+      date: isoDate(o.created_at, from),
+      customerName: `${o.customer_firstname ?? o.billing_address?.firstname ?? ''} ${o.customer_lastname ?? o.billing_address?.lastname ?? ''}`.trim() || 'Magento customer',
+      customerEmail: String(o.customer_email ?? ''),
+      totalExVat: Number((num(o.grand_total) - num(o.tax_amount)).toFixed(2)),
+      currency: String(o.order_currency_code ?? 'NOK').toUpperCase(),
+      status: String(o.status ?? o.state ?? ''),
+    })).filter((/** @type {StoreOrder} */ o) => o.totalExVat > 0),
+    storeLabel: new URL(base).hostname,
+  };
 }
 
 /** @param {{ products: Array<{ p: StoreProduct, exists: boolean }>, orders: Array<{ o: StoreOrder, customerId: number | null }>, storeLabel: string, isSample?: boolean }} state */
@@ -126,8 +124,8 @@ function renderStoreSync(state) {
   return html`
     <div class="metric-grid">
       ${reaiMetric({ label: 'Store products', value: String(state.products.length), detail: `${newProds} new SKUs` })}
-      ${reaiMetric({ label: 'Paid orders', value: String(state.orders.length), detail: state.storeLabel })}
-      ${reaiMetric({ label: 'Idempotency', value: 'SKU & Order #', detail: 'Zero duplicate imports' })}
+      ${reaiMetric({ label: 'Processing and complete orders', value: String(state.orders.length), detail: state.storeLabel })}
+      ${reaiMetric({ label: 'Duplicate check', value: 'SKU and order', detail: 'Existing SKUs and orders are skipped' })}
     </div>
     ${reaiCard({
       eyebrow: `${CFG.brand.toUpperCase()} CATALOG → REAI PRODUCTS`,
@@ -141,7 +139,7 @@ function renderStoreSync(state) {
           <td>${exists || state.isSample
             ? html`<span class="muted-note">${state.isSample && !exists ? 'Demo only' : 'Synced'}</span>`
             : html`<form hx-post="/app/magento/sync-product" hx-target="#ec-p-${idx}" hx-swap="outerHTML">
-                <input type="hidden" name="sku" value="${p.sku}"><input type="hidden" name="title" value="${p.title}"><input type="hidden" name="price" value="${p.priceExVat.toFixed(2)}">
+                <input type="hidden" name="sku" value="${p.sku}"><input type="hidden" name="title" value="${p.title}"><input type="hidden" name="price" value="${p.priceExVat.toFixed(2)}"><input type="hidden" name="stockItem" value="${p.stockItem ? '1' : '0'}">
                 <button type="submit" class="button primary">Create in ReAI</button>
               </form>`}</td>
         </tr>`)}</tbody>
@@ -149,7 +147,7 @@ function renderStoreSync(state) {
     })}
     ${reaiCard({
       eyebrow: `${CFG.brand.toUpperCase()} ORDERS → REAI DRAFT ORDERS`,
-      title: 'Paid orders',
+      title: 'Orders',
       body: html`<div class="table-wrap"><table class="data-table">
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="num">Total ex. VAT</th><th>Action</th></tr></thead>
         <tbody>${state.orders.slice(0, 80).map(({ o, customerId }, idx) => html`<tr id="ec-o-${idx}">
@@ -157,7 +155,7 @@ function renderStoreSync(state) {
           <td>${state.isSample || !customerId
             ? html`<span class="muted-note">${state.isSample ? 'Demo only' : 'No matching ReAI customer'}</span>`
             : html`<form hx-post="/app/magento/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
-                <input type="hidden" name="orderId" value="${o.id}"><input type="hidden" name="number" value="${o.number}"><input type="hidden" name="date" value="${o.date}"><input type="hidden" name="total" value="${o.totalExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${customerId}">
+                <input type="hidden" name="orderId" value="${o.id}"><input type="hidden" name="number" value="${o.number}"><input type="hidden" name="date" value="${o.date}"><input type="hidden" name="total" value="${o.totalExVat.toFixed(2)}"><input type="hidden" name="currency" value="${o.currency}"><input type="hidden" name="customerId" value="${customerId}">
                 <button type="submit" class="button primary">Stage order</button>
               </form>`}</td>
         </tr>`)}</tbody>
@@ -192,6 +190,7 @@ export async function handle(request, env) {
             <form class="stack" hx-post="${basePath}/scan" hx-target="#ec-output" hx-swap="innerHTML">
               <div class="mapping-grid">
                 ${CFG.fields.map((f) => html`<div class="field"><label for="ec-${f.key}">${f.label}</label><input id="ec-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}"${f.secret ? html` autocomplete="off"` : ''} required placeholder="${f.placeholder}"></div>`)}
+                <div class="field"><label for="ec-from">Orders from</label><input id="ec-from" name="fromDate" type="date" value="${new Date().toISOString().slice(0, 7)}-01" required></div>
               </div>
               <div class="inline-row">
                 <button type="submit" class="button primary">Scan ${CFG.brand}</button>
@@ -231,8 +230,9 @@ export async function handle(request, env) {
       /** @type {Record<string, string>} */
       const fields = {};
       for (const f of CFG.fields) fields[f.key] = String(form.get(f.key) ?? '').trim();
+      fields.fromDate = String(form.get('fromDate') ?? '').trim();
       const [store, pRaw, cRaw] = await Promise.all([
-        fetchStoreCatalogAndOrders(fields),
+        fetchApi(fields),
         reaiAll(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId }),
         reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
       ]);
@@ -255,7 +255,7 @@ export async function handle(request, env) {
       const sku = String(form.get('sku') ?? '').trim();
       const title = String(form.get('title') ?? '').trim();
       const price = Number(form.get('price') ?? '0');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { title, stockItem: true, variants: [{ sku, sellingPrice: price >= 0 ? price : 0 }] } }));
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { title, stockItem: form.get('stockItem') !== '0', variants: [{ sku, sellingPrice: price >= 0 ? price : 0 }] } }));
       return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))}</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
     }
 
@@ -265,11 +265,17 @@ export async function handle(request, env) {
       const date = String(form.get('date') ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
       const total = Number(form.get('total') ?? '0');
       const customerId = Number(form.get('customerId') ?? '0');
+      const currencyCode = /^[A-Z]{3}$/.test(String(form.get('currency') ?? '')) ? String(form.get('currency')) : 'NOK';
+      if (!orderId || total <= 0 || customerId <= 0) throw new HttpError(400, 'Valid order, total and customer required.');
+      const externalReference = `magento-${orderId}`.slice(0, 100);
+      const existing = /** @type {{ items: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, query: { externalReference, status: 'all' } }));
+      const dup = existing.items?.[0];
+      if (dup) return htmlResponse(html`<tr><td class="mono">${number}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td class="num">${formatMinor(Math.round(total * 100))}</td><td><a href="${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already staged ↗</a></td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', {
         token: session.accessToken,
         tenantId: session.tenantId,
         method: 'POST',
-        body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `magento-${orderId}`.slice(0, 100), comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
+        body: { customerId, currencyCode, daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
       }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
       return htmlResponse(html`<tr><td class="mono">${number}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td class="num">${formatMinor(Math.round(total * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);

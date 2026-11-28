@@ -1,23 +1,26 @@
 ---
 title: "Fazile Property & Lease Billing"
-seoTitle: "Fazile Property Management Integration for ReAI — Lease Subscriptions"
-description: "Stage commercial property leases from Fazile as recurring ReAI billing subscriptions with VAT-exempt (code 6) or voluntary VAT (code 3) support."
-summary: "Import Fazile lease schedules into ReAI recurring billing subscriptions with automatic billing kept off until approved."
+seoTitle: "Fazile Property Management Integration for ReAI: Lease Subscriptions"
+description: "Read active lease contracts from the Fazile API and stage them as ReAI subscriptions, with the VAT code taken from the rate on each contract line."
+summary: "Read active Fazile lease contracts and stage ReAI recurring billing with automatic billing kept off until approved."
 industry: real-estate
 webAppUrl: /app/fazile/
 sourcePath: web/worker/apps/fazile.js
 highlights:
-  - "Matches tenants automatically against your ReAI customer register"
-  - "Supports both VAT-exempt residential/commercial rent (code 6) and voluntary VAT leases (code 3)"
-  - "Stages monthly ReAI subscriptions with automaticBillingGeneration disabled for safety"
+  - "Reads active contracts and tenants with a Fazile API key"
+  - "Matches tenants in ReAI by organization number, email or name"
+  - "Creates subscriptions with automatic billing off until you approve them"
 ---
 
-## Commercial property lease billing with Fazile and ReAI
+## Lease billing from Fazile in ReAI
 
-Landlords and commercial property managers using **Fazile** (or similar Norwegian lease administration systems) can export active lease schedules as CSV and stage recurring monthly billing directly in ReAI—handling both VAT-exempt leases (VAT code `6`) and voluntarily VAT-registered commercial leases (VAT code `3`).
+Fazile stores rent, common costs and marketing contributions as annual amounts on contract lines. The integration reads active contracts, divides each annual amount by the line's invoice frequency and creates one ReAI subscription per contract and frequency. Lines with VAT get the ReAI output VAT code with the same rate; lines without VAT get the code you choose. Discounts, rent exemptions and accruals are left out and must be added in ReAI if needed.
 
-## Step-by-step with ReAI
+Fazile normally sends invoice basis to your ERP itself. Use this integration for contracts that ReAI will invoice.
 
-1. Export your active lease billing schedule from Fazile as CSV (`LeaseID`, `Tenant`, `Email`, `Unit`, `StartDate`, `MonthlyRent`).
-2. Click **Open integration**, connect your ReAI company, pick the appropriate VAT code (`6` or `3`) and upload the CSV.
-3. Click **Stage subscription** per matched tenant, then review and activate billing inside ReAI.
+## Setup
+
+1. In Fazile, go to **Firmaprofil → API Nøkler** and choose **Opprett API-nøkkel**. Give the key read access to contracts and tenants. The key is shown only once. Fazile charges for API access according to your agreement.
+2. Click **Open integration**, connect ReAI and choose the VAT code for lines without VAT.
+3. Paste the key and fetch the contracts.
+4. Check amounts, frequency and start date, then click **Stage subscription**. Turn on automatic billing in ReAI once the terms are right.

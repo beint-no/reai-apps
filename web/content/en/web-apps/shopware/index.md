@@ -1,23 +1,34 @@
 ---
-title: "Shopware 6 & Accounting Integration"
-seoTitle: "Shopware 6 Accounting Integration for ReAI — Free Product & Sales Sync"
-description: "Sync Shopware 6 products and paid orders into ReAI via Shopware OAuth client credentials. Included free with ReAI."
-summary: "Authenticate with Shopware 6 Admin API to sync products by SKU and import paid orders into ReAI."
+title: "Shopware & Accounting Integration"
+seoTitle: "Shopware 6 Accounting Integration for ReAI: Paid Orders"
+description: "Fetch paid Shopware 6 orders and stage them as ReAI orders with item lines, shipping and VAT rate. Free and open source."
+summary: "Fetch paid Shopware orders for a period and stage them as orders in ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/shopware/
 sourcePath: web/worker/apps/shopware.js
 highlights:
-  - "Authenticates cleanly via Shopware 6 /api/oauth/token client credentials"
-  - "Reads product catalog and paid orders via Shopware Search API"
-  - "Syncs missing SKUs and imports orders idempotently into ReAI"
+  - "Reads paid orders through the Shopware Admin API with an integration"
+  - "One order line per item, discount and shipping, with the tax rate Shopware calculated"
+  - "Finds or creates the customer and skips orders that are already staged"
 ---
 
-## Shopware 6 integration for Norwegian accounting
+## What moves into ReAI
 
-Connect your Shopware 6 storefront directly to ReAI using a native Shopware Integration credential—syncing products by `productNumber` (SKU) and importing paid orders into ReAI without middleware.
+The integration fetches orders dated in the chosen period whose payment transaction is *paid*. Prices including VAT are converted to amounts excluding VAT using the tax Shopware calculated for each line. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
-## Step-by-step setup
+| From Shopware | In ReAI |
+| --- | --- |
+| Item and discount line | Order line with quantity, price excluding VAT and the VAT code for the rate |
+| Shipping | Separate order line with the shipping tax rate |
+| Customer | Customer matched by email or name, or a new customer |
+| Order ID | External reference, so the same order is not staged twice |
 
-1. In Shopware 6 Admin, open **Settings → System → Integrations** and create an integration with read access to Products and Orders.
-2. Open the integration above, connect your ReAI company and paste your Store URL, Access Key ID and Secret Access Key.
-3. Scan and sync new products and paid orders directly into ReAI.
+## Setup
+
+1. In the Shopware Administration open **Settings → System → Integrations** and create an integration with read access to orders.
+2. Copy the **access key ID** and **secret access key**. The secret is shown only when the integration is created.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Enter the shop URL, the keys and the period, and fetch the orders.
+5. Check the lines and stage the orders you want to invoice or book in ReAI.
+
+The keys are used only for that request and are never stored.

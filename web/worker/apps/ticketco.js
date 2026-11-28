@@ -1,5 +1,6 @@
 // @ts-check
-import { fetchJson, isoDate, num, pickList, renderApiFetchCard } from '../lib/api-http.js';
+import { pairVoucherRows } from '../lib/voucher-rows.js';
+import { fetchJson, isoDate, num, renderApiFetchCard } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
@@ -7,62 +8,144 @@ import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
-/** @typedef {{ date: string, ref: string, exemptMinor: number, taxable25Minor: number, feeMinor: number }} PayoutSummary */
+/** @typedef {{ ratePct: number, grossMinor: number }} SalesRate */
+/** @typedef {{ from: string, to: string, ref: string, count: number, sales: SalesRate[], feeMinor: number, feeVatMinor: number }} Settlement */
+/** @typedef {{ account: string, description: string, signedMinor: number, ratePct: number | null, kind: 'output' | 'input' | 'none' }} VoucherLine */
+/** @typedef {{ date: string, ref: string, lines: VoucherLine[], debitMinor: number, creditMinor: number }} Voucher */
+/** @typedef {{ code: string, rate: number, vatType: string, amountBasis: string, reverseCharge: boolean }} VatCode */
 
-const BRAND = "TicketCo";
-const TITLE = "TicketCo Event & Festival Settlement";
-const LEAD = "Book TicketCo event payout statements into ReAI splitting VAT-exempt culture/concert tickets (3100, 0%) from 25% bar/merchandise sales (3000) and ticketing fees (7770).";
-const SAMPLE = {"date": "2026-10-25", "ref": "TC-2026-8841", "exemptMinor": 14800000, "taxable25Minor": 3125000, "feeMinor": 540000};
+const SLUG = 'ticketco';
+const BRAND = 'TicketCo';
+const BASE_PATH = '/app/ticketco';
+const TITLE = 'TicketCo Ticket Sales Accounting';
+const EYEBROW = 'EVENTS · TICKETING';
+const LEAD = 'Turn TicketCo ticket transactions for a period or one event into a balanced ReAI review voucher: sales per VAT rate, TicketCo fees and the amount due from TicketCo.';
+const API_HINT = 'TicketCo issues the API token on request: email cs@ticketco.net from the address on your TicketCo user and ask for access to item grosses (transaction data). Leave the event id empty to include every event.';
+/** @type {import('../lib/api-http.js').ApiFieldSpec[]} */
+const API_FIELDS = [
+  { name: 'token', label: 'TicketCo API token', type: 'password' },
+  { name: 'eventId', label: 'Event id (optional)', required: false, placeholder: '123456' },
+  { name: 'from', label: 'Transactions from', type: 'date', defaultValue: '$MONTH_START' },
+  { name: 'to', label: 'To', type: 'date', defaultValue: '$TODAY' },
+];
+const API = 'https://ticketco.events/api/public/v1/item_grosses';
+const KNOWN_RATES = [25, 15, 12, 0];
+/** @type {Record<string, string>} */
+const REVENUE_ACCOUNTS = { 25: '3000', 15: '3010', 12: '3020', 0: '3100' };
 
-/** @param {Record<string, string>} creds @param {import('../lib/api-http.js').FetchLike} [fetchImpl] */
+/** @type {Settlement} */
+const SAMPLE = { from: '2026-10-01', to: '2026-10-31', ref: '2026-10-01 to 2026-10-31', count: 412, sales: [{ ratePct: 0, grossMinor: 14800000 }, { ratePct: 25, grossMinor: 3125000 }], feeMinor: 540000, feeVatMinor: 0 };
+
+/**
+ * Reads TicketCo item gross transactions in a date range and sums them per VAT rate.
+ * Docs: https://apidoc.ticketco.events/api/v1/public?env=Production (Swagger: host ticketco.events, basePath /api/public/v1,
+ * GET /item_grosses with query token, event_id, pii and page; item_grosses[] with transaction_datestamp, transaction_type,
+ * price, vat, ticketco_vat and ticketco_total_fee) and
+ * https://ticketco.io/en/support/accessing-and-testing-the-ticketco-public-api (token from cs@ticketco.net).
+ * The endpoint has no date filter, so pages are read until a page is short and rows are filtered by transaction_datestamp.
+ * @param {Record<string, string>} creds
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
+ * @returns {Promise<Settlement>}
+ */
 export async function fetchApi(creds, fetchImpl = fetch) {
-  const token = (creds.apiToken ?? '').trim();
-  const date = isoDate(creds.date ?? creds.toDate);
-  if (!token) throw new HttpError(400, `Enter your ${BRAND} API key.`);
-  const data = await fetchJson(`https://ticketco.events/api/public/v1/transactions?token=${encodeURIComponent(token)}`, { headers: { accept: 'application/json' } }, BRAND, fetchImpl);
-  let exemptMinor = 0, taxable25Minor = 0, feeMinor = 0;
-  for (const row of pickList(data)) {
-    const grossMinor = Math.round(Math.abs(num(row.grossAmount ?? row.amount ?? row.total ?? 0)) * 100);
-    if (num(row.vatRate ?? row.taxRate ?? 0) >= 20) taxable25Minor += grossMinor; else exemptMinor += grossMinor;
-    feeMinor += Math.round(Math.abs(num(row.fee ?? row.commission ?? 0)) * 100);
+  const token = (creds.token ?? '').trim();
+  if (!token) throw new HttpError(400, 'Enter your TicketCo API token.');
+  const eventId = (creds.eventId ?? '').trim();
+  if (eventId && !/^[0-9]+$/.test(eventId)) throw new HttpError(400, 'The event id is a number.');
+  const from = isoDate(creds.from);
+  const to = isoDate(creds.to);
+  /** @type {Map<number, number>} */ const byRate = new Map();
+  let feeMinor = 0;
+  let feeVatMinor = 0;
+  let count = 0;
+  for (let page = 1; page <= 200; page++) {
+    const query = new URLSearchParams({ token, pii: 'false', page: String(page) });
+    if (eventId) query.set('event_id', eventId);
+    const data = await fetchJson(`${API}?${query}`, { headers: { accept: 'application/json' } }, BRAND, fetchImpl);
+    /** @type {any[]} */ const rows = Array.isArray(data?.item_grosses) ? data.item_grosses : [];
+    for (const r of rows) {
+      const day = isoDate(r.transaction_datestamp, '');
+      if (!day || day < from || day > to) continue;
+      const sign = /refund|return|cancel|credit/i.test(String(r.transaction_type ?? '')) ? -1 : 1;
+      const price = Math.abs(num(r.price));
+      const vat = Math.abs(num(r.vat));
+      const implied = price - vat > 0 ? (vat / (price - vat)) * 100 : 0;
+      const rate = KNOWN_RATES.find((k) => Math.abs(k - implied) < 0.5);
+      if (rate === undefined) throw new HttpError(400, `TicketCo transaction ${String(r.id)} has a VAT share (${implied.toFixed(1)}%) that is not a Norwegian rate.`);
+      byRate.set(rate, (byRate.get(rate) ?? 0) + sign * Math.round(price * 100));
+      feeMinor += sign * Math.round(Math.abs(num(r.ticketco_total_fee)) * 100);
+      feeVatMinor += sign * Math.round(Math.abs(num(r.ticketco_vat)) * 100);
+      count += 1;
+    }
+    const totalPages = num(data?.meta?.total_pages);
+    if (rows.length === 0 || (totalPages > 0 ? page >= totalPages : rows.length < 50)) break;
   }
-  return { date, ref: `TICKETCO-${date}`, exemptMinor, taxable25Minor, feeMinor };
+  if (count === 0) throw new HttpError(400, `TicketCo has no transactions from ${from} to ${to}${eventId ? ` for event ${eventId}` : ''}.`);
+  const sales = [...byRate.entries()].map(([ratePct, grossMinor]) => ({ ratePct, grossMinor })).filter((s) => s.grossMinor !== 0);
+  return { from, to, ref: `${eventId ? `event ${eventId} ` : ''}${from} to ${to}`, count, sales, feeMinor, feeVatMinor };
 }
 
-/** @param {PayoutSummary} s @param {boolean} isSample */
-function renderPreview(s, isSample) {
-  const vat25Net = Math.round((s.taxable25Minor * 100) / 125);
-  const vatMinor = s.taxable25Minor - vat25Net;
-  const netPayout = s.exemptMinor + s.taxable25Minor - s.feeMinor;
+/** @param {Settlement} s @returns {Voucher} */
+function buildVoucher(s) {
+  const pfx = `${BRAND} ${s.ref}`;
+  const salesTotal = s.sales.reduce((t, r) => t + r.grossMinor, 0);
+  const feeRate = s.feeVatMinor !== 0 && s.feeMinor - s.feeVatMinor !== 0 ? Math.round((s.feeVatMinor / (s.feeMinor - s.feeVatMinor)) * 100) : null;
+  /** @type {VoucherLine[]} */ const lines = [];
+  if (salesTotal - s.feeMinor !== 0) lines.push({ account: '1580', description: `${pfx} · Due from TicketCo`, signedMinor: salesTotal - s.feeMinor, ratePct: null, kind: 'none' });
+  if (s.feeMinor !== 0) lines.push({ account: '7770', description: `${pfx} · TicketCo fees`, signedMinor: s.feeMinor, ratePct: feeRate, kind: feeRate === null ? 'none' : 'input' });
+  for (const r of s.sales) lines.push({ account: REVENUE_ACCOUNTS[String(r.ratePct)] ?? '3000', description: `${pfx} · Ticket sales ${r.ratePct}% VAT`, signedMinor: -r.grossMinor, ratePct: r.ratePct, kind: 'output' });
+  const debitMinor = lines.filter((l) => l.signedMinor > 0).reduce((t, l) => t + l.signedMinor, 0);
+  const creditMinor = lines.filter((l) => l.signedMinor < 0).reduce((t, l) => t - l.signedMinor, 0);
+  return { date: s.to, ref: s.ref, lines, debitMinor, creditMinor };
+}
+
+/** @param {Voucher} v @param {boolean} isSample @param {number} count */
+function renderPreview(v, isSample, count) {
+  const diff = v.debitMinor - v.creditMinor;
+  const balanced = diff === 0 && v.debitMinor > 0;
   return reaiCard({
-    eyebrow: `${BRAND.toUpperCase()} SETTLEMENT VOUCHER`,
-    title: `${s.ref} · ${s.date}`,
-    badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }),
+    eyebrow: `${BRAND.toUpperCase()} → REAI REVIEW VOUCHER`,
+    title: `${v.ref}`,
+    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} NOK`, tone: 'danger' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Net payout (1580)', value: `${formatMinor(netPayout)} NOK` })}
-        ${reaiMetric({ label: '0% revenue (3100)', value: `${formatMinor(s.exemptMinor)} NOK` })}
-        ${reaiMetric({ label: '25% + fees', value: `${formatMinor(s.taxable25Minor)} / ${formatMinor(s.feeMinor)}` })}
+        ${reaiMetric({ label: 'Transactions', value: String(count) })}
+        ${reaiMetric({ label: 'Ticket sales incl. VAT', value: `${formatMinor(v.creditMinor)} NOK` })}
+        ${reaiMetric({ label: 'Voucher date', value: v.date })}
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Account</th><th>Posting</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">1580</td><td>${BRAND} net settlement</td><td class="num">${formatMinor(netPayout)}</td><td class="num"></td></tr>
-          ${s.feeMinor > 0 ? html`<tr><td class="mono">7770</td><td>${BRAND} fees</td><td class="num">${formatMinor(s.feeMinor)}</td><td class="num"></td></tr>` : ''}
-          ${s.exemptMinor > 0 ? html`<tr><td class="mono">3100</td><td>0% revenue</td><td class="num"></td><td class="num">${formatMinor(s.exemptMinor)}</td></tr>` : ''}
-          ${vat25Net > 0 ? html`<tr><td class="mono">3000</td><td>25% taxable net</td><td class="num"></td><td class="num">${formatMinor(vat25Net)}</td></tr>` : ''}
-          ${vatMinor > 0 ? html`<tr><td class="mono">2700</td><td>Output VAT 25%</td><td class="num"></td><td class="num">${formatMinor(vatMinor)}</td></tr>` : ''}
-        </tbody>
+        <thead><tr><th>Account</th><th>Posting</th><th>VAT</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+        <tbody>${v.lines.map((l) => html`<tr><td class="mono">${l.account}</td><td>${l.description}</td><td>${l.ratePct === null ? 'None' : `${l.kind === 'input' ? 'Input' : 'Output'} ${l.ratePct}%`}</td><td class="num">${l.signedMinor > 0 ? formatMinor(l.signedMinor) : ''}</td><td class="num">${l.signedMinor < 0 ? formatMinor(-l.signedMinor) : ''}</td></tr>`)}</tbody>
       </table></div>
-      ${!isSample && netPayout > 0
-        ? html`<form class="stack-sm confirm-box" hx-post="/app/ticketco/book" hx-target="#mb-book" hx-swap="innerHTML">
-            <input type="hidden" name="summaryJson" value="${JSON.stringify(s)}">
-            <label class="check-row"><input type="checkbox" name="c_member" required> I verified these totals against ${BRAND} and will attach the PDF in ReAI.</label>
+      <p class="muted-note">Ticket sales are posted including VAT with the matching ReAI VAT code, so ReAI separates the base and VAT. Tickets without VAT use the exempt code. The amount due from TicketCo stays on clearing account 1580 until the payout is matched against the bank.</p>
+      ${balanced && !isSample
+        ? html`<form class="stack-sm confirm-box" hx-post="${BASE_PATH}/book" hx-target="#${SLUG}-book" hx-swap="innerHTML">
+            <input type="hidden" name="voucherJson" value="${JSON.stringify(v)}">
+            <label class="check-row"><input type="checkbox" name="confirm" required> I verified these figures against the ${BRAND} settlement report and will attach it in ReAI.</label>
             <div><button type="submit" class="button primary">Create review voucher in ReAI</button></div>
-          </form><div id="mb-book" class="stack-sm"></div>`
-        : isSample ? reaiCallout({ tone: 'info', body: `Sample ${BRAND} settlement loaded. Connect to ReAI and fetch or enter real totals above to book.` }) : ''}
+          </form><div id="${SLUG}-book" class="stack-sm"></div>`
+        : isSample
+          ? reaiCallout({ tone: 'info', body: `Sample ${BRAND} period loaded. Connect to ReAI and fetch real transactions above to book them.` })
+          : reaiCallout({ tone: 'warn', body: 'The transactions do not add up to a positive amount. Check the period in TicketCo before booking.' })}
     `,
   });
+}
+
+/**
+ * Picks the ReAI VAT code for a VAT-inclusive voucher line.
+ * @param {VatCode[]} codes @param {VoucherLine} l
+ */
+function vatCodeFor(codes, l) {
+  if (l.kind === 'none' || l.ratePct === null) return '0';
+  const pct = l.ratePct;
+  const usable = codes.filter((c) => !c.reverseCharge && c.amountBasis === 'vat_inclusive' && Math.abs(c.rate - pct) < 0.001);
+  const match = l.kind === 'input'
+    ? usable.find((c) => c.vatType === 'input_vat')
+    : pct > 0
+      ? usable.find((c) => c.vatType === 'output_vat')
+      : (usable.find((c) => c.vatType === 'exempt') ?? usable.find((c) => c.vatType === 'outside_scope') ?? usable.find((c) => c.vatType === 'output_vat'));
+  if (!match) throw new HttpError(400, `ReAI has no ${l.kind} VAT code for ${pct}% in this company.`);
+  return match.code;
 }
 
 /**
@@ -73,71 +156,62 @@ function renderPreview(s, isSample) {
  */
 export async function handle(request, env) {
   const { pathname } = new URL(request.url);
-  const basePath = '/app/ticketco';
-  if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${basePath}/`, request.url), 301);
-  if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
+  if (pathname === BASE_PATH && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${BASE_PATH}/`, request.url), 301);
+  if (pathname === `${BASE_PATH}/` && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
-    const today = new Date().toISOString().slice(0, 10);
     const body = html`
-      <section class="app-intro"><p class="eyebrow">EVENTS & TICKETING</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
+      <section class="app-intro"><p class="eyebrow">${EYEBROW}</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
-        ${renderConnectPanel(session, { clientId: 'reai-ticketco-web', clientName: `ReAI ${BRAND} (Web)` })}
-        ${renderApiFetchCard({ basePath, targetId: 'mb-output', brand: BRAND, hint: "Uses the TicketCo Public API with your organizer API token to pull event sales & fees.", fields: [{"name": "apiToken", "label": "TicketCo API token", "type": "password", "placeholder": "Organizer API token"}, {"name": "date", "label": "Settlement date", "type": "date", "defaultValue": "$TODAY"}], sampleAction: true })}
-        ${reaiCard({
-          eyebrow: `${BRAND.toUpperCase()} PAYOUT STATEMENT`,
-          title: 'Enter settlement summary (NOK)',
-          body: html`<form class="stack" hx-post="${basePath}/preview" hx-target="#mb-output" hx-swap="innerHTML">
-            <div class="mapping-grid">
-              <div class="field"><label for="mb-d">Date</label><input id="mb-d" name="date" type="date" value="${today}" required></div>
-              <div class="field"><label for="mb-r">Ref</label><input id="mb-r" name="ref" type="text" placeholder="${SAMPLE.ref}" required></div>
-              <div class="field"><label for="mb-ex">0% sales / export (3100)</label><input id="mb-ex" name="exempt" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="mb-25">Gross 25% sales (3000)</label><input id="mb-25" name="taxable25" type="number" step="0.01" min="0" value="0"></div>
-              <div class="field"><label for="mb-f">Fees (7770)</label><input id="mb-f" name="fee" type="number" step="0.01" min="0" value="0"></div>
-            </div>
-            <div class="inline-row"><button type="submit" class="button primary">Preview balanced voucher</button><button type="button" class="button secondary" hx-post="${basePath}/sample" hx-target="#mb-output" hx-swap="innerHTML">Load sample settlement</button></div>
-          </form>`,
-        })}
-        <div id="mb-output" class="stack"></div>
+        ${renderConnectPanel(session, { clientId: `reai-${SLUG}-web`, clientName: `ReAI ${BRAND} (Web)` })}
+        ${renderApiFetchCard({ basePath: BASE_PATH, targetId: `${SLUG}-output`, brand: BRAND, hint: API_HINT, fields: API_FIELDS, sampleAction: true })}
+        <div id="${SLUG}-output" class="stack"></div>
       </div>
     `;
-    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${basePath}/`, body }));
+    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${BASE_PATH}/`, body }));
   }
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) return htmlResponse(renderPreview(SAMPLE, true));
+  if (pathname === `${BASE_PATH}/sample`) return htmlResponse(renderPreview(buildVoucher(SAMPLE), true, SAMPLE.count));
   try {
     const form = await request.formData();
-    if (pathname === `${basePath}/fetch-api`) {
+    if (pathname === `${BASE_PATH}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      return htmlResponse(renderPreview(await fetchApi(creds), false));
+      const s = await fetchApi(creds);
+      return htmlResponse(renderPreview(buildVoucher(s), false, s.count));
     }
-    if (pathname === `${basePath}/preview`) {
-      /** @param {string} k */ const m = (k) => Math.round(Math.max(0, Number(form.get(k) ?? '0') || 0) * 100);
-      const date = String(form.get('date') ?? '').trim();
-      const ref = String(form.get('ref') ?? '').trim().slice(0, 60);
-      if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !ref) throw new HttpError(400, 'Enter a valid date and reference.');
-      return htmlResponse(renderPreview({ date, ref, exemptMinor: m('exempt'), taxable25Minor: m('taxable25'), feeMinor: m('fee') }, false));
-    }
-    if (pathname === `${basePath}/book`) {
+    if (pathname === `${BASE_PATH}/book`) {
       const session = await readSession(env, request);
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
-      if (form.get('c_member') !== 'on') throw new HttpError(400, 'Confirm verification checkbox first.');
-      const s = /** @type {PayoutSummary} */ (JSON.parse(String(form.get('summaryJson') ?? '{}')));
-      const vat25Net = Math.round((s.taxable25Minor * 100) / 125);
-      const vatMinor = s.taxable25Minor - vat25Net;
-      const netPayout = s.exemptMinor + s.taxable25Minor - s.feeMinor;
-      if (netPayout <= 0) throw new HttpError(400, 'Net settlement must be positive.');
-      const marker = `${BRAND} payout ${s.ref} ${s.date}`;
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: s.date, endDate: s.date, includeReversed: 'true' } }));
+      if (form.get('confirm') !== 'on') throw new HttpError(400, 'Confirm the verification checkbox first.');
+      const v = /** @type {Voucher} */ (JSON.parse(String(form.get('voucherJson') ?? '{}')));
+      if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
+      const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);
+      if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
+      const marker = `${BRAND} ${String(v.ref).slice(0, 80)}`;
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
-      /** @type {Array<Record<string, unknown>>} */ const postings = [];
-      let idx = 0;
-      const push = (/** @type {string} */ acct, /** @type {number} */ minor, /** @type {string} */ desc) => { if (minor !== 0) postings.push({ accountNumber: acct, postingDate: s.date, currencyCode: 'NOK', amount: Number((minor / 100).toFixed(2)), vatCode: '0', rowNumber: idx++, description: desc }); };
-      push('1580', netPayout, `${BRAND} net settlement`); push('7770', s.feeMinor, `${BRAND} fees`); push('3100', -s.exemptMinor, `${BRAND} 0% revenue`); push('3000', -vat25Net, `${BRAND} 25% net`); push('2700', -vatMinor, 'Output VAT 25%');
-      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: s.date, description: marker, reviewReason: `${BRAND} payout imported via apps.reai.no.`, postings } }));
+      const codes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', auth));
+      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', {
+        ...auth,
+        method: 'POST',
+        body: {
+          date: v.date,
+          description: marker,
+          reviewReason: `${BRAND} ticket sales imported via apps.reai.no. Check against the ${BRAND} settlement report.`,
+          postings: pairVoucherRows(v.lines.map((l) => ({
+            accountNumber: String(l.account),
+            postingDate: v.date,
+            currencyCode: 'NOK',
+            amount: Number((Math.round(Number(l.signedMinor)) / 100).toFixed(2)),
+            vatCode: vatCodeFor(codes, l),
+            description: String(l.description).slice(0, 200),
+          }))),
+        },
+      }));
       return htmlResponse(reaiCallout({ tone: 'success', title: `Created review voucher ${created.number}`, body: html`Open in ReAI: <a href="${reaiOrigin(env)}/voucher/${created.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${created.number} ↗</a>.` }));
     }
   } catch (err) {

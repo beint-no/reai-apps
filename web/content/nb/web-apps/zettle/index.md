@@ -1,17 +1,26 @@
 ---
-title: Integrasjon mellom Zettle og regnskap
-seoTitle: Integrasjon mellom Zettle og regnskap — Avstemming av kasseutbetalinger
-description: Avstem utbetalinger fra Zettle (PayPal POS) mot bank i ReAI helt gratis. Slik holder du styr på kassesalg, kortgebyrer og bankinnskudd.
-summary: Match utbetalinger fra Zettle mot uavstemte banktransaksjoner i ReAI og last ned CSV-rapport.
+title: "Integrasjon mellom PayPal Point of Sale (Zettle) og regnskap"
+seoTitle: "Integrasjon mellom PayPal Point of Sale (Zettle) og ReAI: avstemming av utbetalinger"
+description: "Avstem utbetalinger fra PayPal Point of Sale, tidligere Zettle, mot uavstemte banktransaksjoner i ReAI og last ned en CSV-rapport. Gratis og åpen kildekode."
+summary: "Match utbetalinger fra PayPal Point of Sale (Zettle) mot uavstemte banktransaksjoner i ReAI og last ned CSV-rapport."
 industry: payments
 webAppUrl: /app/zettle/
 sourcePath: web/worker/apps/zettle.js
 highlights:
-  - "Henter utbetalinger fra Zettle Finance API v2 med READ:FINANCE-tilgang"
-  - "Matcher kasseutbetalinger mot banktransaksjoner i ReAI innenfor 8 dager"
-  - "Inkluderer eksempelmodus og sikker CSV-eksport for regnskapet"
+  - "Henter utbetalinger fra Finance API med en API-nøkkel med tilgangen READ:FINANCE"
+  - "Matcher utbetalinger mot banktransaksjoner i ReAI innenfor 8 dager"
+  - "Lager en CSV-rapport som dokumentasjon til månedsavslutningen"
 ---
 
-## Avstemming av Zettle-utbetalinger mot bank
+## Avstemming av utbetalinger mot bank
 
-Zettle samler kortbetalinger fra kassen på likviditetskontoen, trekker kortgebyr og utbetaler nettobeløpet til bedriftskontoen. Ved å avstemme Zettle-utbetalingene mot banklinjene i ReAI hver måned sikrer du at dagsoppgjør, kortgebyrer (`7770`) og bankinnskudd (`1920`) alltid stemmer.
+Zettle by PayPal heter nå PayPal Point of Sale. Kortbetalinger fra kassen samles på likviditetskontoen, kortgebyret trekkes fra og nettobeløpet utbetales til bankkontoen eller PayPal-kontoen din. Integrasjonen henter utbetalingene for én måned og matcher dem mot uavstemte banktransaksjoner i ReAI på beløp, dato og referanse. Ingenting bokføres.
+
+## Slik kommer du i gang
+
+1. Logg inn på **my.zettle.com/apps/api-keys** og lag en API-nøkkel med tilgangen **READ:FINANCE**. Kopier nøkkelen og client ID som vises når nøkkelen er laget.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+3. Fyll inn client ID, API-nøkkel og måned, og velg bankkontoen i ReAI.
+4. Kontroller treffene og last ned CSV-rapporten.
+
+Nøkkelen brukes bare til denne ene forespørselen og lagres aldri.

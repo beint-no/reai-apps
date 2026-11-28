@@ -14,124 +14,101 @@ import {
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 const CFG = {
-  "brand": "Nets Easy",
-  "title": "Nets Easy / Nexi Reconcile",
-  "lead": "Compare Nets Easy (Nexi Checkout) settlement payouts against pending ReAI bank transactions for one month and export an audit CSV.",
-  "fields": [
-    {
-      "key": "secretKey",
-      "label": "Nets Easy Secret API key",
-      "secret": true,
-      "placeholder": "live-secret-key-\u2026"
-    },
-    {
-      "key": "merchantNumber",
-      "label": "Merchant ID (optional, or \"all\")",
-      "placeholder": "all"
-    }
+  brand: 'Nexi Checkout',
+  title: 'Nexi Checkout Payout Reconcile',
+  lead: 'Compare Nexi Checkout (formerly Nets Easy) payouts for one month against pending ReAI bank transactions and export an audit CSV.',
+  fields: [
+    { key: 'secretKey', label: 'Nexi Checkout secret key', secret: true, optional: false, placeholder: 'live-secret-key-\u2026' },
+    { key: 'merchantNumber', label: 'Merchant number (partner keys only)', secret: false, optional: true, placeholder: 'Leave empty' },
   ],
-  "hasFees": false
+  hasFees: true,
 };
+
+const API = 'https://api.dibspayment.eu';
+const TEST_API = 'https://test.api.dibspayment.eu';
 
 /**
  * @param {string} url
  * @param {RequestInit} init
- * @param {string} errPrefix
+ * @param {import('../lib/api-http.js').FetchLike} fetchImpl
  */
-async function providerJson(url, init, errPrefix) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${errPrefix} returned an unexpected redirect.`);
-  }
+async function providerJson(url, init, fetchImpl) {
+  const res = await fetchImpl(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
+  if (res.status >= 300 && res.status < 400) throw new HttpError(502, `${CFG.brand} returned an unexpected redirect.`);
   const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  return { status: res.status, ok: res.ok, data };
 }
 
 /**
+ * Fetches Nexi Checkout payouts for the date window from the Reporting API.
+ * Docs: https://developer.nexigroup.com/nexi-checkout/en-EU/api/reporting-v1/ (GET /report/v1/payouts with the
+ * secret key as the plain Authorization header, fromDate/toDate as full dates, zero-based pageNumber, pageSize,
+ * merchantNumber only for partner keys; amounts in minor units) and
+ * https://developer.nexigroup.com/nexi-checkout/en-EU/api/ (live base https://api.dibspayment.eu, test base https://test.api.dibspayment.eu).
  * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
+ * @param {string} start First day of the window (inclusive).
+ * @param {string} end Day after the window (exclusive).
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
  */
-
-/**
- * Fetches Nets Easy / Nexi Checkout Reporting API payouts for the date window.
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
- */
-async function fetchNetsPayouts(fields, start, end) {
+export async function fetchApi(fields, start, end, fetchImpl = fetch) {
   const secretKey = (fields.secretKey ?? '').trim();
-  if (!secretKey) {
-    throw new HttpError(400, 'Enter your Nets Easy Secret API key.');
-  }
-  const host = secretKey.startsWith('test-') ? 'https://test.api.dibspayment.eu' : 'https://api.dibspayment.eu';
+  if (!secretKey) throw new HttpError(400, 'Enter your Nexi Checkout secret key.');
+  const host = secretKey.startsWith('test-') ? TEST_API : API;
   const lastDay = new Date(Date.parse(`${end}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-  const url = new URL(`${host}/report/v1/payouts`);
-  url.searchParams.set('fromDate', start);
-  url.searchParams.set('toDate', lastDay);
   const merchant = (fields.merchantNumber ?? '').trim();
-  if (merchant && merchant.toLowerCase() !== 'all') {
-    url.searchParams.set('merchantNumber', merchant);
-  }
-  const r = await providerJson(
-    url.toString(),
-    { headers: { authorization: secretKey, accept: 'application/json' } },
-    'Nets Easy',
-  );
-  if (!r.ok) {
-    throw new HttpError(
-      400,
-      r.status === 401 || r.status === 403
-        ? 'Nets Easy rejected this key or Reporting API access is not enabled on the merchant account.'
-        : `Nets Easy Reporting API returned HTTP ${r.status}.`,
-    );
-  }
-  const rows = Array.isArray(r.data) ? r.data : Array.isArray(r.data?.payouts) ? r.data.payouts : [];
+  if (merchant && !/^[0-9]+$/.test(merchant)) throw new HttpError(400, 'The merchant number must be digits only.');
   /** @type {import('../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
-  for (const row of rows) {
-    const rawAmount = typeof row.amount === 'number' ? row.amount : typeof row.netAmount === 'number' ? row.netAmount : 0;
-    const date = String(row.payoutDate ?? row.date ?? '').slice(0, 10);
-    if (!date || rawAmount === 0) {
-      continue;
+  const pageSize = 100;
+  for (let page = 0; page < 20; page++) {
+    const url = new URL(`${host}/report/v1/payouts`);
+    url.searchParams.set('fromDate', start);
+    url.searchParams.set('toDate', lastDay);
+    url.searchParams.set('pageNumber', String(page));
+    url.searchParams.set('pageSize', String(pageSize));
+    if (merchant) url.searchParams.set('merchantNumber', merchant);
+    const r = await providerJson(url.toString(), { headers: { authorization: secretKey, accept: 'application/json' } }, fetchImpl);
+    if (!r.ok) {
+      throw new HttpError(400, r.status === 401 || r.status === 403
+        ? 'Nexi Checkout rejected this secret key. Use the live secret key from the Nexi Checkout portal.'
+        : `Nexi Checkout Reporting API returned HTTP ${r.status}.`);
     }
-    payouts.push({
-      id: String(row.payoutId ?? row.reference ?? `${date}-${rawAmount}`),
-      date,
-      amountMinor: Math.round(Math.abs(rawAmount)),
-      currency: String(row.currency ?? 'NOK').toUpperCase(),
-      reference: String(row.bankReference ?? row.reference ?? row.payoutId ?? ''),
-      detail: `Nets Easy settlement · ${String(row.status ?? 'paid')}`,
-    });
+    /** @type {any[]} */ const rows = Array.isArray(r.data?.payouts) ? r.data.payouts : [];
+    for (const row of rows) {
+      const amount = Number(row.amount ?? 0);
+      const date = String(row.date ?? '').slice(0, 10);
+      if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !Number.isFinite(amount) || amount === 0) continue;
+      const fees = Number(row.fees ?? 0);
+      payouts.push({
+        id: String(row.id ?? `${date}-${amount}`),
+        date,
+        amountMinor: Math.round(Math.abs(amount)),
+        feeMinor: Number.isFinite(fees) ? Math.round(Math.abs(fees)) : 0,
+        currency: String(row.currency ?? 'NOK').toUpperCase(),
+        reference: String(row.reference ?? row.id ?? ''),
+        detail: `${CFG.brand} payout · charged ${(Number(row.chargedAmount ?? 0) / 100).toFixed(2)}, refunded ${(Number(row.refundedAmount ?? 0) / 100).toFixed(2)}`,
+      });
+    }
+    const total = Number(r.data?.numberOfPayouts ?? 0);
+    if (rows.length < pageSize || (page + 1) * pageSize >= total) break;
   }
   return payouts;
 }
-
-/**
- * Fetches PayPal Business payout/withdrawal transactions via Reporting API v1.
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
- */
 
 /**
  * @returns {{ payouts: import('../lib/reconcile.js').PayoutItem[], bankTx: import('../lib/reconcile.js').BankTx[], month: string, currency: string }}
  */
 function sampleData() {
   const month = '2026-10';
-  const prefix = 'NETS';
+  const prefix = 'NEXI';
   /** @type {import('../lib/reconcile.js').PayoutItem[]} */
   const payouts = [
-    { id: 'nets-1', date: '2026-10-06', amountMinor: 1482000, currency: 'NOK', reference: `${prefix}-2610-001`, detail: `Sample ${prefix} payout batch 1` },
-    { id: 'nets-2', date: '2026-10-14', amountMinor: 964500, currency: 'NOK', reference: `${prefix}-2610-002`, detail: `Sample ${prefix} payout batch 2` },
-    { id: 'nets-3', date: '2026-10-27', amountMinor: 712000, currency: 'NOK', reference: `${prefix}-2610-003`, detail: `Sample ${prefix} payout batch 3 (pending settlement)` },
+    { id: 'nets-1', date: '2026-10-06', amountMinor: 1482000, feeMinor: 29640, currency: 'NOK', reference: `${prefix}-2610-001`, detail: `Sample ${prefix} payout 1` },
+    { id: 'nets-2', date: '2026-10-14', amountMinor: 964500, feeMinor: 19290, currency: 'NOK', reference: `${prefix}-2610-002`, detail: `Sample ${prefix} payout 2` },
+    { id: 'nets-3', date: '2026-10-27', amountMinor: 712000, feeMinor: 14240, currency: 'NOK', reference: `${prefix}-2610-003`, detail: `Sample ${prefix} payout 3 (pending settlement)` },
   ];
   /** @type {import('../lib/reconcile.js').BankTx[]} */
   const bankTx = [
@@ -142,10 +119,10 @@ function sampleData() {
 }
 
 /**
- * @param {{ rows: import('../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean, accountID?: string }} state
+ * @param {{ rows: import('../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean }} state
  */
 function renderReviewResults(state) {
-  const { rows, month, currency, excluded, bankCount, isSample, accountID } = state;
+  const { rows, month, currency, excluded, bankCount, isSample } = state;
   const matched = rows.filter((r) => r.match !== null).length;
   const totalNet = rows.reduce((s, r) => s + r.payout.amountMinor, 0);
   const totalFees = rows.reduce((s, r) => s + Math.abs(r.payout.feeMinor ?? 0), 0);
@@ -172,7 +149,7 @@ function renderReviewResults(state) {
           ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${excluded} other-currency excluded` })}
           ${reaiMetric({ label: 'Net payout total', value: `${formatMinor(totalNet)} ${currency}`, detail: `${bankCount} pending ReAI bank rows` })}
           ${CFG.hasFees
-            ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compare against Dintero report' })
+            ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: `Compare against the ${CFG.brand} payout report` })
             : reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
         </div>
 
@@ -200,26 +177,6 @@ function renderReviewResults(state) {
           `}
       `,
     })}
-    ${CFG.hasFees && !isSample && totalFees > 0 && accountID
-      ? reaiCard({
-          eyebrow: 'OPTIONAL · BOOK WITHHELD FEES',
-          title: 'Create monthly fee voucher for review',
-          body: html`
-            <p class="muted-note">Only book if Dintero withheld these fees directly from payouts and has not separately invoiced them.</p>
-            <form class="stack" hx-post="/app/dintero/voucher" hx-target="#dintero-booking" hx-swap="innerHTML">
-              <input type="hidden" name="month" value="${month}"><input type="hidden" name="accountID" value="${accountID}"><input type="hidden" name="totalFeeMinor" value="${totalFees}">
-              <div class="inline-row">
-                <div class="field"><label for="dintero-expense">Fee expense account (e.g. 7770)</label><input id="dintero-expense" name="expenseAccount" type="text" pattern="[0-9]{4}" required placeholder="7770"></div>
-                <div class="field"><label for="dintero-clearing">Payout clearing account (asset/liability)</label><input id="dintero-clearing" name="clearingAccount" type="text" pattern="[0-9]{4}" required placeholder="1580"></div>
-              </div>
-              <label class="check-row"><input type="checkbox" name="c_deducted" required> I confirm ${formatMinor(totalFees)} ${currency} was withheld from payouts and not separately invoiced.</label>
-              <label class="check-row"><input type="checkbox" name="c_report" required> I verified this total against Dintero's official payout reports for ${month}.</label>
-              <div><button type="submit" class="button primary">Create review voucher (${formatMinor(totalFees)} ${currency})</button></div>
-            </form>
-            <div id="dintero-booking" class="stack-sm"></div>
-          `,
-        })
-      : ''}
   `;
 }
 
@@ -252,7 +209,7 @@ export async function handle(request, env) {
             <p class="muted-note">Provider credentials are used only for this single HTTPS request and are never stored in cookies, browser storage or a database.</p>
             <form class="stack" hx-post="${basePath}/review" hx-target="#reconcile-output" hx-swap="innerHTML">
               <div class="mapping-grid">
-                ${CFG.fields.map((f) => html`<div class="field"><label for="f-${f.key}">${f.label}</label><input id="f-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}" autocomplete="off" required placeholder="${f.placeholder}"></div>`)}
+                ${CFG.fields.map((f) => html`<div class="field"><label for="f-${f.key}">${f.label}</label><input id="f-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}" autocomplete="off"${f.optional ? '' : html` required`} placeholder="${f.placeholder}"></div>`)}
                 <div class="field"><label for="reconcile-month">Payout month</label><input id="reconcile-month" name="month" type="text" pattern="[0-9]{4}-[0-9]{2}" value="${defaultMonth}" required placeholder="YYYY-MM"></div>
                 <div class="field"><label for="reconcile-bank">ReAI bank account${CFG.hasFees ? ' (optional)' : ''}</label><select id="reconcile-bank" name="bankId"><option value="0">${banks.length > 0 ? 'Select bank account…' : 'Connect to ReAI to load banks'}</option>${banks.map((b) => html`<option value="${b.id}">${b.displayName} (${b.ledgerAccountNumber} · ${b.currencyCode})</option>`)}</select></div>
               </div>
@@ -298,11 +255,11 @@ export async function handle(request, env) {
       const fields = {};
       for (const f of CFG.fields) {
         const val = String(form.get(f.key) ?? '').trim();
-        if (!val) throw new HttpError(400, `Enter ${f.label}.`);
+        if (!val && !f.optional) throw new HttpError(400, `Enter ${f.label}.`);
         fields[f.key] = val;
       }
       const [fetched, bankTx] = await Promise.all([
-        fetchNetsPayouts(fields, bounds.start, bounds.end),
+        fetchApi(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));

@@ -2,6 +2,7 @@
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
+import { fetchJson } from '../lib/api-http.js';
 import { reaiAll, reaiRequest } from '../lib/reai.js';
 import { currentMonthIso, monthBounds } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
@@ -18,35 +19,44 @@ const SAMPLE_ROWS = [
 ];
 
 /**
- * @param {FormData} form
- * @param {string} start
- * @param {string} end
+ * Fetches finished Harvest time entries for a period.
+ * Docs: https://help.getharvest.com/api-v2/authentication-api/authentication/authentication/ (Bearer token,
+ * Harvest-Account-Id and User-Agent headers) and
+ * https://help.getharvest.com/api-v2/timesheets-api/timesheets/time-entries/ (GET /v2/time_entries with
+ * from, to, user_id, is_running, page and per_page up to 2000; next_page in the response).
+ * @param {Record<string, string>} creds `apiToken`, `accountId`, optional `userId`, `start` and `end` (exclusive), both YYYY-MM-DD
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<TimeRow[]>}
  */
-async function fetchRows(form, start, end) {
-  const token = String(form.get('apiToken') ?? '').trim();
-  const accountId = String(form.get('accountId') ?? '').trim();
-  if (!token || !accountId) throw new HttpError(400, 'Enter both your Harvest Personal Access Token and Account ID.');
-  const lastDay = new Date(Date.parse(`${end}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-  const url = new URL('https://api.harvestapp.com/v2/time_entries');
-  url.searchParams.set('from', start);
-  url.searchParams.set('to', lastDay);
-  url.searchParams.set('per_page', '100');
-  const res = await fetch(url, {
-    headers: { authorization: `Bearer ${token}`, 'harvest-account-id': accountId, 'user-agent': 'ReAI Apps (apps.reai.no)', accept: 'application/json' },
-    redirect: 'manual',
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!res.ok) throw new HttpError(400, res.status === 401 ? 'Harvest rejected this token or Account ID.' : `Harvest returned HTTP ${res.status}.`);
-  const body = /** @type {{ time_entries?: Array<any> }} */ (await res.json());
-  return (body.time_entries ?? [])
+export async function fetchApi(creds, fetchImpl = fetch) {
+  const token = (creds.apiToken ?? '').trim();
+  const accountId = (creds.accountId ?? '').trim();
+  const userId = (creds.userId ?? '').trim();
+  if (!token || !/^[0-9]+$/.test(accountId)) throw new HttpError(400, 'Enter both your Harvest Personal Access Token and numeric Account ID.');
+  if (userId && !/^[0-9]+$/.test(userId)) throw new HttpError(400, 'The Harvest user ID must be a number.');
+  const lastDay = new Date(Date.parse(`${creds.end}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  const headers = { authorization: `Bearer ${token}`, 'harvest-account-id': accountId, 'user-agent': 'ReAI Apps (apps.reai.no)', accept: 'application/json' };
+  /** @type {any[]} */ const entries = [];
+  for (let page = 1; page <= 10; page++) {
+    const url = new URL('https://api.harvestapp.com/v2/time_entries');
+    url.searchParams.set('from', String(creds.start));
+    url.searchParams.set('to', lastDay);
+    url.searchParams.set('is_running', 'false');
+    if (userId) url.searchParams.set('user_id', userId);
+    url.searchParams.set('page', String(page));
+    url.searchParams.set('per_page', '2000');
+    const body = await fetchJson(url.toString(), { headers }, 'Harvest', fetchImpl);
+    entries.push(...(Array.isArray(body?.time_entries) ? body.time_entries : []));
+    if (!body?.next_page) break;
+  }
+  return entries
     .map((e) => ({
       date: String(e.spent_date ?? '').slice(0, 10),
-      hours: Math.min(24, Math.max(0.01, Number(Number(e.hours ?? 0).toFixed(2)))),
-      description: String(e.notes ?? e.task?.name ?? 'Harvest entry').trim() || 'Harvest entry',
-      externalProject: String(e.project?.name ?? '—'),
+      hours: Number(Number(e.hours ?? 0).toFixed(2)),
+      description: String(e.notes ?? '').trim() || String(e.task?.name ?? '').trim() || 'Harvest entry',
+      externalProject: [e.project?.name, e.user?.name].filter(Boolean).join(' · ') || '—',
     }))
-    .filter((r) => r.date && r.hours >= 0.01);
+    .filter((r) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(r.date) && r.hours >= 0.01 && r.hours <= 24);
 }
 
 /** @param {{ rows: TimeRow[], employeeId: number, projectId: number, isSample?: boolean }} state */
@@ -58,7 +68,7 @@ function renderTimeTable(state) {
     badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: `${totalHours.toFixed(2)} h total`, tone: 'success' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Entries', value: String(state.rows.length), detail: 'Validated 0.01–24.00 h/day' })}
+        ${reaiMetric({ label: 'Entries', value: String(state.rows.length), detail: 'Running timers are skipped' })}
         ${reaiMetric({ label: 'Total hours', value: `${totalHours.toFixed(2)} h`, detail: 'Ready for ReAI Timesheets' })}
         ${reaiMetric({ label: 'Target employee', value: state.employeeId > 0 ? `#${state.employeeId}` : 'Select above', detail: state.projectId > 0 ? `Project #${state.projectId}` : 'No project linked' })}
       </div>
@@ -119,11 +129,12 @@ export async function handle(request, env) {
         ${reaiCard({
           eyebrow: 'CONNECT HARVEST',
           title: 'Load Harvest time entries',
-          body: html`<p class="muted-note">Create a Personal Access Token in Harvest Developers (id.getharvest.com/developers) and copy both Token and Account ID.</p>
+          body: html`<p class="muted-note">Create a Personal Access Token at id.getharvest.com/developers and copy the token and Account ID. Running timers are skipped.</p>
             <form class="stack" hx-post="${basePath}/preview" hx-target="#tm-output" hx-swap="innerHTML">
               <div class="mapping-grid">
                 <div class="field"><label for="tm-tok">Harvest Personal Access Token</label><input id="tm-tok" name="apiToken" type="password" autocomplete="off" required placeholder="Harvest token"></div>
-                <div class="field"><label for="tm-acc">Harvest Account ID</label><input id="tm-acc" name="accountId" type="text" required placeholder="1234567"></div>
+                <div class="field"><label for="tm-acc">Harvest Account ID</label><input id="tm-acc" name="accountId" type="text" inputmode="numeric" required placeholder="1234567"></div>
+                <div class="field"><label for="tm-user">Harvest user ID (optional)</label><input id="tm-user" name="userId" type="text" inputmode="numeric" placeholder="All users the token can see"></div>
                 <div class="field"><label for="tm-month">Month</label><input id="tm-month" name="month" type="text" pattern="[0-9]{4}-[0-9]{2}" value="${defaultMonth}" required></div>
                 <div class="field"><label for="tm-emp">ReAI employee</label><select id="tm-emp" name="employeeId"><option value="0">${employees.length > 0 ? 'Select employee…' : 'Connect to ReAI to load employees'}</option>${employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
                 <div class="field"><label for="tm-proj">ReAI project (optional)</label><select id="tm-proj" name="projectId"><option value="0">No project</option>${projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
@@ -152,7 +163,7 @@ export async function handle(request, env) {
       const employeeId = Number(form.get('employeeId') ?? '0');
       const projectId = Number(form.get('projectId') ?? '0');
       const bounds = monthBounds(String(form.get('month') ?? currentMonthIso()).trim());
-      return htmlResponse(renderTimeTable({ rows: await fetchRows(form, bounds.start, bounds.end), employeeId, projectId }));
+      return htmlResponse(renderTimeTable({ rows: await fetchApi({ apiToken: String(form.get('apiToken') ?? ''), accountId: String(form.get('accountId') ?? ''), userId: String(form.get('userId') ?? ''), start: bounds.start, end: bounds.end }), employeeId, projectId }));
     }
     if (pathname === `${basePath}/import`) {
       const session = await readSession(env, request);
@@ -162,7 +173,7 @@ export async function handle(request, env) {
       const date = String(form.get('date') ?? '').trim();
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? '').trim().slice(0, 1000);
-      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01–24) are required.');
+      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/timesheets', {
           token: session.accessToken, tenantId: session.tenantId, method: 'POST',

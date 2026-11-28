@@ -1,23 +1,34 @@
 ---
 title: "PrestaShop & Accounting Integration"
-seoTitle: "PrestaShop Accounting Integration for ReAI — Free Product & Sales Sync"
-description: "Sync PrestaShop products and paid orders into ReAI using the built-in PrestaShop Webservice API. Zero integration fee."
-summary: "Fetch PrestaShop catalog items and paid orders via the Webservice API and sync them into ReAI."
+seoTitle: "PrestaShop Accounting Integration for ReAI: Products and Orders"
+description: "Create PrestaShop products in ReAI and turn valid store orders into draft orders, using the built-in PrestaShop Webservice. Free and open source."
+summary: "Read products and valid orders from the PrestaShop Webservice and move them into ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/prestashop/
 sourcePath: web/worker/apps/prestashop.js
 highlights:
-  - "Connects directly to PrestaShop Webservice API (JSON output)"
-  - "Matches product references/SKUs against ReAI before creating items"
-  - "Idempotent sales import with zero third-party middleware"
+  - "Uses the PrestaShop Webservice that ships with the store, no extra module"
+  - "Compares each product reference with the SKUs in ReAI"
+  - "Creates draft orders with a fixed external reference per order, so an order is not imported twice"
 ---
 
-## PrestaShop product and sales sync for ReAI
+## What moves into ReAI
 
-Use PrestaShop's built-in Webservice API to keep ReAI updated with new catalog items and paid online orders—with zero monthly connector fees and no plugins to maintain inside PrestaShop.
+The integration reads your PrestaShop products and the latest valid orders, together with the customer on each order. Products whose reference is not in ReAI can be created with their price excluding VAT. An order can become a draft order when its customer exists in ReAI with the same email or name.
 
-## Step-by-step setup
+| From PrestaShop | In ReAI |
+| --- | --- |
+| Product with reference and price | Product with SKU and selling price |
+| Valid order | Draft order with one line for the order total excluding VAT and external reference `prestashop-<id>` |
 
-1. In PrestaShop Back Office, open **Advanced Parameters → Webservice**, enable the Webservice and generate a key with `GET` permission on `products` and `orders`.
-2. Open the integration above, connect your ReAI company, and enter your store URL and Webservice key.
-3. Review new SKUs and paid orders, then sync straight to ReAI.
+Check the VAT code and currency on the draft order before you invoice.
+
+## Setup
+
+1. In the PrestaShop back office, open **Advanced Parameters → Webservice** and enable the webservice.
+2. Add a key with `GET` access to `products`, `orders` and `customers`, and copy it.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Enter the store address and the key, then click **Scan PrestaShop**.
+5. Create new products and click **Stage order** on the orders you want to invoice.
+
+The key is used only for that scan and is never stored.

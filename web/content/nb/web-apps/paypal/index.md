@@ -1,29 +1,32 @@
 ---
 title: "Integrasjon mellom PayPal og regnskap"
-seoTitle: "PayPal regnskapsintegrasjon for ReAI — Gratis utbetalingsavstemming"
-description: "Avstem PayPal Business-utbetalinger mot bank i ReAI helt gratis. Slik bokfører du PayPal-salg, valutagebyrer og overføringer riktig i Norge."
-summary: "Hent utbetalinger fra PayPal Business via Reporting API og match dem automatisk mot banktransaksjoner i ReAI."
+seoTitle: "PayPal og ReAI: avstem uttak til bank"
+description: "Hent uttakene fra PayPal Business til banken for en måned og avstem dem mot banktransaksjonene i ReAI. Gratis og åpen kildekode."
+summary: "Avstem uttak fra PayPal Business mot banken i ReAI og last ned avstemmingen som CSV."
 industry: payments
 webAppUrl: /app/paypal/
 sourcePath: web/worker/apps/paypal.js
 highlights:
-  - "Kobler direkte til PayPal REST Reporting API per måned"
-  - "Viser utbetalinger og gebyrer side om side med banktransaksjoner i ReAI"
-  - "Inkludert gratis i ReAI — ingen nøkler lagres i database"
+  - "Leser uttak til bank fra PayPal Transaction Search API"
+  - "Bruker en egen live REST app med Transaction search slått på"
+  - "Matcher uttakene mot ventende banktransaksjoner i ReAI"
 ---
 
-## Hvordan føres PayPal i norsk regnskap?
+## Dette gjør integrasjonen
 
-En PayPal Business-konto fungerer som en egen oppgjørskonto der kundebetalinger kommer inn, PayPal trekker gebyrer, og nettobeløpet overføres til bedriftens bankkonto (`1920`).
+Integrasjonen henter transaksjonene for valgt måned fra PayPal Transaction Search API og viser uttakene fra PayPal saldoen til bankkontoen. Har du valgt en bankkonto i ReAI, matches uttakene mot ventende banktransaksjoner på referanse eller beløp. Ingenting bokføres. Du kan laste ned avstemmingen som CSV.
 
-| Postering | Typisk norsk konto | Forklaring |
-| --- | --- | --- |
-| Mellomregning / PayPal-saldo | `1930` / `1580` | Viser innestående saldo hos PayPal |
-| PayPal-gebyr | `7770` (MVA-kode `0`) | Transaksjons- og valutagebyr |
-| Overføring til bank | `1920` | Avstemmes mot utbetalinger fra PayPal |
+| Postering | Vanlig konto |
+| --- | --- |
+| Saldo i PayPal | `1580` eller egen konto for PayPal |
+| Gebyrer fra PayPal | `7770` |
+| Uttak til bank | `1920` |
 
-## Slik gjør du det i ReAI
+## Slik kommer du i gang
 
-1. Opprett en REST-app i **PayPal Developer Dashboard** med *Transaction Search* aktivert og kopier Client ID og Secret.
-2. Klikk **Åpne integrasjon**, koble til ReAI og velg bankkonto og måned.
-3. Kontroller treffene mot banken og last ned CSV-rapporten som bilagsdokumentasjon.
+1. Logg inn på PayPal Developer Dashboard med bedriftskontoen, velg **Live** under **Apps & Credentials** og opprett en app.
+2. Slå på **Transaction search** under appens funksjoner og kopier **Client ID** og **Secret**. Det kan ta noen timer før tilgangen virker.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap, måned og eventuelt bankkonto.
+4. Lim inn Client ID og Secret og kontroller matchene.
+
+Nøklene brukes bare til denne ene forespørselen og lagres aldri.

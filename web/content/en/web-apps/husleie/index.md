@@ -1,29 +1,26 @@
 ---
-title: "Husleie.no Residential Lease Billing"
-seoTitle: "Husleie.no Residential Lease Billing — Free Open-Source ReAI Integration"
-description: "Stage Husleie.no residential rental contracts as recurring ReAI billing subscriptions with automatic billing safely kept off until reviewed."
-summary: "Stage Husleie.no residential rental contracts as recurring ReAI billing subscriptions with automatic billing safely kept off until reviewed."
+title: "Husleie.no Lease Billing"
+seoTitle: "Husleie.no Accounting Integration for ReAI"
+description: "Upload the Husleie.no Leieforhold report and stage monthly rent billing in ReAI with full control before activation."
+summary: "Turn active Husleie.no rental agreements into ReAI subscriptions with automatic billing kept off."
 industry: real-estate
 webAppUrl: /app/husleie/
 sourcePath: web/worker/apps/husleie.js
 highlights:
-  - "Tailored to Norwegian VAT & bookkeeping rules for Residential landlords (Boligutleie)"
-  - "Direct mapping to NS 4102 / ReAI Public API (POST /api/subscriptions)"
-  - "Included free with ReAI — MIT open source with instant 1-click sample preview"
+  - "Reads the CSV export of the Leieforhold report in MinHusleie"
+  - "Matches tenants in ReAI by email or name"
+  - "Creates subscriptions with automatic billing off until you approve them"
 ---
 
-## How Husleie.no integrates with ReAI
+## From Husleie.no to rent billing in ReAI
 
-Connect **Husleie.no** directly to ReAI in your browser at `apps.reai.no/app/husleie/` without paying monthly third-party connector fees.
+The **Leieforhold** report in MinHusleie lists tenant, rental object, rent and contract period for every rental agreement. The integration reads the CSV export of this report, skips ended agreements and creates a monthly ReAI subscription for each tenant found in your customer register. Agreements that already run start billing on the first of next month.
 
-| Dimension | Details |
-| --- | --- |
-| Vertical | Residential landlords (Boligutleie) |
-| Norwegian ledger / API | `POST /api/subscriptions` |
-| Safety | Preview before posting, duplicate protection & review-first accounting |
+Husleie.no also has an API, but its documentation and access are only available from Husleie.no customer service, so the integration uses the export.
 
-## Quick start
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company.
-2. Click **Load sample** to preview the exact accounting voucher or sync output in seconds.
-3. Upload your Husleie.no file or enter your totals/API token to sync straight into ReAI.
+1. In MinHusleie, open **Rapporter → Leieforhold** and download the list as CSV below the table. The report requires a professional landlord account.
+2. Click **Open integration**, connect ReAI and choose the VAT code for the rent. Residential rent is exempt from VAT.
+3. Upload the file, check tenant, amount and start date, then click **Stage subscription**.
+4. Turn on automatic billing in ReAI once the terms are right.

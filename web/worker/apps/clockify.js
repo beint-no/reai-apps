@@ -2,6 +2,7 @@
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
+import { fetchJson } from '../lib/api-http.js';
 import { reaiAll, reaiRequest } from '../lib/reai.js';
 import { currentMonthIso, monthBounds } from '../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
@@ -17,49 +18,81 @@ const SAMPLE_ROWS = [
   { date: '2026-10-14', hours: 4.25, externalProject: 'Serviceavtale', description: 'Feilsøking anlegg' },
 ];
 
-/**
- * @param {FormData} form
- * @param {string} start
- * @param {string} end
- * @returns {Promise<TimeRow[]>}
- */
+/** @type {Record<string, string>} */
+const REGION_HOSTS = { global: 'https://api.clockify.me', euc1: 'https://euc1.clockify.me', use2: 'https://use2.clockify.me', euw2: 'https://euw2.clockify.me', apse2: 'https://apse2.clockify.me' };
+
 /** @param {string} iso */
 function parseIsoDurationHours(iso) {
   const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso);
   if (!m) return 0;
-  return Number((Number(m[1] ?? '0') + Number(m[2] ?? '0') / 60 + Number(m[3] ?? '0') / 3600).toFixed(2));
+  return Number(m[1] ?? '0') + Number(m[2] ?? '0') / 60 + Number(m[3] ?? '0') / 3600;
+}
+
+/** @param {string} iso */
+function osloDate(iso) {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '';
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
 }
 
 /**
- * @param {FormData} form
- * @param {string} start
- * @param {string} end
+ * Fetches the API key owner's finished time entries for a period from the Clockify API v1.
+ * Docs: https://docs.clockify.me/ (X-Api-Key header; regional prefixes euc1, use2, euw2, apse2;
+ * GET /v1/user for activeWorkspace and id; GET /v1/workspaces/{workspaceId}/user/{userId}/time-entries
+ * with start, end, page and page-size; GET /v1/workspaces/{workspaceId}/projects for project names).
+ * @param {Record<string, string>} creds `apiKey`, `region`, `start` (YYYY-MM-DD) and `end` (exclusive YYYY-MM-DD)
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<TimeRow[]>}
  */
-async function fetchRows(form, start, end) {
-  const apiKey = String(form.get('apiKey') ?? '').trim();
+export async function fetchApi(creds, fetchImpl = fetch) {
+  const apiKey = (creds.apiKey ?? '').trim();
   if (!apiKey) throw new HttpError(400, 'Enter your Clockify API key.');
+  const host = REGION_HOSTS[creds.region ?? 'global'] ?? REGION_HOSTS.global;
+  const start = String(creds.start ?? '');
+  const end = String(creds.end ?? '');
   const headers = { 'x-api-key': apiKey, accept: 'application/json' };
-  const uRes = await fetch('https://api.clockify.me/api/v1/user', { headers, redirect: 'manual', signal: AbortSignal.timeout(15_000) });
-  if (!uRes.ok) throw new HttpError(400, 'Clockify rejected this API key.');
-  const user = /** @type {{ id: string, activeWorkspace?: string, defaultWorkspace?: string }} */ (await uRes.json());
+  const user = /** @type {{ id: string, activeWorkspace?: string, defaultWorkspace?: string }} */ (await fetchJson(`${host}/api/v1/user`, { headers }, 'Clockify', fetchImpl));
   const ws = user.activeWorkspace || user.defaultWorkspace;
   if (!ws) throw new HttpError(400, 'No active Clockify workspace found.');
-  const url = new URL(`https://api.clockify.me/api/v1/workspaces/${encodeURIComponent(ws)}/user/${encodeURIComponent(user.id)}/time-entries`);
-  url.searchParams.set('start', `${start}T00:00:00Z`);
-  url.searchParams.set('end', `${end}T00:00:00Z`);
-  url.searchParams.set('page-size', '100');
-  const tRes = await fetch(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
-  if (!tRes.ok) throw new HttpError(400, `Clockify returned HTTP ${tRes.status}.`);
-  const entries = /** @type {Array<any>} */ (await tRes.json());
+  const dayMs = 86_400_000;
+  /** @type {any[]} */ const entries = [];
+  for (let page = 1; page <= 20; page++) {
+    const url = new URL(`${host}/api/v1/workspaces/${encodeURIComponent(ws)}/user/${encodeURIComponent(user.id)}/time-entries`);
+    url.searchParams.set('start', `${new Date(Date.parse(`${start}T00:00:00Z`) - dayMs).toISOString().slice(0, 10)}T00:00:00Z`);
+    url.searchParams.set('end', `${new Date(Date.parse(`${end}T00:00:00Z`) + dayMs).toISOString().slice(0, 10)}T00:00:00Z`);
+    url.searchParams.set('page', String(page));
+    url.searchParams.set('page-size', '200');
+    const batch = await fetchJson(url.toString(), { headers }, 'Clockify', fetchImpl);
+    const items = Array.isArray(batch) ? batch : [];
+    entries.push(...items);
+    if (items.length < 200) break;
+  }
+  /** @type {Map<string, string>} */ const projectNames = new Map();
+  if (entries.some((e) => e.projectId)) {
+    for (let page = 1; page <= 10; page++) {
+      const url = new URL(`${host}/api/v1/workspaces/${encodeURIComponent(ws)}/projects`);
+      url.searchParams.set('page', String(page));
+      url.searchParams.set('page-size', '200');
+      const batch = await fetchJson(url.toString(), { headers }, 'Clockify', fetchImpl);
+      const items = Array.isArray(batch) ? batch : [];
+      for (const p of items) projectNames.set(String(p.id), String(p.name ?? p.id));
+      if (items.length < 200) break;
+    }
+  }
   return entries
-    .map((e) => ({
-      date: String(e.timeInterval?.start ?? '').slice(0, 10),
-      hours: parseIsoDurationHours(String(e.timeInterval?.duration ?? '')),
-      description: String(e.description ?? 'Clockify entry').trim() || 'Clockify entry',
-      externalProject: e.projectId ? `Project ${String(e.projectId).slice(0, 8)}` : '—',
-    }))
-    .filter((r) => r.date && r.hours >= 0.01 && r.hours <= 24);
+    .filter((e) => e.timeInterval?.end)
+    .map((e) => {
+      const s = Date.parse(String(e.timeInterval.start ?? ''));
+      const f = Date.parse(String(e.timeInterval.end ?? ''));
+      const hours = Number.isFinite(s) && Number.isFinite(f) ? (f - s) / 3_600_000 : parseIsoDurationHours(String(e.timeInterval.duration ?? ''));
+      return {
+        date: osloDate(String(e.timeInterval.start ?? '')),
+        hours: Number(hours.toFixed(2)),
+        description: String(e.description ?? '').trim() || 'Clockify entry',
+        externalProject: e.projectId ? (projectNames.get(String(e.projectId)) ?? `Project ${String(e.projectId)}`) : '—',
+      };
+    })
+    .filter((r) => r.date >= start && r.date < end && r.hours >= 0.01 && r.hours <= 24);
 }
 
 /** @param {{ rows: TimeRow[], employeeId: number, projectId: number, isSample?: boolean }} state */
@@ -71,7 +104,7 @@ function renderTimeTable(state) {
     badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: `${totalHours.toFixed(2)} h total`, tone: 'success' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Entries', value: String(state.rows.length), detail: 'Validated 0.01–24.00 h/day' })}
+        ${reaiMetric({ label: 'Entries', value: String(state.rows.length), detail: 'Running timers are skipped' })}
         ${reaiMetric({ label: 'Total hours', value: `${totalHours.toFixed(2)} h`, detail: 'Ready for ReAI Timesheets' })}
         ${reaiMetric({ label: 'Target employee', value: state.employeeId > 0 ? `#${state.employeeId}` : 'Select above', detail: state.projectId > 0 ? `Project #${state.projectId}` : 'No project linked' })}
       </div>
@@ -132,10 +165,11 @@ export async function handle(request, env) {
         ${reaiCard({
           eyebrow: 'CONNECT CLOCKIFY',
           title: 'Load Clockify time entries',
-          body: html`<p class="muted-note">Copy your Clockify API key from Preferences → Advanced → API Key.</p>
+          body: html`<p class="muted-note">Generate an API key in Clockify under your profile → Preferences → Advanced → Manage API keys. The integration reads your own finished time entries in the active workspace.</p>
             <form class="stack" hx-post="${basePath}/preview" hx-target="#tm-output" hx-swap="innerHTML">
               <div class="mapping-grid">
                 <div class="field"><label for="tm-key">Clockify API key</label><input id="tm-key" name="apiKey" type="password" autocomplete="off" required placeholder="Clockify X-Api-Key"></div>
+                <div class="field"><label for="tm-region">Workspace data region</label><select id="tm-region" name="region"><option value="global">Global</option><option value="euc1">EU (Germany)</option><option value="use2">USA</option><option value="euw2">UK</option><option value="apse2">Australia</option></select></div>
                 <div class="field"><label for="tm-month">Month</label><input id="tm-month" name="month" type="text" pattern="[0-9]{4}-[0-9]{2}" value="${defaultMonth}" required></div>
                 <div class="field"><label for="tm-emp">ReAI employee</label><select id="tm-emp" name="employeeId"><option value="0">${employees.length > 0 ? 'Select employee…' : 'Connect to ReAI to load employees'}</option>${employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
                 <div class="field"><label for="tm-proj">ReAI project (optional)</label><select id="tm-proj" name="projectId"><option value="0">No project</option>${projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
@@ -164,7 +198,7 @@ export async function handle(request, env) {
       const employeeId = Number(form.get('employeeId') ?? '0');
       const projectId = Number(form.get('projectId') ?? '0');
       const bounds = monthBounds(String(form.get('month') ?? currentMonthIso()).trim());
-      return htmlResponse(renderTimeTable({ rows: await fetchRows(form, bounds.start, bounds.end), employeeId, projectId }));
+      return htmlResponse(renderTimeTable({ rows: await fetchApi({ apiKey: String(form.get('apiKey') ?? ''), region: String(form.get('region') ?? 'global'), start: bounds.start, end: bounds.end }), employeeId, projectId }));
     }
     if (pathname === `${basePath}/import`) {
       const session = await readSession(env, request);
@@ -174,7 +208,7 @@ export async function handle(request, env) {
       const date = String(form.get('date') ?? '').trim();
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? '').trim().slice(0, 1000);
-      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01–24) are required.');
+      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/timesheets', {
           token: session.accessToken, tenantId: session.tenantId, method: 'POST',

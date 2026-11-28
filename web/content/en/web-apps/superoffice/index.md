@@ -1,29 +1,35 @@
 ---
-title: "SuperOffice CRM & Accounting Integration"
-seoTitle: "SuperOffice CRM & Accounting Integration for ReAI — Free Open-Source Connector"
-description: "Sync SuperOffice CRM companies to ReAI customers (Mod11 org.nr validated) and stage won sales as idempotent ReAI draft orders."
-summary: "Sync SuperOffice CRM companies to ReAI customers (Mod11 org.nr validated) and stage won sales as idempotent ReAI draft orders."
+title: "SuperOffice & Accounting Integration"
+seoTitle: "SuperOffice CRM Accounting Integration for ReAI: Sold Sales to Invoicing"
+description: "Fetch sold SuperOffice CRM sales and stage them as ReAI orders with the company and its organization number as customer. Free and open source."
+summary: "Fetch sales with status Sold from SuperOffice and stage them as orders in ReAI."
 industry: operations
 webAppUrl: /app/superoffice/
 sourcePath: web/worker/apps/superoffice.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Norwegian B2B sales teams (B2B-salg)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (Customers + Draft Orders)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Reads sold sales through the SuperOffice REST API"
+  - "Matches the customer by organization number or name, or creates a company customer"
+  - "Skips sales that are already staged"
 ---
 
-## How SuperOffice integrates with ReAI
+## What moves into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **SuperOffice** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/superoffice/` using ReAI's documented Public API.
+The integration fetches sales with status *Sold* and a sale date in the chosen period, with the company name and organization number. Click **Stage in ReAI** to create a ReAI order with one line for the sale amount and the default VAT code. You review the order before invoicing.
 
-| Dimension | Mapping in ReAI |
+| From SuperOffice | In ReAI |
 | --- | --- |
-| Target industry | Norwegian B2B sales teams (B2B-salg) |
-| Norwegian ledger / API | `Customers + Draft Orders` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+| Heading and amount | Order line |
+| Company and organization number | Customer matched by organization number or name, or a new company customer |
+| Sale ID | External reference, so the sale is not staged twice |
 
-## Getting started
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your SuperOffice export or enter your credentials/settlement totals to post directly into ReAI.
+SuperOffice CRM Online grants API access only through access tokens from an app registered with SuperOffice, so you need such an app.
+
+1. Register a *Custom Application* in the SuperOffice developer portal. The customer tenant needs the Development Tools licence or CRM Suite Core.
+2. Sign in through the app and copy the access token and the web API URL, for example `https://online2.superoffice.com/Cust12345/api`. The token lasts one hour.
+3. Click **Open integration**, connect ReAI and choose the company.
+4. Enter the URL, the token and the period, and fetch the sales.
+5. Check the amounts and stage the orders you want to invoice.
+
+The token is used only for that request and is never stored.

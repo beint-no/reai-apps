@@ -1,29 +1,34 @@
 ---
-title: "Two B2B BNPL & Checkout Settlement"
-seoTitle: "Two B2B BNPL & Checkout Settlement — Free Open-Source ReAI Integration"
-description: "Reconcile Two B2B buy-now-pay-later payouts in ReAI splitting settled B2B invoice principal (1579), Two fees (7770) and net bank payout (1580)."
-summary: "Reconcile Two B2B buy-now-pay-later payouts in ReAI splitting settled B2B invoice principal (1579), Two fees (7770) and net bank payout (1580)."
+title: "Two & Accounting Integration"
+seoTitle: "Two Accounting Integration for ReAI: Settlement Payouts"
+description: "Fetch the Two settlement report and book each payout in ReAI as a review voucher with invoice amount, fee and net payout. Free and open source."
+summary: "Fetch the Two settlement report for a period and create one balanced review voucher in ReAI per payout."
 industry: payments
 webAppUrl: /app/two/
 sourcePath: web/worker/apps/two.js
 highlights:
-  - "Tailored to Norwegian VAT & bookkeeping rules for B2B ecommerce & wholesale (B2B-betaling)"
-  - "Direct mapping to NS 4102 / ReAI Public API (1580, 1579, 7770)"
-  - "Included free with ReAI — MIT open source with instant 1-click sample preview"
+  - "Reads the settlement report through the Two API with your own API key"
+  - "One voucher per payout, grouped by the Two payment reference"
+  - "Creates a review voucher with a duplicate check"
 ---
 
-## How Two B2B integrates with ReAI
+## What moves into ReAI
 
-Connect **Two B2B** directly to ReAI in your browser at `apps.reai.no/app/two/` without paying monthly third-party connector fees.
+The integration downloads the Two settlement report for the period you choose and groups its lines by payment reference. Only lines that Two has paid out are included. Each payout becomes one voucher:
 
-| Dimension | Details |
+| Line | Account in ReAI |
 | --- | --- |
-| Vertical | B2B ecommerce & wholesale (B2B-betaling) |
-| Norwegian ledger / API | `1580, 1579, 7770` |
-| Safety | Preview before posting, duplicate protection & review-first accounting |
+| Net payout | `1580`, or the account you choose, until it is matched against the bank |
+| Two fee | `7770`, with input VAT when the report states VAT on the fee |
+| Invoices paid out by Two, gross | `1579`, or the account where you keep the receivable on Two |
 
-## Quick start
+Credit notes in the report reduce the same payout. Only NOK settlements are included.
 
-1. Click **Open integration** above and connect your ReAI company.
-2. Click **Load sample** to preview the exact accounting voucher or sync output in seconds.
-3. Upload your Two B2B file or enter your totals/API token to sync straight into ReAI.
+## Setup
+
+1. Sign in to the Two Merchant Portal, open **Settings → Integration**, choose the **Production** tab and click **Create key**. Only admins can create production keys.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Paste the API key, choose the period and check the accounts.
+4. Check each payout against the settlement report in Two, tick the confirmation box and create the review voucher.
+
+The API key is used only for that request and is never stored.

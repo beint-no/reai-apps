@@ -1,29 +1,27 @@
 ---
 title: "Integrasjon mellom Ongoing WMS og regnskap"
-seoTitle: "Integrasjon mellom Ongoing WMS og regnskap — Gratis integrasjon for ReAI"
-description: "Synkroniser lagerartikler og varenumre (SKU) fra Ongoing WMS 3PL-lager direkte til produktregisteret i ReAI."
-summary: "Synkroniser lagerartikler og varenumre (SKU) fra Ongoing WMS 3PL-lager direkte til produktregisteret i ReAI."
+seoTitle: "Ongoing WMS og ReAI: artikler fra lageret til produktregisteret"
+description: "Hent artiklene lageret ditt har registrert i Ongoing WMS og opprett de som mangler som produkter i ReAI. Gratis og åpen kildekode."
+summary: "Les artiklene fra Ongoing WMS og opprett manglende varenumre som produkter i ReAI."
 industry: ecommerce-logistics
 webAppUrl: /app/ongoing-wms/
 sourcePath: web/worker/apps/ongoing-wms.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for 3PL warehouses & ecommerce logistics (Lager/WMS)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (GET articles -> POST /api/products)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser artikler fra Ongoing WMS Goods Owner REST API"
+  - "Sammenligner varenumre med produktene i ReAI"
+  - "Oppretter manglende produkter med pris, innpris og strekkode"
 ---
 
-## Slik kobler du Ongoing WMS til ReAI uten tilleggskostnad
+## Dette gjør integrasjonen
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **Ongoing WMS** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/ongoing-wms/`.
+Integrasjonen henter de aktive artiklene bedriften din har på lageret i Ongoing WMS, med varenummer, navn, utpris, innpris, strekkode og antall på lager. Varenumrene sammenlignes med produktene i ReAI. Artikler som mangler kan du opprette som lagerførte produkter i ReAI, én om gangen. Lagerbeholdningen i ReAI endres ikke.
 
-| Område | Oppsett i ReAI |
-| --- | --- |
-| Bransje | 3PL warehouses & ecommerce logistics (Lager/WMS) |
-| Kontoplan / API | `GET articles -> POST /api/products` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+## Slik kommer du i gang
 
-## Kom i gang på 2 minutter
+1. Be lageret om **goods owner ID** og en API bruker for bedriften din. Lageret lager brukeren under **Administration → API for goods owners** og velger OAuth (anbefalt) eller Basic. Med OAuth får du client ID og client secret, med Basic brukernavn og passord.
+2. Finn lagernavnet i adressen du logger inn med: `https://{lager}.ongoingsystems.se/{lager}`.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
+4. Fyll inn lagernavn, goods owner ID, type API bruker og nøklene, og hent artiklene.
+5. Opprett produktene som mangler i ReAI.
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra Ongoing WMS og overfør direkte til ReAI.
+Nøklene brukes bare til denne ene forespørselen og lagres aldri.

@@ -1,29 +1,24 @@
 ---
-title: "Integrasjon mellom Busy og regnskap"
-seoTitle: "Integrasjon mellom Busy og regnskap — Gratis integrasjon for ReAI"
-description: "Importer førte prosjekttimer og kommentarer fra Busy rett inn i ReAI Timelister uten dobbeltføring."
-summary: "Importer førte prosjekttimer og kommentarer fra Busy rett inn i ReAI Timelister uten dobbeltføring."
+title: "Integrasjon mellom Finago Busy og regnskap"
+seoTitle: "Finago Busy timer til ReAI | Gratis integrasjon"
+description: "Hent timer fra Finago Busy via API og før dem i ReAI Timelister per ansatt og prosjekt."
+summary: "Hent timer fra Finago Busy via API og før dem i ReAI Timelister per ansatt og prosjekt."
 industry: operations
 webAppUrl: /app/busy/
 sourcePath: web/worker/apps/busy.js
 highlights:
-  - "Tilpasset norsk bokføring og MVA-regler for Agencies & consultancies (Byrå og konsulent)"
-  - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Bruker Finago Busy API v2 med et API-token fra arbeidsområdet"
+  - "Henter bare godkjente timer hvis du ønsker det"
+  - "Viser prosjekt og bruker fra Busy før timene føres i ReAI"
 ---
 
-## Slik kobler du Busy til ReAI uten tilleggskostnad
+## Overfør timer fra Finago Busy til ReAI
 
-Mange norske bedrifter betaler flere hundre kroner i måneden for eksterne integrasjonsbroer mellom **Busy** og regnskapssystemet. Med ReAI er koblingen gratis, åpen (MIT-lisens) og kjører rett i nettleseren på `apps.reai.no/app/busy/`.
+Busy heter nå Finago Busy og leveres av 24SevenOffice. Integrasjonen henter timeføringene for en periode, trekker fra pauser og viser prosjekt, bruker og kommentar fra Busy. Du velger ansatt og eventuelt prosjekt i ReAI og fører timene én og én.
 
-| Område | Oppsett i ReAI |
-| --- | --- |
-| Bransje | Agencies & consultancies (Byrå og konsulent) |
-| Kontoplan / API | `POST /api/timesheets` |
-| Kontroll og sikkerhet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+## Slik setter du opp Finago Busy mot ReAI
 
-## Kom i gang på 2 minutter
-
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Prøv gjerne **Load sample** først for å se hvordan bilaget eller synken ser ut i ReAI.
-3. Last opp eksporten din eller legg inn tallene/API-tilgangen fra Busy og overfør direkte til ReAI.
+1. En administrator oppretter et API-token i innstillingene for arbeidsområdet under **Integrasjoner** i Finago Busy. Gi tokenet tilgangene `hourEntries:read`, `users:read` og `projects:read`.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt prosjekt.
+3. Lim inn tokenet, velg periode og eventuelt e-posten til brukeren i Busy for å hente timene til én person.
+4. Kontroller timene og klikk **Post to ReAI** for hver føring.

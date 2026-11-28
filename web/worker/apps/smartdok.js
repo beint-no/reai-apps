@@ -1,108 +1,127 @@
 // @ts-check
-import { fetchJson, isoDate, num, pickList, renderApiFetchCard } from '../lib/api-http.js';
+import { fetchJson, isoDate, num, renderApiFetchCard } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
-import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
-import { formatMinor } from '../lib/reconcile.js';
-import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
-import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
+import { reaiAll, reaiRequest } from '../lib/reai.js';
+import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
-/** @typedef {{ ref: string, date: string, customerName: string, description: string, hours: number, amountExVat: number, project: string }} TradeRow */
-/** @typedef {{ id: number, name: string }} SimpleRef */
+/** @typedef {{ date: string, hours: number, person: string, project: string, comment: string }} HoursRow */
+/** @typedef {{ id: number, name: string }} SimpleOpt */
 
-const BRAND = "SmartDok";
-const TITLE = "SmartDok Construction & Hours Sync";
-const LEAD = "Import approved construction project hours, machine time and billable work orders from SmartDok into ReAI Timesheets and draft customer orders.";
-const SAMPLE_CSV = "Dato;Prosjekt;Kunde;Timer;Belop;Beskrivelse\n2026-10-14;Bane Nord Drift;Nordic Entrepren\u00f8r AS;16,50;14850,00;Grunnarbeid og gravemaskin etappe 2\n2026-10-15;Boligfelt Vest;Fjord Bygg AS;12,00;10200,00;R\u00f8rlegging og inspeksjon";
+const SLUG = 'smartdok';
+const BRAND = 'SmartDok';
+const BASE_PATH = '/app/smartdok';
+const TITLE = 'SmartDok Hours Sync';
+const EYEBROW = 'CONSTRUCTION · HOURS';
+const LEAD = 'Fetch attested work hours from the SmartDok API and post them to ReAI Timesheets for one employee and project.';
+const API_HINT = 'Generate an API access token in SmartDok under Company settings → API administration (needs API access on your SmartDok plan and an administrator).';
+const API = 'https://api.smartdok.no';
+const MAX_DAYS = 93;
+
 /** @type {import('../lib/api-http.js').ApiFieldSpec[]} */
-const API_FIELDS = [{"name": "apiToken", "label": "SmartDok API Access Token", "type": "password", "placeholder": "API Access Token"}, {"name": "fromDate", "label": "From date", "type": "date", "defaultValue": "$MONTH_START"}, {"name": "toDate", "label": "To date", "type": "date", "defaultValue": "$TODAY"}];
+const API_FIELDS = [
+  { name: 'apiToken', label: 'SmartDok API access token', type: 'password' },
+  { name: 'person', label: 'SmartDok employee name or number (optional)', required: false, placeholder: 'All employees' },
+  { name: 'fromDate', label: 'From date', type: 'date', defaultValue: '$MONTH_START' },
+  { name: 'toDate', label: 'To date', type: 'date', defaultValue: '$TODAY' },
+];
+
+/** @type {HoursRow[]} */
+const SAMPLE_ROWS = [
+  { date: '2026-10-14', hours: 7.5, person: 'Ola Hansen', project: '1042 Bane Nord · Etappe 2', comment: 'Grunnarbeid' },
+  { date: '2026-10-15', hours: 8, person: 'Ola Hansen', project: '1042 Bane Nord · Etappe 2', comment: 'Rørlegging og inspeksjon' },
+];
+
+/** @param {string} from @param {string} to */
+function assertRange(from, to) {
+  const days = (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
+  if (!(days >= 0)) throw new HttpError(400, 'The to date must be on or after the from date.');
+  if (days > MAX_DAYS) throw new HttpError(400, `Choose a period of at most ${MAX_DAYS} days.`);
+}
 
 /**
- * Fetches work orders / approved hours from SmartDok REST API.
+ * Fetches attested work hours from the SmartDok API.
+ * Docs: https://api.smartdok.no/api-docs/ (spec https://api.smartdok.no/docs/v1): POST /Authorize/ApiToken with
+ * { Token } returns the session token used as Bearer; GET /Users (Items with Id, Name, EmployeeNo); GET /WorkHours
+ * with fromDate, toDate (at most 93 days), onlyAttested and includeExported returns Items of WorkHourOutput
+ * (UserID, EmployeeNo, Date, NetHours, OrdinaryHours, WageName, ProjectNumber, ProjectName, SubProjectName, Comment).
  * @param {Record<string, string>} creds
  * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<TradeRow[]>}
+ * @returns {Promise<HoursRow[]>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
-  const token = (creds.apiToken ?? '').trim();
+  const apiToken = (creds.apiToken ?? '').trim();
+  if (!apiToken) throw new HttpError(400, 'Enter the SmartDok API access token.');
   const from = isoDate(creds.fromDate);
   const to = isoDate(creds.toDate);
-  if (!token) throw new HttpError(400, `Enter your ${BRAND} API token.`);
-  const auth = await fetchJson('https://api.smartdok.no/Authorize/ApiToken', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ apiToken: token }) }, 'SmartDok', fetchImpl);
-  const bearer = String(auth.token ?? auth.accessToken ?? auth.sessionToken ?? '').trim();
-  if (!bearer) throw new HttpError(400, 'SmartDok /Authorize/ApiToken did not return a session token.');
-  const payload = await fetchJson(`https://api.smartdok.no/WorkHours?fromDate=${encodeURIComponent(from)}&toDate=${encodeURIComponent(to)}`, { headers: { authorization: `Bearer ${bearer}`, accept: 'application/json' } }, 'SmartDok', fetchImpl);
-  const rows = pickList(payload).map((r, i) => ({
-    ref: String(r.orderNumber ?? r.ref ?? r.id ?? `SMARTDOK-${i + 1}`),
-    date: isoDate(r.date ?? r.workDate ?? r.completedAt ?? r.createdAt, to),
-    project: String(r.projectName ?? r.project?.name ?? r.project ?? '—'),
-    customerName: String(r.customerName ?? r.customer?.name ?? r.customer ?? '—'),
-    hours: Number(num(r.hours ?? r.ordinaryHours ?? r.durationHours ?? (num(r.minutes) / 60)).toFixed(2)),
-    amountExVat: Number(num(r.amountExVat ?? r.totalExVat ?? r.netAmount ?? r.amount ?? 0).toFixed(2)),
-    description: String(r.description ?? r.comment ?? r.workDescription ?? `${BRAND} work order`),
-  })).filter((x) => x.hours > 0 || x.amountExVat > 0);
-  if (rows.length === 0) throw new HttpError(400, `${BRAND} returned 0 billable entries for ${from}–${to}.`);
+  assertRange(from, to);
+  const session = await fetchJson(`${API}/Authorize/ApiToken`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ Token: apiToken }),
+  }, BRAND, fetchImpl);
+  const bearer = typeof session === 'string' ? session.trim() : '';
+  if (!bearer) throw new HttpError(400, 'SmartDok did not return a session token. Check the API access token.');
+  const headers = { authorization: `Bearer ${bearer}`, accept: 'application/json' };
+
+  const users = await fetchJson(`${API}/Users?${new URLSearchParams({ all: 'true' })}`, { headers }, BRAND, fetchImpl);
+  /** @type {Map<string, { name: string, no: string }>} */ const byId = new Map();
+  for (const u of Array.isArray(users?.Items) ? users.Items : []) byId.set(String(u.Id), { name: String(u.Name ?? '').trim(), no: String(u.EmployeeNo ?? '').trim() });
+
+  const query = new URLSearchParams({ fromDate: from, toDate: to, onlyAttested: 'true', includeExported: 'true' });
+  const data = await fetchJson(`${API}/WorkHours?${query}`, { headers }, BRAND, fetchImpl);
+  /** @type {any[]} */ const items = Array.isArray(data?.Items) ? data.Items : [];
+  const wanted = (creds.person ?? '').trim().toLowerCase();
+  const rows = items
+    .filter((w) => !w.WageAddition && !w.UnitAddition && !w.Diet && !w.MachineHourId)
+    .map((w) => {
+      const user = byId.get(String(w.UserID));
+      const no = String(w.EmployeeNo ?? user?.no ?? '').trim();
+      const project = [[w.ProjectNumber, w.ProjectName].filter(Boolean).join(' '), w.SubProjectName].filter(Boolean).join(' · ');
+      const hours = w.NetHours != null ? num(w.NetHours) : num(w.OrdinaryHours);
+      return {
+        date: isoDate(w.Date, ''),
+        hours: Number(hours.toFixed(2)),
+        person: user?.name || no || '—',
+        no,
+        project: project || '—',
+        comment: [w.WageName, w.Comment].map((x) => String(x ?? '').trim()).filter(Boolean).join(' · ') || 'SmartDok hours',
+      };
+    })
+    .filter((r) => r.date && r.hours >= 0.01 && r.hours <= 24 && (!wanted || r.person.toLowerCase().includes(wanted) || r.no.toLowerCase() === wanted))
+    .map((r) => ({ date: r.date, hours: r.hours, person: r.person, project: r.project, comment: r.comment }));
+  if (rows.length === 0) throw new HttpError(400, `SmartDok has no attested hours from ${from} to ${to}${wanted ? ` for "${creds.person}"` : ''}.`);
   return rows;
 }
 
-/** @param {string} csvText @returns {TradeRow[]} */
-function parseTradeCsv(csvText) {
-  const doc = parseCsv(csvText);
-  const norm = doc.headers.map((h) => h.toLowerCase().trim());
-  const refIdx = norm.findIndex((h) => h.includes('ordre') || h.includes('order') || h.includes('ref') || h.includes('id'));
-  const dateIdx = norm.findIndex((h) => h.includes('dato') || h.includes('date'));
-  const projIdx = norm.findIndex((h) => h.includes('prosjekt') || h.includes('project'));
-  const custIdx = norm.findIndex((h) => h.includes('kunde') || h.includes('customer'));
-  const hrsIdx = norm.findIndex((h) => h.includes('timer') || h.includes('hour'));
-  const amtIdx = norm.findIndex((h) => h.includes('belop') || h.includes('beløp') || h.includes('amount') || h.includes('sum'));
-  const descIdx = norm.findIndex((h) => h.includes('beskrivelse') || h.includes('desc') || h.includes('tekst'));
-  if (dateIdx < 0 || (hrsIdx < 0 && amtIdx < 0)) throw new HttpError(400, 'CSV must include Dato/Date and Timer/Hours or Beløp/Amount columns.');
-  return doc.rows.map((r, i) => ({
-    ref: refIdx >= 0 && (r[refIdx] ?? '').trim() ? (r[refIdx] ?? '').trim() : `SMARTDOK-${i + 1}`,
-    date: (r[dateIdx] ?? '').trim().slice(0, 10),
-    project: projIdx >= 0 ? (r[projIdx] ?? '').trim() || '—' : '—',
-    customerName: custIdx >= 0 ? (r[custIdx] ?? '').trim() || '—' : '—',
-    hours: hrsIdx >= 0 ? Number(Math.max(0, num(r[hrsIdx])).toFixed(2)) : 0,
-    amountExVat: amtIdx >= 0 ? Number(Math.max(0, num(r[amtIdx])).toFixed(2)) : 0,
-    description: descIdx >= 0 ? (r[descIdx] ?? '').trim() || 'Work order' : 'Work order',
-  })).filter((x) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(x.date) && (x.hours > 0 || x.amountExVat > 0));
-}
-
-/** @param {{ rows: Array<{ row: TradeRow, customerId: number | null }>, defaultCustomerId: number, employeeId: number, projectId: number, isSample?: boolean }} state */
-function renderPreview(state) {
-  const totalHours = state.rows.reduce((s, r) => s + r.row.hours, 0);
-  const totalAmt = state.rows.reduce((s, r) => s + r.row.amountExVat, 0);
+/** @param {HoursRow[]} rows @param {number} empId @param {number} projId @param {boolean} isSample */
+function renderHours(rows, empId, projId, isSample) {
+  const total = rows.reduce((s, r) => s + r.hours, 0);
   return reaiCard({
-    eyebrow: `${BRAND.toUpperCase()} → REAI ORDERS & TIMESHEETS`,
-    title: `${state.rows.length} work-order / hour rows parsed`,
-    badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready to sync', tone: 'success' }),
+    eyebrow: `${BRAND.toUpperCase()} → REAI TIMESHEETS`,
+    title: `${rows.length} entries (${total.toFixed(2)} h)`,
+    badge: isSample ? reaiBadge({ text: 'Sample', tone: 'accent' }) : reaiBadge({ text: 'Ready', tone: 'success' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Rows', value: String(state.rows.length), detail: 'Idempotent externalReference per order' })}
-        ${reaiMetric({ label: 'Total hours', value: `${totalHours.toFixed(2)} h`, detail: 'Postable to /api/timesheets' })}
-        ${reaiMetric({ label: 'Billable ex. VAT', value: `${formatMinor(Math.round(totalAmt * 100))} NOK`, detail: 'ReAI draft orders (25% VAT)' })}
+        ${reaiMetric({ label: 'Total hours', value: `${total.toFixed(2)} h` })}
+        ${reaiMetric({ label: 'ReAI employee', value: empId > 0 ? `#${empId}` : 'Not chosen', detail: projId > 0 ? `Project #${projId}` : 'No project' })}
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Ref</th><th>Date</th><th>Customer / Project</th><th class="num">Hours</th><th class="num">Ex. VAT</th><th>Action</th></tr></thead>
-        <tbody>${state.rows.map(({ row, customerId }, idx) => {
-          const cid = customerId ?? state.defaultCustomerId;
-          return html`<tr id="tr-r-${idx}">
-            <td class="mono">${row.ref}</td><td class="mono">${row.date}</td>
-            <td><strong>${row.customerName}</strong><br><span class="muted-note">${row.project} · ${row.description}</span></td>
-            <td class="num">${row.hours.toFixed(2)}</td><td class="num">${formatMinor(Math.round(row.amountExVat * 100))}</td>
-            <td>${state.isSample
-              ? html`<span class="muted-note">Demo only</span>`
-              : html`<div class="inline-row">
-                  ${row.amountExVat > 0 && cid > 0 ? html`<form hx-post="/app/smartdok/create-order" hx-target="#tr-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="ref" value="${row.ref}"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="description" value="${row.description}"><input type="hidden" name="amount" value="${row.amountExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${cid}"><button type="submit" class="button primary">Stage order</button></form>` : ''}
-                  ${row.hours > 0 && state.employeeId > 0 ? html`<form hx-post="/app/smartdok/log-hours" hx-target="#tr-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="hours" value="${row.hours.toFixed(2)}"><input type="hidden" name="description" value="[${BRAND}] ${row.description}"><input type="hidden" name="employeeId" value="${state.employeeId}"><input type="hidden" name="projectId" value="${state.projectId}"><button type="submit" class="button secondary">Log hours</button></form>` : ''}
-                  ${(row.amountExVat <= 0 || cid <= 0) && (row.hours <= 0 || state.employeeId <= 0) ? html`<span class="muted-note">Select customer/employee</span>` : ''}
-                </div>`}</td>
-          </tr>`;
-        })}</tbody>
-      </table></div>
-    `,
+        <thead><tr><th>Date</th><th>User</th><th>Project</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
+        <tbody>${rows.map((r, idx) => html`<tr id="${SLUG}-h-${idx}"><td class="mono">${r.date}</td><td>${r.person}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0
+          ? html`<span class="muted-note">${isSample ? 'Sample only' : 'Choose a ReAI employee above'}</span>`
+          : html`<form hx-post="${BASE_PATH}/import" hx-target="#${SLUG}-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[${BRAND}] ${r.project} · ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
+      </table></div>`,
   });
+}
+
+/** @param {SimpleOpt[]} employees @param {SimpleOpt[]} projects */
+function reaiTargetFields(employees, projects) {
+  return html`<div class="mapping-grid">
+    <div class="field"><label for="${SLUG}-emp">ReAI employee</label><select id="${SLUG}-emp" name="employeeId"><option value="0">${employees.length > 0 ? 'Choose employee…' : 'Connect to ReAI first'}</option>${employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
+    <div class="field"><label for="${SLUG}-proj">ReAI project (optional)</label><select id="${SLUG}-proj" name="projectId"><option value="0">No project</option>${projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
+  </div>`;
 }
 
 /**
@@ -113,102 +132,52 @@ function renderPreview(state) {
  */
 export async function handle(request, env) {
   const { pathname } = new URL(request.url);
-  const basePath = '/app/smartdok';
-  if (pathname === basePath && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${basePath}/`, request.url), 301);
-  if (pathname === `${basePath}/` && (request.method === 'GET' || request.method === 'HEAD')) {
+  if (pathname === BASE_PATH && (request.method === 'GET' || request.method === 'HEAD')) return Response.redirect(new URL(`${BASE_PATH}/`, request.url), 301);
+  if (pathname === `${BASE_PATH}/` && (request.method === 'GET' || request.method === 'HEAD')) {
     const session = await readSession(env, request);
-    /** @type {SimpleRef[]} */ let customers = [];
-    /** @type {SimpleRef[]} */ let employees = [];
-    /** @type {SimpleRef[]} */ let projects = [];
+    /** @type {SimpleOpt[]} */ let employees = [];
+    /** @type {SimpleOpt[]} */ let projects = [];
     if (session && session.tenantId > 0) {
-      try {
-        const [c, e, p] = await Promise.all([
-          reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } }),
-          reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId }).catch(() => []),
-          reaiAll(env, '/api/projects', { token: session.accessToken, tenantId: session.tenantId }).catch(() => []),
-        ]);
-        customers = /** @type {SimpleRef[]} */ (c);
-        employees = Array.isArray(e) ? /** @type {SimpleRef[]} */ (e) : [];
-        projects = /** @type {Array<SimpleRef & { archived?: boolean }>} */ (p).filter((x) => !x.archived);
-      } catch { /* ignore */ }
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const [e, p] = await Promise.all([
+        reaiRequest(env, '/api/employees', auth).catch(() => []),
+        reaiAll(env, '/api/projects', { ...auth, query: { archived: 'false' } }).catch(() => []),
+      ]);
+      employees = Array.isArray(e) ? /** @type {SimpleOpt[]} */ (e) : [];
+      projects = /** @type {SimpleOpt[]} */ (p);
     }
     const body = html`
-      <section class="app-intro"><p class="eyebrow">CONSTRUCTION, CRAFTS & FIELD SERVICE</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
+      <section class="app-intro"><p class="eyebrow">${EYEBROW}</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
-        ${renderConnectPanel(session, { clientId: 'reai-smartdok-web', clientName: `ReAI ${BRAND} (Web)` })}
-        ${renderApiFetchCard({ basePath, targetId: 'tr-output', brand: BRAND, hint: "Generate an API Access Token under Company settings \u2192 API administration in SmartDok (exchanged automatically via POST /Authorize/ApiToken).", fields: API_FIELDS, sampleAction: true })}
-        ${reaiCard({
-          eyebrow: `CSV IMPORT · ${BRAND.toUpperCase()}`,
-          title: `Or upload ${BRAND} work-order / hours CSV`,
-          body: html`<form class="stack" hx-post="${basePath}/preview" hx-encoding="multipart/form-data" hx-target="#tr-output" hx-swap="innerHTML">
-            <div class="mapping-grid">
-              <div class="field"><label for="tr-cust">Fallback ReAI customer</label><select id="tr-cust" name="defaultCustomerId"><option value="0">${customers.length > 0 ? 'Match by name or choose…' : 'Connect to ReAI first'}</option>${customers.slice(0, 200).map((c) => html`<option value="${c.id}">${c.name}</option>`)}</select></div>
-              <div class="field"><label for="tr-emp">ReAI employee (timesheets)</label><select id="tr-emp" name="employeeId"><option value="0">${employees.length > 0 ? 'Select employee…' : 'Connect to ReAI first'}</option>${employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
-              <div class="field"><label for="tr-proj">ReAI project (optional)</label><select id="tr-proj" name="projectId"><option value="0">No project</option>${projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
-            </div>
-            ${reaiDropzone({ inputId: 'tr-csv', name: 'file', accept: '.csv,text/csv,text/plain', label: `Choose ${BRAND} CSV`, hint: 'CSV with Dato, Prosjekt, Kunde, Timer, Beløp, Beskrivelse.' })}
-            <div class="inline-row"><button type="submit" class="button primary">Preview CSV</button></div>
-          </form>`,
-        })}
-        <div id="tr-output" class="stack"></div>
+        ${renderConnectPanel(session, { clientId: `reai-${SLUG}-web`, clientName: `ReAI ${BRAND} (Web)` })}
+        ${renderApiFetchCard({ basePath: BASE_PATH, targetId: `${SLUG}-output`, brand: BRAND, hint: API_HINT, fields: API_FIELDS, extraFields: reaiTargetFields(employees, projects), sampleAction: true })}
+        <div id="${SLUG}-output" class="stack"></div>
       </div>
     `;
-    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${basePath}/`, body }));
+    return htmlResponse(appShell({ title: TITLE, description: LEAD, activePath: `${BASE_PATH}/`, body }));
   }
-
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) {
-    return htmlResponse(renderPreview({ rows: parseTradeCsv(SAMPLE_CSV).map((row) => ({ row, customerId: 1 })), defaultCustomerId: 1, employeeId: 1, projectId: 0, isSample: true }));
-  }
-
+  if (pathname === `${BASE_PATH}/sample`) return htmlResponse(renderHours(SAMPLE_ROWS, 1, 0, true));
   try {
     const form = await request.formData();
-    if (pathname === `${basePath}/fetch-api`) {
+    if (pathname === `${BASE_PATH}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      const parsed = await fetchApi(creds);
+      return htmlResponse(renderHours(await fetchApi(creds), Number(creds.employeeId ?? '0'), Number(creds.projectId ?? '0'), false));
+    }
+    if (pathname === `${BASE_PATH}/import`) {
       const session = await readSession(env, request);
-      /** @type {SimpleRef[]} */ let custs = [];
-      if (session && session.tenantId > 0) {
-        try { custs = /** @type {SimpleRef[]} */ (await reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } })); } catch { custs = []; }
-      }
-      const byName = new Map(custs.map((c) => [c.name.trim().toLowerCase(), c.id]));
-      return htmlResponse(renderPreview({ rows: parsed.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null })), defaultCustomerId: 0, employeeId: 0, projectId: 0 }));
-    }
-    if (pathname === `${basePath}/preview`) {
-      const file = form.get('file');
-      if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file first.');
-      const parsed = parseTradeCsv(decodeCsvBytes(new Uint8Array(await file.arrayBuffer())));
-      const session = await readSession(env, request);
-      /** @type {SimpleRef[]} */ let custs = [];
-      if (session && session.tenantId > 0) {
-        try { custs = /** @type {SimpleRef[]} */ (await reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } })); } catch { custs = []; }
-      }
-      const byName = new Map(custs.map((c) => [c.name.trim().toLowerCase(), c.id]));
-      return htmlResponse(renderPreview({ rows: parsed.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null })), defaultCustomerId: Number(form.get('defaultCustomerId') ?? '0'), employeeId: Number(form.get('employeeId') ?? '0'), projectId: Number(form.get('projectId') ?? '0') }));
-    }
-    const session = await readSession(env, request);
-    if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
-    if (pathname === `${basePath}/create-order`) {
-      const ref = String(form.get('ref') ?? '').trim();
-      const date = String(form.get('date') ?? '').slice(0, 10);
-      const description = String(form.get('description') ?? BRAND).trim().slice(0, 255);
-      const amount = Number(form.get('amount') ?? '0');
-      const customerId = Number(form.get('customerId') ?? '0');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `smartdok-${ref}`.slice(0, 100), comment: `${BRAND} ${ref}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
-      const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
-      return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${description}</td><td class="num">—</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
-    }
-    if (pathname === `${basePath}/log-hours`) {
-      const date = String(form.get('date') ?? '').slice(0, 10);
-      const hours = Number(form.get('hours') ?? '0');
+      if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
       const employeeId = Number(form.get('employeeId') ?? '0');
       const projectId = Number(form.get('projectId') ?? '0');
-      const comment = String(form.get('description') ?? BRAND).slice(0, 1000);
+      const date = String(form.get('date') ?? '').trim();
+      const hours = Number(form.get('hours') ?? '0');
+      const comment = String(form.get('comment') ?? BRAND).trim().slice(0, 1000);
+      if (!(employeeId > 0) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'A ReAI employee, a date and 0.01 to 24 hours are required.');
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
-      return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
+      return htmlResponse(html`<tr><td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

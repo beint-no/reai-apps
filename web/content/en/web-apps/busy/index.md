@@ -1,29 +1,24 @@
 ---
-title: "Busy Time Tracking & Accounting Sync"
-seoTitle: "Busy Time Tracking & Accounting Sync for ReAI — Free Open-Source Connector"
-description: "Import approved billable hours and project notes from Busy straight into ReAI Timesheets."
-summary: "Import approved billable hours and project notes from Busy straight into ReAI Timesheets."
+title: "Finago Busy & Accounting Integration"
+seoTitle: "Finago Busy Hours to ReAI | Free Integration"
+description: "Fetch hour entries from Finago Busy through its API and post them to ReAI Timesheets by employee and project."
+summary: "Fetch hour entries from Finago Busy through its API and post them to ReAI Timesheets by employee and project."
 industry: operations
 webAppUrl: /app/busy/
 sourcePath: web/worker/apps/busy.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Agencies & consultancies (Byrå og konsulent)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Uses the Finago Busy API v2 with a workspace API token"
+  - "Can limit the import to approved hour entries"
+  - "Shows the Busy project and user before hours reach ReAI"
 ---
 
-## How Busy integrates with ReAI
+## Move Finago Busy hours into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **Busy** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/busy/` using ReAI's documented Public API.
+Busy is now called Finago Busy and is provided by 24SevenOffice. The integration fetches hour entries for a period, deducts breaks and shows the Busy project, user and comment. You choose the employee and, if you like, the project in ReAI and post the entries one by one.
 
-| Dimension | Mapping in ReAI |
-| --- | --- |
-| Target industry | Agencies & consultancies (Byrå og konsulent) |
-| Norwegian ledger / API | `POST /api/timesheets` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+## Set up Finago Busy with ReAI
 
-## Getting started
-
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your Busy export or enter your credentials/settlement totals to post directly into ReAI.
+1. An admin creates an API token in the Finago Busy workspace settings under **Integrations**. Give it the scopes `hourEntries:read`, `users:read` and `projects:read`.
+2. Click **Open integration**, connect ReAI and choose the employee and, optionally, the project.
+3. Paste the token, choose the period and, optionally, the Busy user's email to fetch one person's hours.
+4. Review the hours and click **Post to ReAI** for each entry.

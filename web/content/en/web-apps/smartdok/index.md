@@ -1,29 +1,28 @@
 ---
 title: "SmartDok & Accounting Integration"
-seoTitle: "SmartDok & Accounting Integration for ReAI — Free Open-Source Connector"
-description: "Import approved construction hours, machine logs and project billing from SmartDok into ReAI Timesheets and draft orders."
-summary: "Import approved construction hours, machine logs and project billing from SmartDok into ReAI Timesheets and draft orders."
+seoTitle: "SmartDok Hours Integration for ReAI: Attested Hours to Timesheets"
+description: "Fetch attested work hours from the SmartDok API and post them to ReAI Timesheets for the employee and project you choose. Free and open source."
+summary: "Fetch attested SmartDok hours for a period and post them to ReAI Timesheets."
 industry: operations
 webAppUrl: /app/smartdok/
 sourcePath: web/worker/apps/smartdok.js
 highlights:
-  - "Purpose-built for Norwegian accounting in Construction & civil engineering (Bygg og anlegg)"
-  - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Timesheets)"
-  - "Included free with every ReAI company — MIT open source with instant sample mode"
+  - "Reads attested work hours through the SmartDok API with an API access token"
+  - "Shows employee, project, subproject and wage type before anything is posted"
+  - "Posts each line as a timesheet entry for the chosen ReAI employee and project"
 ---
 
-## How SmartDok integrates with ReAI
+## What moves into ReAI
 
-Many Norwegian businesses pay monthly third-party middleware fees just to move data from **SmartDok** into their accounting system. ReAI provides a free, open-source browser integration at `apps.reai.no/app/smartdok/` using ReAI's documented Public API.
+The integration reads attested SmartDok hours within the chosen period, at most 93 days at a time. Hours already exported to payroll are included. Additions, allowances and machine hours are left out. You can limit it to one employee by name or employee number. Hours are net hours after breaks when SmartDok provides them.
 
-| Dimension | Mapping in ReAI |
-| --- | --- |
-| Target industry | Construction & civil engineering (Bygg og anlegg) |
-| Norwegian ledger / API | `3000 / Timesheets` |
-| Safety & auditability | Preview before booking, duplicate protection & accountant review workflow |
+You post lines one by one to ReAI Timesheets for the employee and project you choose.
 
-## Getting started
+## Setup
 
-1. Click **Open integration** above and connect your ReAI company (your password never leaves `app.reai.no`).
-2. Try the built-in **Load sample** button to inspect the exact postings or sync preview immediately.
-3. Upload your SmartDok export or enter your credentials/settlement totals to post directly into ReAI.
+1. Sign in to SmartDok as an administrator and open **Company settings → API administration**. Generate an API access token. If the menu is missing, order API access from SmartDok.
+2. Click **Open integration**, connect ReAI and choose the company.
+3. Enter the token and the period, then choose the ReAI employee and an optional project.
+4. Check the hours and click **Post to ReAI** on the lines you want to record.
+
+The token is used only for that request and is never stored.

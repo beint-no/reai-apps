@@ -14,105 +14,92 @@ import {
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 const CFG = {
-  "brand": "Zettle",
-  "title": "Zettle Reconcile",
-  "lead": "Compare Zettle liquid-account payouts against pending ReAI bank transactions for one month and export a CSV report.",
+  "brand": "PayPal Point of Sale",
+  "title": "PayPal Point of Sale (Zettle) Reconcile",
+  "lead": "Compare PayPal Point of Sale payouts, formerly Zettle, against pending ReAI bank transactions for one month and export a CSV report.",
   "fields": [
     {
       "key": "clientId",
-      "label": "Zettle Client ID",
-      "placeholder": "Client ID from developer portal"
+      "label": "Client ID",
+      "placeholder": "Shown when you create the API key"
     },
     {
       "key": "apiKey",
-      "label": "Zettle API key (READ:FINANCE)",
+      "label": "API key (READ:FINANCE)",
       "secret": true,
-      "placeholder": "JWT assertion key"
+      "placeholder": "API key from my.zettle.com"
     }
   ],
   "hasFees": false
 };
 
 /**
- * @param {string} url
- * @param {RequestInit} init
- * @param {string} errPrefix
- */
-async function providerJson(url, init, errPrefix) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${errPrefix} returned an unexpected redirect.`);
-  }
-  const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
-}
-
-/**
+ * Fetches PayPal Point of Sale (Zettle) payouts from the liquid account.
+ * Docs: https://github.com/iZettle/api-documentation/blob/master/authorization.md (assertion grant: POST
+ * https://oauth.zettle.com/token with grant_type urn:ietf:params:oauth:grant-type:jwt-bearer, client_id, assertion),
+ * https://github.com/iZettle/api-documentation/blob/master/finance-api/api-reference-v2.yaml (GET /v2/accounts/liquid/balance
+ * returns totalBalance and currencyId; GET /v2/accounts/liquid/transactions with start and end as YYYY-MM-DDThh:mm:ss UTC,
+ * includeTransactionType, limit, offset; amounts in minor units, negative PAYOUT is a payout to the bank or PayPal Wallet)
+ * and https://github.com/iZettle/api-documentation/blob/master/finance-api/user-guides/fetch-account-transactions-v2.md
+ * (response example wraps rows in data and names the id originatingTransactionUuid).
  * @param {Record<string, string>} fields
  * @param {string} start
  * @param {string} end
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
  */
-
-/**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
- */
-async function fetchZettlePayouts(fields, start, end) {
+export async function fetchZettlePayouts(fields, start, end, fetchImpl = fetch) {
   const form = new URLSearchParams({
     grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-    client_id: fields.clientId ?? '',
-    assertion: fields.apiKey ?? '',
+    client_id: (fields.clientId ?? '').trim(),
+    assertion: (fields.apiKey ?? '').trim(),
   });
-  const tokRes = await providerJson(
-    'https://oauth.zettle.com/token',
-    { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() },
-    'Zettle',
-  );
+  const json = async (/** @type {string} */ url, /** @type {RequestInit} */ init) => {
+    const res = await fetchImpl(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
+    const text = await res.text();
+    return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  };
+  const tokRes = await json('https://oauth.zettle.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   if (!tokRes.ok || !tokRes.data?.access_token) {
-    throw new HttpError(400, 'Zettle rejected the API key or client ID.');
+    throw new HttpError(400, `${CFG.brand} rejected the API key or client ID.`);
   }
   const headers = { authorization: `Bearer ${tokRes.data.access_token}`, accept: 'application/json' };
-  const balRes = await providerJson('https://finance.izettle.com/v2/accounts/liquid/balance', { headers }, 'Zettle');
+  const balRes = await json('https://finance.izettle.com/v2/accounts/liquid/balance', { headers });
   if (!balRes.ok) {
-    throw new HttpError(400, balRes.status === 403 ? 'This Zettle key needs READ:FINANCE scope.' : `Zettle returned HTTP ${balRes.status}.`);
+    throw new HttpError(400, balRes.status === 403 ? 'This API key needs the READ:FINANCE scope.' : `${CFG.brand} returned HTTP ${balRes.status}.`);
   }
-  const currency = String(balRes.data?.data?.currencyId ?? 'NOK');
+  const currency = String(balRes.data?.currencyId ?? balRes.data?.data?.currencyId ?? 'NOK').toUpperCase();
 
   /** @type {import('../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
   let offset = 0;
   for (let p = 0; p < 50; p++) {
     const url = new URL('https://finance.izettle.com/v2/accounts/liquid/transactions');
-    url.searchParams.set('start', `${start}T00:00:00Z`);
-    url.searchParams.set('end', `${end}T00:00:00Z`);
+    url.searchParams.set('start', `${start}T00:00:00`);
+    url.searchParams.set('end', `${end}T00:00:00`);
     url.searchParams.set('includeTransactionType', 'PAYOUT');
-    url.searchParams.set('limit', '100');
+    url.searchParams.set('limit', '1000');
     url.searchParams.set('offset', String(offset));
-    const r = await providerJson(url.toString(), { headers }, 'Zettle');
+    const r = await json(url.toString(), { headers });
     if (!r.ok) {
-      throw new HttpError(400, `Zettle Finance returned HTTP ${r.status}.`);
+      throw new HttpError(400, `${CFG.brand} Finance API returned HTTP ${r.status}.`);
     }
-    const items = Array.isArray(r.data?.data) ? r.data.data : [];
+    /** @type {any[]} */
+    const items = Array.isArray(r.data) ? r.data : Array.isArray(r.data?.data) ? r.data.data : [];
     for (const row of items) {
-      if (row.originatorTransactionType === 'PAYOUT' && typeof row.amount === 'number' && row.amount < 0) {
-        payouts.push({
-          id: String(row.originatingTransactionUuid),
-          date: String(row.timestamp).slice(0, 10),
-          amountMinor: -row.amount,
-          currency,
-          reference: String(row.originatingTransactionUuid),
-          detail: 'Zettle liquid account payout',
-        });
-      }
+      const amount = Number(row.amount);
+      if (row.originatorTransactionType !== 'PAYOUT' || !Number.isFinite(amount) || amount >= 0) continue;
+      const uuid = String(row.originatingTransactionUuid ?? row.originatorTransactionUuid ?? `${row.timestamp}${amount}`);
+      payouts.push({
+        id: uuid,
+        date: String(row.timestamp).slice(0, 10),
+        amountMinor: Math.round(-amount),
+        currency,
+        reference: uuid,
+        detail: 'Liquid account payout',
+      });
     }
-    if (items.length < 100) {
+    if (items.length < 1000) {
       break;
     }
     offset += items.length;
@@ -132,7 +119,7 @@ async function fetchZettlePayouts(fields, start, end) {
  */
 function sampleData() {
   const month = '2026-10';
-  const prefix = 'ZETTLE';
+  const prefix = 'PPOS';
   /** @type {import('../lib/reconcile.js').PayoutItem[]} */
   const payouts = [
     { id: 'zettle-1', date: '2026-10-06', amountMinor: 1482000, currency: 'NOK', reference: `${prefix}-2610-001`, detail: `Sample ${prefix} payout batch 1` },
@@ -255,7 +242,7 @@ export async function handle(request, env) {
           eyebrow: 'ON-DEMAND REVIEW',
           title: `Fetch ${CFG.brand} payouts`,
           body: html`
-            <p class="muted-note">Provider credentials are used only for this single HTTPS request and are never stored in cookies, browser storage or a database.</p>
+            <p class="muted-note">Create an API key with the READ:FINANCE scope at my.zettle.com/apps/api-keys and copy the client ID shown with it. Provider credentials are used only for this single HTTPS request and are never stored in cookies, browser storage or a database.</p>
             <form class="stack" hx-post="${basePath}/review" hx-target="#reconcile-output" hx-swap="innerHTML">
               <div class="mapping-grid">
                 ${CFG.fields.map((f) => html`<div class="field"><label for="f-${f.key}">${f.label}</label><input id="f-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}" autocomplete="off" required placeholder="${f.placeholder}"></div>`)}

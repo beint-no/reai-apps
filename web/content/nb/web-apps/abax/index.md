@@ -1,29 +1,25 @@
 ---
-title: "Integrasjon mellom ABAX Kjørebok og regnskap"
-seoTitle: "Integrasjon mellom ABAX Kjørebok og regnskap — Gratis open source-integrasjon for ReAI"
-description: "Importer godkjente yrkesreiser og bompenger fra ABAX Triplog rett inn i ReAI Kjørebok med automatisk kjøregodtgjørelse og bilag."
-summary: "Importer godkjente yrkesreiser og bompenger fra ABAX Triplog rett inn i ReAI Kjørebok med automatisk kjøregodtgjørelse og bilag."
+title: "Integrasjon mellom ABAX og regnskap"
+seoTitle: "ABAX kjørebok til ReAI | Gratis integrasjon"
+description: "Hent yrkesturer og bompenger fra ABAX Open API og før dem i kjøreboken i ReAI."
+summary: "Hent yrkesturer og bompenger fra ABAX Open API og før dem i kjøreboken i ReAI."
 industry: operations
 webAppUrl: /app/abax/
 sourcePath: web/worker/apps/abax.js
 highlights:
-  - "Bygget for norske bokførings- og MVA-regler i Fleet, trades & field sales (Kjørebok)"
-  - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/driving-log/trips)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Henter turer fra ABAX Open API V4 med klient-ID og klienthemmelighet"
+  - "Tar bare med yrkesturer, ikke private turer eller pendling"
+  - "Bompenger fra ABAX følger med hver tur i kjøreboken"
 ---
 
-## Gratis integrasjon mellom ABAX og ReAI
+## Overfør yrkesturer fra ABAX til ReAI
 
-Koble **ABAX** rett til ReAI i nettleseren på `apps.reai.no/app/abax/` uten dyre månedsgebyrer for eksterne integrasjonsbroer.
+Integrasjonen henter yrkesturene for en periode fra ABAX, regner om avstanden til kilometer og legger til bompenger som ABAX har registrert på turen. Du ser alle turene før du fører dem i kjøreboken i ReAI, der kilometergodtgjørelsen beregnes.
 
-| Område | Detaljer |
-| --- | --- |
-| Bransje | Fleet, trades & field sales (Kjørebok) |
-| Kontoplan / API | `POST /api/driving-log/trips` |
-| Trygghet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+## Slik setter du opp ABAX mot ReAI
 
-## Kom i gang
-
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Klikk **Load sample** for å teste hvordan bilaget eller synken ser ut umiddelbart.
-3. Last opp eksporten fra ABAX eller legg inn tall/API-nøkkel for å overføre direkte til ReAI.
+1. Logg inn i [ABAX Developer Portal](https://developers.abax.cloud) med en administratorbruker og opprett API-legitimasjon for produksjon.
+2. Be ABAX support om å aktivere klientlegitimasjon (client credentials) for denne legitimasjonen. Den er ikke aktivert som standard.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt kjøretøy.
+4. Lim inn klient-ID og klienthemmelighet, velg periode (høyst tre måneder) og eventuelt sjåførens e-post i ABAX.
+5. Kontroller turene og klikk **Record trip** for hver tur som skal føres.

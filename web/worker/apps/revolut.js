@@ -1,107 +1,166 @@
 // @ts-check
-import { fetchJson, isoDate, num, pickList, renderApiFetchCard } from '../lib/api-http.js';
+import { assertPublicHttpsUrl, isoDate, num, renderApiFetchCard } from '../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
-import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
-import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
+import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
+import { pairVoucherRows } from '../lib/voucher-rows.js';
 
-/** @typedef {{ date: string, merchant: string, account: string, amountMinor: number, vatCode: string }} ExpenseLine */
+/** @typedef {{ date: string, merchant: string, account: string, amountMinor: number }} ExpenseLine */
+/** @typedef {{ lines: ExpenseLine[], skippedForeign: number }} ExpenseBatch */
 
-const BRAND = "Revolut / Wise";
-const TITLE = "Revolut Business & Wise Expense Import";
-const LEAD = "Import Revolut Business and Wise multi-currency card & statement transactions via API or CSV into balanced ReAI vouchers with fee separation on 7770.";
-const DEFAULT_CLEARING = "1925";
-const SAMPLE_CSV = "Date;Description;Amount;Fee;Account\n2026-10-05;GitHub Enterprise Seat;-2150,00;0,00;6900\n2026-10-12;AWS EMEA Cloud Hosting;-3840,00;19,20;6900\n2026-10-19;Figma Team Subscription;-540,00;2,70;6900";
+const BRAND = 'Revolut Business';
+const TITLE = 'Revolut Business Card Expenses';
+const LEAD = 'Fetch completed Revolut Business card payments and fees for a period and create one review voucher in ReAI against your Revolut bank account.';
+const DEFAULT_CLEARING = '1925';
+const DEFAULT_EXPENSE = '6800';
+const FEE_ACCOUNT = '7770';
+const API = 'https://b2b.revolut.com/api/1.0';
+const API_HINT = 'Create an API key in the Revolut API Console (developer.revolut.com/console) with the permission Accounts → Transactions → Read. Paste the key and the private signing key (private.pem) that the console generated. Only NOK transactions are imported.';
+
+/** @type {ExpenseBatch} */
+const SAMPLE = {
+  skippedForeign: 0,
+  lines: [
+    { date: '2026-10-05', merchant: 'GitHub', account: DEFAULT_EXPENSE, amountMinor: 215000 },
+    { date: '2026-10-12', merchant: 'AWS EMEA', account: DEFAULT_EXPENSE, amountMinor: 384000 },
+    { date: '2026-10-12', merchant: 'AWS EMEA · Revolut fee', account: FEE_ACCOUNT, amountMinor: 1920 },
+    { date: '2026-10-19', merchant: 'Figma', account: DEFAULT_EXPENSE, amountMinor: 54000 },
+  ],
+};
 
 /**
- * Fetches corporate card expenses from Revolut / Wise REST API.
+ * Decodes a PKCS#8 PEM (or bare base64) Ed25519 private key.
+ * @param {string} pem
+ * @returns {Uint8Array<ArrayBuffer>}
+ */
+function pemToDer(pem) {
+  const b64 = pem.replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '').replace(/\s+/g, '');
+  try {
+    const bin = atob(b64);
+    const out = new Uint8Array(new ArrayBuffer(bin.length));
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  } catch {
+    throw new HttpError(400, 'The signing key must be the private.pem content from the Revolut API Console.');
+  }
+}
+
+/**
+ * Builds the Revolut signing headers: Ed25519 over timestamp + METHOD + /api path + query (no "?") + body.
+ * @param {string} pem
+ * @param {URL} url
+ * @returns {Promise<Record<string, string>>}
+ */
+async function signHeaders(pem, url) {
+  let key;
+  try {
+    key = await crypto.subtle.importKey('pkcs8', pemToDer(pem), { name: 'Ed25519' }, false, ['sign']);
+  } catch {
+    throw new HttpError(400, 'The signing key must be the private.pem content from the Revolut API Console.');
+  }
+  const timestamp = String(Date.now());
+  const message = `${timestamp}GET${url.pathname}${url.search.replace(/^\?/, '')}`;
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, key, new TextEncoder().encode(message)));
+  return { 'revolut-api-timestamp': timestamp, 'revolut-api-signature': btoa(String.fromCharCode(...sig)) };
+}
+
+/**
+ * Fetches completed NOK card payments and fees from the Revolut Business API.
+ * Docs: https://developer.revolut.com/docs/api/business#tag-transactions (GET /transactions with from, to, count;
+ * paginate by passing the last created_at as to; legs[].amount, fee, currency, description; merchant.name),
+ * https://developer.revolut.com/docs/guides/api-console/create-key (API key with Accounts → Transactions → Read),
+ * https://developer.revolut.com/docs/guides/api-console/make-a-request (Revolut-Api-Timestamp and Ed25519
+ * Revolut-Api-Signature) and the OpenAPI spec https://github.com/revolut-engineering/revolut-openapi (yaml/business.yaml).
  * @param {Record<string, string>} creds
  * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<ExpenseLine[]>}
+ * @returns {Promise<ExpenseBatch>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
-  const token = (creds.apiToken ?? '').trim();
+  const apiKey = (creds.apiKey ?? '').trim();
+  const signingKey = (creds.signingKey ?? '').trim();
   const from = isoDate(creds.fromDate);
   const to = isoDate(creds.toDate);
-  if (!token) throw new HttpError(400, `Enter your ${BRAND} API token.`);
-  /** @type {ExpenseLine[]} */ const out = [];
-  if ((creds.provider ?? '').toLowerCase().includes('wise')) {
-    const profiles = await fetchJson('https://api.wise.com/v1/profiles', { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } }, 'Wise', fetchImpl);
-    const profId = pickList(profiles)[0]?.id;
-    if (!profId) throw new HttpError(400, 'Wise API returned no accessible profiles.');
-    const transfers = await fetchJson(`https://api.wise.com/v1/transfers?profile=${encodeURIComponent(String(profId))}&createdDateStart=${encodeURIComponent(`${from}T00:00:00Z`)}&createdDateEnd=${encodeURIComponent(`${to}T23:59:59Z`)}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } }, 'Wise', fetchImpl);
-    for (const t of pickList(transfers)) {
-      const amountMinor = Math.round(Math.abs(num(t.sourceValue ?? t.targetValue ?? 0)) * 100);
-      if (amountMinor > 0) out.push({ date: isoDate(t.created, to), merchant: String(t.details?.reference ?? `Wise transfer #${t.id ?? ''}`).trim(), account: '6800', amountMinor, vatCode: '0' });
+  if (!apiKey) throw new HttpError(400, 'Enter your Revolut Business API key.');
+  if (to < from) throw new HttpError(400, 'The end date must be on or after the start date.');
+  const expenseAccount = /^[0-9]{4}$/.test((creds.expenseAccount ?? '').trim()) ? (creds.expenseAccount ?? '').trim() : DEFAULT_EXPENSE;
+  const toExclusive = new Date(Date.parse(`${to}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+
+  /** @type {ExpenseLine[]} */ const lines = [];
+  let skippedForeign = 0;
+  let cursor = toExclusive;
+  for (let page = 0; page < 20; page++) {
+    const url = new URL(`${API}/transactions`);
+    url.searchParams.set('from', from);
+    url.searchParams.set('to', cursor);
+    url.searchParams.set('count', '1000');
+    assertPublicHttpsUrl(url.toString());
+    const res = await fetchImpl(url.toString(), {
+      headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json', ...(signingKey ? await signHeaders(signingKey, url) : {}) },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) {
+      throw new HttpError(400, res.status === 401 || res.status === 403
+        ? 'Revolut rejected the API key or signature. Check the key permission and the signing key.'
+        : `Revolut returned HTTP ${res.status}.`);
     }
-  } else {
-    const txs = await fetchJson(`https://b2b.revolut.com/api/1.0/transactions?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } }, 'Revolut Business', fetchImpl);
-    for (const tx of pickList(txs)) {
-      const leg = Array.isArray(tx.legs) ? tx.legs[0] : tx;
-      const amt = num(leg?.amount ?? tx.amount ?? 0);
-      if (amt >= 0) continue;
-      out.push({ date: isoDate(tx.completed_at ?? tx.created_at, to), merchant: String(tx.merchant?.name ?? leg?.description ?? tx.reference ?? 'Revolut card spend'), account: '6800', amountMinor: Math.round(Math.abs(amt) * 100), vatCode: '0' });
-      const feeMinor = Math.round(Math.abs(num(leg?.fee ?? tx.fee ?? 0)) * 100);
-      if (feeMinor > 0) out.push({ date: isoDate(tx.completed_at ?? tx.created_at, to), merchant: 'Revolut FX / card fee', account: '7770', amountMinor: feeMinor, vatCode: '0' });
+    const txs = /** @type {any[]} */ (await res.json());
+    if (!Array.isArray(txs) || txs.length === 0) break;
+    for (const tx of txs) {
+      if (tx.state !== 'completed' || (tx.type !== 'card_payment' && tx.type !== 'fee')) continue;
+      const date = isoDate(tx.completed_at ?? tx.created_at, to);
+      for (const leg of Array.isArray(tx.legs) ? tx.legs : []) {
+        const amountMinor = Math.round(num(leg.amount) * 100);
+        const feeMinor = Math.round(Math.abs(num(leg.fee)) * 100);
+        if (amountMinor >= 0 && feeMinor === 0) continue;
+        if (String(leg.currency ?? '').toUpperCase() !== 'NOK') { skippedForeign += 1; continue; }
+        const merchant = String(tx.merchant?.name ?? leg.description ?? (tx.type === 'fee' ? 'Revolut fee' : 'Card payment')).trim().slice(0, 120);
+        if (amountMinor < 0) lines.push({ date, merchant, account: tx.type === 'fee' ? FEE_ACCOUNT : expenseAccount, amountMinor: -amountMinor });
+        if (feeMinor > 0) lines.push({ date, merchant: `${merchant} · Revolut fee`, account: FEE_ACCOUNT, amountMinor: feeMinor });
+      }
     }
+    const last = txs[txs.length - 1];
+    if (txs.length < 1000 || !last?.created_at) break;
+    cursor = String(last.created_at);
   }
-  if (out.length === 0) throw new HttpError(400, `${BRAND} returned 0 expenses for ${from}–${to}.`);
-  return out;
+  if (lines.length === 0) {
+    throw new HttpError(400, skippedForeign > 0
+      ? `Revolut returned no NOK card payments for ${from} to ${to}. Transactions in other currencies are not imported.`
+      : `Revolut returned no completed card payments for ${from} to ${to}.`);
+  }
+  lines.sort((a, b) => a.date.localeCompare(b.date));
+  return { lines, skippedForeign };
 }
 
-/** @param {string} csvText @returns {ExpenseLine[]} */
-function parseCardCsv(csvText) {
-  const doc = parseCsv(csvText);
-  const norm = doc.headers.map((h) => h.toLowerCase().trim());
-  const dIdx = norm.findIndex((h) => h.includes('date') || h.includes('dato'));
-  const mIdx = norm.findIndex((h) => h.includes('merchant') || h.includes('desc') || h.includes('beskrivelse'));
-  const aIdx = norm.findIndex((h) => h.includes('amount') || h.includes('belop') || h.includes('beløp'));
-  const acIdx = norm.findIndex((h) => h.includes('account') || h.includes('konto'));
-  const fIdx = norm.findIndex((h) => h.includes('fee') || h.includes('gebyr'));
-  if (dIdx < 0 || aIdx < 0) throw new HttpError(400, 'CSV must include Date/Dato and Amount/Beløp columns.');
-  /** @type {ExpenseLine[]} */ const out = [];
-  for (const r of doc.rows) {
-    const date = (r[dIdx] ?? '').trim().slice(0, 10);
-    const amountMinor = Math.round(Math.abs(num(r[aIdx])) * 100);
-    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || amountMinor <= 0) continue;
-    const rawAcct = acIdx >= 0 ? (r[acIdx] ?? '').trim() : '';
-    const merchant = mIdx >= 0 ? (r[mIdx] ?? '').trim() || 'Card expense' : 'Card expense';
-    out.push({ date, merchant, account: /^[0-9]{4}$/.test(rawAcct) ? rawAcct : '6800', amountMinor, vatCode: '0' });
-    if (fIdx >= 0) {
-      const feeMinor = Math.round(Math.abs(num(r[fIdx])) * 100);
-      if (feeMinor > 0) out.push({ date, merchant: `${merchant} · FX/card fee`, account: '7770', amountMinor: feeMinor, vatCode: '0' });
-    }
-  }
-  if (out.length === 0) throw new HttpError(400, 'No valid expense rows found.');
-  return out;
-}
-
-/** @param {{ lines: ExpenseLine[], clearingAccount: string, isSample?: boolean }} state */
+/** @param {{ batch: ExpenseBatch, clearingAccount: string, isSample?: boolean }} state */
 function renderPreview(state) {
-  const totalMinor = state.lines.reduce((s, l) => s + l.amountMinor, 0);
-  const lastDate = state.lines.map((l) => l.date).sort().at(-1) ?? new Date().toISOString().slice(0, 10);
+  const { lines, skippedForeign } = state.batch;
+  const totalMinor = lines.reduce((s, l) => s + l.amountMinor, 0);
+  const lastDate = lines.map((l) => l.date).sort().at(-1) ?? new Date().toISOString().slice(0, 10);
   return reaiCard({
-    eyebrow: `${BRAND.toUpperCase()} BATCH VOUCHER`,
-    title: `${state.lines.length} expense lines · ${lastDate.slice(0, 7)}`,
+    eyebrow: 'REVOLUT BUSINESS → REAI REVIEW VOUCHER',
+    title: `${lines.length} expense lines · ${lastDate.slice(0, 7)}`,
     badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Expense lines', value: String(state.lines.length) })}
+        ${reaiMetric({ label: 'Expense lines', value: String(lines.length) })}
         ${reaiMetric({ label: 'Total debit', value: `${formatMinor(totalMinor)} NOK` })}
-        ${reaiMetric({ label: 'Credit clearing', value: state.clearingAccount })}
+        ${reaiMetric({ label: 'Credit Revolut account', value: state.clearingAccount })}
       </div>
+      ${skippedForeign > 0 ? reaiCallout({ tone: 'warn', body: `${skippedForeign} transactions in other currencies were skipped. Book them from the bank statement in ReAI.` }) : ''}
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Date</th><th>Merchant</th><th>Account</th><th class="num">Amount</th></tr></thead>
-        <tbody>${state.lines.map((l) => html`<tr><td class="mono">${l.date}</td><td>${l.merchant}</td><td class="mono">${l.account}</td><td class="num">${formatMinor(l.amountMinor)} NOK</td></tr>`)}</tbody>
+        <tbody>${lines.map((l) => html`<tr><td class="mono">${l.date}</td><td>${l.merchant}</td><td class="mono">${l.account}</td><td class="num">${formatMinor(l.amountMinor)} NOK</td></tr>`)}</tbody>
       </table></div>
+      <p class="muted-note">Every line is posted without VAT. Set the right VAT code in ReAI when you attach the receipt, for example reverse charge for services bought abroad.</p>
       ${!state.isSample ? html`<form class="stack-sm confirm-box" hx-post="/app/revolut/book" hx-target="#cd-book" hx-swap="innerHTML">
-        <input type="hidden" name="linesJson" value="${JSON.stringify(state.lines)}"><input type="hidden" name="clearingAccount" value="${state.clearingAccount}">
+        <input type="hidden" name="linesJson" value="${JSON.stringify(lines)}"><input type="hidden" name="clearingAccount" value="${state.clearingAccount}">
         <label class="check-row"><input type="checkbox" name="c_receipts" required> I verified these ${BRAND} expenses and will attach receipts in ReAI.</label>
         <div><button type="submit" class="button primary">Create review voucher in ReAI</button></div>
-      </form><div id="cd-book" class="stack-sm"></div>` : reaiCallout({ tone: 'info', body: `Sample ${BRAND} batch loaded. Connect to ReAI and fetch via API or upload CSV above.` })}
+      </form><div id="cd-book" class="stack-sm"></div>` : reaiCallout({ tone: 'info', body: `Sample ${BRAND} batch loaded. Connect to ReAI and fetch a real period above to book it.` })}
     `,
   });
 }
@@ -122,15 +181,20 @@ export async function handle(request, env) {
       <section class="app-intro"><p class="eyebrow">CORPORATE CARDS & EXPENSES</p><h1>${TITLE}</h1><p class="lead">${LEAD}</p></section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: 'reai-revolut-web', clientName: `ReAI ${BRAND} (Web)` })}
-        ${renderApiFetchCard({ basePath, targetId: 'card-output', brand: BRAND, hint: "Connect Revolut Business API (GET /api/1.0/transactions) or Wise Personal/Business API token.", fields: [{"name": "provider", "label": "Provider (revolut or wise)", "type": "text", "defaultValue": "revolut", "placeholder": "revolut or wise"}, {"name": "apiToken", "label": "API Bearer token", "type": "password", "placeholder": "Bearer token"}, {"name": "fromDate", "label": "From date", "type": "date", "defaultValue": "$MONTH_START"}, {"name": "toDate", "label": "To date", "type": "date", "defaultValue": "$TODAY"}, {"name": "clearingAccount", "label": "Clearing account (4 digits)", "type": "text", "defaultValue": "1925"}], sampleAction: true })}
-        ${reaiCard({
-          eyebrow: 'UPLOAD STATEMENT CSV',
-          title: `Or upload ${BRAND} CSV export`,
-          body: html`<form class="stack" hx-post="${basePath}/preview" hx-encoding="multipart/form-data" hx-target="#card-output" hx-swap="innerHTML">
-            <div class="inline-row"><div class="field"><label for="card-cl">Clearing account (4 digits)</label><input id="card-cl" name="clearingAccount" type="text" pattern="[0-9]{4}" value="${DEFAULT_CLEARING}" required></div></div>
-            ${reaiDropzone({ inputId: 'card-csv', name: 'file', accept: '.csv,text/csv,text/plain', label: `Choose ${BRAND} CSV`, hint: 'CSV with Date, Merchant/Description, Amount and optional Account/Fee.' })}
-            <div class="inline-row"><button type="submit" class="button primary">Preview balanced voucher</button></div>
-          </form>`,
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'card-output',
+          brand: BRAND,
+          hint: API_HINT,
+          fields: [
+            { name: 'apiKey', label: 'API key', type: 'password', placeholder: 'Revolut API key' },
+            { name: 'signingKey', label: 'Signing private key (private.pem)', type: 'password', placeholder: '-----BEGIN PRIVATE KEY-----…', required: false },
+            { name: 'fromDate', label: 'From date', type: 'date', defaultValue: '$MONTH_START' },
+            { name: 'toDate', label: 'To date', type: 'date', defaultValue: '$TODAY' },
+            { name: 'expenseAccount', label: 'Expense account for card payments', defaultValue: DEFAULT_EXPENSE },
+            { name: 'clearingAccount', label: 'ReAI account for the Revolut bank account', defaultValue: DEFAULT_CLEARING },
+          ],
+          sampleAction: true,
         })}
         <div id="card-output" class="stack"></div>
       </div>
@@ -140,19 +204,15 @@ export async function handle(request, env) {
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) return htmlResponse(renderPreview({ lines: parseCardCsv(SAMPLE_CSV), clearingAccount: DEFAULT_CLEARING, isSample: true }));
+  if (pathname === `${basePath}/sample`) return htmlResponse(renderPreview({ batch: SAMPLE, clearingAccount: DEFAULT_CLEARING, isSample: true }));
   try {
     const form = await request.formData();
     if (pathname === `${basePath}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      return htmlResponse(renderPreview({ lines: await fetchApi(creds), clearingAccount: (creds.clearingAccount || DEFAULT_CLEARING).trim() }));
-    }
-    if (pathname === `${basePath}/preview`) {
-      const clearingAccount = String(form.get('clearingAccount') ?? DEFAULT_CLEARING).trim();
-      const file = form.get('file');
-      if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file first.');
-      return htmlResponse(renderPreview({ lines: parseCardCsv(decodeCsvBytes(new Uint8Array(await file.arrayBuffer()))), clearingAccount }));
+      const clearingAccount = (creds.clearingAccount ?? '').trim();
+      if (!/^[0-9]{4}$/.test(clearingAccount)) throw new HttpError(400, 'Enter the four digit ReAI account for the Revolut bank account.');
+      return htmlResponse(renderPreview({ batch: await fetchApi(creds), clearingAccount }));
     }
     if (pathname === `${basePath}/book`) {
       const session = await readSession(env, request);
@@ -160,17 +220,29 @@ export async function handle(request, env) {
       if (form.get('c_receipts') !== 'on') throw new HttpError(400, 'Confirm verification checkbox first.');
       const lines = /** @type {ExpenseLine[]} */ (JSON.parse(String(form.get('linesJson') ?? '[]')));
       const clearingAccount = String(form.get('clearingAccount') ?? DEFAULT_CLEARING).trim();
+      if (!Array.isArray(lines) || lines.length === 0 || !/^[0-9]{4}$/.test(clearingAccount)) throw new HttpError(400, 'Voucher is empty.');
+      for (const l of lines) {
+        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(l.date)) || !/^[0-9]{4}$/.test(String(l.account)) || !Number.isInteger(l.amountMinor) || l.amountMinor <= 0) throw new HttpError(400, 'Voucher lines are invalid.');
+      }
       const lastDate = lines.map((l) => l.date).sort().at(-1) ?? new Date().toISOString().slice(0, 10);
       const totalMinor = lines.reduce((s, l) => s + l.amountMinor, 0);
       const marker = `${BRAND} expenses ${lastDate.slice(0, 7)} (${lines.length} lines, ${totalMinor})`;
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: lastDate, endDate: lastDate, includeReversed: 'true' } }));
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: lastDate, endDate: lastDate, includeReversed: 'true' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
-      const postings = [
-        ...lines.map((l, idx) => ({ accountNumber: l.account, postingDate: l.date, currencyCode: 'NOK', amount: Number((l.amountMinor / 100).toFixed(2)), vatCode: '0', rowNumber: idx, description: l.merchant })),
-        { accountNumber: clearingAccount, postingDate: lastDate, currencyCode: 'NOK', amount: -Number((totalMinor / 100).toFixed(2)), vatCode: '0', rowNumber: lines.length, description: `${BRAND} card clearing` },
-      ];
-      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: lastDate, description: marker, reviewReason: `${BRAND} batch imported via apps.reai.no.`, postings } }));
+      // Each expense is paired with its own credit on the Revolut account on the same date (one debit + one credit per rowNumber).
+      /** @type {Array<{ accountNumber: string, postingDate: string, currencyCode: string, amount: number, vatCode: string, description: string, rowNumber: number }>} */
+      const postings = [];
+      for (const l of lines) {
+        const pair = pairVoucherRows([
+          { accountNumber: l.account, postingDate: l.date, currencyCode: 'NOK', amount: l.amountMinor / 100, vatCode: '0', description: l.merchant },
+          { accountNumber: clearingAccount, postingDate: l.date, currencyCode: 'NOK', amount: -l.amountMinor / 100, vatCode: '0', description: 'Revolut Business' },
+        ]);
+        const offset = postings.length / 2;
+        for (const p of pair) postings.push({ ...p, description: l.merchant.slice(0, 200), rowNumber: p.rowNumber + offset });
+      }
+      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { ...auth, method: 'POST', body: { date: lastDate, description: marker, reviewReason: `${BRAND} card expenses imported via apps.reai.no. Attach receipts and set VAT codes.`, postings } }));
       return htmlResponse(reaiCallout({ tone: 'success', title: `Created review voucher ${created.number}`, body: html`Open in ReAI: <a href="${reaiOrigin(env)}/voucher/${created.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${created.number} ↗</a>.` }));
     }
   } catch (err) {

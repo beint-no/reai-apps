@@ -14,121 +14,96 @@ import {
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 const CFG = {
-  "brand": "PayPal",
-  "title": "PayPal Reconcile",
-  "lead": "Compare PayPal Business payout withdrawals against pending ReAI bank transactions for one month and export a reconciliation CSV.",
-  "fields": [
-    {
-      "key": "clientId",
-      "label": "PayPal REST Client ID",
-      "placeholder": "A21AA\u2026"
-    },
-    {
-      "key": "clientSecret",
-      "label": "PayPal REST Client Secret",
-      "secret": true,
-      "placeholder": "Secret from PayPal Developer Dashboard"
-    }
+  brand: 'PayPal',
+  title: 'PayPal Withdrawal Reconcile',
+  lead: 'Compare PayPal Business withdrawals to your bank for one month against pending ReAI bank transactions and export a reconciliation CSV.',
+  fields: [
+    { key: 'clientId', label: 'PayPal REST app client ID', secret: false, placeholder: 'Live client ID' },
+    { key: 'clientSecret', label: 'PayPal REST app secret', secret: true, placeholder: 'Live secret' },
   ],
-  "hasFees": false
+  hasFees: false,
 };
+
+const API = 'https://api-m.paypal.com';
 
 /**
  * @param {string} url
  * @param {RequestInit} init
- * @param {string} errPrefix
+ * @param {import('../lib/api-http.js').FetchLike} fetchImpl
  */
-async function providerJson(url, init, errPrefix) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${errPrefix} returned an unexpected redirect.`);
-  }
+async function providerJson(url, init, fetchImpl) {
+  const res = await fetchImpl(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
+  if (res.status >= 300 && res.status < 400) throw new HttpError(502, 'PayPal returned an unexpected redirect.');
   const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  return { status: res.status, ok: res.ok, data };
 }
 
-/**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
- */
+/** Bank withdrawal event codes (T04xx) except T0402, which moves money to Hyperwallet instead of a bank. */
+const WITHDRAWAL_RE = /^T04[0-9]{2}$/;
 
 /**
- * Fetches PayPal Business payout/withdrawal transactions via Reporting API v1.
+ * Fetches PayPal withdrawals to the bank for the date window.
+ * Docs: https://developer.paypal.com/api/rest/authentication/ (POST /v1/oauth2/token, client_credentials),
+ * https://developer.paypal.com/docs/api/transaction-search/v1/ (GET /v1/reporting/transactions: start_date and
+ * end_date in RFC 3339 with at most 31 days between them, fields, page_size up to 500, page from 1, total_pages;
+ * scope https://uri.paypal.com/services/reporting/search/read) and
+ * https://developer.paypal.com/docs/transaction-search/transaction-event-codes/ (T04xx bank withdrawals).
  * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
+ * @param {string} start First day of the window (inclusive).
+ * @param {string} end Day after the window (exclusive).
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
  */
-async function fetchPayPalPayouts(fields, start, end) {
-  const basic = btoa(`${fields.clientId ?? ''}:${fields.clientSecret ?? ''}`);
-  const tokRes = await providerJson(
-    'https://api-m.paypal.com/v1/oauth2/token',
-    {
-      method: 'POST',
-      headers: {
-        authorization: `Basic ${basic}`,
-        'content-type': 'application/x-www-form-urlencoded',
-        accept: 'application/json',
-      },
-      body: 'grant_type=client_credentials',
-    },
-    'PayPal',
-  );
-  if (!tokRes.ok || !tokRes.data?.access_token) {
-    throw new HttpError(400, 'PayPal rejected these REST API credentials.');
-  }
+export async function fetchApi(fields, start, end, fetchImpl = fetch) {
+  const clientId = (fields.clientId ?? '').trim();
+  const clientSecret = (fields.clientSecret ?? '').trim();
+  if (!clientId || !clientSecret) throw new HttpError(400, 'Enter the client ID and secret of your live PayPal REST app.');
+  const tokRes = await providerJson(`${API}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: { authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`, 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+    body: 'grant_type=client_credentials',
+  }, fetchImpl);
+  if (!tokRes.ok || typeof tokRes.data?.access_token !== 'string') throw new HttpError(400, 'PayPal rejected these REST app credentials.');
   const headers = { authorization: `Bearer ${tokRes.data.access_token}`, accept: 'application/json' };
-  const lastDay = new Date(Date.parse(`${end}T00:00:00Z`) - 1000).toISOString().replace(/\.\d+Z$/, 'Z');
-  const url = new URL('https://api-m.paypal.com/v1/reporting/transactions');
-  url.searchParams.set('start_date', `${start}T00:00:00Z`);
-  url.searchParams.set('end_date', lastDay);
-  url.searchParams.set('fields', 'transaction_info');
-  url.searchParams.set('page_size', '500');
-  const r = await providerJson(url.toString(), { headers }, 'PayPal');
-  if (!r.ok) {
-    throw new HttpError(
-      400,
-      r.status === 403
-        ? 'Enable Transaction Search permission on your PayPal REST app.'
-        : `PayPal Reporting API returned HTTP ${r.status}.`,
-    );
-  }
-  const details = Array.isArray(r.data?.transaction_details) ? r.data.transaction_details : [];
+  const endInclusive = new Date(Date.parse(`${end}T00:00:00Z`) - 1000).toISOString().replace(/\.\d+Z$/, 'Z');
   /** @type {import('../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
-  for (const item of details) {
-    const info = item.transaction_info ?? {};
-    const code = String(info.transaction_event_code ?? '');
-    const amtVal = Number(info.transaction_amount?.value ?? '0');
-    const feeVal = Number(info.fee_amount?.value ?? '0');
-    if (!code.startsWith('T04') && !code.startsWith('T0001')) {
-      continue;
+  for (let page = 1; page <= 20; page++) {
+    const url = new URL(`${API}/v1/reporting/transactions`);
+    url.searchParams.set('start_date', `${start}T00:00:00Z`);
+    url.searchParams.set('end_date', endInclusive);
+    url.searchParams.set('fields', 'transaction_info');
+    url.searchParams.set('page_size', '500');
+    url.searchParams.set('page', String(page));
+    const r = await providerJson(url.toString(), { headers }, fetchImpl);
+    if (!r.ok) {
+      throw new HttpError(400, r.status === 403
+        ? 'Turn on Transaction search for this live REST app in the PayPal Developer Dashboard.'
+        : `PayPal Transaction Search API returned HTTP ${r.status}.`);
     }
-    if (!Number.isFinite(amtVal) || amtVal === 0) {
-      continue;
+    /** @type {any[]} */ const details = Array.isArray(r.data?.transaction_details) ? r.data.transaction_details : [];
+    for (const item of details) {
+      const info = item.transaction_info ?? {};
+      const code = String(info.transaction_event_code ?? '');
+      const amount = Number(info.transaction_amount?.value ?? '0');
+      if (!WITHDRAWAL_RE.test(code) || code === 'T0402' || !Number.isFinite(amount) || amount >= 0) continue;
+      if (info.transaction_status && info.transaction_status !== 'S') continue;
+      const fee = Number(info.fee_amount?.value ?? '0');
+      payouts.push({
+        id: String(info.transaction_id ?? `${info.transaction_initiation_date}-${amount}`),
+        date: String(info.transaction_initiation_date ?? info.transaction_updated_date ?? '').slice(0, 10),
+        amountMinor: Math.round(Math.abs(amount) * 100),
+        currency: String(info.transaction_amount?.currency_code ?? 'NOK').toUpperCase(),
+        reference: String(info.bank_reference_id ?? info.transaction_id ?? ''),
+        detail: `PayPal ${code} withdrawal${Number.isFinite(fee) && fee !== 0 ? ` · fee ${Math.abs(fee).toFixed(2)}` : ''}`,
+      });
     }
-    payouts.push({
-      id: String(info.transaction_id ?? `${info.transaction_initiation_date}-${amtVal}`),
-      date: String(info.transaction_updated_date ?? info.transaction_initiation_date ?? '').slice(0, 10),
-      amountMinor: Math.round(Math.abs(amtVal) * 100),
-      currency: String(info.transaction_amount?.currency_code ?? 'NOK').toUpperCase(),
-      reference: String(info.bank_reference_id ?? info.transaction_id ?? ''),
-      detail: `PayPal ${code} · fee ${Math.abs(feeVal).toFixed(2)}`,
-    });
+    if (page >= Number(r.data?.total_pages ?? 1)) break;
   }
   return payouts;
 }
-
-/**
- * @param {ProviderSlug} slug
- * @returns {{ payouts: import('../lib/reconcile.js').PayoutItem[], bankTx: import('../lib/reconcile.js').BankTx[], month: string, currency: string }}
- */
 
 /**
  * @returns {{ payouts: import('../lib/reconcile.js').PayoutItem[], bankTx: import('../lib/reconcile.js').BankTx[], month: string, currency: string }}
@@ -138,9 +113,9 @@ function sampleData() {
   const prefix = 'PAYPAL';
   /** @type {import('../lib/reconcile.js').PayoutItem[]} */
   const payouts = [
-    { id: 'paypal-1', date: '2026-10-06', amountMinor: 1482000, currency: 'NOK', reference: `${prefix}-2610-001`, detail: `Sample ${prefix} payout batch 1` },
-    { id: 'paypal-2', date: '2026-10-14', amountMinor: 964500, currency: 'NOK', reference: `${prefix}-2610-002`, detail: `Sample ${prefix} payout batch 2` },
-    { id: 'paypal-3', date: '2026-10-27', amountMinor: 712000, currency: 'NOK', reference: `${prefix}-2610-003`, detail: `Sample ${prefix} payout batch 3 (pending settlement)` },
+    { id: 'paypal-1', date: '2026-10-06', amountMinor: 1482000, currency: 'NOK', reference: `${prefix}-2610-001`, detail: `Sample ${prefix} withdrawal 1` },
+    { id: 'paypal-2', date: '2026-10-14', amountMinor: 964500, currency: 'NOK', reference: `${prefix}-2610-002`, detail: `Sample ${prefix} withdrawal 2` },
+    { id: 'paypal-3', date: '2026-10-27', amountMinor: 712000, currency: 'NOK', reference: `${prefix}-2610-003`, detail: `Sample ${prefix} withdrawal 3 (pending settlement)` },
   ];
   /** @type {import('../lib/reconcile.js').BankTx[]} */
   const bankTx = [
@@ -151,10 +126,10 @@ function sampleData() {
 }
 
 /**
- * @param {{ rows: import('../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean, accountID?: string }} state
+ * @param {{ rows: import('../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean }} state
  */
 function renderReviewResults(state) {
-  const { rows, month, currency, excluded, bankCount, isSample, accountID } = state;
+  const { rows, month, currency, excluded, bankCount, isSample } = state;
   const matched = rows.filter((r) => r.match !== null).length;
   const totalNet = rows.reduce((s, r) => s + r.payout.amountMinor, 0);
   const totalFees = rows.reduce((s, r) => s + Math.abs(r.payout.feeMinor ?? 0), 0);
@@ -181,7 +156,7 @@ function renderReviewResults(state) {
           ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${excluded} other-currency excluded` })}
           ${reaiMetric({ label: 'Net payout total', value: `${formatMinor(totalNet)} ${currency}`, detail: `${bankCount} pending ReAI bank rows` })}
           ${CFG.hasFees
-            ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compare against Dintero report' })
+            ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compare against the PayPal activity report' })
             : reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
         </div>
 
@@ -209,26 +184,6 @@ function renderReviewResults(state) {
           `}
       `,
     })}
-    ${CFG.hasFees && !isSample && totalFees > 0 && accountID
-      ? reaiCard({
-          eyebrow: 'OPTIONAL · BOOK WITHHELD FEES',
-          title: 'Create monthly fee voucher for review',
-          body: html`
-            <p class="muted-note">Only book if Dintero withheld these fees directly from payouts and has not separately invoiced them.</p>
-            <form class="stack" hx-post="/app/dintero/voucher" hx-target="#dintero-booking" hx-swap="innerHTML">
-              <input type="hidden" name="month" value="${month}"><input type="hidden" name="accountID" value="${accountID}"><input type="hidden" name="totalFeeMinor" value="${totalFees}">
-              <div class="inline-row">
-                <div class="field"><label for="dintero-expense">Fee expense account (e.g. 7770)</label><input id="dintero-expense" name="expenseAccount" type="text" pattern="[0-9]{4}" required placeholder="7770"></div>
-                <div class="field"><label for="dintero-clearing">Payout clearing account (asset/liability)</label><input id="dintero-clearing" name="clearingAccount" type="text" pattern="[0-9]{4}" required placeholder="1580"></div>
-              </div>
-              <label class="check-row"><input type="checkbox" name="c_deducted" required> I confirm ${formatMinor(totalFees)} ${currency} was withheld from payouts and not separately invoiced.</label>
-              <label class="check-row"><input type="checkbox" name="c_report" required> I verified this total against Dintero's official payout reports for ${month}.</label>
-              <div><button type="submit" class="button primary">Create review voucher (${formatMinor(totalFees)} ${currency})</button></div>
-            </form>
-            <div id="dintero-booking" class="stack-sm"></div>
-          `,
-        })
-      : ''}
   `;
 }
 
@@ -311,7 +266,7 @@ export async function handle(request, env) {
         fields[f.key] = val;
       }
       const [fetched, bankTx] = await Promise.all([
-        fetchPayPalPayouts(fields, bounds.start, bounds.end),
+        fetchApi(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));

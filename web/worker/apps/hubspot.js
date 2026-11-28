@@ -46,32 +46,50 @@ function normalizeCountry(raw) {
 }
 
 /**
- * Fetches HubSpot companies via CRM v3 Companies API.
+ * Fetches all HubSpot companies, following the `paging.next.after` cursor.
+ * HubSpot has no standard organization number property, so the caller names its own custom property.
+ * Docs: https://developers.hubspot.com/docs/api-reference/latest/crm/objects/companies/get-companies
+ * (GET /crm/objects/2026-09/companies, limit/after/properties, scope crm.objects.companies.read) and
+ * https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/account-service-keys
+ * (service key sent as Authorization: Bearer).
  * @param {string} token
+ * @param {string} orgProperty
+ * @param {import('../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<HubSpotCompany[]>}
  */
-async function fetchHubSpotCompanies(token) {
-  const url = new URL('https://api.hubapi.com/crm/v3/objects/companies');
-  url.searchParams.set('limit', '100');
-  url.searchParams.set('properties', 'name,domain,phone,address,zip,city,country,organization_number,orgnr');
-  const res = await fetch(url, {
-    headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
-    redirect: 'manual',
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!res.ok) {
-    throw new HttpError(
-      400,
-      res.status === 401 || res.status === 403
-        ? 'HubSpot rejected this Private App token. Grant crm.objects.companies.read scope.'
-        : `HubSpot returned HTTP ${res.status}.`,
-    );
+export async function fetchHubSpotCompanies(token, orgProperty, fetchImpl = fetch) {
+  const properties = ['name', 'domain', 'phone', 'address', 'zip', 'city', 'country', ...(orgProperty ? [orgProperty] : [])];
+  /** @type {Array<{ id: string, properties?: Record<string, string | null> }>} */
+  const results = [];
+  let after = '';
+  for (let page = 0; page < 50; page++) {
+    const url = new URL('https://api.hubapi.com/crm/objects/2026-09/companies');
+    url.searchParams.set('limit', '100');
+    url.searchParams.set('archived', 'false');
+    url.searchParams.set('properties', properties.join(','));
+    if (after) url.searchParams.set('after', after);
+    const res = await fetchImpl(url, {
+      headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) {
+      throw new HttpError(
+        400,
+        res.status === 401 || res.status === 403
+          ? 'HubSpot rejected this key. Give it the crm.objects.companies.read scope.'
+          : `HubSpot returned HTTP ${res.status}.`,
+      );
+    }
+    const body = /** @type {{ results?: Array<{ id: string, properties?: Record<string, string | null> }>, paging?: { next?: { after?: string } } }} */ (await res.json());
+    results.push(...(body.results ?? []));
+    after = body.paging?.next?.after ?? '';
+    if (!after) break;
   }
-  const body = /** @type {{ results?: Array<{ id: string, properties?: Record<string, string | null> }> }} */ (await res.json());
-  return (body.results ?? [])
+  return results
     .map((r) => {
       const p = r.properties ?? {};
-      const orgRaw = (p.organization_number || p.orgnr || '').replace(/\s+/g, '');
+      const orgRaw = orgProperty ? String(p[orgProperty] ?? '').replace(/\s+/g, '') : '';
       return {
         id: String(r.id),
         name: String(p.name ?? '').trim(),
@@ -210,14 +228,18 @@ export async function handleHubSpot(request, env) {
 
         ${reaiCard({
           eyebrow: 'SCAN HUBSPOT COMPANIES',
-          title: 'Connect a HubSpot Private App token',
+          title: 'Connect a HubSpot service key',
           body: html`
-            <p class="muted-note">Create a HubSpot Private App with <code>crm.objects.companies.read</code> scope. The token is used only for this request and never stored.</p>
+            <p class="muted-note">In HubSpot, go to Development → Keys → Service keys and create a key with the <code>crm.objects.companies.read</code> scope. An existing private app token with that scope also works. The key is used only for this request and never stored.</p>
             <form class="stack" hx-post="/app/hubspot/scan" hx-target="#hubspot-output" hx-swap="innerHTML">
               <div class="inline-row">
                 <div class="field">
-                  <label for="hs-token">HubSpot Private App token</label>
+                  <label for="hs-token">HubSpot service key</label>
                   <input id="hs-token" name="hubspotToken" type="password" autocomplete="off" required placeholder="pat-eu1-…">
+                </div>
+                <div class="field">
+                  <label for="hs-org">Org.nr property (optional)</label>
+                  <input id="hs-org" name="orgProperty" type="text" pattern="[a-z0-9_]{1,100}" placeholder="Internal name, e.g. orgnr">
                 </div>
                 <button type="submit" class="button primary">Scan HubSpot companies</button>
                 <button type="button" class="button secondary" hx-post="/app/hubspot/sample" hx-target="#hubspot-output" hx-swap="innerHTML">Load sample preview</button>
@@ -268,10 +290,14 @@ export async function handleHubSpot(request, env) {
     if (pathname === '/app/hubspot/scan') {
       const token = String(form.get('hubspotToken') ?? '').trim();
       if (!token) {
-        throw new HttpError(400, 'Paste your HubSpot Private App token.');
+        throw new HttpError(400, 'Paste your HubSpot service key.');
+      }
+      const orgProperty = String(form.get('orgProperty') ?? '').trim();
+      if (orgProperty && !/^[a-z0-9_]{1,100}$/.test(orgProperty)) {
+        throw new HttpError(400, 'Enter the internal property name in lowercase, as shown in HubSpot property settings.');
       }
       const [companies, customers] = await Promise.all([
-        fetchHubSpotCompanies(token),
+        fetchHubSpotCompanies(token, orgProperty),
         reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
       ]);
       const rows = buildSyncRows(
