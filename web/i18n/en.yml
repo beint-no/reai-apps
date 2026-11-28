@@ -14,8 +14,15 @@ desktop_badge: Desktop
 learn_more: Guide & setup
 home_eyebrow: FREE INTEGRATIONS FOR REAI
 home_cta_secondary: Browse integrations
+home_cta_saft: Switch via SAF-T
 home_web_heading: Web integrations
-home_web_intro: Connect payments, CRM, property systems and BI exports straight in your browser — included free with ReAI.
+home_web_intro: Connect 80+ Norwegian payment, POS, ecommerce, trade, staffing, driving log, clinic, debt collection, property, CRM, HR and SAF-T tools straight in your browser — included free with ReAI.
+filter_placeholder: "Search 80+ integrations (Vipps, SmartDok, ABAX, SAF-T…)"
+filter_all: All
+filter_payments: Payments & POS
+filter_ecommerce: Ecommerce & Logistics
+filter_operations: Trades, HR & Ops
+filter_realestate: Real estate & Rental
 home_desktop_heading: Native desktop apps
 home_desktop_intro: Fast Mac and Windows apps for thermal shipping labels, price tags, menu-bar time tracking and local folder uploads.
 home_industries_heading: Browse by industry

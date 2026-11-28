@@ -1,8 +1,8 @@
 // @ts-check
 
 /**
- * Progressive enhancement for Declarative Shadow DOM <r-dropzone>.
- * Styles and base <input type="file"> work before this module loads (zero FOUC).
+ * Progressive enhancement for Declarative Shadow DOM <r-dropzone>
+ * and instant live filtering inside the #app-switcher popover.
  */
 class ReaiDropzone extends HTMLElement {
   connectedCallback() {
@@ -46,6 +46,19 @@ class ReaiDropzone extends HTMLElement {
 
 if (!customElements.get('r-dropzone')) {
   customElements.define('r-dropzone', ReaiDropzone);
+}
+
+const switcherInput = document.getElementById('app-switcher-filter');
+const switcherNav = document.getElementById('app-switcher');
+if (switcherInput instanceof HTMLInputElement && switcherNav) {
+  const links = [...switcherNav.querySelectorAll('a')];
+  switcherInput.addEventListener('input', () => {
+    const q = switcherInput.value.trim().toLowerCase();
+    for (const link of links) {
+      const text = (link.textContent ?? '').toLowerCase();
+      link.hidden = Boolean(q) && !text.includes(q);
+    }
+  });
 }
 
 const modernPlatform =

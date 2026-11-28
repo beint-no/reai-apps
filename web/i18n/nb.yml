@@ -14,8 +14,15 @@ desktop_badge: Mac / Windows
 learn_more: Guide og oppsett
 home_eyebrow: GRATIS INTEGRASJONER FOR REAI
 home_cta_secondary: Se integrasjoner
+home_cta_saft: Bytt med SAF-T
 home_web_heading: Nettintegrasjoner
-home_web_intro: Koble til betalingstjenester, nettbutikk, kasse, CRM, timeføring, utleie og Excel/BI-eksport rett i nettleseren — inkludert gratis i ReAI.
+home_web_intro: Koble over 80 norske betalings-, kasse-, nettbutikk-, håndverks-, kjørebok-, klinikk-, inkasso-, utleie-, CRM-, HR- og SAF-T-systemer rett i nettleseren — inkludert gratis i ReAI.
+filter_placeholder: "Søk i 80+ integrasjoner (Vipps, SmartDok, ABAX, SAF-T…)"
+filter_all: Alle
+filter_payments: Betaling & kasse
+filter_ecommerce: Netthandel & logistikk
+filter_operations: Håndverk, HR & drift
+filter_realestate: Eiendom & utleie
 home_desktop_heading: Mac- og Windows-apper
 home_desktop_intro: Raske apper for Mac og Windows til fraktetiketter, prislapper, timeregistrering og mappeovervåking.
 home_industries_heading: Utforsk etter bransje

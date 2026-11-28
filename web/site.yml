@@ -59,6 +59,30 @@ endpoints:
   - /app/spond-rubic/
   - /app/opus-dental/
   - /app/ongoing-wms/
+  - /app/abax/
+  - /app/opter/
+  - /app/autonet/
+  - /app/logistra/
+  - /app/fixit/
+  - /app/hano/
+  - /app/pasientsky/
+  - /app/membro/
+  - /app/easypractice/
+  - /app/inkasso/
+  - /app/kravia/
+  - /app/two/
+  - /app/airbnb/
+  - /app/husleie/
+  - /app/fenistra/
+  - /app/simployer/
+  - /app/acubiz/
+  - /app/quinyx/
+  - /app/severa/
+  - /app/saft/
+  - /app/hoopla/
+  - /app/squarespace/
+  - /app/paddle/
+  - /app/salesforce/
   - /app/lab/
   - /app/auth/session
   - /app/auth/device/start
@@ -265,6 +289,77 @@ endpoints:
   - /app/ongoing-wms/sample
   - /app/ongoing-wms/scan
   - /app/ongoing-wms/sync-article
+  - /app/abax/sample
+  - /app/abax/preview
+  - /app/abax/book-trip
+  - /app/opter/sample
+  - /app/opter/preview
+  - /app/opter/create-order
+  - /app/autonet/sample
+  - /app/autonet/preview
+  - /app/autonet/create-order
+  - /app/logistra/sample
+  - /app/logistra/preview
+  - /app/logistra/create-order
+  - /app/fixit/sample
+  - /app/fixit/preview
+  - /app/fixit/book
+  - /app/hano/sample
+  - /app/hano/preview
+  - /app/hano/book
+  - /app/pasientsky/sample
+  - /app/pasientsky/preview
+  - /app/pasientsky/book
+  - /app/membro/sample
+  - /app/membro/preview
+  - /app/membro/book
+  - /app/easypractice/sample
+  - /app/easypractice/preview
+  - /app/easypractice/book
+  - /app/inkasso/sample
+  - /app/inkasso/preview
+  - /app/inkasso/book
+  - /app/kravia/sample
+  - /app/kravia/preview
+  - /app/kravia/book
+  - /app/two/sample
+  - /app/two/preview
+  - /app/two/book
+  - /app/airbnb/sample
+  - /app/airbnb/preview
+  - /app/airbnb/book
+  - /app/husleie/sample
+  - /app/husleie/preview
+  - /app/husleie/stage
+  - /app/fenistra/sample
+  - /app/fenistra/preview
+  - /app/fenistra/stage
+  - /app/simployer/sample
+  - /app/simployer/preview
+  - /app/simployer/book
+  - /app/acubiz/sample
+  - /app/acubiz/preview
+  - /app/acubiz/book
+  - /app/quinyx/sample
+  - /app/quinyx/preview
+  - /app/quinyx/import
+  - /app/severa/sample
+  - /app/severa/preview
+  - /app/severa/import
+  - /app/saft/sample
+  - /app/saft/preview
+  - /app/saft/export
+  - /app/saft/import-party
+  - /app/hoopla/sample
+  - /app/hoopla/preview
+  - /app/hoopla/book
+  - /app/squarespace/sample
+  - /app/squarespace/preview
+  - /app/paddle/sample
+  - /app/paddle/preview
+  - /app/paddle/book
+  - /app/salesforce/sample
+  - /app/salesforce/preview
   - /app/lab/ping
 languages:
   - code: en

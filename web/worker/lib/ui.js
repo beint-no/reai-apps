@@ -156,6 +156,30 @@ const APP_LINKS = [
   ['/app/spond-rubic/', 'Spond / Rubic'],
   ['/app/opus-dental/', 'Opus Dental'],
   ['/app/ongoing-wms/', 'Ongoing WMS'],
+  ['/app/abax/', 'ABAX'],
+  ['/app/opter/', 'Opter TMS'],
+  ['/app/autonet/', 'AutoNet'],
+  ['/app/logistra/', 'Logistra'],
+  ['/app/fixit/', 'Fixit'],
+  ['/app/hano/', 'Hano'],
+  ['/app/pasientsky/', 'PasientSky'],
+  ['/app/membro/', 'Membro Gym'],
+  ['/app/easypractice/', 'EasyPract'],
+  ['/app/inkasso/', 'Inkasso NO'],
+  ['/app/kravia/', 'Kravia'],
+  ['/app/two/', 'Two B2B'],
+  ['/app/airbnb/', 'Airbnb'],
+  ['/app/husleie/', 'Husleie.no'],
+  ['/app/fenistra/', 'Fenistra'],
+  ['/app/simployer/', 'Simployer'],
+  ['/app/acubiz/', 'Acubiz'],
+  ['/app/quinyx/', 'Quinyx'],
+  ['/app/severa/', 'Severa'],
+  ['/app/saft/', 'SAF-T NO'],
+  ['/app/hoopla/', 'Hoopla'],
+  ['/app/squarespace/', 'Squarespace'],
+  ['/app/paddle/', 'Paddle'],
+  ['/app/salesforce/', 'Salesforce'],
   ['/app/import/', 'CSV Import'],
   ['/app/export/', 'BI & Excel Export'],
 ];
@@ -193,6 +217,7 @@ export function appShell(props) {
       <a class="button primary nav-cta" href="https://app.reai.no/auth/signup">Try ReAI free →</a>
     </nav>
     <nav id="app-switcher" popover class="app-switcher">
+      <input type="search" id="app-switcher-filter" class="switcher-search" placeholder="Filter 80+ integrations…">
       ${APP_LINKS.map(
         ([href, label]) =>
           html`<a href="${href}"${props.activePath === href ? html` data-current="true"` : ''}>${label}</a>`,
