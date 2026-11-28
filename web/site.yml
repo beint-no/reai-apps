@@ -372,6 +372,34 @@ endpoints:
   - /app/salesforce/sample
   - /app/salesforce/preview
   - /app/lab/ping
+  - /app/duell/
+  - /app/baemingo/
+  - /app/amendo/
+  - /app/caspeco/
+  - /app/flow-retail/
+  - /app/sitoo/
+  - /app/walley/
+  - /app/svea/
+  - /app/qliro/
+  - /app/spense/
+  - /app/rackbeat/
+  - /app/sharefox/
+  - /app/nshift/
+  - /app/proteria/
+  - /app/autogear/
+  - /app/kvalitetskontroll/
+  - /app/speedycraft/
+  - /app/proresult/
+  - /app/fonn/
+  - /app/ordrestyring/
+  - /app/timely/
+  - /app/workfeed/
+  - /app/4human/
+  - /app/mynt/
+  - /app/provet-cloud/
+  - /app/psykbase/
+  - /app/pindena/
+  - /app/power-bi/
 languages:
   - code: en
     locale: en-US

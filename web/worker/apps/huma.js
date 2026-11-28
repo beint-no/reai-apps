@@ -123,7 +123,7 @@ export async function handle(request, env) {
       const email = String(form.get('email') ?? '').trim();
       const startDate = String(form.get('startDate') ?? '').slice(0, 10);
       const bank = verifiedNorwegianAccount(String(form.get('bank') ?? ''));
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { name, ...(email ? { email } : {}), startDate, ...(bank ? { bankAccountNumber: bank } : {}) } }));
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { name, ...(email ? { email } : {}), ...(startDate ? { dateOfEmployment: startDate } : {}), ...(bank ? { accountNumber: bank, bankCountryCode: 'NO' } : {}) } }));
       return htmlResponse(html`<tr><td><strong>${name}</strong></td><td>${email || '—'}</td><td class="mono">${startDate}</td><td class="num">—</td><td class="mono">${bank || '—'}</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {
