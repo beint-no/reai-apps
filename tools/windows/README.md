@@ -8,6 +8,7 @@ Customers may get an unknown-publisher warning. Smart App Control, S mode and wo
 Merge the change, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app.
 
 ```sh
+gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=document-scanner-windows
 gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=import-windows
 gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=shipping-windows
 gh workflow run windows.yml --repo beint-no/reai-apps --ref main -f app=time-tracker-windows

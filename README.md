@@ -35,14 +35,15 @@ OS-integrated reference apps kept building on the same foundation. Non-native ap
 | --- | --- |
 | [Time Tracker for Mac](apple/time-tracker) | Start and stop your timesheet timer from the menu bar. |
 | [Time Tracker for Windows](windows/time-tracker) | Native Windows timer, with or without a project. Unsigned ZIP download. |
-| [Finder Vault](apple/finder-vault) | Upload documents and watch local Finder folders for new files. |
+| [Document Scanner for Mac](apple/document-scanner) | Scan documents, capture receipts with a shortcut and upload files or watched folders. Replaces Finder Vault. |
+| [Document Scanner for Windows](windows/document-scanner) | Native Windows scanner, receipt capture and folder upload. Unsigned ZIP download. |
 
 ## Install
 
 Download from **[apps.reai.no/desktop/](https://apps.reai.no/desktop/)**.
 
 - **Mac:** open the disk image and drag the app to **Applications**. Mac releases are signed with Developer ID and notarized by Apple. Shipping and Product Labels offer signed in-app updates; for other apps, quit and replace the app in Applications.
-- **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. Shipping updates itself from **Check for updates** in the app; for the other apps, close the app and extract the new version into a new folder.
+- **Windows:** choose your processor (x64 or ARM64), **Extract All** from the ZIP, and open the app’s EXE. Keep the whole folder together. No .NET installation or administrator access is needed. Shipping and Document Scanner update themselves from **Check for updates** in the app; for the other apps, close the app and extract the new version into a new folder.
 
 **Windows downloads are unsigned.** Windows may warn or block them. If SmartScreen offers **More info → Run anyway**, you can choose it after confirming the download came from this repository and you trust it. Smart App Control, S mode and workplace policy may prevent running the app. Keep Windows security protections enabled. See the app README for details and checksum verification.
 
@@ -56,7 +57,7 @@ apple/
   product-labels/   Product, price and barcode labels
   shipping/         Shipment booking and label printing
   time-tracker/     Swift package and app source
-  finder-vault/     Swift package and app source
+  document-scanner/ Scanner, receipt capture and document upload
   import/           Swift package and app source
   stripe/           Stripe migration app
   vipps/            Vipps payout reconciliation app
@@ -64,6 +65,7 @@ apple/
   zettle/           Zettle payout reconciliation app
   dintero/          Dintero payout fee app
 windows/
+  document-scanner/ .NET 11 / WinUI 3 app and app-local upload logic
   import/           .NET 11 / WinUI 3 app and app-local import logic
   shipping/         .NET 11 / WinUI 3 app and app-local shipping logic
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
@@ -91,7 +93,7 @@ Install the [Swift](https://www.swift.org/install/macos/) version pinned in [.sw
 
 ```sh
 tools/apple/build.py time-tracker
-tools/apple/build.py finder-vault
+tools/apple/build.py document-scanner
 tools/apple/build.py import
 tools/apple/build.py stripe
 tools/apple/build.py vipps
@@ -122,7 +124,7 @@ A failed verification publishes nothing.
 
 Windows apps use .NET and WinUI 3. The SDK is pinned in [windows/global.json](windows/global.json); app projects and lockfiles record dependencies. GitHub Windows runners build self-contained x64/ARM64 packages. App-local logic also builds on macOS.
 
-See [Windows Import](windows/import), [Windows Shipping](windows/shipping) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. Pull requests run build checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
+See [Windows Document Scanner](windows/document-scanner), [Windows Import](windows/import), [Windows Shipping](windows/shipping) and [Windows Time Tracker](windows/time-tracker) for instructions. To publish a free unsigned release, merge changes, then open **[Actions → Windows apps](https://github.com/beint-no/reai-apps/actions/workflows/windows.yml) → Run workflow**, keep **main**, and choose the app. GitHub builds both architectures, verifies the archives, publishes ZIPs and checksums, and updates the download site. Pull requests run build checks. No Azure account, signing subscription or developer-held secret is needed. See [Windows release tooling](tools/windows/README.md).
 
 ## Dependency updates
 

@@ -7,13 +7,22 @@
     "icon": "scripts/make-icon.swift",
     "asset": "ReAI-Time-Tracker-Apple-Silicon.dmg"
   },
-  "finder-vault": {
-    "name": "ReAI Finder Vault",
-    "path": "apple/finder-vault",
-    "executable": "ReAIFinderVault",
-    "bundle_id": "no.reai.findervault",
+  "document-scanner": {
+    "name": "ReAI Document Scanner",
+    "path": "apple/document-scanner",
+    "executable": "ReAIDocumentScanner",
+    "bundle_id": "no.reai.documentscanner",
     "icon": "make-icon.swift",
-    "asset": "ReAI-Finder-Vault-Apple-Silicon.dmg"
+    "asset": "ReAI-Document-Scanner-Apple-Silicon.dmg"
+  },
+  "document-scanner-windows": {
+    "name": "ReAI Document Scanner for Windows",
+    "platform": "windows",
+    "path": "windows/document-scanner",
+    "executable": "ReAI.DocumentScanner.exe",
+    "asset": "ReAI-Document-Scanner-Windows-x64.zip",
+    "arm64_asset": "ReAI-Document-Scanner-Windows-ARM64.zip",
+    "updates": true
   },
   "time-tracker-windows": {
     "platform": "windows",
