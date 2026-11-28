@@ -35,36 +35,97 @@ export function limeobjectRoot(raw) {
   return `${parsed.origin}${app}/api/v1/limeobject`;
 }
 
+const MAX_DEAL_PAGES = 6;
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Lime CRM dates are ISO 8601; a timestamp with a zone becomes its Europe/Oslo bookkeeping day.
+ * @param {unknown} v
+ * @param {string} fallback
+ */
+function osloDay(v, fallback) {
+  const s = String(v ?? '').trim();
+  if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*(Z|[+-][0-9]{2}:?[0-9]{2})$/.test(s)) {
+    const t = Date.parse(s);
+    if (!Number.isNaN(t)) return OSLO_DAY.format(new Date(t));
+  }
+  return isoDate(s, fallback);
+}
+const MAX_SUBREQUESTS = 40;
+const COMPANY_CONCURRENCY = 6;
+
+/**
+ * Maps a Lime CRM company object to the fields this app uses.
+ * @param {string} id
+ * @param {any} c
+ * @returns {CrmCompany | null}
+ */
+function toCompany(id, c) {
+  const name = String(c?.name ?? '').trim();
+  return name ? { id, name, orgnr: extractNorwegianOrg(String(c.registrationno ?? '')), city: String(c.visitingcity ?? c.postalcity ?? '').trim() } : null;
+}
+
 /**
  * Fetches won Lime CRM deals and their companies with the Limeobject API.
  * Docs: https://docs.lime-crm.com/integration/rest-apis/start (x-api-key header, API users in LISA,
  * interactive docs at <application>/api/v1/docs/) and the example Limeobject specification
  * http://static.lime-crm.com/crm-api-docs/spec/limeobject (GET /deal/ with filters such as dealstatus and
- * min-closeddate, _sort and _limit up to 50; GET /company/{id}/; deal fields name, company, value, dealstatus,
- * closeddate; company fields name, registrationno, visitingcity). Property names follow the standard Lime CRM
- * data model and can differ in customized applications.
+ * min-closeddate, _sort, _limit up to 50, _embed=company, pagination by the HAL `next` link; GET /company/{id}/;
+ * deal fields name, company, value, dealstatus, closeddate; company fields name, registrationno, visitingcity).
+ * Property names follow the standard Lime CRM data model and can differ in customized applications.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ companies: CrmCompany[], sales: CrmSale[] }>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
   const root = limeobjectRoot(creds.baseUrl ?? '');
+  const rootOrigin = new URL(root).origin;
   const key = (creds.apiToken ?? '').trim();
   if (!key) throw new HttpError(400, 'Enter the Lime CRM API key.');
   const since = isoDate(creds.since, `${new Date().toISOString().slice(0, 7)}-01`);
   const headers = { 'x-api-key': key, accept: 'application/hal+json, application/json' };
-  const query = new URLSearchParams({ dealstatus: 'agreement', 'min-closeddate': since, _sort: '-closeddate', _limit: '50' });
-  const deals = limeobjects(await fetchJson(`${root}/deal/?${query}`, { headers }, 'Lime CRM', fetchImpl));
+  const query = new URLSearchParams({ dealstatus: 'agreement', 'min-closeddate': since, _sort: '-closeddate', _limit: '50', _embed: 'company' });
+  /** @type {any[]} */
+  const deals = [];
+  /** @type {string | null} */
+  let next = `${root}/deal/?${query}`;
+  let calls = 0;
+  for (let page = 0; next && page < MAX_DEAL_PAGES; page++) {
+    const body = await fetchJson(next, { headers }, 'Lime CRM', fetchImpl);
+    calls += 1;
+    deals.push(...limeobjects(body));
+    const href = typeof body?._links?.next?.href === 'string' ? body._links.next.href : '';
+    if (!href) { next = null; break; }
+    const resolved = new URL(href, `${root}/deal/`);
+    // The API key is only ever sent back to the application the customer entered.
+    if (resolved.origin !== rootOrigin) throw new HttpError(502, 'Lime CRM returned a next link to another host, so paging stopped.');
+    next = resolved.toString();
+  }
+  if (next) throw new HttpError(400, `More than ${MAX_DEAL_PAGES * 50} won deals since ${since}. Choose a later date.`);
+
   /** @type {Map<string, CrmCompany>} */
   const companies = new Map();
-  for (const id of [...new Set(deals.map((d) => String(d.company ?? '')).filter((id) => /^[0-9]+$/.test(id)))]) {
-    const c = await fetchJson(`${root}/company/${id}/`, { headers }, 'Lime CRM', fetchImpl);
-    const name = String(c?.name ?? '').trim();
-    if (name) companies.set(id, { id, name, orgnr: extractNorwegianOrg(String(c.registrationno ?? '')), city: String(c.visitingcity ?? c.postalcity ?? '').trim() });
+  for (const d of deals) {
+    const id = String(d.company ?? '');
+    const embedded = d?._embedded?.relation_company ?? d?._embedded?.company;
+    const c = /^[0-9]+$/.test(id) && embedded && typeof embedded === 'object' && !Array.isArray(embedded) ? toCompany(id, embedded) : null;
+    if (c) companies.set(id, c);
   }
+  // Fallback for applications that do not embed the company: one GET per company not embedded, bounded.
+  const missing = [...new Set(deals.map((d) => String(d.company ?? '')).filter((id) => /^[0-9]+$/.test(id) && !companies.has(id)))];
+  if (calls + missing.length > MAX_SUBREQUESTS) throw new HttpError(400, `The won deals since ${since} belong to ${missing.length} companies. Choose a later date so fewer companies are read at once.`);
+  for (let i = 0; i < missing.length; i += COMPANY_CONCURRENCY) {
+    const batch = missing.slice(i, i + COMPANY_CONCURRENCY);
+    const bodies = await Promise.all(batch.map((id) => fetchJson(`${root}/company/${id}/`, { headers }, 'Lime CRM', fetchImpl)));
+    batch.forEach((id, j) => {
+      const c = toCompany(id, bodies[j]);
+      if (c) companies.set(id, c);
+    });
+  }
+  const seen = new Set();
   const sales = deals
-    .map((d) => ({ id: String(d.id ?? ''), title: String(d.name ?? '').trim() || `Lime deal ${d.id}`, companyId: String(d.company ?? ''), companyName: companies.get(String(d.company ?? ''))?.name ?? '', value: Number(num(d.value).toFixed(2)), date: isoDate(d.closeddate, since) }))
-    .filter((x) => x.id && x.value > 0);
+    .map((d) => ({ id: String(d.id ?? ''), title: String(d.name ?? '').trim() || `Lime deal ${d.id}`, companyId: String(d.company ?? ''), companyName: companies.get(String(d.company ?? ''))?.name ?? '', value: Number(num(d.value).toFixed(2)), date: osloDay(d.closeddate, since) }))
+    .filter((x) => x.id && x.value > 0 && !seen.has(x.id) && seen.add(x.id));
   return { companies: [...companies.values()], sales };
 }
 
@@ -203,6 +264,9 @@ export async function handle(request, env) {
       const name = String(form.get('name') ?? '').trim().slice(0, 75);
       const orgnr = extractNorwegianOrg(String(form.get('orgnr') ?? ''));
       if (!name || !orgnr) throw new HttpError(400, 'Enter a valid 9-digit Norwegian organization number.');
+      const found = /** @type {{ items?: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { organizationNumber: orgnr, pageSize: '1' } }));
+      const already = found.items?.[0];
+      if (already) return htmlResponse(html`<tr><td><strong>${name}</strong></td><td class="mono">${orgnr}</td><td>—</td><td>${reaiBadge({ text: `Matched #${already.id}`, tone: 'neutral' })}</td><td><span class="muted-note">Already in ReAI</span></td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { name, organizationNumber: orgnr, countryCode: 'NO', privateContact: false, skipRegistryLookup: true } }));
       return htmlResponse(html`<tr><td><strong>${name}</strong></td><td class="mono">${orgnr}</td><td>—</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
     }

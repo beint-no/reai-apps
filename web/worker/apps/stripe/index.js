@@ -7,6 +7,11 @@ import { formatMinor } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 
 const SUPPORTED_CURRENCIES = new Set(['NOK', 'EUR', 'USD', 'GBP']);
+/** Latest stable (GA) API version in https://docs.stripe.com/changelog as of 2026-11-28. */
+const STRIPE_VERSION = '2026-11-18.endive';
+/** Stripe list endpoints return at most 100 objects per page; this bounds one preview at five pages per list. */
+const LIST_PAGES = 5;
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
 
 /**
  * @typedef {{ id: string, number: string | null, status: string, currency: string, total: number, amount_due: number, amount_paid: number, amount_remaining: number, amount_overpaid?: number, starting_balance?: number, ending_balance?: number | null, pre_payment_credit_notes_amount?: number, post_payment_credit_notes_amount?: number, total_excluding_tax?: number, total_taxes?: Array<{ amount: number }>, customer_email: string | null, created: number, due_date?: number | null, status_transitions?: { paid_at?: number | null } }} StripeInvoice
@@ -16,11 +21,22 @@ const SUPPORTED_CURRENCIES = new Set(['NOK', 'EUR', 'USD', 'GBP']);
  */
 
 /**
+ * Europe/Oslo bookkeeping day of a Stripe Unix timestamp.
  * @param {number} epochSeconds
  * @returns {string}
  */
 function epochDay(epochSeconds) {
-  return new Date(epochSeconds * 1000).toISOString().slice(0, 10);
+  return OSLO_DAY.format(epochSeconds * 1000);
+}
+
+/**
+ * Unix seconds of Europe/Oslo midnight at the start of a YYYY-MM-DD day.
+ * @param {string} day
+ */
+function osloMidnight(day) {
+  const utc = Date.parse(`${day}T00:00:00Z`) / 1000;
+  // Oslo is UTC+1 or UTC+2; pick the offset whose local day is still `day`.
+  return epochDay(utc - 7200) === day ? utc - 7200 : utc - 3600;
 }
 
 /**
@@ -37,11 +53,14 @@ async function stripeGet(path, key, query = {}) {
     headers: {
       authorization: `Bearer ${key}`,
       accept: 'application/json',
-      'stripe-version': '2026-10-28.endive',
+      'stripe-version': STRIPE_VERSION,
     },
     redirect: 'manual',
     signal: AbortSignal.timeout(25_000),
   });
+  if (res.status === 429) {
+    throw new HttpError(429, 'Stripe rate limit reached. Wait a few seconds and try again.');
+  }
   if (!res.ok) {
     throw new HttpError(
       400,
@@ -51,6 +70,77 @@ async function stripeGet(path, key, query = {}) {
     );
   }
   return res.json();
+}
+
+/**
+ * Follows a Stripe list with starting_after for at most LIST_PAGES pages of 100.
+ * @param {string} path
+ * @param {string} key
+ * @param {Record<string, string>} query
+ * @returns {Promise<{ data: any[], truncated: boolean }>}
+ */
+async function stripeList(path, key, query) {
+  /** @type {any[]} */
+  const data = [];
+  /** @type {string | undefined} */
+  let after;
+  for (let page = 0; page < LIST_PAGES; page++) {
+    const res = /** @type {{ data?: Array<{ id: string }>, has_more?: boolean }} */ (
+      await stripeGet(path, key, { ...query, limit: '100', ...(after ? { starting_after: after } : {}) })
+    );
+    const rows = res.data ?? [];
+    data.push(...rows);
+    if (!res.has_more || rows.length === 0) {
+      return { data, truncated: false };
+    }
+    after = rows[rows.length - 1]?.id;
+  }
+  return { data, truncated: true };
+}
+
+/**
+ * @param {ReAIProduct} p
+ * @param {Set<string>} zeroCodes
+ */
+function isZeroProduct(p, zeroCodes) {
+  return !p.archived && !p.stockItem && typeof p.vatCode === 'string' && zeroCodes.has(p.vatCode);
+}
+
+/**
+ * Zero-rate customer invoice VAT codes of the company.
+ * @param {import('../../lib/types.d.ts').Env} env
+ * @param {import('../../lib/types.d.ts').SessionData} session
+ */
+async function loadZeroCodes(env, session) {
+  const vats = /** @type {Array<{ code: string, rate: number, vatType: string }>} */ (
+    await reaiRequest(env, '/api/vat-codes', { token: session.accessToken, tenantId: session.tenantId, query: { usage: 'customer_invoice' } })
+  );
+  return new Set(
+    vats.filter((v) => v.rate === 0 && (v.vatType === 'output_vat' || v.vatType === 'outside_scope' || v.vatType === 'exempt')).map((v) => v.code),
+  );
+}
+
+/**
+ * Loads the customer and product chosen in the preview for one import action (two lookups instead of full lists).
+ * @param {import('../../lib/types.d.ts').Env} env
+ * @param {import('../../lib/types.d.ts').SessionData} session
+ * @param {number} customerId
+ * @param {number} productId
+ */
+async function loadImportTargets(env, session, customerId, productId) {
+  if (customerId <= 0 || productId <= 0) {
+    throw new HttpError(400, 'Review the Stripe records again and choose a zero VAT product.');
+  }
+  const auth = { token: session.accessToken, tenantId: session.tenantId };
+  const [customer, product, zeroCodes] = await Promise.all([
+    /** @type {Promise<ReAICustomer>} */ (reaiRequest(env, `/api/customers/${customerId}`, auth)),
+    /** @type {Promise<ReAIProduct>} */ (reaiRequest(env, `/api/products/${productId}`, auth)),
+    loadZeroCodes(env, session),
+  ]);
+  if (!isZeroProduct(product, zeroCodes)) {
+    throw new HttpError(400, 'The chosen ReAI product must be an active non-stock product with a zero VAT code.');
+  }
+  return { customers: [customer], zeroProducts: [product] };
 }
 
 /**
@@ -160,7 +250,7 @@ function subSkipReason(sub, currencyCode, customers, productId) {
 }
 
 /**
- * @param {{ stripeAccount: string, stripeKey: string, currency: string, products: ReAIProduct[], selectedProduct: number, invoices: Array<{ inv: StripeInvoice, reason: string | null, customerName: string }>, subs: Array<{ sub: StripeSub, reason: string | null, customerName: string }>, isSample?: boolean }} state
+ * @param {{ stripeAccount: string, stripeKey: string, currency: string, products: ReAIProduct[], selectedProduct: number, invoices: Array<{ inv: StripeInvoice, reason: string | null, customerName: string, customerId: number }>, subs: Array<{ sub: StripeSub, reason: string | null, customerName: string, customerId: number }>, truncated?: boolean, isSample?: boolean }} state
  */
 function renderStripePreview(state) {
   const eligibleInv = state.invoices.filter((r) => r.reason === null).length;
@@ -171,6 +261,7 @@ function renderStripePreview(state) {
       ${reaiMetric({ label: 'Eligible paid invoices', value: `${eligibleInv} / ${state.invoices.length}`, detail: 'Imported with accounting=none' })}
       ${reaiMetric({ label: 'Eligible subscriptions', value: `${eligibleSub} / ${state.subs.length}`, detail: 'Staged with auto-billing off' })}
     </div>
+    ${state.truncated ? reaiCallout({ tone: 'info', body: 'Stripe has more records than one review shows. Set a later start date to see older invoices in another review.' }) : ''}
 
     ${reaiCard({
       eyebrow: 'PAID INVOICES',
@@ -191,7 +282,7 @@ function renderStripePreview(state) {
             </thead>
             <tbody>
               ${state.invoices.map(
-                ({ inv, reason, customerName }, idx) => html`<tr id="stripe-inv-${idx}">
+                ({ inv, reason, customerName, customerId }, idx) => html`<tr id="stripe-inv-${idx}">
                   <td class="mono">${inv.number ?? inv.id}</td>
                   <td class="mono">${inv.status_transitions?.paid_at ? epochDay(inv.status_transitions.paid_at) : '—'}</td>
                   <td>${customerName || inv.customer_email || '—'}</td>
@@ -204,6 +295,7 @@ function renderStripePreview(state) {
                           <input type="hidden" name="stripeKey" value="${state.stripeKey}">
                           <input type="hidden" name="productId" value="${state.selectedProduct}">
                           <input type="hidden" name="invoiceId" value="${inv.id}">
+                          <input type="hidden" name="customerId" value="${customerId}">
                           <button type="submit" class="button primary">Import</button>
                         </form>`}
                   </td>
@@ -233,7 +325,7 @@ function renderStripePreview(state) {
               </tr>
             </thead>
             <tbody>
-              ${state.subs.map(({ sub, reason, customerName }, idx) => {
+              ${state.subs.map(({ sub, reason, customerName, customerId }, idx) => {
                 const item = sub.items.data[0];
                 const amount = item?.price.unit_amount ?? 0;
                 const interval = item?.price.recurring?.interval ?? '';
@@ -251,6 +343,7 @@ function renderStripePreview(state) {
                           <input type="hidden" name="stripeKey" value="${state.stripeKey}">
                           <input type="hidden" name="productId" value="${state.selectedProduct}">
                           <input type="hidden" name="subscriptionId" value="${sub.id}">
+                          <input type="hidden" name="customerId" value="${customerId}">
                           <button type="submit" class="button secondary">Stage</button>
                         </form>`}
                   </td>
@@ -270,18 +363,12 @@ function renderStripePreview(state) {
  * @param {import('../../lib/types.d.ts').SessionData} session
  */
 async function loadReaiStripeContext(env, session) {
-  const [customers, products, vatCodes] = await Promise.all([
+  const [customers, products, zeroCodes] = await Promise.all([
     reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } }),
-    reaiAll(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId }),
-    reaiRequest(env, '/api/vat-codes', { token: session.accessToken, tenantId: session.tenantId, query: { usage: 'customer_invoice' } }),
+    reaiAll(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } }),
+    loadZeroCodes(env, session),
   ]);
-  const vats = /** @type {Array<{ code: string, rate: number, vatType: string }>} */ (vatCodes);
-  const zeroCodes = new Set(
-    vats.filter((v) => v.rate === 0 && (v.vatType === 'output_vat' || v.vatType === 'outside_scope' || v.vatType === 'exempt')).map((v) => v.code),
-  );
-  const zeroProducts = /** @type {ReAIProduct[]} */ (products).filter(
-    (p) => !p.archived && !p.stockItem && typeof p.vatCode === 'string' && zeroCodes.has(p.vatCode),
-  );
+  const zeroProducts = /** @type {ReAIProduct[]} */ (products).filter((p) => isZeroProduct(p, zeroCodes));
   return {
     customers: /** @type {ReAICustomer[]} */ (customers),
     zeroProducts,
@@ -331,6 +418,10 @@ export async function handleStripe(request, env) {
                 <div class="field">
                   <label for="stripe-key">Stripe restricted read key</label>
                   <input id="stripe-key" name="stripeKey" type="password" autocomplete="off" required placeholder="rk_live_… or rk_test_…">
+                </div>
+                <div class="field">
+                  <label for="stripe-from">Paid invoices created from (optional)</label>
+                  <input id="stripe-from" name="from" type="date">
                 </div>
                 <div class="field">
                   <label for="stripe-product">Zero-VAT non-stock ReAI product</label>
@@ -447,11 +538,13 @@ export async function handleStripe(request, env) {
           inv,
           reason: invoiceSkipReason(inv, 'NOK', customers, 10),
           customerName: matchCustomer(inv.customer_email, customers)?.name ?? '',
+          customerId: matchCustomer(inv.customer_email, customers)?.id ?? 0,
         })),
         subs: subs.map((sub) => ({
           sub,
           reason: subSkipReason(sub, 'NOK', customers, 10),
           customerName: matchCustomer(sub.customer?.email, customers)?.name ?? '',
+          customerId: matchCustomer(sub.customer?.email, customers)?.id ?? 0,
         })),
         isSample: true,
       }),
@@ -470,23 +563,28 @@ export async function handleStripe(request, env) {
     const form = await request.formData();
     const stripeKey = String(form.get('stripeKey') ?? '').trim();
     const productId = Number(form.get('productId') ?? '0');
+    const customerId = Number(form.get('customerId') ?? '0');
     if (!stripeKey.startsWith('rk_live_') && !stripeKey.startsWith('rk_test_')) {
       throw new HttpError(400, 'Use a restricted Stripe key beginning with rk_live_ or rk_test_.');
     }
 
     if (pathname === '/app/stripe/preview') {
+      const from = String(form.get('from') ?? '').trim();
+      if (from && !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(from)) {
+        throw new HttpError(400, 'Enter the start date as YYYY-MM-DD.');
+      }
       const [account, invPage, subPage, reaiCtx] = await Promise.all([
         stripeGet('account', stripeKey),
-        stripeGet('invoices', stripeKey, { limit: '100', status: 'paid' }),
-        stripeGet('subscriptions', stripeKey, { limit: '100', status: 'all', 'expand[]': 'data.customer' }),
+        stripeList('invoices', stripeKey, { status: 'paid', ...(from ? { 'created[gte]': String(osloMidnight(from)) } : {}) }),
+        stripeList('subscriptions', stripeKey, { status: 'active', 'expand[]': 'data.customer' }),
         loadReaiStripeContext(env, session),
       ]);
       const chosenProduct =
         reaiCtx.zeroProducts.some((p) => p.id === productId)
           ? productId
           : (reaiCtx.zeroProducts[0]?.id ?? 0);
-      const invoices = /** @type {StripeInvoice[]} */ (invPage.data ?? []);
-      const subs = /** @type {StripeSub[]} */ (subPage.data ?? []);
+      const invoices = /** @type {StripeInvoice[]} */ (invPage.data);
+      const subs = /** @type {StripeSub[]} */ (subPage.data);
       return htmlResponse(
         renderStripePreview({
           stripeAccount: String(account.id),
@@ -498,12 +596,15 @@ export async function handleStripe(request, env) {
             inv,
             reason: invoiceSkipReason(inv, company.currencyCode.toUpperCase(), reaiCtx.customers, chosenProduct),
             customerName: matchCustomer(inv.customer_email, reaiCtx.customers)?.name ?? '',
+            customerId: matchCustomer(inv.customer_email, reaiCtx.customers)?.id ?? 0,
           })),
           subs: subs.map((sub) => ({
             sub,
             reason: subSkipReason(sub, company.currencyCode.toUpperCase(), reaiCtx.customers, chosenProduct),
             customerName: matchCustomer(sub.customer?.email, reaiCtx.customers)?.name ?? '',
+            customerId: matchCustomer(sub.customer?.email, reaiCtx.customers)?.id ?? 0,
           })),
+          truncated: invPage.truncated || subPage.truncated,
         }),
       );
     }
@@ -513,7 +614,7 @@ export async function handleStripe(request, env) {
       const [account, inv, reaiCtx] = await Promise.all([
         stripeGet('account', stripeKey),
         stripeGet(`invoices/${encodeURIComponent(invoiceId)}`, stripeKey),
-        loadReaiStripeContext(env, session),
+        loadImportTargets(env, session, customerId, productId),
       ]);
       const invoice = /** @type {StripeInvoice} */ (inv);
       const reason = invoiceSkipReason(invoice, company.currencyCode.toUpperCase(), reaiCtx.customers, productId);
@@ -560,7 +661,7 @@ export async function handleStripe(request, env) {
       const [account, subRaw, reaiCtx] = await Promise.all([
         stripeGet('account', stripeKey),
         stripeGet(`subscriptions/${encodeURIComponent(subId)}`, stripeKey, { 'expand[]': 'customer' }),
-        loadReaiStripeContext(env, session),
+        loadImportTargets(env, session, customerId, productId),
       ]);
       const sub = /** @type {StripeSub} */ (subRaw);
       const reason = subSkipReason(sub, company.currencyCode.toUpperCase(), reaiCtx.customers, productId);
@@ -571,15 +672,18 @@ export async function handleStripe(request, env) {
         throw new HttpError(400, reason ?? 'Subscription is not eligible.');
       }
       const marker = `Stripe subscription ${account.id}/${sub.id}`;
-      const existing = /** @type {Array<{ id?: number }>} */ (
+      const intervalMonths = item.price.recurring.interval === 'year' ? 12 : 1;
+      const startDate = epochDay(item.current_period_end);
+      const existing = /** @type {Array<{ id?: number, startDate?: string, intervalMonths?: number }>} */ (
         await reaiAll(env, '/api/subscriptions', {
           token: session.accessToken,
           tenantId: company.id,
           query: { customerId: String(customer.id) },
         })
       );
+      // The list has no internalComment, so only same-start, same-interval rows are opened to look for the marker.
       for (const row of existing) {
-        if (!row.id) {
+        if (!row.id || row.startDate !== startDate || row.intervalMonths !== intervalMonths) {
           continue;
         }
         const detail = /** @type {{ internalComment?: string | null }} */ (
@@ -596,8 +700,8 @@ export async function handleStripe(request, env) {
           method: 'POST',
           body: {
             customerId: customer.id,
-            startDate: epochDay(item.current_period_end),
-            intervalMonths: item.price.recurring.interval === 'year' ? 12 : 1,
+            startDate,
+            intervalMonths,
             billingTiming: 'in_advance',
             periodAlignment: 'start_date',
             outputMode: 'create_order',

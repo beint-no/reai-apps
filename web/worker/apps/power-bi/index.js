@@ -192,7 +192,7 @@ export function buildPowerQuery(kind, opts) {
       '        lastPaymentDate = ToDate(i[lastPaymentDate]?),',
       '        projectName = i[projectName]?,',
       '        orderNumber = i[orderNumber]?,',
-      '        isCreditNote = i[creditedInvoiceId]? <> null',
+      '        isCreditNote = i[creditedInvoiceId]? <> null or List.Count(i[creditedInvoiceIds]? ?? {}) > 0',
       '    ]),',
       '    Result = Table.FromRecords(Rows, type table [',
       '        id = nullable Int64.Type, number = text, issueDate = date, dueDate = nullable date,',

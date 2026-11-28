@@ -2,37 +2,43 @@
 
 Route `/app/sharefox/`. Docs pages: `web/content/{nb,en}/web-apps/sharefox/index.md`.
 
-## Vendor API
+Sums booked Sharefox rental orders for a period by VAT rate and books one balanced review voucher (payment clearing against rental revenue).
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://help.sharefox.no/article/426-sharefox-api
-- https://api.mysharefox.com/docs
-- https://sharefox.co/api/
-- https://help.sharefox.no/article/307-accounting-file-general
+- API reference (Redoc, spec embedded): https://api.mysharefox.com/docs
+- API overview and access: https://help.sharefox.no/article/426-sharefox-api and https://sharefox.co/api/
+- Accounting export rules: https://help.sharefox.no/article/307-accounting-file-general
+- No public changelog.
 
-- Mode: api
-- Auth: No API key: the customer logs in as a Sharefox admin user. POST https://api.mysharefox.com/api-v2/admin/login {email,password} with header x-sharefox-admin-domain (e.g. yourshop.admin.mysharefox.com) returns a long-lived opaque token; then Authorization: Bearer <token> + x-sharefox-admin-domain. Sharefox asks customers to confirm with Support that API use is included in their subscription.
-- Hosts in code: `api.mysharefox.com`, `help.sharefox.no`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. sharefox.no live, sells rental and booking software.
+## API version
+
+`api-v2` (spec `1.0.0-alpha.0`, the only published version on 2026-11-28). Sharefox calls it beta, for selected partners and customers; endpoints may change.
+
+## Auth
+
+No API keys. The customer signs in as a Sharefox admin user: `POST https://api.mysharefox.com/api-v2/admin/login` `{ email, password }` with header `x-sharefox-admin-domain: <shop>.admin.mysharefox.com` returns `token`. Calls send `Authorization: Bearer <token>` plus the same domain header and `locale: en`. Password used once, never stored. Customers must confirm with Sharefox Support that API use is in their subscription.
+
+## Endpoints
+
+- `GET /admin/orders/?start=YYYY-MM-DD&end=YYYY-MM-DD`: no paging documented; one call returns the range. Fields used: `id`, `reference`, `bookTime`, `status`, `paymentMethodName`, `price`, `totalPriceExclVat` (strings), `isChangeOrder`, `isDeleted`.
+
+## Budget and limits
+
+Fetch: 2 subrequests. Book: `GET /api/vouchers` (1+ pages), `GET /api/vat-codes`, `POST /api/manual-vouchers`. No rate limits documented.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- `GET /api/vouchers?startDate=&endDate=&includeReversed=true` duplicate check on description `Sharefox rentals <from> to <to>`.
+- `GET /api/vat-codes`: VAT inclusive output code per rate, preferring 3/31/33.
+- `POST /api/manual-vouchers` with `reviewReason`, rows from `pairVoucherRows`.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+## Mapping
+
+Only status Booked or Closed. Orders paid by invoice (`Faktura`) are left out, as in Sharefox's own export. VAT rate derived from `price` versus `totalPriceExclVat` and snapped to 25/15/12; 0% or mixed rates are listed for manual booking. Per rate: debit clearing (default 1580, code 0) and credit revenue (default 3000, output code) with the gross amount, dated the last day of the period. Change orders are included so changes and cancellations net out.
 
 ## Caveats
 
-Sharefox API is officially beta ('1.0.0-alpha.0', endpoints may change) and 'available for selected partners and customers'. GET /admin/orders/?start&end is documented as returning an object schema although described as a list; the app accepts an array or a single object. The meaning of start/end (book time vs rental time) is not documented. price and totalPriceExclVat are strings; price is assumed to include VAT, VAT rate derived from price vs excl. VAT and snapped to 25/15/12 (orders with 0% or mixed rates are listed for manual booking). Only status Booked/Closed counted (per Sharefox help article); Faktura/invoice payment orders excluded (Sharefox's own accounting export does the same by default). Creates one balanced review voucher: per VAT rate one rowNumber with debit clearing (default 1580, vatCode 0) and credit revenue (default 3000, output VAT code), flagged with reviewReason; duplicate-guarded by description 'Sharefox rentals <from> to <to>' on the voucher date. Asks for an admin password (used once, not stored).
-
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+Orders carry no currency field; the company currency is used. Whether `start`/`end` filter on book time or rental time is not documented, and whether `end` is inclusive. Duplicate check only matches the exact same period; overlapping periods are the customer's responsibility (confirm checkbox).
 
 Last verified: 2026-11-28.

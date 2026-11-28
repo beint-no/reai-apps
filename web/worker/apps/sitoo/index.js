@@ -113,7 +113,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {Map<string, SitooZReport>} */
   const seen = new Map();
   let from = dayStart;
-  for (let page = 0; page < 10; page++) {
+  for (let page = 0; ; page++) {
+    if (page === 10) throw new HttpError(400, `${BRAND} returned too many POS Z-reports around ${date} to read in one fetch.`);
     const url = `${base.origin}/v2/accounts/${accountId}/pos-z-reports?dateaddedfrom=${from}&dateaddedto=${to}`;
     const data = await fetchJson(url, { headers: { authorization: auth, accept: 'application/json' } }, BRAND, fetchImpl);
     const items = /** @type {SitooZReport[]} */ (Array.isArray(data) ? data : []);

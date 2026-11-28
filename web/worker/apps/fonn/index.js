@@ -3,13 +3,12 @@ import { fetchJson, isoDate, num, renderApiFetchCard } from '../../lib/api-http.
 import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
-import { reaiAll, reaiOrigin, reaiRequest } from '../../lib/reai.js';
-import { formatMinor } from '../../lib/reconcile.js';
+import { reaiAll, reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 
-/** @typedef {{ ref: string, date: string, customerName: string, project: string, employeeName: string, description: string, hours: number, amountExVat: number }} TradeRow */
+/** @typedef {{ ref: string, date: string, customerName: string, project: string, employeeName: string, description: string, hours: number }} TradeRow */
 /** @typedef {{ id: number, name: string }} SimpleRef */
-/** @typedef {{ customers: SimpleRef[], employees: SimpleRef[], projects: SimpleRef[] }} ReaiLists */
+/** @typedef {{ employees: SimpleRef[], projects: SimpleRef[] }} ReaiLists */
 
 const SLUG = 'fonn';
 const BASE_PATH = `/app/${SLUG}`;
@@ -22,40 +21,40 @@ const API_FIELDS = [{"name":"subscriptionKey","label":"Fonn API subscription key
 /** @type {TradeRow[]} */
 const SAMPLE_ROWS = [
   {
-    "ref": "FONN-2026-11-02-1",
+    "ref": "FONN-2026-11-02-1a2b3c4d",
     "date": "2026-11-02",
     "customerName": "Bergen Bolig AS",
     "project": "Leilighetsbygg Damsgård",
     "employeeName": "Anders Snekker",
     "description": "Ordinær tid: Montering vinduer 3. etasje",
-    "hours": 7.5,
-    "amountExVat": 0
+    "hours": 7.5
   },
   {
-    "ref": "FONN-2026-11-03-2",
+    "ref": "FONN-2026-11-03-5e6f7a8b",
     "date": "2026-11-03",
     "customerName": "Bergen Bolig AS",
     "project": "Leilighetsbygg Damsgård",
     "employeeName": "Anders Snekker",
     "description": "Ordinær tid: Lekter og kledning",
-    "hours": 8,
-    "amountExVat": 0
+    "hours": 8
   },
   {
-    "ref": "FONN-2026-11-03-3",
+    "ref": "FONN-2026-11-03-9c0d1e2f",
     "date": "2026-11-03",
     "customerName": "Bergen Bolig AS",
     "project": "Leilighetsbygg Damsgård",
     "employeeName": "Mina Lærling",
     "description": "Overtid: Opprydding",
-    "hours": 1.5,
-    "amountExVat": 0
+    "hours": 1.5
   }
 ];
 
 const FONN_API = 'https://ws2.fonn.io/api';
 const FONN_PAGE = 50;
-const FONN_MAX_PROJECTS = 40;
+/** Time card calls are one per project and week, so the period and project count share one budget. */
+const FONN_MAX_CARD_CALLS = 30;
+/** Total Fonn calls per fetch, well under the Workers subrequest limit. Name lookups use what is left. */
+const FONN_BUDGET = 45;
 const FONN_MAX_DAYS = 62;
 const FONN_CONCURRENCY = 6;
 
@@ -81,6 +80,16 @@ async function inBatches(items, task) {
   const out = [];
   for (let i = 0; i < items.length; i += FONN_CONCURRENCY) out.push(...(await Promise.all(items.slice(i, i + FONN_CONCURRENCY).map(task))));
   return out;
+}
+
+/**
+ * Short FNV-1a hash so a time card keeps the same reference across fetches (Fonn time cards have no id).
+ * @param {string} text
+ */
+function stableHash(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  return (h >>> 0).toString(16).padStart(8, '0');
 }
 
 /** @param {string} day @param {number} days */
@@ -125,8 +134,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (from > to) throw new HttpError(400, 'From date must be on or before to date.');
   if (Date.parse(to) - Date.parse(from) > FONN_MAX_DAYS * 86_400_000) throw new HttpError(400, `Choose a period of at most ${FONN_MAX_DAYS} days.`);
   const headers = { 'Ocp-Apim-Subscription-Key': subscriptionKey, authorization: accessToken, accept: 'application/json' };
+  let used = 0;
+  /** @type {import('../../lib/api-http.js').FetchLike} */
+  const counted = (input, init) => { used += 1; return fetchImpl(input, init); };
   let organizationId = (creds.organizationId ?? '').trim();
-  if (!organizationId) organizationId = await discoverOrganization(headers, fetchImpl);
+  if (!organizationId) organizationId = await discoverOrganization(headers, counted);
   if (!/^[0-9a-f-]{36}$/i.test(organizationId)) throw new HttpError(400, 'The Fonn organization ID must be a UUID.');
 
   /** @type {Array<{ id: string, name: string }>} */
@@ -134,21 +146,25 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   for (let page = 1; page <= MAX_PAGES; page++) {
     const q = new URLSearchParams({ page: String(page), limit: String(FONN_PAGE) });
     if (projectNumber) q.set('projectNumber', projectNumber);
-    const res = await fonnGet(`/organizations/${encodeURIComponent(organizationId)}/projects?${q}`, headers, fetchImpl);
+    const res = await fonnGet(`/organizations/${encodeURIComponent(organizationId)}/projects?${q}`, headers, counted);
     const batch = Array.isArray(res?.data) ? res.data : [];
     projects.push(...batch.map((/** @type {any} */ p) => ({ id: String(p.id), name: String(p.name ?? '') })));
     const pg = res?.meta?.pagination;
     if (batch.length < FONN_PAGE || !pg || !(Number(pg.nextPage) > Number(pg.currentPage))) break;
   }
   if (projects.length === 0) throw new HttpError(400, projectNumber ? `No Fonn project has number ${projectNumber}.` : 'The access token has no Fonn projects.');
-  if (projects.length > FONN_MAX_PROJECTS) throw new HttpError(400, `Found ${projects.length} Fonn projects. Enter a project number to fetch one project at a time (limit ${FONN_MAX_PROJECTS}).`);
 
+  // GET /projects/{projectId}/time-cards/{periodFrom} returns the seven days starting at periodFrom
+  // (documented example: periodFrom 2022-10-23 returns 23 to 29 October), so one call per project and week.
   /** @type {string[]} */
   const weeks = [];
   for (let d = from; d <= to; d = addDays(d, 7)) weeks.push(d);
+  if (projects.length * weeks.length > FONN_MAX_CARD_CALLS) {
+    throw new HttpError(400, `${projects.length} Fonn projects over ${weeks.length} weeks needs ${projects.length * weeks.length} time card requests (limit ${FONN_MAX_CARD_CALLS}). Enter a project number or choose a shorter period.`);
+  }
   const jobs = projects.flatMap((p) => weeks.map((w) => ({ p, w })));
   const cardsPerJob = await inBatches(jobs, async ({ p, w }) => {
-    const res = await fonnGet(`/projects/${encodeURIComponent(p.id)}/time-cards/${w}`, headers, fetchImpl);
+    const res = await fonnGet(`/projects/${encodeURIComponent(p.id)}/time-cards/${w}`, headers, counted);
     const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.data?.timeCards) ? res.data.timeCards : [];
     return list.map((/** @type {any} */ c) => ({ ...c, _project: p }));
   });
@@ -159,54 +175,54 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     if (!date || date < from || date > to || !(num(c.seconds) > 0)) continue;
     cards.set([c._project.id, c.userId, date, c.timeClassificationId, c.checklistItemId ?? ''].join('|'), { ...c, date });
   }
-  const activeProjects = projects.filter((p) => [...cards.values()].some((c) => c._project.id === p.id));
+  // Name lookups are optional: they use the budget left after the time card calls, members and client first.
+  const activeProjects = projects.filter((p) => [...cards.values()].some((c) => c._project.id === p.id)).slice(0, Math.max(0, Math.floor((FONN_BUDGET - used) / 2)));
   /** @type {Map<string, string>} */ const userName = new Map();
   /** @type {Map<string, string>} */ const clientName = new Map();
   await inBatches(activeProjects, async (p) => {
     const [members, client] = await Promise.all([
-      fonnGet(`/projects/${encodeURIComponent(p.id)}/members?page=1&limit=100`, headers, fetchImpl).catch(() => null),
-      fonnGet(`/projects/${encodeURIComponent(p.id)}/client`, headers, fetchImpl).catch(() => null),
+      fonnGet(`/projects/${encodeURIComponent(p.id)}/members?page=1&limit=100`, headers, counted).catch(() => null),
+      fonnGet(`/projects/${encodeURIComponent(p.id)}/client`, headers, counted).catch(() => null),
     ]);
     for (const m of Array.isArray(members?.data) ? members.data : []) userName.set(String(m.id), [m.firstName, m.lastName].filter(Boolean).join(' ') || String(m.username ?? ''));
     if (client?.data?.clientName) clientName.set(p.id, String(client.data.clientName));
   });
   /** @type {Map<string, string>} */ const classification = new Map();
-  const classKeys = [...new Set([...cards.values()].filter((c) => c.timeClassificationId).map((c) => `${c._project.id}|${c.timeClassificationId}`))];
+  /** @type {Map<string, string>} */ const classProject = new Map();
+  for (const c of cards.values()) if (c.timeClassificationId && !classProject.has(String(c.timeClassificationId))) classProject.set(String(c.timeClassificationId), c._project.id);
+  const classKeys = [...classProject].map(([cid, pid]) => `${pid}|${cid}`).slice(0, Math.max(0, FONN_BUDGET - used));
   await inBatches(classKeys, async (k) => {
     const [pid, cid] = k.split('|');
-    const res = await fonnGet(`/projects/${encodeURIComponent(pid ?? '')}/time-classifications/${encodeURIComponent(cid ?? '')}`, headers, fetchImpl).catch(() => null);
+    const res = await fonnGet(`/projects/${encodeURIComponent(pid ?? '')}/time-classifications/${encodeURIComponent(cid ?? '')}`, headers, counted).catch(() => null);
     if (res?.data?.name) classification.set(String(cid), String(res.data.name));
   });
-  const rows = [...cards.values()].map((c, i) => ({
-    ref: `FONN-${c.date}-${i + 1}`,
+  const rows = [...cards.entries()].map(([k, c]) => ({
+    ref: `FONN-${c.date}-${stableHash(k)}`,
     date: c.date,
     customerName: clientName.get(c._project.id) ?? '—',
     project: c._project.name || '—',
     employeeName: userName.get(String(c.userId)) ?? '—',
     description: [classification.get(String(c.timeClassificationId)), String(c.note ?? '').trim()].filter(Boolean).join(': ') || `${BRAND} time card`,
-    hours: Number((num(c.seconds) / 3600).toFixed(2)),
-    amountExVat: 0,
+    hours: Math.round(num(c.seconds) / 36) / 100,
   })).sort((a, b) => a.date.localeCompare(b.date));
   if (rows.length === 0) throw new HttpError(400, `${BRAND} returned no time cards for ${from} to ${to}.`);
   return rows;
 }
 
 /**
- * Loads the ReAI customers, employees and active projects used for mapping.
+ * Loads the ReAI employees and active projects used for mapping.
  * @param {import('../../lib/types.d.ts').Env} env
  * @param {import('../../lib/types.d.ts').SessionData | null} session
  * @returns {Promise<ReaiLists>}
  */
 async function loadReaiLists(env, session) {
-  if (!session || session.tenantId <= 0) return { customers: [], employees: [], projects: [] };
+  if (!session || session.tenantId <= 0) return { employees: [], projects: [] };
   const auth = { token: session.accessToken, tenantId: session.tenantId };
-  const [c, e, p] = await Promise.all([
-    reaiAll(env, '/api/customers', { ...auth, query: { archived: 'false' } }).catch(() => []),
+  const [e, p] = await Promise.all([
     reaiRequest(env, '/api/employees', auth).catch(() => []),
     reaiAll(env, '/api/projects', { ...auth, query: { archived: 'false' } }).catch(() => []),
   ]);
   return {
-    customers: /** @type {SimpleRef[]} */ (c),
     employees: Array.isArray(e) ? /** @type {SimpleRef[]} */ (e) : [],
     projects: /** @type {SimpleRef[]} */ (p),
   };
@@ -215,39 +231,33 @@ async function loadReaiLists(env, session) {
 /** @param {string} s */
 const key = (s) => s.trim().toLowerCase();
 
-/** @param {{ rows: TradeRow[], lists: ReaiLists, defaultCustomerId: number, defaultEmployeeId: number, projectId: number, isSample?: boolean }} state */
+/** @param {{ rows: TradeRow[], lists: ReaiLists, defaultEmployeeId: number, projectId: number, isSample?: boolean }} state */
 function renderPreview(state) {
-  const customerByName = new Map(state.lists.customers.map((c) => [key(c.name), c.id]));
   const employeeByName = new Map(state.lists.employees.map((e) => [key(e.name), e.id]));
   const totalHours = state.rows.reduce((s, r) => s + r.hours, 0);
-  const totalAmt = state.rows.reduce((s, r) => s + r.amountExVat, 0);
   return reaiCard({
-    eyebrow: `${BRAND.toUpperCase()} → REAI TIMESHEETS AND DRAFT ORDERS`,
-    title: `${state.rows.length} rows fetched`,
-    badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Review before staging', tone: 'success' }),
+    eyebrow: `${BRAND.toUpperCase()} → REAI TIMESHEETS`,
+    title: `${state.rows.length} time cards fetched`,
+    badge: state.isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Review before logging', tone: 'success' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Rows', value: String(state.rows.length), detail: 'Each row is staged only when you click it' })}
+        ${reaiMetric({ label: 'Time cards', value: String(state.rows.length), detail: 'Each row is logged only when you click it' })}
         ${reaiMetric({ label: 'Hours', value: `${totalHours.toFixed(2)} h`, detail: 'Logged as ReAI timesheet rows' })}
-        ${reaiMetric({ label: 'Invoice basis ex. VAT', value: `${formatMinor(Math.round(totalAmt * 100))} NOK`, detail: 'Staged as ReAI draft orders' })}
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Ref</th><th>Date</th><th>Customer / project</th><th>Employee</th><th class="num">Hours</th><th class="num">Ex. VAT</th><th>Action</th></tr></thead>
+        <thead><tr><th>Ref</th><th>Date</th><th>Customer / project</th><th>Employee</th><th class="num">Hours</th><th>Action</th></tr></thead>
         <tbody>${state.rows.map((row, idx) => {
-          const cid = customerByName.get(key(row.customerName)) ?? state.defaultCustomerId;
           const eid = employeeByName.get(key(row.employeeName)) ?? state.defaultEmployeeId;
           return html`<tr id="${SLUG}-r-${idx}">
             <td class="mono">${row.ref}</td><td class="mono">${row.date}</td>
             <td><strong>${row.customerName}</strong><br><span class="muted-note">${row.project} · ${row.description}</span></td>
             <td>${row.employeeName}</td>
-            <td class="num">${row.hours.toFixed(2)}</td><td class="num">${formatMinor(Math.round(row.amountExVat * 100))}</td>
+            <td class="num">${row.hours.toFixed(2)}</td>
             <td>${state.isSample
               ? html`<span class="muted-note">Demo only</span>`
-              : html`<div class="inline-row">
-                  ${row.amountExVat > 0 && cid > 0 ? html`<form hx-post="${BASE_PATH}/create-order" hx-target="#${SLUG}-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="ref" value="${row.ref}"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="description" value="${row.description}"><input type="hidden" name="amount" value="${row.amountExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${cid}"><input type="hidden" name="projectId" value="${state.projectId}"><button type="submit" class="button primary">Stage draft order</button></form>` : ''}
-                  ${row.hours > 0 && eid > 0 ? html`<form hx-post="${BASE_PATH}/log-hours" hx-target="#${SLUG}-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="hours" value="${row.hours.toFixed(2)}"><input type="hidden" name="description" value="[${BRAND} ${row.ref}] ${row.description}"><input type="hidden" name="employeeId" value="${eid}"><input type="hidden" name="projectId" value="${state.projectId}"><button type="submit" class="button secondary">Log hours</button></form>` : ''}
-                  ${(row.amountExVat <= 0 || cid <= 0) && (row.hours <= 0 || eid <= 0) ? html`<span class="muted-note">Choose a ReAI customer or employee above</span>` : ''}
-                </div>`}</td>
+              : row.hours > 0 && eid > 0
+                ? html`<form hx-post="${BASE_PATH}/log-hours" hx-target="#${SLUG}-r-${idx}" hx-swap="outerHTML"><input type="hidden" name="ref" value="${row.ref}"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="hours" value="${row.hours.toFixed(2)}"><input type="hidden" name="description" value="${row.description}"><input type="hidden" name="employeeId" value="${eid}"><input type="hidden" name="projectId" value="${state.projectId}"><button type="submit" class="button primary">Log hours</button></form>`
+                : html`<span class="muted-note">Choose a ReAI employee above</span>`}</td>
           </tr>`;
         })}</tbody>
       </table></div>
@@ -258,7 +268,6 @@ function renderPreview(state) {
 /** @param {ReaiLists} lists */
 function renderMappingFields(lists) {
   return html`<div class="mapping-grid">
-    <div class="field"><label for="${SLUG}-cust">Fallback ReAI customer</label><select id="${SLUG}-cust" name="defaultCustomerId"><option value="0">${lists.customers.length > 0 ? 'Match by name or choose…' : 'Connect to ReAI first'}</option>${lists.customers.slice(0, 500).map((c) => html`<option value="${c.id}">${c.name}</option>`)}</select></div>
     <div class="field"><label for="${SLUG}-emp">Fallback ReAI employee</label><select id="${SLUG}-emp" name="defaultEmployeeId"><option value="0">${lists.employees.length > 0 ? 'Match by name or choose…' : 'Connect to ReAI first'}</option>${lists.employees.map((e) => html`<option value="${e.id}">${e.name}</option>`)}</select></div>
     <div class="field"><label for="${SLUG}-proj">ReAI project (optional)</label><select id="${SLUG}-proj" name="projectId"><option value="0">No project</option>${lists.projects.map((p) => html`<option value="${p.id}">${p.name}</option>`)}</select></div>
   </div>`;
@@ -291,7 +300,7 @@ export async function handle(request, env) {
   const originError = requireSameOrigin(request);
   if (originError) return originError;
   if (pathname === `${BASE_PATH}/sample`) {
-    return htmlResponse(renderPreview({ rows: SAMPLE_ROWS, lists: { customers: [], employees: [], projects: [] }, defaultCustomerId: 1, defaultEmployeeId: 1, projectId: 0, isSample: true }));
+    return htmlResponse(renderPreview({ rows: SAMPLE_ROWS, lists: { employees: [], projects: [] }, defaultEmployeeId: 1, projectId: 0, isSample: true }));
   }
 
   try {
@@ -301,34 +310,25 @@ export async function handle(request, env) {
       for (const [k, v] of form.entries()) if (typeof v === 'string') creds[k] = v;
       const rows = await fetchApi(creds);
       const lists = await loadReaiLists(env, await readSession(env, request));
-      return htmlResponse(renderPreview({ rows, lists, defaultCustomerId: Number(creds.defaultCustomerId ?? '0'), defaultEmployeeId: Number(creds.defaultEmployeeId ?? '0'), projectId: Number(creds.projectId ?? '0') }));
+      return htmlResponse(renderPreview({ rows, lists, defaultEmployeeId: Number(creds.defaultEmployeeId ?? '0'), projectId: Number(creds.projectId ?? '0') }));
     }
     const session = await readSession(env, request);
     if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
     const auth = { token: session.accessToken, tenantId: session.tenantId };
     const projectId = Number(form.get('projectId') ?? '0');
-    if (pathname === `${BASE_PATH}/create-order`) {
-      const ref = String(form.get('ref') ?? '').trim();
-      const date = isoDate(form.get('date'));
-      const description = String(form.get('description') ?? BRAND).trim().slice(0, 255) || `${BRAND} ${ref}`;
-      const amount = Number(num(form.get('amount')).toFixed(2));
-      const customerId = Number(form.get('customerId') ?? '0');
-      if (!ref || amount <= 0 || customerId <= 0) throw new HttpError(400, 'A reference, a positive amount and a ReAI customer are required.');
-      const externalReference = `${SLUG}-${ref}`.slice(0, 100);
-      const existing = /** @type {{ items: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/orders', { ...auth, query: { externalReference, pageSize: '1' } }));
-      const found = existing.items[0];
-      const created = found ?? /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { ...auth, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${BRAND} ${ref}`, ...(projectId > 0 ? { projectId } : {}), orderLines: [{ itemName: description, quantity: 1, unitPrice: amount }] } }));
-      const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
-      return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${description}</td><td>—</td><td class="num">—</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">${found ? 'Already staged' : 'Draft order'} #${created.id} ↗</a></td></tr>`);
-    }
     if (pathname === `${BASE_PATH}/log-hours`) {
       const date = isoDate(form.get('date'));
       const hours = Number(num(form.get('hours')).toFixed(2));
       const employeeId = Number(form.get('employeeId') ?? '0');
-      const comment = String(form.get('description') ?? BRAND).slice(0, 1000);
-      if (employeeId <= 0 || hours < 0.01 || hours > 24) throw new HttpError(400, 'A ReAI employee and 0.01 to 24 hours are required.');
+      const ref = String(form.get('ref') ?? '').trim();
+      if (employeeId <= 0 || hours < 0.01 || hours > 24 || !/^FONN-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9a-f]{8}$/.test(ref)) throw new HttpError(400, 'A Fonn reference, a ReAI employee and 0.01 to 24 hours are required.');
+      const marker = `[${BRAND} ${ref}]`;
+      const comment = `${marker} ${String(form.get('description') ?? '').trim()}`.slice(0, 1000);
+      const existing = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { ...auth, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+      const dup = (Array.isArray(existing) ? existing : []).find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker));
+      if (dup) return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'warn' })}</td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { ...auth, method: 'POST', body: { employeeId, date, hours, ...(projectId > 0 ? { projectId } : {}), comment } }));
-      return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
+      return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

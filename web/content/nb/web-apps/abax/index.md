@@ -14,12 +14,12 @@ highlights:
 
 ## Overfør yrkesturer fra ABAX til ReAI
 
-Integrasjonen henter yrkesturene for en periode fra ABAX, regner om avstanden til kilometer og legger til bompenger som ABAX har registrert på turen. Du ser alle turene før du fører dem i kjøreboken i ReAI, der kilometergodtgjørelsen beregnes.
+Integrasjonen henter yrkesturene for en periode fra ABAX, regner om avstanden til kilometer og legger til bompenger som ABAX har registrert på turen. En passasjer som er registrert i ABAX, tas med på turen. Hver tur går til den ansatte i ReAI med samme e-post som sjåføren i ABAX. Har alle turene samme sjåfør, brukes den ansatte du velger. Turer som allerede står i kjøreboken, merkes. Du ser alle turene før du fører dem i kjøreboken i ReAI, der kilometergodtgjørelsen beregnes.
 
 ## Slik setter du opp ABAX mot ReAI
 
 1. Logg inn i [ABAX Developer Portal](https://developers.abax.cloud) med en administratorbruker og opprett API-legitimasjon for produksjon.
 2. Be ABAX support om å aktivere klientlegitimasjon (client credentials) for denne legitimasjonen. Den er ikke aktivert som standard.
-3. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt kjøretøy.
+3. Klikk **Åpne integrasjon**, koble til ReAI og velg eventuelt ansatt og kjøretøy.
 4. Lim inn klient-ID og klienthemmelighet, velg periode (høyst tre måneder) og eventuelt sjåførens e-post i ABAX.
 5. Kontroller turene og klikk **Record trip** for hver tur som skal føres.

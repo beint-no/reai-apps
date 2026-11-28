@@ -27,66 +27,111 @@ function validNorwegianOrg(value) {
   return check < 10 && check === Number(value[8]);
 }
 
+/** @type {Map<string, string> | null} */
+let countryNames = null;
+
 /**
+ * Maps a HubSpot country value (free text, English or Norwegian name, or ISO code) to ISO 3166-1 alpha-2.
+ * Blank or unrecognised values fall back to NO, the ReAI default.
  * @param {string} raw
  * @returns {string}
  */
 function normalizeCountry(raw) {
   const c = raw.trim().toUpperCase();
-  if (!c || c === 'NORWAY' || c === 'NORGE') {
-    return 'NO';
+  if (!c) return 'NO';
+  if (/^[A-Z]{2}$/.test(c)) return c;
+  if (!countryNames) {
+    countryNames = new Map();
+    const en = new Intl.DisplayNames(['en'], { type: 'region' });
+    const nb = new Intl.DisplayNames(['nb'], { type: 'region' });
+    for (let a = 65; a <= 90; a++) {
+      for (let b = 65; b <= 90; b++) {
+        const code = String.fromCharCode(a, b);
+        for (const dn of [en, nb]) {
+          const name = dn.of(code);
+          if (name && name !== code) countryNames.set(name.toUpperCase(), code);
+        }
+      }
+    }
+    countryNames.set('NORGE', 'NO').set('SVERIGE', 'SE').set('DANMARK', 'DK').set('USA', 'US').set('UK', 'GB');
   }
-  if (c === 'SWEDEN' || c === 'SVERIGE') {
-    return 'SE';
-  }
-  if (c === 'DENMARK' || c === 'DANMARK') {
-    return 'DK';
-  }
-  return /^[A-Z]{2}$/.test(c) ? c : 'NO';
+  return countryNames.get(c) ?? 'NO';
 }
 
+const SEARCH_URL = 'https://api.hubapi.com/crm/objects/2026-09/companies/search';
+/** Search pages of 200; 15 pages keep one scan at or below 15 HubSpot subrequests (3,000 companies). */
+const MAX_PAGES = 15;
+const PAGE_SIZE = 200;
+
+/** @param {number} ms */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
- * Fetches all HubSpot companies, following the `paging.next.after` cursor.
- * HubSpot has no standard organization number property, so the caller names its own custom property.
- * Docs: https://developers.hubspot.com/docs/api-reference/latest/crm/objects/companies/get-companies
- * (GET /crm/objects/2026-09/companies, limit/after/properties, scope crm.objects.companies.read) and
- * https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/account-service-keys
+ * Fetches HubSpot companies with the CRM search endpoint (200 per page, `paging.next.after` cursor),
+ * sorted by record ID so paging is stable. HubSpot has no standard organization number property,
+ * so the caller names its own custom property. Search allows five requests per second per account,
+ * so a 429 is retried once after `Retry-After`.
+ * Docs: https://developers.hubspot.com/docs/api-reference/search/guide (POST /crm/objects/2026-09/{object}/search)
+ * and https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/account-service-keys
  * (service key sent as Authorization: Bearer).
  * @param {string} token
  * @param {string} orgProperty
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<HubSpotCompany[]>}
+ * @param {string} [modifiedSince] YYYY-MM-DD; only companies changed on or after this day
+ * @returns {Promise<{ companies: HubSpotCompany[], truncated: boolean }>}
  */
-export async function fetchHubSpotCompanies(token, orgProperty, fetchImpl = fetch) {
+export async function fetchHubSpotCompanies(token, orgProperty, fetchImpl = fetch, modifiedSince = '') {
   const properties = ['name', 'domain', 'phone', 'address', 'zip', 'city', 'country', ...(orgProperty ? [orgProperty] : [])];
+  const filterGroups = modifiedSince
+    ? [{ filters: [{ propertyName: 'hs_lastmodifieddate', operator: 'GTE', value: String(Date.parse(`${modifiedSince}T00:00:00Z`)) }] }]
+    : [];
   /** @type {Array<{ id: string, properties?: Record<string, string | null> }>} */
   const results = [];
   let after = '';
-  for (let page = 0; page < 50; page++) {
-    const url = new URL('https://api.hubapi.com/crm/objects/2026-09/companies');
-    url.searchParams.set('limit', '100');
-    url.searchParams.set('archived', 'false');
-    url.searchParams.set('properties', properties.join(','));
-    if (after) url.searchParams.set('after', after);
-    const res = await fetchImpl(url, {
-      headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(20_000),
+  let truncated = false;
+  for (let page = 0; ; page++) {
+    if (page === MAX_PAGES) {
+      truncated = true;
+      break;
+    }
+    const body = JSON.stringify({
+      filterGroups,
+      properties,
+      sorts: [{ propertyName: 'hs_object_id', direction: 'ASCENDING' }],
+      limit: PAGE_SIZE,
+      ...(after ? { after } : {}),
     });
+      /** @type {RequestInit} */
+    const init = {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, accept: 'application/json', 'content-type': 'application/json' },
+      body,
+      redirect: 'manual',
+    };
+    let res = await fetchImpl(SEARCH_URL, { ...init, signal: AbortSignal.timeout(20_000) });
+    if (res.status === 429) {
+      const wait = Math.min(Math.max(Number(res.headers.get('retry-after') ?? '1') || 1, 1), 3);
+      await sleep(wait * 1000);
+      res = await fetchImpl(SEARCH_URL, { ...init, signal: AbortSignal.timeout(20_000) });
+    }
     if (!res.ok) {
       throw new HttpError(
         400,
         res.status === 401 || res.status === 403
           ? 'HubSpot rejected this key. Give it the crm.objects.companies.read scope.'
-          : `HubSpot returned HTTP ${res.status}.`,
+          : res.status === 429
+            ? 'HubSpot rate limit reached. Wait a minute and scan again.'
+            : res.status === 400 && orgProperty
+              ? `HubSpot rejected the request. Check that the property "${orgProperty}" exists on companies.`
+              : `HubSpot returned HTTP ${res.status}.`,
       );
     }
-    const body = /** @type {{ results?: Array<{ id: string, properties?: Record<string, string | null> }>, paging?: { next?: { after?: string } } }} */ (await res.json());
-    results.push(...(body.results ?? []));
-    after = body.paging?.next?.after ?? '';
+    const data = /** @type {{ results?: Array<{ id: string, properties?: Record<string, string | null> }>, paging?: { next?: { after?: string } } }} */ (await res.json());
+    results.push(...(data.results ?? []));
+    after = data.paging?.next?.after ?? '';
     if (!after) break;
   }
-  return results
+  const companies = results
     .map((r) => {
       const p = r.properties ?? {};
       const orgRaw = orgProperty ? String(p[orgProperty] ?? '').replace(/\s+/g, '') : '';
@@ -103,6 +148,7 @@ export async function fetchHubSpotCompanies(token, orgProperty, fetchImpl = fetc
       };
     })
     .filter((c) => c.name.length > 0);
+  return { companies, truncated };
 }
 
 /**
@@ -128,10 +174,10 @@ function buildSyncRows(companies, reaiCustomers) {
 }
 
 /**
- * @param {{ rows: SyncRow[], isSample?: boolean }} state
+ * @param {{ rows: SyncRow[], isSample?: boolean, truncated?: boolean }} state
  */
 function renderSyncTable(state) {
-  const { rows, isSample } = state;
+  const { rows, isSample, truncated } = state;
   const matched = rows.filter((r) => r.status === 'matched').length;
   const ready = rows.filter((r) => r.status === 'ready').length;
   const needsOrg = rows.filter((r) => r.status === 'needs_orgnr').length;
@@ -150,6 +196,9 @@ function renderSyncTable(state) {
           ${reaiMetric({ label: 'Needs org.nr', value: String(needsOrg), detail: 'Enter 9-digit NO org.nr inline' })}
         </div>
 
+        ${truncated
+          ? reaiCallout({ tone: 'warn', body: `Showing the first ${MAX_PAGES * PAGE_SIZE} HubSpot companies by record ID. Set a changed-since date to scan the rest.` })
+          : ''}
         <div class="table-wrap">
           <table class="data-table">
             <thead>
@@ -241,6 +290,10 @@ export async function handleHubSpot(request, env) {
                   <label for="hs-org">Org.nr property (optional)</label>
                   <input id="hs-org" name="orgProperty" type="text" pattern="[a-z0-9_]{1,100}" placeholder="Internal name, e.g. orgnr">
                 </div>
+                <div class="field">
+                  <label for="hs-since">Changed since (optional)</label>
+                  <input id="hs-since" name="modifiedSince" type="date">
+                </div>
                 <button type="submit" class="button primary">Scan HubSpot companies</button>
                 <button type="button" class="button secondary" hx-post="/app/hubspot/sample" hx-target="#hubspot-output" hx-swap="innerHTML">Load sample preview</button>
               </div>
@@ -296,15 +349,19 @@ export async function handleHubSpot(request, env) {
       if (orgProperty && !/^[a-z0-9_]{1,100}$/.test(orgProperty)) {
         throw new HttpError(400, 'Enter the internal property name in lowercase, as shown in HubSpot property settings.');
       }
-      const [companies, customers] = await Promise.all([
-        fetchHubSpotCompanies(token, orgProperty),
+      const modifiedSince = String(form.get('modifiedSince') ?? '').trim();
+      if (modifiedSince && !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(modifiedSince)) {
+        throw new HttpError(400, 'Enter the changed-since date as YYYY-MM-DD.');
+      }
+      const [{ companies, truncated }, customers] = await Promise.all([
+        fetchHubSpotCompanies(token, orgProperty, fetch, modifiedSince),
         reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId }),
       ]);
       const rows = buildSyncRows(
         companies,
         /** @type {Array<{ id: number, name?: string | null, organizationNumber?: string | null }>} */ (customers),
       );
-      return htmlResponse(renderSyncTable({ rows }));
+      return htmlResponse(renderSyncTable({ rows, truncated }));
     }
 
     if (pathname === '/app/hubspot/create') {
@@ -314,13 +371,34 @@ export async function handleHubSpot(request, env) {
       const address = String(form.get('address') ?? '').trim();
       const zip = String(form.get('zip') ?? '').trim();
       const city = String(form.get('city') ?? '').trim();
-      const phoneRaw = String(form.get('phone') ?? '').replace(/[ ()-]/g, '');
+      const phoneDigits = String(form.get('phone') ?? '').replace(/[ ().-]/g, '').replace(/^00/, '+');
+      const phoneRaw = country === 'NO' && /^[2-9][0-9]{7}$/.test(phoneDigits) ? `+47${phoneDigits}` : phoneDigits;
 
       if (!name) {
         throw new HttpError(400, 'Company name is required.');
       }
       if (country === 'NO' && !validNorwegianOrg(orgnr)) {
         throw new HttpError(400, 'Enter a valid 9-digit Norwegian organization number.');
+      }
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const existing = /** @type {{ items: Array<{ id: number }> }} */ (
+        await reaiRequest(env, '/api/customers', {
+          ...auth,
+          query: orgnr ? { organizationNumber: orgnr, pageSize: '1' } : { name, pageSize: '50' },
+        })
+      );
+      const dup = orgnr
+        ? existing.items[0]
+        : /** @type {Array<{ id: number, name?: string | null }>} */ (existing.items).find((c) => (c.name ?? '').trim().toLowerCase() === name.toLowerCase());
+      if (dup) {
+        return htmlResponse(html`<tr>
+        <td><strong>${name}</strong></td>
+        <td class="mono">${country}</td>
+        <td class="mono">${orgnr || '—'}</td>
+        <td>${city || '—'}</td>
+        <td>${reaiBadge({ text: `Matched #${dup.id}`, tone: 'neutral' })}</td>
+        <td><span class="muted-note">Already in ReAI</span></td>
+      </tr>`);
       }
       /** @type {Record<string, unknown>} */
       const payload = {
@@ -334,8 +412,7 @@ export async function handleHubSpot(request, env) {
       };
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/customers', {
-          token: session.accessToken,
-          tenantId: session.tenantId,
+          ...auth,
           method: 'POST',
           body: payload,
         })

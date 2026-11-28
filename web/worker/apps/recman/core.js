@@ -382,9 +382,12 @@ export function parseRecManPaychecks(rawRows) {
     .filter((p) => p.paycheckId > 0 && p.lines.length > 0);
 }
 
+const KARTVERKET_BUDGET = 20;
+
 /**
  * Resolves Norwegian workplace addresses to 4-digit municipality codes via Kartverket API.
  * Mirrors Saman's WorkplaceMunicipalities.swift exact street + postcode matching.
+ * Resolves at most 14 addresses with at most KARTVERKET_BUDGET lookups (Workers subrequest budget); later addresses stay unresolved.
  * @param {RecManAddress[]} addresses
  * @returns {Promise<Map<string, MunicipalityMatch>>}
  */
@@ -398,13 +401,15 @@ export async function lookupWorkplaceMunicipalities(addresses) {
   }
   /** @type {Map<string, MunicipalityMatch>} */
   const out = new Map();
-  const entries = [...unique.entries()].slice(0, 25);
+  const entries = [...unique.entries()].slice(0, 14);
+  let lookups = 0;
 
   /**
    * @param {string} street
    * @param {string} postcode
    */
   async function queryKartverket(street, postcode) {
+    lookups += 1;
     const url = new URL('https://api.kartverket.no/adresser/v1/sok');
     url.searchParams.set('adressetekst', street);
     url.searchParams.set('postnummer', postcode);
@@ -432,7 +437,7 @@ export async function lookupWorkplaceMunicipalities(addresses) {
       let matches = await queryKartverket(addr.address1, addr.postalCode);
       if (matches.length === 0) {
         const unit = /^(.*\s[0-9]+)\s*[A-Za-z]$/.exec(addr.address1);
-        if (unit?.[1]) {
+        if (unit?.[1] && lookups < KARTVERKET_BUDGET) {
           matches = await queryKartverket(unit[1], addr.postalCode);
         }
       }

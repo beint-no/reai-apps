@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter dine egne tidsregistreringer i Toggl Track med start i valgt måned. Registreringer som fortsatt går, tas ikke med. Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
+Integrasjonen henter dine egne tidsregistreringer i Toggl Track med start i valgt måned. Registreringer som fortsatt går, tas ikke med, og datoene følger norsk tid. Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger. En linje som allerede finnes i ReAI med samme dato, timer og kommentar, føres ikke på nytt.
 
 ## Slik kommer du i gang
 

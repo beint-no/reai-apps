@@ -2,37 +2,44 @@
 
 Route `/app/psykbase/`. Docs pages: `web/content/{nb,en}/web-apps/psykbase/index.md`.
 
+Fetches PsykBase Online invoices for a period and books one balanced ReAI review voucher: VAT exempt treatment revenue, any taxable sales and payments by method.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- PsykBase API article (links the reference): https://help.psykbase.no/nb/articles/204383-api
+- Reference (now behind login): https://system.easypractice.net/api/index.html
+- Public copy used for fields: https://web.archive.org/web/20260718211007/https://system.easypractice.net/api/index.html
+- Platform page: https://easypractice.net/api/
 
-- https://help.psykbase.no/nb/articles/204383-api
-- https://system.easypractice.net/api/index.html
-- https://web.archive.org/web/20260718211007/https://system.easypractice.net/api/index.html
-- https://easypractice.net/api/
+PsykBase (Aspit AS) runs on the EasyPractice platform; `https://system.psykbase.no/api/v1/invoices` answers 401 JSON like the EasyPractice API. API version: v1 (the only version; no changelog or deprecation notice is published).
 
-- Mode: api
-- Auth: Customer activates the API app in PsykBase, opens API settings and creates a Personal Access Token (scope invoices-read); app sends Authorization: Bearer <token> to https://system.psykbase.no/api/v1.
-- Hosts in code: `help.psykbase.no`, `system.easypractice.net`, `system.psykbase.no`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. (Aspit AS, named on psykbase.no). psykbase.no live, sells the journal system for psychologists.
+Auth: the clinic activates the API app, opens API settings and creates a Personal Access Token with scope `invoices-read`; sent as `Authorization: Bearer <token>`.
+
+## Calls
+
+- `GET /api/v1/invoices?order_by_number=desc&page_size=100&page=N`. Documented filters are id, number, client_id, paid, unpaid, order_by_number, page_size and page; there is no date filter, so pages are read newest first and stop when a page is short or its oldest invoice is before the period. Max 30 pages, otherwise "choose a more recent period".
+- Fields used: date (offset datetime, its date part is the clinic's day), draft, paid, payment_type, currency, total, lines[].vat, lines[].vat_rate, lines[].total.
+
+Rate limit: 60 requests per minute per token (429 with Retry-After). Subrequests per fetch: up to 30. Book: 3 ReAI calls.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /api/vat-codes` (checks 3, 31, 33 are vat_inclusive output codes and 6 is 0 %)
+- `GET /api/vouchers?startDate&endDate&includeReversed=true` (duplicate check on "PsykBase invoices <from> to <to>")
+- `POST /api/manual-vouchers` (rows via `pairVoucherRows`, NOK, dated the last day of the period)
+
+## Accounting mapping
+
+- Lines without VAT → 3200 with VAT code 6 (health services are outside the VAT act); 25/15/12 % lines → 3000/3010/3020 with 3/31/33, gross.
+- Paid card or other → 1580, paid cash → 1900; unpaid, transfer and health_insurance (documented payment_type values) → 1570.
+- Drafts skipped; non NOK invoices rejected; amounts in øre.
 
 ## Caveats
 
-PsykBase (Aspit) runs on the EasyPractice platform: the PsykBase help article links to the EasyPractice API reference, and system.psykbase.no/api/v1/invoices answers 401 JSON like the EasyPractice API. The reference now requires login; field names were taken from the public Wayback copy of 2026-07-18. Other addresses: support@aspit.no (psykbase.no/kontakt-oss), api@easypractice.net (developer, on easypractice.net/api). GET api/v1/invoices has no date filter, so the app pages order_by_number=desc (page_size 100, max 30 pages) and filters on date client side. Health services posted on 3200 with VAT code 6; taxable lines on 3000/3010/3020 with 3/31/33. Paid card/other -> 1580, cash -> 1900, everything else (unpaid, transfer, health_insurance) -> 1570. Norwegian menu labels (Apper, API-innstillinger) in the nb doc are inferred from the English EasyPractice docs. How credit notes appear (separate negative invoices vs 'credited' flag) is not documented. Note: the existing easypractice.js uses query params from/to that are not in the EasyPractice reference (the reference documents id, number, client_id, paid, unpaid, order_by_number, page_size, page).
+- How credit notes appear (negative invoice vs the `credited` flag) is not documented; non draft invoices are summed with their signed totals.
+- The voucher is only offered when lines add up to invoice totals.
+- Overlapping periods are not detected, only the exact same period.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

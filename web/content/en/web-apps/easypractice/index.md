@@ -24,7 +24,7 @@ The integration reads the invoices with an invoice date in the chosen period. Dr
 | Sales without VAT | `3100` |
 | Sales with VAT | `3000`, posted including VAT with the ReAI output VAT code |
 
-Only invoices in NOK can be booked.
+All invoices in the period must be in the currency the company keeps its accounts in. Sales without VAT use the ReAI code for sales outside the VAT Act when the company has it. If an invoice is credited, the preview shows a warning so you can check the credit note.
 
 ## Setup
 

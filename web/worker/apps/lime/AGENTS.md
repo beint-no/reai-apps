@@ -2,34 +2,58 @@
 
 Route `/app/lime/`. Docs pages: `web/content/{nb,en}/web-apps/lime/index.md`.
 
+Reads won Lime CRM deals and their companies, lets the user create missing ReAI customers and stages each won deal
+as one ReAI order.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- Overview, API users and rate limits: https://docs.lime-crm.com/integration/rest-apis/start
+- Limeobject API reference (example spec for the standard data model): http://static.lime-crm.com/crm-api-docs/spec/limeobject
+- Each application has its own interactive docs for its data model: `<application>/api/v1/docs/`
+- No public changelog or deprecation notices found.
 
-- https://docs.lime-crm.com/integration/rest-apis/start
-- http://static.lime-crm.com/crm-api-docs/spec/limeobject
+Version: Limeobject API `v1` (`<application>/api/v1/limeobject/`), the only published version. The Query API exists
+for large reads but its request format is not publicly documented, so it is not used.
 
-- Mode: fix
-- Calls: GET <application>/api/v1/limeobject/deal/?dealstatus=agreement&min-closeddate=<date>&_sort=-closeddate&_limit=50 and GET /company/{id}/ for each referenced company, header x-api-key; reads documented fields id, name, company, value, closeddate and company name, registrationno, visitingcity; accepts the HAL _embedded.limeobjects envelope or a plain array. Customers matched by org.nr or name; POST /api/customers unchanged; GET /api/orders?externalReference=lime-<id>&status=all before POST /api/orders. Docs rewritten with the LISA API user steps.
-- Hosts in code: `customer.lime-crm.com`, `docs.lime-crm.com`
-- Vendor status: Brreg: Lime Technologies Norway AS active (www.lime-technologies.no). Lime CRM sold; docs.lime-crm.com live.
+Auth: an administrator creates a user of type API in Lime CRM Server Administration (LISA) and generates the API key
+(shown once; a new key invalidates the old one). Sent as header `x-api-key`. Permissions follow the user's groups.
+
+## Endpoints
+
+- `GET /deal/?dealstatus=agreement&min-closeddate=<date>&_sort=-closeddate&_limit=50&_embed=company`; further pages by
+  following the HAL `_links.next.href` (must stay on the entered origin), at most 6 pages (300 deals).
+- `GET /company/{id}/` only for companies the deal list did not embed, 6 in parallel.
+- Deal fields: `id`, `name`, `company`, `value`, `closeddate`. Company fields: `name`, `registrationno`, `visitingcity`.
+- Rate limit (Lime CRM Cloud): 3000 requests per 5 minutes per IP.
+
+Subrequest budget: scan = deal pages (1 to 6) + fallback company GETs (capped so Lime calls stay at or under 40) +
+ReAI customer pages (200 per page). Create customer = 2. Stage order = 2.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/customers`
-- `/api/orders`
+- `GET /api/customers` (all pages, once per scan; `?organizationNumber=` before create)
+- `POST /api/customers` (`name`, `organizationNumber`, `countryCode`, `privateContact`, `skipRegistryLookup`)
+- `GET /api/orders?externalReference=lime-<id>&status=all` before `POST /api/orders`
+
+## Mapping
+
+Company → ReAI customer, matched by organization number, then by name. Won deal → ReAI order with one line
+(`itemName` = deal name, `unitPrice` = deal value excluding VAT, default customer VAT code), currency NOK,
+`externalReference` `lime-<deal id>`. `closeddate` with a time zone becomes its Europe/Oslo day.
 
 ## Caveats
 
-Lime CRM data models are per application; the example spec documents the standard base solution, and each install has its own interactive docs at /api/v1/docs/. The example spec describes list responses as arrays; live installs return HAL with _embedded.limeobjects (handled both). Only the first 50 won deals since the chosen date are read (no next-link paging). Order lines use the default customer VAT code.
+- Data models are per application; customized installs may rename `registrationno`, `value` or `dealstatus`.
+- The embedded company key in HAL `_embedded` is not shown in the public spec; the code reads `relation_company` or
+  `company` and falls back to `GET /company/{id}/`, so a different key only costs extra requests.
+- The base data model has no deal currency, so orders are NOK.
 
 ## Rules
 
 - Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
 - Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
 - Update this file when the API version, endpoints or caveats change.
 
 Last verified: 2026-11-28.

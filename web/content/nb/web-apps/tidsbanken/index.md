@@ -14,9 +14,9 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter godkjente timelinjer fra Tidsbanken med dato i valgt periode, høyst 93 dager om gangen. Du kan begrense til én ansatt med navn. Hver linje viser dato, ansatt, prosjekt, notat og antall timer.
+Integrasjonen henter godkjente timelinjer fra Tidsbanken med dato i valgt periode, høyst 93 dager om gangen. Tillegg og enhetstillegg tas ikke med. Du kan begrense til én ansatt med navn. Hver linje viser dato, ansatt, prosjekt, notat og antall timer.
 
-Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
+Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger. En linje som allerede finnes i ReAI, føres ikke på nytt.
 
 ## Slik kommer du i gang
 

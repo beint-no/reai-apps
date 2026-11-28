@@ -10,9 +10,9 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 
 /** @typedef {{ label: string, amountMinor: number, account: string }} Payment */
 /** @typedef {{ ratePct: number, grossMinor: number, account: string, label: string }} SalesRate */
-/** @typedef {{ date: string, ref: string, payments: Payment[], sales: SalesRate[] }} Settlement */
+/** @typedef {{ date: string, ref: string, currency: string, payments: Payment[], sales: SalesRate[], credited: string[] }} Settlement */
 /** @typedef {{ account: string, description: string, signedMinor: number, ratePct: number | null }} VoucherLine */
-/** @typedef {{ date: string, ref: string, lines: VoucherLine[], debitMinor: number, creditMinor: number }} Voucher */
+/** @typedef {{ date: string, ref: string, currency: string, lines: VoucherLine[], debitMinor: number, creditMinor: number, credited: string[] }} Voucher */
 /** @typedef {{ code: string, rate: number, vatType: string, amountBasis: string, reverseCharge: boolean }} VatCode */
 
 const SLUG = 'easypractice';
@@ -29,11 +29,16 @@ const API_FIELDS = [
   { name: 'toDate', label: 'Invoice date to', type: 'date', defaultValue: '$TODAY' },
 ];
 const API = 'https://system.easypractice.net/api/v1';
+/** Documented default limit is 60 requests per minute per token; stay below it and the Workers subrequest cap. */
+const MAX_PAGES = 40;
+const PAGE_SIZE = 100;
 
 /** @type {Settlement} */
 const SAMPLE = {
   date: '2026-10-31',
   ref: 'invoices 1201 to 1248',
+  currency: 'NOK',
+  credited: [],
   payments: [
     { label: 'Paid by card', amountMinor: 5240000, account: '1580' },
     { label: 'Not yet paid', amountMinor: 1070000, account: '1570' },
@@ -56,8 +61,8 @@ function minor(v) {
  * personal access tokens are sent as Authorization: Bearer {token}; GET api/v1/invoices (scope invoices-read)
  * takes id, number, client_id, paid, unpaid, order_by_number, page_size and page, and returns { data, links, meta }
  * where each invoice has draft, date, paid, paid_date, payment_type, currency, total and lines with
- * vat, vat_rate and total. The endpoint has no date filter, so invoices are read newest first by number
- * and filtered by invoice date here.
+ * vat, vat_rate and total, plus credited. The endpoint has no date filter, so invoices are read newest first by
+ * number and filtered by invoice date here. Rate limit: 60 requests per minute per token, 429 with Retry-After.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<Settlement>}
@@ -69,22 +74,32 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, 'Enter your EasyPractice personal access token.');
   if (from > to) throw new HttpError(400, 'The from date must be on or before the to date.');
   const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
+  /** @type {import('../../lib/api-http.js').FetchLike} */
+  const limited = async (input, init) => {
+    const res = await fetchImpl(input, init);
+    if (res.status === 429) throw new HttpError(429, `EasyPractice rate limit reached. Wait ${res.headers.get('retry-after') ?? '60'} seconds and try again.`);
+    return res;
+  };
 
   /** @type {any[]} */ const invoices = [];
-  for (let page = 1; page <= 50; page++) {
-    const query = new URLSearchParams({ order_by_number: 'desc', page_size: '100', page: String(page) });
-    const data = await fetchJson(`${API}/invoices?${query}`, { headers }, BRAND, fetchImpl);
+  let complete = false;
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const query = new URLSearchParams({ order_by_number: 'desc', page_size: String(PAGE_SIZE), page: String(page) });
+    const data = await fetchJson(`${API}/invoices?${query}`, { headers }, BRAND, limited);
     /** @type {any[]} */ const items = Array.isArray(data?.data) ? data.data : [];
     invoices.push(...items.filter((i) => { const d = String(i.date ?? '').slice(0, 10); return d >= from && d <= to; }));
     const lastPage = Number(data?.meta?.last_page ?? 0);
     const allOlder = items.length > 0 && items.every((i) => String(i.date ?? '').slice(0, 10) < from);
-    if (items.length === 0 || allOlder || (lastPage > 0 && page >= lastPage)) break;
+    if (items.length === 0 || allOlder || (lastPage > 0 && page >= lastPage)) { complete = true; break; }
   }
+  if (!complete) throw new HttpError(400, `EasyPractice has more than ${MAX_PAGES * PAGE_SIZE} invoices newer than ${from}. Choose a more recent period.`);
 
   const booked = invoices.filter((i) => i.draft !== true);
   if (booked.length === 0) throw new HttpError(400, `EasyPractice has no invoices dated ${from} to ${to}.`);
-  const foreign = booked.find((i) => String(i.currency ?? 'NOK').toUpperCase() !== 'NOK');
-  if (foreign) throw new HttpError(400, `Invoice ${String(foreign.number)} is in ${String(foreign.currency)}. Only NOK invoices can be booked.`);
+  const currency = String(booked[0]?.currency ?? '').toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) throw new HttpError(400, `Invoice ${String(booked[0]?.number)} has no currency.`);
+  const foreign = booked.find((i) => String(i.currency ?? '').toUpperCase() !== currency);
+  if (foreign) throw new HttpError(400, `Invoices ${String(booked[0]?.number)} and ${String(foreign.number)} have different currencies. Choose a period with one currency.`);
 
   /** @type {Map<string, SalesRate>} */ const sales = new Map();
   /** @type {Map<string, Payment>} */ const payments = new Map();
@@ -104,7 +119,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     const type = String(inv.payment_type ?? '').trim();
     const payment = inv.paid !== true
       ? { label: 'Not yet paid', account: '1570' }
-      : /(cash|kontant)/i.test(type)
+      : type.toLowerCase() === 'cash'
         ? { label: 'Paid in cash', account: '1900' }
         : { label: `Paid${type ? ` by ${type}` : ''}`, account: '1580' };
     const prev = payments.get(payment.label);
@@ -112,7 +127,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   }
   const numbers = booked.map((i) => Number(i.number)).filter(Number.isFinite).sort((a, b) => a - b);
   const ref = numbers.length > 0 ? `invoices ${numbers[0]} to ${numbers.at(-1)}` : `invoices ${from}`;
-  return { date: to, ref, payments: [...payments.values()], sales: [...sales.values()] };
+  const credited = booked.filter((i) => i.credited === true).map((i) => String(i.number));
+  return { date: to, ref, currency, payments: [...payments.values()], sales: [...sales.values()], credited };
 }
 
 /** @param {Settlement} s @returns {Voucher} */
@@ -127,7 +143,7 @@ function buildVoucher(s) {
   }
   const debitMinor = lines.filter((l) => l.signedMinor > 0).reduce((t, l) => t + l.signedMinor, 0);
   const creditMinor = lines.filter((l) => l.signedMinor < 0).reduce((t, l) => t - l.signedMinor, 0);
-  return { date: s.date, ref: s.ref, lines, debitMinor, creditMinor };
+  return { date: s.date, ref: s.ref, currency: s.currency, lines, debitMinor, creditMinor, credited: s.credited };
 }
 
 /** @param {Voucher} v @param {boolean} isSample */
@@ -137,12 +153,13 @@ function renderPreview(v, isSample) {
   return reaiCard({
     eyebrow: `${BRAND.toUpperCase()} → REAI REVIEW VOUCHER`,
     title: `${v.ref} · ${v.date}`,
-    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} NOK`, tone: 'danger' }),
+    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} ${v.currency}`, tone: 'danger' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Paid and unpaid (debit)', value: `${formatMinor(v.debitMinor)} NOK` })}
-        ${reaiMetric({ label: 'Sales incl. VAT (credit)', value: `${formatMinor(v.creditMinor)} NOK` })}
+        ${reaiMetric({ label: 'Paid and unpaid (debit)', value: `${formatMinor(v.debitMinor)} ${v.currency}` })}
+        ${reaiMetric({ label: 'Sales incl. VAT (credit)', value: `${formatMinor(v.creditMinor)} ${v.currency}` })}
       </div>
+      ${v.credited.length > 0 ? reaiCallout({ tone: 'warn', title: 'Credited invoices', body: `EasyPractice marks invoice ${v.credited.join(', ')} as credited. Check that the credit note is in the period or book it separately.` }) : ''}
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Account</th><th>Posting</th><th>VAT</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
         <tbody>${v.lines.map((l) => html`<tr><td class="mono">${l.account}</td><td>${l.description}</td><td>${l.ratePct === null ? 'None' : `${l.ratePct}%`}</td><td class="num">${l.signedMinor > 0 ? formatMinor(l.signedMinor) : ''}</td><td class="num">${l.signedMinor < 0 ? formatMinor(-l.signedMinor) : ''}</td></tr>`)}</tbody>
@@ -162,15 +179,16 @@ function renderPreview(v, isSample) {
 }
 
 /**
- * Picks the ReAI output VAT code for a sales rate (VAT-inclusive amounts).
+ * Picks the ReAI output VAT code for a sales rate (VAT-inclusive amounts). Lines without VAT are treatments
+ * outside the VAT Act (health services), so a code outside the scope of VAT is preferred over a zero rate.
  * @param {VatCode[]} codes
  * @param {number} ratePct
  */
 function outputVatCode(codes, ratePct) {
-  const usable = codes.filter((c) => !c.reverseCharge && c.amountBasis === 'vat_inclusive' && Math.abs(c.rate - ratePct) < 0.001);
+  const usable = codes.filter((c) => !c.reverseCharge && (ratePct === 0 || c.amountBasis === 'vat_inclusive') && Math.abs(c.rate - ratePct) < 0.001);
   const match = ratePct > 0
     ? usable.find((c) => c.vatType === 'output_vat')
-    : (usable.find((c) => c.vatType === 'output_vat') ?? usable.find((c) => c.vatType === 'exempt') ?? usable.find((c) => c.vatType === 'outside_scope'));
+    : (usable.find((c) => c.vatType === 'outside_scope') ?? usable.find((c) => c.vatType === 'exempt') ?? usable.find((c) => c.vatType === 'output_vat'));
   if (!match) throw new HttpError(400, `ReAI has no output VAT code for ${ratePct}% in this company.`);
   return match.code;
 }
@@ -215,6 +233,8 @@ export async function handle(request, env) {
       if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
       const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);
       if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
+      const company = session.tenants.find((t) => t.id === session.tenantId);
+      if (company && company.currencyCode !== v.currency) throw new HttpError(400, `The invoices are in ${String(v.currency)} but ${company.companyName} keeps its accounts in ${company.currencyCode}.`);
       const marker = `${BRAND} ${String(v.ref).slice(0, 80)} ${v.date}`;
       const auth = { token: session.accessToken, tenantId: session.tenantId };
       const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
@@ -231,7 +251,7 @@ export async function handle(request, env) {
           postings: pairVoucherRows(v.lines.map((l) => ({
             accountNumber: String(l.account),
             postingDate: v.date,
-            currencyCode: 'NOK',
+            currencyCode: String(v.currency),
             amount: Number((Math.round(Number(l.signedMinor)) / 100).toFixed(2)),
             vatCode: l.ratePct === null ? '0' : outputVatCode(vatCodes, Number(l.ratePct)),
             description: String(l.description).slice(0, 200),

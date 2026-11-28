@@ -1,30 +1,23 @@
 ---
-title: "Make, Zapier & n8n Automations Hub"
-seoTitle: "Make, Zapier & n8n Automations Hub — Free Open-Source ReAI Integration"
-description: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapier REST blueprints and live /api/me tester."
-summary: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapier REST blueprints and live /api/me tester."
+title: "Make, Zapier and n8n templates"
+seoTitle: "ReAI API in Make, Zapier and n8n | Free open source templates"
+description: "Ready HTTP requests for the ReAI API in n8n, Make and Zapier, plus a check of your connection and company id."
+summary: "Ready HTTP requests for the ReAI API in n8n, Make and Zapier."
 industry: operations
 webAppUrl: /app/automations/
 sourcePath: web/worker/apps/automations/
 highlights:
-  - "Built for Norwegian bookkeeping rules (No-code & low-code workflow automation)"
-  - "Direct integration with ReAI Public API (ReAI Public REST API (/api/customers, /api/orders, /api/leads))"
-  - "Included free with ReAI — MIT open source with 1-click sample preview"
+  - "Templates for customers, orders, leads, driving log and vouchers"
+  - "Looks the customer up before creating it, so none are duplicated"
+  - "Shows which company id to use"
 ---
 
-## How Make, Zapier & n8n Automations Hub works with ReAI
+## How it works
 
-Use **Make, Zapier & n8n Automations Hub** directly in your browser at `apps.reai.no/app/automations/` with zero add-on fees.
-
-| Dimension | Details |
-| --- | --- |
-| **Workflow** | No-code & low-code workflow automation |
-| **ReAI API / NS 4102** | `ReAI Public REST API (/api/customers, /api/orders, /api/leads)` |
-| **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/automations.js`) |
+Every HTTP step in Make, Zapier or n8n calls `https://app.reai.no/api/` with a token in `Authorization: Bearer`. A personal token also needs `X-Tenant-Id` with the company id. The app shows templates for common tasks and links to the [ReAI OpenAPI](https://app.reai.no/openapi/public) for every field.
 
 ## Getting started
 
-1. Open [apps.reai.no/app/automations/](/app/automations/) and click **Connect to ReAI**.
-2. Try the built-in **Load sample** button or connect your live account/export.
-3. Verify the preview table and push directly to your ReAI company.
+1. Create a token in ReAI under your profile, **Access tokens**.
+2. Open the app, click **Connect to ReAI**, choose a company and click **Test ReAI connection** to see the company id.
+3. Paste the template into an HTTP step and replace the token and company id.

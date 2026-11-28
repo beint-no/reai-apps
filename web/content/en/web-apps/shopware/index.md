@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration fetches orders dated in the chosen period whose payment transaction is *paid*. Prices including VAT are converted to amounts excluding VAT using the tax Shopware calculated for each line. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
+The integration fetches orders dated in the chosen period whose current payment transaction is *paid*. Cancelled and refunded orders are left out. Prices including VAT are converted to amounts excluding VAT using the tax Shopware calculated for each line. A discount or shipping cost spread over several VAT rates gets one line per rate. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
 | From Shopware | In ReAI |
 | --- | --- |

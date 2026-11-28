@@ -2,35 +2,66 @@
 
 Route `/app/wix/`. Docs pages: `web/content/{nb,en}/web-apps/wix/index.md`.
 
-## Vendor API
+Fetches paid Wix eCommerce orders for a period and stages each as a ReAI order (one line per
+item, shipping and additional fee, with the VAT rate Wix charged).
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/search-orders
-- https://dev.wix.com/docs/api-reference/articles/authentication/api-keys/make-api-calls-with-an-api-key
+- Reference: https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/search-orders
+- Order object: https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/order-object
+- Auth: https://dev.wix.com/docs/api-reference/articles/authentication/api-keys/make-api-calls-with-an-api-key
+- Changelog: https://dev.wix.com/docs/changelog (2026-11-22: test orders, `demo` flag on orders)
 
-- Mode: fix
-- Calls: POST https://www.wixapis.com/ecom/v1/orders/search with filter paymentStatus $eq PAID and createdDate $gte/$lt, cursorPaging limit 100 and metadata.cursors.next. One ReAI order line per lineItem (totalPriceBeforeTax, taxInfo.taxRate decimal) plus shippingInfo.cost.totalPriceBeforeTax with its tax rate; VAT codes from /api/vat-codes?usage=customer_invoice; currency from order; duplicate check via /api/orders?externalReference; customer find or create (company when billing company set). Product sync removed.
-- Hosts in code: `dev.wix.com`, `www.wixapis.com`
-- Vendor status: Wix eCommerce REST APIs are live and documented at dev.wix.com (Search Orders page current, examples dated 2026).
+## API version
+
+eCommerce Orders `ecom/v1` (the only version; current, examples dated 2026). Stores Catalog
+V1/V3 is not used.
+
+## Auth
+
+Wix API Keys Manager, permission "Read Orders" (`SCOPE.DC-STORES.READ-ORDERS`). Headers
+`Authorization: <API key>` (no prefix) and `wix-site-id: <site id>` (from the dashboard URL).
+
+## Endpoints used
+
+- `POST https://www.wixapis.com/ecom/v1/orders/search` with
+  `filter: { status: APPROVED, paymentStatus $in [PAID, PARTIALLY_REFUNDED], archived $ne true, demo $ne true, createdDate $gte/$lt }`,
+  `sort createdDate ASC`, `cursorPaging.limit 100` (documented maximum). Next pages send only
+  `cursorPaging.cursor` (`metadata.cursors.next` while `metadata.hasNext`). Max 10 pages.
+- Date bounds are 00:00 Europe/Oslo converted to UTC; order date is the Oslo day of `createdDate`.
+
+## Budget per action
+
+Fetch: 1 to 10 Wix calls. Stage: ReAI duplicate check, VAT codes, customer lookup by email then
+name (1 to 2), optional customer create, order create = 4 to 6. No Wix rate limit documented for
+this endpoint; 429 surfaces as an HTTP error.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/customers`
-- `/api/orders`
-- `/api/vat-codes`
+- `GET /api/orders?externalReference=wix-<orderId>` (duplicate check)
+- `GET /api/vat-codes?usage=customer_invoice`
+- `GET /api/customers?email|name`, `POST /api/customers`
+- `POST /api/orders`
+
+## Mapping
+
+- `lineItems[].totalPriceBeforeTax` (after discounts, before tax) split into quantity x unit price
+  (falls back to one line "N x name" when it does not divide to whole øre); VAT from
+  `taxInfo.taxRate` (decimal string) to a ReAI `output_vat` code of the same rate, 0 % to
+  exempt/outside scope.
+- Shipping: `shippingInfo.cost.totalPriceBeforeTax` with its own tax rate.
+- `additionalFees[]`: `priceBeforeTax` with `taxInfo.taxRate`.
+- Currency from `order.currency`; customer by email, else name, else created (company when the
+  billing contact has a company).
 
 ## Caveats
 
-Product sync removed (Catalog V1 vs V3 split; V3 query does not return variants). Not tested against a live site.
+- Test orders (`demo: true`) are excluded server side.
+- Partly refunded orders are staged at the full sale and flagged; the refund is booked as a credit
+  note in ReAI. Fully refunded orders are not fetched.
+- Missing tax rate leaves VAT to the ReAI item default.
+- Product sync removed (Catalog V1 vs V3 split). Not tested against a live site.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

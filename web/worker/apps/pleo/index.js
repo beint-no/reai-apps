@@ -32,6 +32,17 @@ const SAMPLE = {
   ],
 };
 
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Pleo export item dates are UTC date-times (YYYY-MM-DDTHH:mi:ssZ); the bookkeeping day is the Oslo day.
+ * @param {unknown} v
+ */
+function osloDate(v) {
+  const t = Date.parse(String(v ?? ''));
+  return Number.isFinite(t) ? OSLO_DAY.format(t) : isoDate(v);
+}
+
 /** @param {string} apiKey */
 function pleoHeaders(apiKey) {
   return { authorization: `Basic ${btoa(`${apiKey}:`)}`, accept: 'application/json;charset=UTF-8' };
@@ -98,7 +109,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     if (total !== Math.round(Number(it?.amount?.inWalletCurrency?.value ?? total))) throw new HttpError(400, `The lines of "${label}" do not add up to the expense total in Pleo.`);
     if (postings.length === 0) continue;
     postings.push({ account: contra, description: `${label} · ${String(it?.contraAccount?.name ?? 'Pleo contra')}`.slice(0, 200), signedMinor: -total, taxRate: 0, taxType: '' });
-    items.push({ accountingEntryId: String(it.accountingEntryId), date: isoDate(it.date), label, currency: String(it?.amount?.inWalletCurrency?.currency ?? 'NOK'), postings });
+    items.push({ accountingEntryId: String(it.accountingEntryId), date: osloDate(it.date), label, currency: String(it?.amount?.inWalletCurrency?.currency ?? 'NOK'), postings });
   }
   if (items.length === 0) throw new HttpError(400, skipped.length ? `The Pleo export job has no items this integration can book. ${skipped.join('; ')}.` : 'The Pleo export job is empty.');
   return { jobId: String(job.id), jobStatus: String(job.status), items, skipped };
@@ -159,9 +170,22 @@ export async function bookBatch(env, auth, apiKey, batch, fetchImpl = fetch) {
   const first = /** @type {string} */ (dates[0]);
   const last = /** @type {string} */ (dates.at(-1));
   const marker = `${BRAND} export ${batch.jobId}`;
-  const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: first, endDate: last, includeReversed: 'true' } }));
+  const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: first, endDate: last, voucherType: 'manual', includeReversed: 'true' } }));
   const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
-  if (dup) return { duplicate: true, id: dup.id, number: dup.number };
+  const ids = batch.items.map((i) => i.accountingEntryId);
+  /** @param {{ id: number, number: string }} v */
+  const markExported = async (v) => {
+    const exportedAt = new Date().toISOString().replace(/\.[0-9]{3}Z$/, 'Z');
+    const externalUrl = `${reaiOrigin(env)}/voucher/${v.id}?tenantId=${auth.tenantId}`;
+    await updateItems(batch.jobId, ids.map((accountingEntryId) => ({ accountingEntryId, status: 'successful', externalId: String(v.number), externalUrl, exportedAt })), headers, fetchImpl);
+    await jobEvent({ jobId: batch.jobId, event: 'completed' }, headers, fetchImpl);
+  };
+  if (dup) {
+    // A voucher exists but the job is still open in Pleo (an earlier run stopped after booking): finish the job.
+    if (batch.jobStatus === 'pending') await jobEvent({ jobId: batch.jobId, event: 'started' }, headers, fetchImpl);
+    await markExported(dup);
+    return { duplicate: true, id: dup.id, number: dup.number };
+  }
 
   const vatCodes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', auth));
   /** @type {Array<Record<string, unknown>>} */ const postings = [];
@@ -173,7 +197,6 @@ export async function bookBatch(env, auth, apiKey, batch, fetchImpl = fetch) {
   }
 
   if (batch.jobStatus === 'pending') await jobEvent({ jobId: batch.jobId, event: 'started' }, headers, fetchImpl);
-  const ids = batch.items.map((i) => i.accountingEntryId);
   await updateItems(batch.jobId, ids.map((accountingEntryId) => ({ accountingEntryId, status: 'in_progress' })), headers, fetchImpl);
   let created;
   try {
@@ -188,10 +211,7 @@ export async function bookBatch(env, auth, apiKey, batch, fetchImpl = fetch) {
     await jobEvent({ jobId: batch.jobId, event: 'failed', failureReasonType: 'validation_failure', failureReason: reason }, headers, fetchImpl);
     throw err;
   }
-  const exportedAt = new Date().toISOString().replace(/\.[0-9]{3}Z$/, 'Z');
-  const externalUrl = `${reaiOrigin(env)}/voucher/${created.id}?tenantId=${auth.tenantId}`;
-  await updateItems(batch.jobId, ids.map((accountingEntryId) => ({ accountingEntryId, status: 'successful', externalId: String(created.number), externalUrl, exportedAt })), headers, fetchImpl);
-  await jobEvent({ jobId: batch.jobId, event: 'completed' }, headers, fetchImpl);
+  await markExported(created);
   return { duplicate: false, id: created.id, number: created.number };
 }
 
@@ -276,7 +296,7 @@ export async function handle(request, env) {
       const result = await bookBatch(env, { token: session.accessToken, tenantId: session.tenantId }, apiKey, batch);
       const link = html`<a href="${reaiOrigin(env)}/voucher/${result.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${result.number} ↗</a>`;
       return htmlResponse(result.duplicate
-        ? reaiCallout({ tone: 'warn', title: `Already booked (${result.number})`, body: html`This export job is already in ReAI: ${link}. Finish the job in Pleo if it is still pending.` })
+        ? reaiCallout({ tone: 'warn', title: `Already booked (${result.number})`, body: html`This export job is already in ReAI: ${link}. It is now marked as exported in Pleo.` })
         : reaiCallout({ tone: 'success', title: `Created review voucher ${result.number}`, body: html`The export job is marked as exported in Pleo. ${link}.` }));
     }
   } catch (err) {

@@ -22,7 +22,7 @@ Flow Retail samler dagens salg i debet- og kreditposteringer med konto og MVA-ko
 | Salg | Inntektskontoene du har satt opp i Flow Retail |
 | Øreavrunding, kontantuttak og kundefordringer | Kontoene Flow Retail oppgir |
 
-Har rapporten ingen egen MVA-linje, føres salget inklusive MVA med MVA-koden fra Flow Retail, og ReAI deler beløpet i grunnlag og utgående MVA. Fører Flow Retail MVA på en egen `27xx`-linje, beholdes posteringene som de er. Bilaget kan bare opprettes når debet og kredit er like.
+Salget føres inklusive MVA med MVA-koden fra Flow Retail, og ReAI deler beløpet i grunnlag og utgående MVA. Fører Flow Retail MVA på en egen `27xx`-linje, legges denne MVA-en til salget med samme MVA-kode. Bilaget kan bare opprettes når debet og kredit er like.
 
 ## Slik kommer du i gang
 

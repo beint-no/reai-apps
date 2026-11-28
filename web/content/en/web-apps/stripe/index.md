@@ -26,6 +26,6 @@ Invoices and subscriptions with discounts, VAT, several lines or a currency othe
 1. In the Stripe Dashboard, open **Developers → API keys** and click **Create restricted key**. Grant read access to Customers, Invoices and Subscriptions, and copy the key starting with `rk_live_`.
 2. Create a product without VAT in ReAI that the invoice lines can use.
 3. Click **Open integration**, connect ReAI and choose the company.
-4. Paste the key, choose the product and review the list. Import invoices and stage subscriptions one at a time.
+4. Paste the key, choose the product and optionally a start date for invoices, then review the list. Import invoices and stage subscriptions one at a time.
 
 The key is used only for these requests and is never stored.

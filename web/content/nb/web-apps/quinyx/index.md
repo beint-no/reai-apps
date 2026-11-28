@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter vaktene i vaktplanen til én ansatt i Quinyx i valgt periode. Timene regnes fra start til slutt på vakten, minus pauser. Fridager, slettede vakter og vakter som ikke teller som arbeidstid, tas ikke med. Du ser hver vakt med dato, gruppe og kommentar, og fører den på en ansatt og eventuelt et prosjekt i ReAI med ett klikk.
+Integrasjonen henter vaktene i vaktplanen til én ansatt i Quinyx i valgt periode. Timene regnes fra start til slutt på vakten, minus pauser. Fridager, slettede vakter og vakter som ikke teller som arbeidstid, tas ikke med. Du ser hver vakt med dato, gruppe og kommentar, og fører den på en ansatt og eventuelt et prosjekt i ReAI med ett klikk. Kommentaren på timelisten får vakt-ID fra Quinyx, slik at en vakt som allerede er ført, ikke føres på nytt.
 
 | Fra Quinyx | I ReAI |
 | --- | --- |

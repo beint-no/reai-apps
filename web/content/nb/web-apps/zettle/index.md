@@ -14,7 +14,7 @@ highlights:
 
 ## Avstemming av utbetalinger mot bank
 
-Zettle by PayPal heter nå PayPal Point of Sale. Kortbetalinger fra kassen samles på likviditetskontoen, kortgebyret trekkes fra og nettobeløpet utbetales til bankkontoen eller PayPal-kontoen din. Integrasjonen henter utbetalingene for én måned og matcher dem mot uavstemte banktransaksjoner i ReAI på beløp, dato og referanse. Ingenting bokføres.
+Zettle by PayPal heter nå PayPal Point of Sale. Kortbetalinger fra kassen samles på likviditetskontoen, kortgebyret trekkes fra og nettobeløpet utbetales til bankkontoen eller PayPal-kontoen din. Integrasjonen henter utbetalingene for én måned, regnet i norsk tid, og matcher dem mot uavstemte banktransaksjoner i ReAI på beløp, dato og referanse. Utbetalinger som feilet og ble ført tilbake til likviditetskontoen, tas ikke med. Ingenting bokføres.
 
 ## Slik kommer du i gang
 

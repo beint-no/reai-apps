@@ -14,7 +14,7 @@ highlights:
 
 ## Move Harvest hours into ReAI
 
-The integration fetches finished time entries for a month from Harvest, with project, user and notes. You choose the employee and, if you like, the project in ReAI and post the entries one by one.
+The integration fetches finished time entries for a month from Harvest, with project, user and notes. You choose the employee and, if you like, the project in ReAI and post the entries one by one. Entries already posted to ReAI are recognised and not posted twice.
 
 ## Set up Harvest with ReAI
 

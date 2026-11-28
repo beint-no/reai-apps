@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration fetches orders created in the chosen period and leaves out canceled orders. Squarespace reports tax per order, so the integration derives the order rate and applies it to every line when it is 25, 15, 12 or 0 percent. Otherwise the lines get the ReAI default VAT code. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
+The integration fetches orders created in the chosen period in Norwegian time and leaves out test orders, canceled orders and fully refunded orders. Partly refunded orders are flagged so you can credit the refund in ReAI. Squarespace reports tax per order, so the integration derives the order rate and applies it to every line when it is 25, 15, 12 or 0 percent. Otherwise the lines get the ReAI default VAT code. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
 | From Squarespace | In ReAI |
 | --- | --- |

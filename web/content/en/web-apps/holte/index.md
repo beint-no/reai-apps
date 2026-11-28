@@ -14,7 +14,7 @@ highlights:
 
 ## Move EG HoltePortalen hours into ReAI
 
-Holte is now part of EG, and the product is called EG HoltePortalen. The integration fetches project time registrations for a period and shows the project, user and comment. You choose the employee and, if you like, the project in ReAI and post the entries one by one.
+Holte is now part of EG, and the product is called EG HoltePortalen. The integration fetches project time registrations for a period and shows the project, user and comment. You choose the employee and, if you like, the project in ReAI and post the entries one by one. Entries already posted to ReAI are recognised and not posted twice.
 
 ## Set up HoltePortalen with ReAI
 

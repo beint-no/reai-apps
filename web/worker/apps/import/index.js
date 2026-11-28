@@ -2,7 +2,7 @@
 import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
-import { reaiAll, reaiRequest } from '../../lib/reai.js';
+import { reaiRequest } from '../../lib/reai.js';
 import { csvAttachment } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from '../../lib/csv.js';
@@ -189,9 +189,10 @@ function dedupKeys(values, kind) {
  * @param {boolean} decimalComma
  * @param {boolean} privatePeople
  * @param {Set<string>} existingKeys
+ * @param {Set<string> | null} [vatCodes] ReAI codes for customer_invoice usage; null skips the check.
  * @returns {PreparedRow[]}
  */
-function prepareRows(csv, mapping, kind, decimalComma, privatePeople, existingKeys) {
+function prepareRows(csv, mapping, kind, decimalComma, privatePeople, existingKeys, vatCodes = null) {
   const defs = FIELDS[kind];
   const assigned = mapping.filter(Boolean);
   if (new Set(assigned).size !== assigned.length) {
@@ -261,6 +262,8 @@ function prepareRows(csv, mapping, kind, decimalComma, privatePeople, existingKe
       }
       if (values.vatCode && !/^[0-9]+$/.test(values.vatCode)) {
         errs.push('Use a ReAI VAT code, not a percentage.');
+      } else if (values.vatCode && vatCodes && !vatCodes.has(values.vatCode)) {
+        errs.push(`VAT code ${values.vatCode} is not a sales VAT code in this ReAI company.`);
       }
       if (payload.stockItem === undefined) {
         payload.stockItem = true;
@@ -322,42 +325,81 @@ function prepareRows(csv, mapping, kind, decimalComma, privatePeople, existingKe
       errs.length > 0
         ? errs.join(' ')
         : duplicate
-          ? 'Matches an existing ReAI record or earlier row.'
+          ? 'Matches an existing ReAI record (active or archived) or an earlier row.'
           : 'Ready to create.';
     result.push({ line: i + 2, name, state, detail, payload: errs.length === 0 ? payload : null, keys });
   }
   return result;
 }
 
+/** Subrequests one click may spend on ReAI calls (listing pages, VAT codes and creates). */
+const SUBREQUEST_BUDGET = 45;
+/** Hard cap on creates per click, also when the tenant is small. */
+const MAX_CREATES = 40;
+
 /**
- * Loads existing dedup keys from ReAI for products, customers, or suppliers.
+ * Loads existing dedup keys from ReAI for products, customers, or suppliers, active and archived,
+ * at the documented maximum page size of 200.
  * @param {import('../../lib/types.d.ts').Env} env
  * @param {import('../../lib/types.d.ts').SessionData} session
  * @param {ImportKind} kind
- * @returns {Promise<Set<string>>}
+ * @returns {Promise<{ keys: Set<string>, requests: number }>}
  */
 async function loadExistingKeys(env, session, kind) {
-  const items = /** @type {Array<Record<string, unknown>>} */ (
-    await reaiAll(env, `/api/${kind}`, { token: session.accessToken, tenantId: session.tenantId })
-  );
   const keys = new Set();
-  for (const item of items) {
-    if (kind === 'products') {
-      const variants = Array.isArray(item.variants) ? item.variants : [];
-      for (const v of variants) {
-        if (typeof v?.sku === 'string' && v.sku.trim()) {
-          keys.add(`sku:${v.sku.trim().toLowerCase()}`);
+  let requests = 0;
+  for (const archived of ['false', 'true']) {
+    for (let page = 1; ; page++) {
+      if (requests >= SUBREQUEST_BUDGET - 2) {
+        throw new HttpError(400, `This company has too many ${kind} in ReAI to check for duplicates in one click. Import with the ReAI app instead.`);
+      }
+      const result = /** @type {{ items: Array<Record<string, unknown>>, hasNext: boolean }} */ (
+        await reaiRequest(env, `/api/${kind}`, {
+          token: session.accessToken,
+          tenantId: session.tenantId,
+          query: { archived, page: String(page), pageSize: '200' },
+        })
+      );
+      requests += 1;
+      for (const item of result.items) {
+        if (kind === 'products') {
+          const variants = Array.isArray(item.variants) ? item.variants : [];
+          for (const v of variants) {
+            if (typeof v?.sku === 'string' && v.sku.trim()) {
+              keys.add(`sku:${v.sku.trim().toLowerCase()}`);
+            }
+          }
+        } else {
+          for (const f of ['number', 'name', 'email']) {
+            const value = item[f];
+            if (typeof value === 'string' && value.trim()) {
+              keys.add(`${f}:${value.trim().toLowerCase()}`);
+            }
+          }
         }
       }
-    } else {
-      for (const f of ['number', 'name', 'email']) {
-        if (typeof item[f] === 'string' && item[f].trim()) {
-          keys.add(`${f}:${item[f].trim().toLowerCase()}`);
-        }
-      }
+      if (!result.hasNext) break;
     }
   }
-  return keys;
+  return { keys, requests };
+}
+
+/**
+ * Loads the VAT codes ReAI accepts on product and invoice lines, only when a row sets one.
+ * @param {import('../../lib/types.d.ts').Env} env
+ * @param {import('../../lib/types.d.ts').SessionData} session
+ * @param {ImportKind} kind
+ * @param {import('../../lib/csv.js').CsvDocument} csv
+ * @param {string[]} mapping
+ * @returns {Promise<Set<string> | null>}
+ */
+async function loadProductVatCodes(env, session, kind, csv, mapping) {
+  const col = mapping.indexOf('vatCode');
+  if (kind !== 'products' || col < 0 || !csv.rows.some((r) => (r[col] ?? '').trim())) return null;
+  const codes = /** @type {Array<{ code: string }>} */ (
+    await reaiRequest(env, '/api/vat-codes', { token: session.accessToken, tenantId: session.tenantId, query: { usage: 'customer_invoice' } })
+  );
+  return new Set(codes.map((c) => c.code));
 }
 
 /**
@@ -567,7 +609,7 @@ export async function handleImport(request, env) {
     let checkedReai = false;
     if (session && session.tenantId > 0) {
       try {
-        existing = await loadExistingKeys(env, session, kind);
+        existing = (await loadExistingKeys(env, session, kind)).keys;
         checkedReai = true;
       } catch {
         // Stay in offline preview if token lacks read permission.
@@ -618,12 +660,14 @@ export async function handleImport(request, env) {
       const session = await readSession(env, request);
       if (pathname === '/app/import/preview') {
         let existing = new Set();
+        let vatCodes = null;
         let checkedReai = false;
         if (session && session.tenantId > 0) {
-          existing = await loadExistingKeys(env, session, kind);
+          existing = (await loadExistingKeys(env, session, kind)).keys;
+          vatCodes = await loadProductVatCodes(env, session, kind, csv, mapping);
           checkedReai = true;
         }
-        const rows = prepareRows(csv, mapping, kind, decimalComma, privatePeople, existing);
+        const rows = prepareRows(csv, mapping, kind, decimalComma, privatePeople, existing, vatCodes);
         return htmlResponse(
           renderImportWorkspace({ kind, filename, csvText, csv, mapping, decimalComma, privatePeople, rows, checkedReai, isSample }),
         );
@@ -632,11 +676,13 @@ export async function handleImport(request, env) {
       if (!session || session.tenantId <= 0) {
         throw new HttpError(401, 'Connect to ReAI and choose a company above before importing.');
       }
-      const existing = await loadExistingKeys(env, session, kind);
-      const rows = prepareRows(csv, mapping, kind, decimalComma, privatePeople, existing);
+      const { keys: existing, requests } = await loadExistingKeys(env, session, kind);
+      const vatCodes = await loadProductVatCodes(env, session, kind, csv, mapping);
+      const rows = prepareRows(csv, mapping, kind, decimalComma, privatePeople, existing, vatCodes);
       const ready = rows.filter((r) => r.state === 'ready' && r.payload);
-      if (ready.length > 50) {
-        throw new HttpError(400, 'Web batch imports are capped at 50 creations per click to stay well inside Worker limits. Split larger files or run in batches.');
+      const maxCreates = Math.max(0, Math.min(MAX_CREATES, SUBREQUEST_BUDGET - requests - (vatCodes ? 1 : 0)));
+      if (ready.length > maxCreates) {
+        throw new HttpError(400, `One click can create at most ${maxCreates} ${kind}. Split the file into smaller parts; rows already in ReAI are skipped on the next run.`);
       }
 
       /** @type {Array<{ line: number, name: string, status: string, id: string, detail: string }>} */

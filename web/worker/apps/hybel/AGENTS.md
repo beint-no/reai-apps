@@ -2,38 +2,41 @@
 
 Route `/app/hybel/`. Docs pages: `web/content/{nb,en}/web-apps/hybel/index.md`.
 
-## Vendor API
+Books one month of the Hybel Premium Bilagsjournal (CSV) as one balanced ReAI review voucher with a SHA-256 fingerprint. Tenant detail stays in Hybel.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://hjelpesenter.hybel.no/knowledge/hvordan-tar-jeg-ut-regnskapsrapporter
-- https://hjelpesenter.hybel.no/knowledge/hvordan-kan-jeg-importere-husleie-forfall-og-innbetalinger-til-mitt-regnskapssystem
-- https://hjelpesenter.hybel.no/knowledge/hvordan-kan-hybel-premium-forenkle-regnskapsf%C3%B8ring-av-husleie
-- https://hjelpesenter.hybel.no/knowledge/st%C3%B8tter-hybel-saf-t-regnskap
+- Accounting reports: https://hjelpesenter.hybel.no/knowledge/hvordan-tar-jeg-ut-regnskapsrapporter
+- Bilagsjournal export: https://hjelpesenter.hybel.no/knowledge/hvordan-kan-jeg-importere-husleie-forfall-og-innbetalinger-til-mitt-regnskapssystem
+- Premium accounting: https://hjelpesenter.hybel.no/knowledge/hvordan-kan-hybel-premium-forenkle-regnskapsf%C3%B8ring-av-husleie
+- SAF-T: https://hjelpesenter.hybel.no/knowledge/st%C3%B8tter-hybel-saf-t-regnskap
 
-- Mode: keep
-- Calls: Code unchanged. NB/EN docs rewritten with the real Hybel menu path (Rapporter > Innstillinger for accounts and VAT code 0, Rapporter > Bilagsjournal > Last ned) and the 1510/1520 account advice from Hybel's help centre.
-- Vendor status: Brreg: no konkurs/avvikling/slettedato. hybel.no and hjelpesenter.hybel.no live; Hybel Premium sold with accounting reports and API integrations to Tripletex, PowerOffice, Fiken and others (not ReAI).
+## API version
 
-## ReAI API
+None. Hybel offers no customer API (rechecked 2026-11-28); exports come in layouts for named ERPs. Export file import, no provider calls.
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+## Input
 
-- `/api/chart-of-accounts/accounts`
-- `/api/company-banks`
-- `/api/company-settings`
-- `/api/manual-vouchers`
-- `/api/vouchers`
+Rapporter → Innstillinger (accounts, VAT code 0), then Rapporter → Bilagsjournal → period + CSV format → Last ned. Column list is not published, so `journal.js` maps headers heuristically (date, account, reference/BatchID, signed amount or debit/credit, description, VAT) with manual override. One calendar month; every date + reference group must balance; VAT must be blank or 0.
+
+## ReAI endpoints and budget
+
+Contract: https://app.reai.no/openapi/public.
+
+- `GET /api/company-settings` (org.nr must match the Hybel report, company NOK)
+- `GET /api/chart-of-accounts/accounts?accountNumberPrefix=…&accountNumberPrefix=…&limit=100`, 20 prefixes per call (repeated query keys per the array parameter); a batch that hits the 100 cap is rechecked per account
+- `GET /api/company-banks` (19xx and bank-ledger accounts must map to exactly one active NOK bank)
+- `GET /api/vouchers?startDate&endDate&includeReversed=true` all pages, duplicate marker `Hybel journal <org.nr> <YYYY-MM>`
+- `POST /api/manual-vouchers` (date = last journal date, review reason, postings)
+- Validate or create: 4 + ceil(accounts / 20) + voucher pages subrequests (sample: 5).
+
+## Mapping
+
+Each Hybel entry (date + reference) is paired separately with `pairVoucherRows`, row numbers continue across entries. All postings use VAT code `0`, which the ReAI contract prescribes for non-VAT postings (residential rent is outside VAT). Bank accounts get `companyBankId`. Accounts 1500, 2400, 2910 and other subledger accounts are rejected.
 
 ## Caveats
 
-Hybel documents that the Bilagsjournal exists in several system-specific CSV/Excel layouts but does not publish the column list, so column mapping stays heuristic with manual override. Only VAT code 0 is accepted. Hybel's own API integration pushes into named ERPs; there is no API a customer can call.
+- Heuristic column mapping; verify on a real export from each ERP layout.
+- VAT-liable postings (commercial rent) are not supported.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

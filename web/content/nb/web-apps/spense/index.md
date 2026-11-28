@@ -24,7 +24,7 @@ Integrasjonen leser rapporten for én måned, matcher hver nettoutbetaling mot u
 | Gebyrer trukket av Spense (debet) | `7770` |
 | Innbetalinger fra kunder via Spense (kredit) | Mellomkonto `1580` |
 
-Gebyrer føres bare når utbetalingen er lavere enn bruttobeløpet. Gebyrer som Spense fakturerer senere, føres ikke her. Bruk mellomkontoen der verkstedsystemet fører fakturaer som kundene betaler via Spense.
+Hver måned kan føres én gang. Vil du føre den på nytt, reverserer du bilaget i ReAI først. Gebyrer føres bare når utbetalingen er lavere enn bruttobeløpet. Gebyrer som Spense fakturerer senere, føres ikke her. Bruk mellomkontoen der verkstedsystemet fører fakturaer som kundene betaler via Spense.
 
 ## Slik kommer du i gang
 

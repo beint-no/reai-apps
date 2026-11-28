@@ -273,6 +273,22 @@ endpoints:
   - /app/psykbase/
   - /app/pindena/
   - /app/power-bi/
+  - /app/bikedesk/
+  - /app/billetto/
+  - /app/driversnote/
+  - /app/eduadmin/
+  - /app/letsreg/
+  - /app/mapon/
+  - /app/mirakl/
+  - /app/mollie/
+  - /app/muntra/
+  - /app/qondor/
+  - /app/rafisklaget/
+  - /app/teamtailor/
+  - /app/timelog/
+  - /app/upsales/
+  - /app/viatracks/
+  - /app/webcrm/
 languages:
   - code: nb
     locale: nb-NO

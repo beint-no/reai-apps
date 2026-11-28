@@ -8,13 +8,17 @@ import { handle as app_amendo } from './worker/apps/amendo/index.js';
 import { handle as app_autogear } from './worker/apps/autogear/index.js';
 import { handle as app_automations } from './worker/apps/automations/index.js';
 import { handle as app_baemingo } from './worker/apps/baemingo/index.js';
+import { handle as app_bikedesk } from './worker/apps/bikedesk/index.js';
+import { handle as app_billetto } from './worker/apps/billetto/index.js';
 import { handle as app_budget } from './worker/apps/budget/index.js';
 import { handle as app_busy } from './worker/apps/busy/index.js';
 import { handle as app_caspeco } from './worker/apps/caspeco/index.js';
 import { handle as app_clockify } from './worker/apps/clockify/index.js';
 import { handle as app_dintero } from './worker/apps/dintero/index.js';
+import { handle as app_driversnote } from './worker/apps/driversnote/index.js';
 import { handle as app_duell } from './worker/apps/duell/index.js';
 import { handle as app_easypractice } from './worker/apps/easypractice/index.js';
+import { handle as app_eduadmin } from './worker/apps/eduadmin/index.js';
 import { handleExport as app_export } from './worker/apps/export/index.js';
 import { handle as app_extendago } from './worker/apps/extendago/index.js';
 import { handle as app_favrit } from './worker/apps/favrit/index.js';
@@ -33,8 +37,13 @@ import { handleImport as app_import } from './worker/apps/import/index.js';
 import { handle as app_klarna } from './worker/apps/klarna/index.js';
 import { handle as app_kvalitetskontroll } from './worker/apps/kvalitetskontroll/index.js';
 import { handleLab as app_lab } from './worker/apps/lab/index.js';
+import { handle as app_letsreg } from './worker/apps/letsreg/index.js';
 import { handle as app_lime } from './worker/apps/lime/index.js';
 import { handle as app_magento } from './worker/apps/magento/index.js';
+import { handle as app_mapon } from './worker/apps/mapon/index.js';
+import { handle as app_mirakl } from './worker/apps/mirakl/index.js';
+import { handle as app_mollie } from './worker/apps/mollie/index.js';
+import { handle as app_muntra } from './worker/apps/muntra/index.js';
 import { handle as app_mynt } from './worker/apps/mynt/index.js';
 import { handle as app_mystore } from './worker/apps/mystore/index.js';
 import { handle as app_nets } from './worker/apps/nets/index.js';
@@ -55,8 +64,10 @@ import { handle as app_proteria } from './worker/apps/proteria/index.js';
 import { handle as app_provet_cloud } from './worker/apps/provet-cloud/index.js';
 import { handle as app_psykbase } from './worker/apps/psykbase/index.js';
 import { handle as app_qliro } from './worker/apps/qliro/index.js';
+import { handle as app_qondor } from './worker/apps/qondor/index.js';
 import { handle as app_quinyx } from './worker/apps/quinyx/index.js';
 import { handle as app_rackbeat } from './worker/apps/rackbeat/index.js';
+import { handle as app_rafisklaget } from './worker/apps/rafisklaget/index.js';
 import { handleRecMan as app_recman } from './worker/apps/recman/index.js';
 import { handle as app_revolut } from './worker/apps/revolut/index.js';
 import { handle as app_saft } from './worker/apps/saft/index.js';
@@ -74,13 +85,18 @@ import { handle as app_sumup } from './worker/apps/sumup/index.js';
 import { handle as app_superoffice } from './worker/apps/superoffice/index.js';
 import { handle as app_svea } from './worker/apps/svea/index.js';
 import { handle as app_tamigo } from './worker/apps/tamigo/index.js';
+import { handle as app_teamtailor } from './worker/apps/teamtailor/index.js';
 import { handle as app_ticketco } from './worker/apps/ticketco/index.js';
 import { handle as app_tidsbanken } from './worker/apps/tidsbanken/index.js';
+import { handle as app_timelog } from './worker/apps/timelog/index.js';
 import { handle as app_timely } from './worker/apps/timely/index.js';
 import { handle as app_toggl } from './worker/apps/toggl/index.js';
 import { handle as app_two } from './worker/apps/two/index.js';
+import { handle as app_upsales } from './worker/apps/upsales/index.js';
+import { handle as app_viatracks } from './worker/apps/viatracks/index.js';
 import { handle as app_vipps } from './worker/apps/vipps/index.js';
 import { handle as app_walley } from './worker/apps/walley/index.js';
+import { handle as app_webcrm } from './worker/apps/webcrm/index.js';
 import { handle as app_wix } from './worker/apps/wix/index.js';
 import { handle as app_workfeed } from './worker/apps/workfeed/index.js';
 import { handle as app_zettle } from './worker/apps/zettle/index.js';
@@ -102,13 +118,17 @@ const ROUTES = {
   'autogear': app_autogear,
   'automations': app_automations,
   'baemingo': app_baemingo,
+  'bikedesk': app_bikedesk,
+  'billetto': app_billetto,
   'budget': app_budget,
   'busy': app_busy,
   'caspeco': app_caspeco,
   'clockify': app_clockify,
   'dintero': app_dintero,
+  'driversnote': app_driversnote,
   'duell': app_duell,
   'easypractice': app_easypractice,
+  'eduadmin': app_eduadmin,
   'export': app_export,
   'extendago': app_extendago,
   'favrit': app_favrit,
@@ -127,8 +147,13 @@ const ROUTES = {
   'klarna': app_klarna,
   'kvalitetskontroll': app_kvalitetskontroll,
   'lab': (request) => app_lab(request),
+  'letsreg': app_letsreg,
   'lime': app_lime,
   'magento': app_magento,
+  'mapon': app_mapon,
+  'mirakl': app_mirakl,
+  'mollie': app_mollie,
+  'muntra': app_muntra,
   'mynt': app_mynt,
   'mystore': app_mystore,
   'nets': app_nets,
@@ -149,8 +174,10 @@ const ROUTES = {
   'provet-cloud': app_provet_cloud,
   'psykbase': app_psykbase,
   'qliro': app_qliro,
+  'qondor': app_qondor,
   'quinyx': app_quinyx,
   'rackbeat': app_rackbeat,
+  'rafisklaget': app_rafisklaget,
   'recman': app_recman,
   'revolut': app_revolut,
   'saft': app_saft,
@@ -168,13 +195,18 @@ const ROUTES = {
   'superoffice': app_superoffice,
   'svea': app_svea,
   'tamigo': app_tamigo,
+  'teamtailor': app_teamtailor,
   'ticketco': app_ticketco,
   'tidsbanken': app_tidsbanken,
+  'timelog': app_timelog,
   'timely': app_timely,
   'toggl': app_toggl,
   'two': app_two,
+  'upsales': app_upsales,
+  'viatracks': app_viatracks,
   'vipps': app_vipps,
   'walley': app_walley,
+  'webcrm': app_webcrm,
   'wix': app_wix,
   'workfeed': app_workfeed,
   'zettle': app_zettle,

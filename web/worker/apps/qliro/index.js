@@ -46,11 +46,12 @@ const qliroDate = (isoDay) => isoDay.replaceAll('-', '/');
  * Fetches Qliro Checkout settlement batches (one per bank transfer) for a month.
  * Docs:
  * - https://developers.qliro.com/docs/qliro-checkout/settlements (recommended flow: list batches, then batch details)
- * - https://developers.qliro.com/docs/api (Admin API: GET /v2/settlements/GetSettlementBatches, FromBatchDate/ToBatchDate yyyy/mm/dd,
- *   SettlementBatches[].Id, BatchId, AcquirerName, BatchDate, CurrencyCode, TotalAmount, TotalFeeAmount)
+ * - https://developers.qliro.com/docs/api (Admin API v2: GET /v2/settlements/GetSettlementBatches, FromBatchDate/ToBatchDate yyyy/mm/dd,
+ *   optional CurrencyCode filter; SettlementBatches[].Id, BatchId, AcquirerName, BatchDate, CurrencyCode, TotalAmount, TotalFeeAmount).
+ *   The response is one unpaged list for the period.
  * - Production host and the "Qliro" SHA-256 Authorization scheme as used by Qliro's open-source checkout clients
  *   (https://github.com/krokedil/qliro-one-for-woocommerce, classes/requests/class-qliro-one-request.php).
- * @param {Record<string, string>} creds `apiSecret`, `month` (YYYY-MM)
+ * @param {Record<string, string>} creds `apiSecret`, `month` (YYYY-MM), optional `currency` (ISO 4217, filtered by Qliro)
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<PayoutItem[]>}
  */
@@ -62,8 +63,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const lastDay = bounds.lastDay < yesterday ? bounds.lastDay : yesterday;
   if (bounds.start > lastDay) throw new HttpError(400, 'Qliro settles only past dates. Choose a month that has started before today.');
 
+  const query = new URLSearchParams({ FromBatchDate: qliroDate(bounds.start), ToBatchDate: qliroDate(lastDay) });
+  const currency = (creds.currency ?? '').trim().toUpperCase();
+  if (/^[A-Z]{3}$/.test(currency)) query.set('CurrencyCode', currency);
   const data = await fetchJson(
-    `${QLIRO_ADMIN_API}/v2/settlements/GetSettlementBatches?FromBatchDate=${qliroDate(bounds.start)}&ToBatchDate=${qliroDate(lastDay)}`,
+    `${QLIRO_ADMIN_API}/v2/settlements/GetSettlementBatches?${query}`,
     { headers: { authorization: await qliroAuthorization('', apiSecret), accept: 'application/json', 'content-type': 'application/json' } },
     BRAND,
     fetchImpl,
@@ -223,7 +227,7 @@ export async function handle(request, env) {
       const bounds = monthBounds(month);
       const bankId = Number(form.get('bankId') ?? '0');
       const [fetched, bankTx] = await Promise.all([
-        fetchApi({ apiSecret: String(form.get('apiSecret') ?? ''), month }),
+        fetchApi({ apiSecret: String(form.get('apiSecret') ?? ''), month, currency: company.currencyCode }),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));

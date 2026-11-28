@@ -14,9 +14,9 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads approved Tidsbanken time lines dated within the chosen period, at most 93 days at a time. You can limit it to one employee by name. Each line shows date, employee, project, note and hours.
+The integration reads approved Tidsbanken time lines dated within the chosen period, at most 93 days at a time. Allowances and unit supplements are left out. You can limit it to one employee by name. Each line shows date, employee, project, note and hours.
 
-You post lines one by one to ReAI Timesheets for the employee and project you choose.
+You post lines one by one to ReAI Timesheets for the employee and project you choose. A line that is already in ReAI is not posted again.
 
 ## Setup
 

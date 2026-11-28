@@ -2,32 +2,68 @@
 
 Route `/app/poweroffice-migrate/`. Docs pages: `web/content/{nb,en}/web-apps/poweroffice-migrate/index.md`.
 
-## Vendor API
+Moves active customers, suppliers and products from PowerOffice Go into ReAI, one row per click.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developer.poweroffice.net/documentation/authentication
-- https://developer.poweroffice.net/documentation/owner-vs-developer
-- https://swagger.poweroffice.net/openapispecs/customers.json
-- https://swagger.poweroffice.net/openapispecs/suppliers.json
-- https://swagger.poweroffice.net/openapispecs/products.json
+- Authentication: https://developer.poweroffice.net/documentation/authentication
+- Requests (paging, Fields, throttling): https://developer.poweroffice.net/documentation/requests
+- Owner vs developer keys: https://developer.poweroffice.net/documentation/owner-vs-developer
+- v1 to v2 transition: https://developer.poweroffice.net/documentation/from-v1-to-v2
+- Customers spec: https://swagger.poweroffice.net/openapispecs/customers.json
+- Suppliers spec: https://swagger.poweroffice.net/openapispecs/suppliers.json
+- Products spec: https://swagger.poweroffice.net/openapispecs/products.json
 
-- Mode: fix
-- Calls: POST https://goapi.poweroffice.net/OAuth/Token with Basic base64(applicationKey:clientKey), Ocp-Apim-Subscription-Key and grant_type=client_credentials, then GET /v2/Customers, /v2/Suppliers, /v2/Products with PageNumber/PageSize (Number, Name or FirstName/LastName, OrganizationNumber, EmailAddress, IsArchived; Code, Name, UnitPrice). ReAI: POST /api/customers and /api/suppliers after GET ?organizationNumber= check, POST /api/products {title, variants:[{sku, sellingPrice}]} after GET ?query=sku check. CSV fallback removed. fetchApi now takes {subscriptionKey, applicationKey, clientKey}.
-- Hosts in code: `developer.poweroffice.net`, `goapi.poweroffice.net`, `swagger.poweroffice.net`
-- Vendor status: Brreg: active, no konkurs/avvikling/slettedato. poweroffice.no and developer.poweroffice.net (API v2, swagger.poweroffice.net) are live.
+## API version and auth
+
+- Go API v2 (`https://goapi.poweroffice.net/v2`), the current API; v1 is legacy.
+- Application key and subscription key belong to a registered developer integration
+  (go-api@poweroffice.no); the client key appears when the integration is activated in Go.
+- One token exchange per fetch: `POST https://goapi.poweroffice.net/OAuth/Token` with
+  `Authorization: Basic base64(applicationKey:clientKey)`, `Ocp-Apim-Subscription-Key`,
+  `grant_type=client_credentials` (token lasts 20 minutes). API calls send `Authorization: Bearer`
+  and `Ocp-Apim-Subscription-Key`.
+
+## Endpoints
+
+- `GET /v2/Customers?Fields=...&PageNumber=&PageSize=5000`: `Number`, `Name`, `FirstName`,
+  `LastName`, `IsPerson`, `IsArchived`, `IsActive`, `OrganizationNumber`, `EmailAddress`,
+  `InvoiceEmailAddress`, `PhoneNumber`, `MailAddress` (`AddressLine1/2`, `ZipCode`, `City`, `CountryCode`).
+- `GET /v2/Suppliers` with the same fields except `InvoiceEmailAddress`.
+- `GET /v2/Products?isArchived=false&Fields=Id,Code,Name,UnitPrice,IsArchived`.
+- The three lists are read in parallel. 5000 is the default page size (max 20 000); a page with
+  fewer rows ends paging. At most 2000 rows per kind are listed, with a warning when capped.
+- Throttling: 10 requests per second per subscription key, 429 otherwise.
+
+## Subrequests per action
+
+- Fetch: 1 token + 3 lists (one page each up to 5000 rows).
+- Import one row: 1 duplicate check + 1 create.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/customers`
-- `/api/products`
-- `/api/suppliers`
+- `GET /api/customers` / `GET /api/suppliers` with `organizationNumber` (or `name`, exact match
+  checked locally) before `POST /api/customers` / `POST /api/suppliers`.
+- `GET /api/products?query=<sku>` (exact SKU match) before `POST /api/products`.
+
+## Mapping
+
+- Contact → `name`, `number` (PowerOffice number), `organizationNumber` (Norwegian, Mod11
+  checked, companies only), `email`, `invoiceEmail` (customers, when it differs), `phone`
+  (E.164 only), address when line 1 and city exist, `countryCode` from the address (default NO),
+  `privateContact` from `IsPerson`. Archived or inactive contacts are skipped.
+- Product → `title`, one variant with `sku` = `Code` and `sellingPrice` = `UnitPrice` excluding VAT.
 
 ## Caveats
 
-Application and subscription keys belong to the registered developer. Today the customer must register their own integration with PowerOffice (go-api@poweroffice.no, Visma Developer Terms) to get them. Better: the owner registers ReAI as a PowerOffice developer and stores the application and subscription keys as Worker secrets (shared Env change), so the customer only pastes the client key. Token response field names are not shown in the docs; the module reads the standard OAuth access_token. PowerOffice products carry no VAT code (VAT follows the sales account), so ReAI defaults apply; sellingPrice is sent excluding VAT. web/test/provider-api.test.mjs calls fetchApi({subscriptionKey, apiToken}) and expects a CSV style result; it needs updating (that file currently fails to load anyway because extendago.js no longer exports fetchApi).
+- The customer must register their own PowerOffice integration today. Better: ReAI registers
+  as a PowerOffice developer and stores the application and subscription keys as Worker
+  secrets (shared Env change), so the customer only pastes the client key.
+- Token response field names are not documented; the standard OAuth `access_token` is read.
+- PowerOffice products carry no VAT code (VAT follows the sales account), so ReAI defaults apply.
+- Opening balances are out of scope; the SAF-T tool handles them.
 
 ## Rules
 

@@ -14,7 +14,7 @@ highlights:
 
 ## Dette overføres til ReAI
 
-Registrerte timer i Timely blir timeføringer i ReAI med dato, timer, ansatt, prosjekt og en kommentar med prosjekt og notat fra Timely. Personer matches mot ansatte i ReAI på e-post eller navn, og prosjekter på navn. Utkast og slettede føringer hoppes over.
+Registrerte timer i Timely blir timeføringer i ReAI med dato, timer, ansatt, prosjekt og en kommentar med prosjekt og notat fra Timely. Personer matches mot ansatte i ReAI på e-post eller navn, og prosjekter på navn. Utkast og slettede føringer hoppes over. Føringer som allerede finnes i ReAI, føres ikke på nytt, og store perioder føres inn i flere omganger.
 
 Timeføringer er ikke bilag. De brukes til prosjektfakturering og lønnsgrunnlag i ReAI, der du godkjenner dem som vanlig.
 

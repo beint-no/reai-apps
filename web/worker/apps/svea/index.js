@@ -64,9 +64,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     days.push(d.toISOString().slice(0, 10));
   }
   // The API answers 404 when no report was generated for a date (no payout); treat that as an empty day.
+  // 400 means a bad date or that reconciliation reports are not activated for the merchant.
   /** @type {import('../../lib/api-http.js').FetchLike} */
   const tolerant404 = async (input, init) => {
     const res = await fetchImpl(input, init);
+    if (res.status === 400) throw new HttpError(400, 'Svea refused the report request. Ask Svea to activate reconciliation reports for this merchant ID.');
     return res.status === 404 ? new Response('{"clientReports":[]}', { status: 200, headers: { 'content-type': 'application/json' } }) : res;
   };
 

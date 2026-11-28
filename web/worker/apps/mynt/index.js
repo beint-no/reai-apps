@@ -9,7 +9,8 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } 
 import { decodeCsvBytes, parseCsv } from '../../lib/csv.js';
 
 /**
- * @typedef {{ date: string, description: string, account: string, amountMinor: number, currency: string, vatCode: string, vatRate: number, reverseVat: boolean, person: string, project: string, note: string }} ExpenseLine
+ * @typedef {{ date: string, description: string, account: string, amountMinor: number, currency: string, myntVatCode: string, vatRate: number, reverseVat: boolean, person: string, project: string, note: string }} ExpenseLine
+ * @typedef {{ code: string, rate: number, vatType: string, amountBasis: string, reverseCharge: boolean }} ReAIVatCode
  */
 
 const BRAND = 'Mynt';
@@ -32,9 +33,24 @@ const SAMPLE_CSV = 'Transaction date;Amount;Currency;VAT amount;VAT rate;Reverse
   + '2026-10-08;-899,00;NOK;96,32;12;No;Vy;7140;Travel;Train Oslo to Bergen;Ola Nordmann;Prosjekt Vest\n'
   + '2026-10-15;-420,00;NOK;0,00;0;Yes;Cloudflare Inc;6540;Software;Monthly subscription;Kari Nordmann;';
 
-/** Maps a Norwegian input VAT rate to the ReAI deductible input VAT code (amounts are VAT inclusive). */
-/** @type {Record<string, string>} */
-const INPUT_VAT_CODE = { '25': '1', '15': '11', '12': '13' };
+/**
+ * Chooses the ReAI VAT code for one Mynt line from GET /api/vat-codes.
+ * A Mynt "VAT code" that exists in ReAI as an input or reverse charge code wins; otherwise the VAT rate picks the
+ * deductible input VAT code (amounts are VAT inclusive). Reverse VAT lines without a known code get 0 for review.
+ * @param {ReAIVatCode[]} codes
+ * @param {ExpenseLine} l
+ * @returns {string}
+ */
+export function vatCodeFor(codes, l) {
+  if (l.myntVatCode) {
+    const known = codes.find((c) => c.code === l.myntVatCode);
+    if (known && ((known.vatType === 'input_vat' && known.amountBasis === 'vat_inclusive') || known.reverseCharge || known.vatType === 'reverse_charge')) return known.code;
+  }
+  if (l.reverseVat || l.vatRate === 0) return '0';
+  const match = codes.find((c) => c.vatType === 'input_vat' && !c.reverseCharge && c.amountBasis === 'vat_inclusive' && Math.abs(c.rate - l.vatRate) < 0.001);
+  if (!match) throw new HttpError(400, `ReAI has no deductible input VAT code for ${l.vatRate} % in this company. Fix the VAT rate in Mynt or untick input VAT.`);
+  return match.code;
+}
 
 /** @param {string} h */
 function key(h) {
@@ -80,16 +96,15 @@ export function parseMyntCsv(text, opts = {}) {
     const amountMinor = (signed[idx] ?? 0) * purchaseSign;
     if (!date || amountMinor === 0) return;
     const rawAcct = cell(r, 'account').replace(/\s.*$/, '');
-    const rate = Math.round(num(cell(r, 'vat rate')));
+    const rate = bookVat ? Math.round(num(cell(r, 'vat rate'))) : 0;
     const reverseVat = truthy(cell(r, 'reverse vat'));
-    const vatCode = bookVat && !reverseVat ? (INPUT_VAT_CODE[String(rate)] ?? '0') : '0';
     out.push({
       date,
       description: cell(r, 'description') || cell(r, 'category') || 'Mynt card purchase',
       account: /^[0-9]{4}$/.test(rawAcct) ? rawAcct : DEFAULT_EXPENSE,
       amountMinor,
       currency: (cell(r, 'currency') || 'NOK').toUpperCase(),
-      vatCode,
+      myntVatCode: bookVat ? cell(r, 'vat code').replace(/\s.*$/, '') : '',
       vatRate: rate,
       reverseVat,
       person: cell(r, 'person'),
@@ -102,21 +117,32 @@ export function parseMyntCsv(text, opts = {}) {
 }
 
 /**
- * Builds balanced manual voucher postings: one row per expense (expense account vs Mynt card account).
- * Refunds (negative amounts) credit the expense account and debit the card account.
+ * Builds balanced manual voucher postings: one voucher row per expense (expense account vs Mynt card account) with
+ * both sides on the same date, amount and description, as the manual-voucher rowNumber contract requires.
+ * pairVoucherRows is not used because it pairs postings across dates. Refunds (negative amounts) credit the expense
+ * account and debit the card account.
  * @param {ExpenseLine[]} lines
  * @param {string} clearingAccount
  * @param {string} currency
+ * @param {ReAIVatCode[]} vatCodes
  */
-export function buildPostings(lines, clearingAccount, currency) {
-  return lines.flatMap((l, rowNumber) => {
+export function buildPostings(lines, clearingAccount, currency, vatCodes) {
+  return lines.flatMap((l, i) => {
     const amount = Number((l.amountMinor / 100).toFixed(2));
-    const description = [l.description, l.person].filter(Boolean).join(' · ').slice(0, 250);
+    const description = [l.description, l.person].filter(Boolean).join(' · ').slice(0, 200);
+    const rowNumber = i + 1;
     return [
-      { accountNumber: l.account, postingDate: l.date, currencyCode: currency, amount, vatCode: l.vatCode, rowNumber, description },
+      { accountNumber: l.account, postingDate: l.date, currencyCode: currency, amount, vatCode: vatCodeFor(vatCodes, l), rowNumber, description },
       { accountNumber: clearingAccount, postingDate: l.date, currencyCode: currency, amount: -amount, vatCode: '0', rowNumber, description },
     ];
   });
+}
+
+/** @param {ExpenseLine} l */
+function vatLabel(l) {
+  if (l.myntVatCode) return `Mynt code ${l.myntVatCode}`;
+  if (l.reverseVat) return 'Reverse, set in review';
+  return l.vatRate > 0 ? `${l.vatRate} % input` : 'No VAT';
 }
 
 /** @param {{ lines: ExpenseLine[], clearingAccount: string, isSample?: boolean }} state */
@@ -134,14 +160,14 @@ function renderPreview(state) {
       <div class="metric-grid">
         ${reaiMetric({ label: 'Lines', value: String(lines.length), detail: 'Purchases and refunds' })}
         ${reaiMetric({ label: 'Net card spend', value: `${formatMinor(totalMinor)} ${currencies.join('/')}`, detail: `Credit ${clearingAccount}` })}
-        ${reaiMetric({ label: 'Reverse charge lines', value: String(reverse), detail: 'Booked with VAT code 0, set the code in review' })}
+        ${reaiMetric({ label: 'Reverse charge lines', value: String(reverse), detail: 'Without a Mynt VAT code they get code 0 for review' })}
       </div>
       <div class="table-wrap"><table class="data-table">
-        <thead><tr><th>Date</th><th>Description</th><th>Person / project</th><th>Account</th><th>VAT code</th><th class="num">Amount</th></tr></thead>
+        <thead><tr><th>Date</th><th>Description</th><th>Person / project</th><th>Account</th><th>VAT</th><th class="num">Amount</th></tr></thead>
         <tbody>${lines.map((l) => html`<tr>
           <td class="mono">${l.date}</td><td>${l.description}${l.note ? html`<br><span class="muted-note">${l.note}</span>` : ''}</td>
           <td>${l.person || '—'}${l.project ? html`<br><span class="muted-note">${l.project}</span>` : ''}</td>
-          <td class="mono">${l.account}</td><td class="mono">${l.vatCode}${l.reverseVat ? ' (reverse)' : ''}</td>
+          <td class="mono">${l.account}</td><td>${vatLabel(l)}</td>
           <td class="num">${formatMinor(l.amountMinor)} ${l.currency}</td>
         </tr>`)}</tbody>
       </table></div>
@@ -215,7 +241,7 @@ export async function handle(request, env) {
       const clearingAccount = String(form.get('clearingAccount') ?? DEFAULT_CLEARING).trim();
       if (!/^[0-9]{4}$/.test(clearingAccount)) throw new HttpError(400, 'Mynt card account must be 4 digits.');
       const lines = /** @type {ExpenseLine[]} */ (JSON.parse(String(form.get('linesJson') ?? '[]')))
-        .filter((l) => l && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(l.date) && /^[0-9]{4}$/.test(l.account) && Number.isInteger(l.amountMinor) && l.amountMinor !== 0 && ['0', '1', '11', '13'].includes(l.vatCode));
+        .filter((l) => l && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(l.date) && /^[0-9]{4}$/.test(l.account) && Number.isInteger(l.amountMinor) && l.amountMinor !== 0 && Number.isFinite(l.vatRate) && typeof l.myntVatCode === 'string');
       if (lines.length === 0) throw new HttpError(400, 'No expense lines to book.');
       const other = lines.find((l) => l.currency !== company.currencyCode);
       if (other) throw new HttpError(400, `The Mynt export has ${other.currency} amounts but ${company.companyName} keeps its books in ${company.currencyCode}.`);
@@ -226,7 +252,9 @@ export async function handle(request, env) {
       const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: lastDate, endDate: lastDate, includeReversed: 'true' } }));
       const dup = existing.find((v) => typeof v.description === 'string' && v.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
-      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: lastDate, description: marker, reviewReason: `${BRAND} export imported via apps.reai.no. Check VAT codes and attach receipts.`, postings: buildPostings(lines, clearingAccount, company.currencyCode) } }));
+      const vatCodes = /** @type {ReAIVatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { token: session.accessToken, tenantId: session.tenantId }));
+      const postings = buildPostings(lines, clearingAccount, company.currencyCode, vatCodes);
+      const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: lastDate, description: marker, reviewReason: `${BRAND} export imported via apps.reai.no. Check VAT codes and attach receipts.`, postings } }));
       return htmlResponse(reaiCallout({ tone: 'success', title: `Created review voucher ${created.number}`, body: html`<a href="${reaiOrigin(env)}/voucher/${created.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${created.number} ↗</a>.` }));
     }
   } catch (err) {

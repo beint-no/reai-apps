@@ -9,7 +9,7 @@ sourcePath: web/worker/apps/clockify/
 highlights:
   - "Uses the Clockify API v1 with your personal API key"
   - "Works with workspaces in every Clockify data region"
-  - "Shows Clockify project names and skips running timers"
+  - "Shows Clockify project names and skips breaks, time off and running timers"
 ---
 
 ## Move Clockify hours into ReAI
@@ -21,4 +21,4 @@ The integration fetches your finished time entries for a month in the active Clo
 1. In Clockify, open the profile menu and choose **Preferences → Advanced → Manage API keys**. Click **Generate new**, name the key and copy it.
 2. Click **Open integration**, connect ReAI and choose the employee, project and month.
 3. Choose the workspace data region. Use **Global** if you have not picked a region in Clockify.
-4. Review the hours and click **Post to ReAI** for each entry.
+4. Review the hours and click **Post to ReAI** for each entry. An entry already in ReAI with the same date, hours and comment is not posted again.

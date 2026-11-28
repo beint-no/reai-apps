@@ -98,7 +98,8 @@ function slashDate(v) {
  * Docs: https://api.tellix.no/api/doc (POST /getaccesstoken with username, password and apikey;
  * token valid 6 hours and sent as the raw Authorization header; GET /zreport/list with offset and limit)
  * and the ProTouch blueprint https://jsapi.apiary.io/apis/tellixprotouch.apib. The list has no date
- * filter, so reports are paged and matched on signDate or cashSettlementDate.
+ * filter, so reports are paged in the detected sort order, matched on signDate or cashSettlementDate,
+ * and paging stops once a page lies before the chosen day.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<Settlement>}
@@ -118,27 +119,68 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, 'Amendo did not return an access token. Check the API credentials.');
   const headers = { authorization: token, accept: 'application/json', 'content-type': 'application/json', source: 'ReAI Apps' };
 
-  /** @type {any[]} */ const reports = [];
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const data = await fetchJson(`${API}/zreport/list?${new URLSearchParams({ offset: String(page * PAGE_SIZE), limit: String(PAGE_SIZE) })}`, { headers }, BRAND, fetchImpl);
+  /** @param {any} z */
+  const dayOf = (z) => slashDate(z?.signDate) || slashDate(z?.cashSettlementDate);
+  /** @param {number} offset */
+  const pageAt = async (offset) => {
+    const data = await fetchJson(`${API}/zreport/list?${new URLSearchParams({ offset: String(offset), limit: String(PAGE_SIZE) })}`, { headers }, BRAND, fetchImpl);
+    if (data?.status === false) throw new HttpError(400, `Amendo API: ${String(data?.message ?? 'request failed')}. Ask Amendo support to enable API access for the account.`);
     /** @type {any[]} */ const rows = Array.isArray(data?.data) ? data.data : [];
-    for (const z of rows) {
-      const day = slashDate(z.signDate) || slashDate(z.cashSettlementDate);
-      if (day === date && z.IsZReport !== false) reports.push(z);
+    const days = rows.map(dayOf).filter(Boolean).sort();
+    return { rows, total: num(data?.totalCount), oldest: days[0] ?? '', newest: days[days.length - 1] ?? '', first: dayOf(rows[0]), last: dayOf(rows[rows.length - 1]) };
+  };
+  /** @type {Map<string, any>} */ const reports = new Map();
+  /** @param {any[]} rows */
+  const collect = (rows) => {
+    for (const z of rows) if (dayOf(z) === date && z.IsZReport !== false) reports.set(String(z.cashSettlementId ?? z.cashSettlementNumber), z);
+  };
+  // The list has only offset and limit. Detect its sort order from the first page and stop as soon
+  // as a page lies wholly before the chosen day, instead of reading the whole history.
+  const head = await pageAt(0);
+  collect(head.rows);
+  let requests = 1;
+  const more = head.rows.length === PAGE_SIZE && !(head.total > 0 && head.total <= PAGE_SIZE);
+  const order = head.first && head.last && head.first !== head.last ? (head.first > head.last ? 'desc' : 'asc') : '';
+  let reached = !more;
+  if (more && order === 'desc') {
+    let page = head;
+    for (let offset = PAGE_SIZE; !(page.oldest && page.oldest < date); offset += PAGE_SIZE) {
+      if (requests >= MAX_PAGES) break;
+      page = await pageAt(offset);
+      requests += 1;
+      collect(page.rows);
+      if (page.rows.length < PAGE_SIZE) break;
     }
-    const total = num(data?.totalCount);
-    if (rows.length < PAGE_SIZE || (total > 0 && (page + 1) * PAGE_SIZE >= total)) break;
+    reached = page.rows.length < PAGE_SIZE || (page.oldest !== '' && page.oldest < date);
+  } else if (more && order === 'asc' && head.total > 0) {
+    if (head.newest > date) reached = true;
+    for (let offset = Math.floor((head.total - 1) / PAGE_SIZE) * PAGE_SIZE; offset >= PAGE_SIZE && !reached; offset -= PAGE_SIZE) {
+      if (requests >= MAX_PAGES) break;
+      const page = await pageAt(offset);
+      requests += 1;
+      collect(page.rows);
+      if (page.oldest && page.oldest < date) reached = true;
+      if (offset === PAGE_SIZE) reached = true;
+    }
+  } else if (more) {
+    for (let offset = PAGE_SIZE; requests < MAX_PAGES; offset += PAGE_SIZE) {
+      const page = await pageAt(offset);
+      requests += 1;
+      collect(page.rows);
+      if (page.rows.length < PAGE_SIZE || (head.total > 0 && offset + PAGE_SIZE >= head.total)) { reached = true; break; }
+    }
   }
-  if (reports.length === 0) throw new HttpError(400, `Amendo has no Z-report signed on ${date}.`);
+  if (reports.size === 0 && !reached) throw new HttpError(400, `Amendo did not reach ${date} within ${MAX_PAGES * PAGE_SIZE} Z-reports. Choose a more recent date.`);
+  if (reports.size === 0) throw new HttpError(400, `Amendo has no Z-report signed on ${date}.`);
 
   /** @type {Map<string, number>} */ const payments = new Map();
   /** @type {Map<string, number>} */ const salesByRate = new Map();
-  for (const z of reports) {
+  for (const z of reports.values()) {
     for (const p of Array.isArray(z.paymentMethodTurnover) ? z.paymentMethodTurnover : []) addTo(payments, String(p.paymentType ?? 'Payment').trim(), minor(p.amount));
     for (const v of Array.isArray(z.vatTurnover) ? z.vatTurnover : []) addTo(salesByRate, String(num(v.vatRatePercent)), minor(v.turnoverInclVat));
     for (const v of Array.isArray(z.returnVatTurnover) ? z.returnVatTurnover : []) addTo(salesByRate, String(num(v.vatRatePercent)), -Math.abs(minor(v.turnoverInclVat)));
   }
-  const ref = `Z ${reports.map((z) => String(z.cashSettlementNumber ?? z.cashSettlementId)).join(', ')}`;
+  const ref = `Z ${[...reports.values()].map((z) => String(z.cashSettlementNumber ?? z.cashSettlementId)).join(', ')}`;
   return toSettlement(date, ref, payments, salesByRate, 0);
 }
 

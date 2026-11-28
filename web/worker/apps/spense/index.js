@@ -30,7 +30,8 @@ const DEFAULT_FEE = '7770';
 /*
  * Spense documents the settlement report formats at https://developer.spensepay.com/guides/settlements and
  * https://developer.spensepay.com/apis/partner/settlements (GET https://api.spensepay.com/partner/settlements/generate_csv).
- * That endpoint takes a JSON body on a GET request, which Worker fetch cannot send, so this app imports the CSV file instead.
+ * That endpoint still requires a JSON body on a GET request (re-checked 2026-11-28: POST returns 405), which Worker fetch
+ * cannot send, so this app imports the CSV file instead.
  *   payouts:      Date of payout,Payment provider,Reference,Currency,Gross Amount,Fees,Net Amount
  *   transactions: Date of transaction,Payment provider,Settlement reference,Settlement paid at,Reference,Currency,Gross amount,Fees,Net amount,Payment type,Payment method
  */
@@ -44,10 +45,21 @@ function key(h) {
   return h.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-/** @param {string} v */
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Bookkeeping day in Europe/Oslo. Spense timestamps look like `2026-10-06 00:00:00+00:00` (UTC offset included);
+ * a value without a time or offset is taken as the calendar day it names.
+ * @param {string} v
+ */
 function day(v) {
   const s = v.trim();
-  return /^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(s) ? s.slice(0, 10) : '';
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(s)) return '';
+  if (/[T ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?(Z|[+-][0-9]{2}:?[0-9]{2})$/.test(s)) {
+    const t = Date.parse(s.replace(' ', 'T'));
+    if (Number.isFinite(t)) return OSLO_DAY.format(t);
+  }
+  return s.slice(0, 10);
 }
 
 /** @param {string} v */
@@ -310,10 +322,12 @@ export async function handle(request, env) {
       const postings = buildPostings(payouts, { bankAccount: bank.ledgerAccountNumber, companyBankId: bank.id, clearingAccount, feeAccount, currency: company.currencyCode });
       const grossMinor = payouts.reduce((s, p) => s + p.grossMinor, 0);
       const lastDate = payouts.map((p) => p.date).sort().at(-1) ?? bounds.lastDay;
-      const marker = `${BRAND} settlements ${bounds.month} (${payouts.length} payouts, ${grossMinor})`;
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: bounds.start, endDate: bounds.lastDay, includeReversed: 'true' } }));
-      const dup = existing.find((v) => typeof v.description === 'string' && v.description.startsWith(marker));
-      if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
+      const monthMarker = `${BRAND} settlements ${bounds.month} `;
+      const marker = `${monthMarker}(${payouts.length} payouts, ${grossMinor})`;
+      // Any Spense voucher already booked for this month blocks a second one, so a re-import with extra payouts cannot book the earlier ones twice.
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: bounds.start, endDate: bounds.lastDay, voucherType: 'manual' } }));
+      const dup = existing.find((v) => typeof v.description === 'string' && v.description.startsWith(monthMarker));
+      if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`A Spense voucher for ${bounds.month} exists, so no new voucher was created. Reverse it in ReAI first to book the month again: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
       const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: lastDate, description: marker, reviewReason: `${BRAND} settlement report imported via apps.reai.no.`, postings } }));
       return htmlResponse(reaiCallout({ tone: 'success', title: `Created review voucher ${created.number}`, body: html`<a href="${reaiOrigin(env)}/voucher/${created.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${created.number} ↗</a>. Match the bank postings to the bank feed in ReAI bank reconciliation.` }));
     }

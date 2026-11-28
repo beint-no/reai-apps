@@ -6,7 +6,7 @@ import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
 import { reaiAll, reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 
-/** @typedef {{ date: string, hours: number, person: string, project: string, comment: string }} HoursRow */
+/** @typedef {{ ref: string, date: string, hours: number, person: string, project: string, comment: string }} HoursRow */
 /** @typedef {{ id: number, name: string }} SimpleOpt */
 
 const SLUG = 'severa';
@@ -18,6 +18,7 @@ const LEAD = 'Fetch work hours from the Severa REST API and post them to ReAI Ti
 const API_HINT = 'Create client credentials in Severa under Settings → REST API (needs the REST API add-on and an administrator). The client needs the hours:read scope.';
 const API = 'https://api.severa.visma.com/rest-api/v1.0';
 const MAX_DAYS = 93;
+const MAX_PAGES = 45;
 
 /** @type {import('../../lib/api-http.js').ApiFieldSpec[]} */
 const API_FIELDS = [
@@ -30,8 +31,8 @@ const API_FIELDS = [
 
 /** @type {HoursRow[]} */
 const SAMPLE_ROWS = [
-  { date: '2026-10-12', hours: 7.5, person: 'Kari Nordmann', project: 'ERP rådgivning · Analyse', comment: 'Workshop og spesifikasjon' },
-  { date: '2026-10-13', hours: 6, person: 'Kari Nordmann', project: 'ERP rådgivning · Leveranse', comment: 'Teknisk leveranse' },
+  { ref: 'sample-1', date: '2026-10-12', hours: 7.5, person: 'Kari Nordmann', project: 'ERP rådgivning · Analyse', comment: 'Workshop og spesifikasjon' },
+  { ref: 'sample-2', date: '2026-10-13', hours: 6, person: 'Kari Nordmann', project: 'ERP rådgivning · Leveranse', comment: 'Teknisk leveranse' },
 ];
 
 /** @param {string} from @param {string} to */
@@ -68,12 +69,14 @@ export async function fetchApi(creds, fetchImpl = fetch) {
 
   /** @type {any[]} */ const items = [];
   let pageToken = '';
-  for (let page = 0; page < 50; page++) {
+  for (let page = 0; ; page++) {
+    if (page === MAX_PAGES) throw new HttpError(400, `Severa has more than ${MAX_PAGES * 100} work hour entries in this period. Choose a shorter period.`);
     const query = new URLSearchParams({ eventDateStart: from, eventDateEnd: to, rowCount: '100' });
     if (pageToken) query.set('pageToken', pageToken);
     const url = `${API}/workhours?${query}`;
     assertPublicHttpsUrl(url);
     const res = await fetchImpl(url, { headers: { authorization: `Bearer ${token}`, accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+    if (res.status === 429) throw new HttpError(429, 'Severa rate limit reached (10 calls per second, 100,000 per day for each API client). Wait a moment and try again.');
     if (!res.ok) throw new HttpError(400, `Severa API ${res.status === 401 || res.status === 403 ? 'rejected the token. Check that the client has the hours:read scope' : `returned HTTP ${res.status}`}.`);
     const data = await res.json();
     if (Array.isArray(data)) items.push(...data);
@@ -86,6 +89,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     const person = String(w.user?.name ?? [w.user?.firstName, w.user?.lastName].filter(Boolean).join(' ')).trim();
     const project = [w.project?.name, w.phase?.name].filter(Boolean).join(' · ');
     return {
+      ref: String(w.guid ?? ''),
       date: isoDate(w.eventDate, ''),
       hours: Number(num(w.quantity).toFixed(2)),
       person: person || '—',
@@ -113,7 +117,7 @@ function renderHours(rows, empId, projId, isSample) {
         <thead><tr><th>Date</th><th>User</th><th>Project</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
         <tbody>${rows.map((r, idx) => html`<tr id="${SLUG}-h-${idx}"><td class="mono">${r.date}</td><td>${r.person}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0
           ? html`<span class="muted-note">${isSample ? 'Sample only' : 'Choose a ReAI employee above'}</span>`
-          : html`<form hx-post="${BASE_PATH}/import" hx-target="#${SLUG}-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[${BRAND}] ${r.project} · ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
+          : html`<form hx-post="${BASE_PATH}/import" hx-target="#${SLUG}-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[${BRAND}] ${r.project} · ${r.comment}"><input type="hidden" name="ref" value="${r.ref}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
       </table></div>`,
   });
 }
@@ -178,8 +182,16 @@ export async function handle(request, env) {
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? BRAND).trim().slice(0, 1000);
       if (!(employeeId > 0) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'A ReAI employee, a date and 0.01 to 24 hours are required.');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
-      return htmlResponse(html`<tr><td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
+      const ref = String(form.get('ref') ?? '').trim();
+      if (!/^[0-9a-f-]{36}$/i.test(ref)) throw new HttpError(400, 'The Severa work hour id is missing. Fetch the hours again.');
+      const marker = `(Severa ${ref})`;
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const cells = html`<td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td>`;
+      const existing = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { ...auth, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+      const dup = existing.find((t) => typeof t.comment === 'string' && t.comment.includes(marker));
+      if (dup) return htmlResponse(html`<tr>${cells}<td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'neutral' })}</td></tr>`);
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { ...auth, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment: `${comment.slice(0, 940)} ${marker}` } }));
+      return htmlResponse(html`<tr>${cells}<td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

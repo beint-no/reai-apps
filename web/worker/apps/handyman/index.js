@@ -13,7 +13,9 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 const BRAND = 'Handyman';
 const TITLE = 'Handyman Field Service Sync';
 const LEAD = 'Fetch completed Handyman service orders with technician hours and materials, and stage them as ReAI orders and timesheets.';
-const MAX_ORDERS = 40;
+const MAX_ORDERS = 12;
+const MAX_ORDER_PAGES = 5;
+const CONCURRENCY = 4;
 
 /** @type {TradeRow[]} */
 const SAMPLE_ROWS = [
@@ -31,8 +33,9 @@ const ORDER_TYPES = { 0: 'WorkOrder', 10: 'InstallationOrder', 11: 'RepairOrder'
  * https://support.gsgroup.no/hc/en-us/articles/17674524711441 and /17762953047953 (API key and https setup in
  * Handyman ControlCenter on the customer's server), https://support.gsgroup.no/hc/en-us/articles/11054099455633
  * (GET /api/orders with Status=2 for completed, LastChanged, PageSize and StartIndex).
- * Per order: GET /api/orders/{orderId}/salarycoderegistrations (Amount, Unit 0 = hours, CustomerPrice),
- * GET /api/orders/{orderId}/materials (Quantity, CustomerPrice) and GET /api/customers/{id} (CustomerName).
+ * Per order: GET /api/orders/{orderId}/salarycoderegistrations (Amount, Unit 0 = hours, CustomerPrice) and,
+ * unless the order has a fixed price, GET /api/orders/{orderId}/materials (Quantity, CustomerPrice); per unique
+ * invoice customer GET /api/customers/{id} (CustomerName). At most 5 + 12 * 3 = 41 subrequests, 4 at a time.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<TradeRow[]>}
@@ -47,11 +50,16 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (to < from) throw new HttpError(400, 'The to date must be on or after the from date.');
   const base = assertPublicHttpsUrl(creds.baseUrl ?? '').origin;
   const headers = { apikey: apiKey, handymanclientid: clientId, accept: 'application/json' };
+  /** @param {string} path */
+  const get = (path) => fetchJson(`${base}${path}`, { headers }, BRAND, fetchImpl);
 
+  // Completed orders changed since the period start. The API has no finish date filter, so the
+  // finish date is checked locally.
   /** @type {any[]} */ const orders = [];
-  for (let page = 0; page < 20; page++) {
+  for (let page = 0; ; page++) {
+    if (page === MAX_ORDER_PAGES) throw new HttpError(400, `Handyman has more than ${MAX_ORDER_PAGES * 100} completed orders changed since ${from}. Choose a shorter period.`);
     const query = new URLSearchParams({ status: '2', lastChanged: `${from}T00:00:00`, pageSize: '100', startIndex: String(page * 100), dateTimeBehaviour: '0' });
-    const batch = await fetchJson(`${base}/api/orders?${query}`, { headers }, BRAND, fetchImpl);
+    const batch = await get(`/api/orders?${query}`);
     const items = Array.isArray(batch) ? batch : [];
     orders.push(...items);
     if (items.length < 100) break;
@@ -61,36 +69,47 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const chosen = orders.filter((o) => !o.ExcludeFromInvoice && !o.OrderHead?.IsInternalOrder && finished(o) >= from && finished(o) <= to);
   if (chosen.length > MAX_ORDERS) throw new HttpError(400, `Handyman has ${chosen.length} completed orders in this period. Choose a shorter period (at most ${MAX_ORDERS} orders).`);
 
+  /** @param {any} o */
+  const customerIdOf = (o) => Number(o.InvoiceCustomerReference?.Id || o.CustomerReference?.Id || 0);
+  const customerIds = [...new Set(chosen.map(customerIdOf).filter((id) => id > 0))];
+  /** @type {Array<() => Promise<void>>} */ const tasks = [];
+  /** @type {Map<number, { regs: any[], mats: any[] }>} */ const details = new Map();
   /** @type {Map<number, string>} */ const customers = new Map();
+  for (const o of chosen) {
+    const id = Number(o.HSId);
+    const fixed = num(o.OrderHead?.FixedPrice) > 0;
+    const entry = { regs: /** @type {any[]} */ ([]), mats: /** @type {any[]} */ ([]) };
+    details.set(id, entry);
+    tasks.push(async () => { const r = await get(`/api/orders/${id}/salarycoderegistrations?pageSize=1000`); entry.regs = Array.isArray(r) ? r : []; });
+    // A fixed price replaces labour and materials, so materials are only read for other orders.
+    if (!fixed) tasks.push(async () => { const m = await get(`/api/orders/${id}/materials?pageSize=1000`); entry.mats = Array.isArray(m) ? m : []; });
+  }
+  for (const cid of customerIds) tasks.push(async () => { const c = await get(`/api/customers/${cid}`); customers.set(cid, String(c?.CustomerName ?? '').trim()); });
+  for (let i = 0; i < tasks.length; i += CONCURRENCY) await Promise.all(tasks.slice(i, i + CONCURRENCY).map((t) => t()));
+
   /** @type {TradeRow[]} */ const rows = [];
   for (const o of chosen) {
     const id = Number(o.HSId);
-    const regs = await fetchJson(`${base}/api/orders/${id}/salarycoderegistrations?pageSize=1000`, { headers }, BRAND, fetchImpl);
-    const mats = await fetchJson(`${base}/api/orders/${id}/materials?pageSize=1000`, { headers }, BRAND, fetchImpl);
-    let hours = 0;
-    let labour = 0;
-    for (const r of /** @type {any[]} */ (Array.isArray(regs) ? regs : [])) {
+    const { regs, mats } = details.get(id) ?? { regs: [], mats: [] };
+    let hoursCents = 0;
+    let labourMinor = 0;
+    for (const r of regs) {
       if (r.Rejected) continue;
-      if (Number(r.Unit) === 0) hours += num(r.Amount);
-      if (!r.ExcludeFromInvoice) labour += num(r.Amount) * num(r.CustomerPrice);
+      if (Number(r.Unit) === 0) hoursCents += Math.round(num(r.Amount) * 100);
+      if (!r.ExcludeFromInvoice) labourMinor += Math.round(num(r.Amount) * num(r.CustomerPrice) * 100);
     }
-    let materials = 0;
-    for (const m of /** @type {any[]} */ (Array.isArray(mats) ? mats : [])) {
-      if (!m.ExcludeFromInvoice) materials += num(m.Quantity) * num(m.CustomerPrice);
+    let materialMinor = 0;
+    for (const m of mats) {
+      if (!m.ExcludeFromInvoice) materialMinor += Math.round(num(m.Quantity) * num(m.CustomerPrice) * 100);
     }
-    const fixed = num(o.OrderHead?.FixedPrice);
-    const customerId = Number(o.CustomerReference?.Id ?? 0);
-    if (customerId > 0 && !customers.has(customerId)) {
-      const c = await fetchJson(`${base}/api/customers/${customerId}`, { headers }, BRAND, fetchImpl);
-      customers.set(customerId, String(c?.CustomerName ?? '').trim());
-    }
+    const fixedMinor = Math.round(num(o.OrderHead?.FixedPrice) * 100);
     rows.push({
       ref: `HM-${id}`,
       date: finished(o),
-      customerName: customers.get(customerId) || '—',
+      customerName: customers.get(customerIdOf(o)) || '—',
       description: String(o.OrderHead?.OrderName ?? o.Description ?? '').trim() || `Handyman order ${id}`,
-      hours: Number(hours.toFixed(2)),
-      amountExVat: Number((fixed > 0 ? fixed : labour + materials).toFixed(2)),
+      hours: hoursCents / 100,
+      amountExVat: (fixedMinor > 0 ? fixedMinor : labourMinor + materialMinor) / 100,
       project: ORDER_TYPES[Number(o.OrderHead?.OrderType)] ?? 'Order',
     });
   }
@@ -226,7 +245,14 @@ export async function handle(request, env) {
       const amount = Number(form.get('amount') ?? '0');
       const customerId = Number(form.get('customerId') ?? '0');
       if (!ref || customerId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(amount > 0)) throw new HttpError(400, 'A customer, date and positive amount are required.');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `handyman-${ref}`.slice(0, 100), comment: `Handyman ${ref}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
+      const externalReference = `handyman-${ref}`.slice(0, 100);
+      const existing = /** @type {{ items?: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, query: { externalReference, status: 'all', pageSize: '1' } }));
+      const dup = existing.items?.[0];
+      if (dup) {
+        const dupUrl = `${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}`;
+        return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${description}</td><td class="num">—</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td>${reaiBadge({ text: 'Already in ReAI', tone: 'warn' })} <a href="${dupUrl}" target="_blank" rel="noopener">Order #${dup.id} ↗</a></td></tr>`);
+      }
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `Handyman ${ref}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
       return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${description}</td><td class="num">—</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
     }
@@ -236,7 +262,13 @@ export async function handle(request, env) {
       const employeeId = Number(form.get('employeeId') ?? '0');
       const projectId = Number(form.get('projectId') ?? '0');
       const comment = String(form.get('description') ?? BRAND).slice(0, 1000);
-      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
+      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required. Split orders over 24 hours by day in ReAI.');
+      const marker = comment.match(/^\[Handyman [^\]]+\]/)?.[0] ?? '';
+      if (marker) {
+        const logged = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+        const dup = Array.isArray(logged) ? logged.find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker)) : undefined;
+        if (dup) return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'warn' })}</td></tr>`);
+      }
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }

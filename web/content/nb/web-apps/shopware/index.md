@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter ordrer med ordredato i valgt periode der betalingen har status *betalt*. Priser inklusive MVA regnes om til beløp uten MVA med skatten Shopware har beregnet per linje. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
+Integrasjonen henter ordrer med ordredato i valgt periode der den gjeldende betalingen har status *betalt*. Kansellerte og refunderte ordrer tas ikke med. Priser inklusive MVA regnes om til beløp uten MVA med skatten Shopware har beregnet per linje. En rabatt eller frakt som fordeles på flere MVA-satser, får én linje per sats. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
 
 | Fra Shopware | I ReAI |
 | --- | --- |

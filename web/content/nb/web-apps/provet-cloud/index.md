@@ -28,7 +28,7 @@ Appen henter utstedte fakturaer med fakturadato i perioden du velger (utkast og 
 | Linjer med 12 % mva, inkl. mva | `3020` | 33 |
 | Linjer med 0 % mva | `3200` | 6 |
 
-ReAI deler hver salgslinje i inntekt og utgående mva ut fra mva-koden. Kreditnotaer reduserer de samme kontoene. Bilaget merkes for kontroll, lages bare når fakturalinjene stemmer med fakturatotalene, og samme periode kan ikke bokføres to ganger.
+ReAI deler hver salgslinje i inntekt og utgående mva ut fra mva-koden. Kreditnotaer reduserer de samme kontoene. Betalinger som venter eller har feilet, tas ikke med. Bilaget merkes for kontroll, lages bare når fakturalinjene stemmer med fakturatotalene, og samme periode kan ikke bokføres to ganger.
 
 ## Slik kommer du i gang
 

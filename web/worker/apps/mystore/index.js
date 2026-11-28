@@ -10,7 +10,7 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 /**
  * @typedef {{ sku: string, title: string, priceExVat: number }} StoreProduct
  * @typedef {{ name: string, quantity: number, unitPriceExVat: number, ratePct: number }} StoreLine
- * @typedef {{ id: string, date: string, customerName: string, customerEmail: string, currency: string, lines: StoreLine[], netMinor: number, vatMinor: number, totalMinor: number | null }} StoreOrder
+ * @typedef {{ id: string, date: string, status: string, credited: boolean, customerName: string, customerEmail: string, currency: string, lines: StoreLine[], netMinor: number, vatMinor: number, totalMinor: number | null }} StoreOrder
  * @typedef {{ id: number, variants?: Array<{ sku?: string | null }> }} ReAIProduct
  * @typedef {{ id: number, name: string | null, email?: string | null, invoiceEmail?: string | null }} ReAICustomer
  * @typedef {{ code: string, rate: number, vatType: string, reverseCharge: boolean }} ReAIVatCode
@@ -20,29 +20,49 @@ const SLUG = 'mystore';
 const BRAND = 'Mystore';
 const BASE_PATH = '/app/mystore';
 const TITLE = 'Mystore Product and Order Sync';
-const LEAD = 'Create missing Mystore products in ReAI by SKU and stage recent Mystore orders as ReAI orders with one line per product and the VAT rate from Mystore.';
+const LEAD = 'Create missing Mystore products in ReAI by SKU and stage Mystore orders from a chosen date as ReAI orders with one line per product and the VAT rate from Mystore.';
 const API = 'https://api.mystore.no/shops';
 const USER_AGENT = 'ReAI Apps (apps.reai.no)';
+/** Order status names (shop configurable; defaults Kansellert and Returnert) that are never staged. */
+const CANCELLED_STATUS = /kansell|cancel|annull|return|refus/i;
+
+const PAGE_SIZE = 50;
+const MAX_PRODUCT_PAGES = 8;
+const MAX_ORDER_PAGES = 6;
 
 /**
- * Reads one JSON:API listing page by page (page[size] max 50).
+ * Last page number from a JSON:API `links.last` URL, or 0 when absent.
+ * @param {any} links
+ */
+function lastPage(links) {
+  try {
+    return Number(new URL(String(links?.last ?? '')).searchParams.get('page[number]') ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Reads one JSON:API listing page by page (page[size] max 50, 120 requests per minute per token).
  * @param {string} url
  * @param {Record<string, string>} headers
  * @param {number} maxPages
+ * @param {string} what
  * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
  */
-async function listPages(url, headers, maxPages, fetchImpl) {
+async function listPages(url, headers, maxPages, what, fetchImpl) {
   /** @type {any[]} */ const data = [];
   /** @type {any[]} */ const included = [];
   for (let page = 1; page <= maxPages; page++) {
     const sep = url.includes('?') ? '&' : '?';
-    const body = await fetchJson(`${url}${sep}page[number]=${page}&page[size]=50`, { headers }, BRAND, fetchImpl);
+    const body = await fetchJson(`${url}${sep}page[number]=${page}&page[size]=${PAGE_SIZE}`, { headers }, BRAND, fetchImpl);
     const items = Array.isArray(body?.data) ? body.data : [];
     data.push(...items);
     if (Array.isArray(body?.included)) included.push(...body.included);
-    if (items.length < 50 || !body?.links?.next) break;
+    const more = items.length === PAGE_SIZE && (Boolean(body?.links?.next) || lastPage(body?.links) > page);
+    if (!more) return { data, included };
   }
-  return { data, included };
+  throw new HttpError(400, `${BRAND} has more than ${maxPages * PAGE_SIZE} ${what} for this request. Choose a later order date.`);
 }
 
 /** @param {unknown} v */
@@ -51,13 +71,14 @@ function minor(v) {
 }
 
 /**
- * Fetches products and the latest orders from the Mystore API.
+ * Fetches products and the orders from a date with the Mystore API.
  * Docs: https://api-docs.mystore.no/ (OpenAPI at https://api-docs.mystore.no/mystore_api_docs.json):
- * GET /shops/{shop}/products and GET /shops/{shop}/orders?include=order-products,order-totals&sort=-created_at,
+ * GET /shops/{shop}/products?filter[sku]... (non-empty SKU) and
+ * GET /shops/{shop}/orders?include=order-products,order-totals,order-status&filter[created_at]...between&sort=-created_at,
  * Bearer personal access token from https://auth.mystore.no/login with scopes products:read and orders:read,
- * Accept application/vnd.api+json, JSON:API pagination page[number] and page[size] (max 50).
- * Order product final_price is the net unit price and tax_rate its VAT rate; order totals of type "line"
- * (shipping, fees, discounts) carry value_without_tax and tax_rate; ot_total holds the order total incl. VAT.
+ * Accept application/vnd.api+json, a User-Agent naming the integration, JSON:API pagination page[number] and
+ * page[size] (max 50). Order product final_price is the net unit price and tax_rate its VAT rate; order totals of
+ * type "line" (shipping, fees, discounts) carry value_without_tax and tax_rate; ot_total holds the order total incl. VAT.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ products: StoreProduct[], orders: StoreOrder[], storeLabel: string }>}
@@ -66,11 +87,21 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const shop = (creds.shopName ?? '').trim().toLowerCase();
   const token = (creds.apiToken ?? '').trim();
   if (!/^[a-z0-9._-]+$/.test(shop) || !token) throw new HttpError(400, 'Enter your Mystore store name and personal access token.');
+  const today = new Date().toISOString().slice(0, 10);
+  const from = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(creds.fromDate ?? '') ? String(creds.fromDate) : `${today.slice(0, 7)}-01`;
   const headers = { authorization: `Bearer ${token}`, accept: 'application/vnd.api+json', 'user-agent': USER_AGENT };
   const base = `${API}/${encodeURIComponent(shop)}`;
+  const productQuery = new URLSearchParams({ 'filter[sku][path]': 'sku', 'filter[sku][value]': '(empty)', 'filter[sku][operator]': '<>', sort: 'sku' });
+  const orderQuery = new URLSearchParams({
+    include: 'order-products,order-totals,order-status',
+    'filter[created_at][path]': 'created_at',
+    'filter[created_at][value]': `${from} 00:00:00...${today} 23:59:59`,
+    'filter[created_at][operator]': 'between',
+    sort: '-created_at',
+  });
   const [pRes, oRes] = await Promise.all([
-    listPages(`${base}/products`, headers, 4, fetchImpl),
-    listPages(`${base}/orders?include=order-products,order-totals&sort=-created_at`, headers, 1, fetchImpl),
+    listPages(`${base}/products?${productQuery}`, headers, MAX_PRODUCT_PAGES, 'products with SKU', fetchImpl),
+    listPages(`${base}/orders?${orderQuery}`, headers, MAX_ORDER_PAGES, 'orders', fetchImpl),
   ]);
 
   /** @type {StoreProduct[]} */
@@ -80,6 +111,12 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     return { sku: String(a.sku ?? '').trim(), title: String(name ?? `Product ${item?.id}`).trim(), priceExVat: num(a.price) };
   }).filter((p) => p.sku);
 
+  /** @type {Map<string, string>} */ const statusNames = new Map();
+  for (const inc of oRes.included) {
+    if (inc?.type !== 'order-status') continue;
+    const n = inc.attributes?.name;
+    statusNames.set(String(inc.id), String((n && typeof n === 'object' ? (n.no ?? Object.values(n).find((x) => typeof x === 'string')) : n) ?? '').trim());
+  }
   /** @type {Map<string, any[]>} */ const linesByOrder = new Map();
   /** @type {Map<string, any[]>} */ const totalsByOrder = new Map();
   for (const inc of oRes.included) {
@@ -111,9 +148,12 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     }
     const netMinor = lines.reduce((s, l) => s + Math.round(l.quantity * l.unitPriceExVat * 100), 0);
     const vatMinor = lines.reduce((s, l) => s + Math.round(l.quantity * l.unitPriceExVat * l.ratePct), 0);
+    const statusName = statusNames.get(String(item?.relationships?.['order-status']?.data?.id ?? '')) ?? '';
     return {
       id,
       date: String(a.created_at ?? '').slice(0, 10),
+      status: statusName,
+      credited: Boolean(a.credit_note),
       customerName: String(a.customer_address_company || a.customer_address_name || a.billing_address_name || 'Webshop customer').trim(),
       customerEmail: String(a.customer_address_email || a.billing_address_email || '').trim().toLowerCase(),
       currency: String(a.currency ?? 'NOK').toUpperCase(),
@@ -128,6 +168,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
 
 /** @param {StoreOrder} o */
 function orderProblem(o) {
+  if (o.credited) return 'Order has a credit note in Mystore.';
+  if (CANCELLED_STATUS.test(o.status ?? '')) return `Order status is ${o.status}.`;
   if (o.currency !== 'NOK') return `Currency ${o.currency} is not supported.`;
   if (o.lines.length === 0) return 'Order has no lines.';
   if (o.totalMinor === null) return 'Order has no total.';
@@ -141,7 +183,7 @@ function renderStoreSync(state) {
   return html`
     <div class="metric-grid">
       ${reaiMetric({ label: 'Products with SKU', value: String(state.products.length), detail: `${newProds} not in ReAI` })}
-      ${reaiMetric({ label: 'Latest orders', value: String(state.orders.length), detail: state.storeLabel })}
+      ${reaiMetric({ label: 'Orders in period', value: String(state.orders.length), detail: state.storeLabel })}
       ${reaiMetric({ label: 'Duplicate check', value: 'SKU and order id', detail: 'Checked in ReAI before creating' })}
     </div>
     ${reaiCard({
@@ -164,7 +206,7 @@ function renderStoreSync(state) {
     })}
     ${reaiCard({
       eyebrow: `${BRAND.toUpperCase()} ORDERS → REAI ORDERS`,
-      title: 'Latest orders',
+      title: 'Orders',
       body: html`<div class="table-wrap"><table class="data-table">
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="num">Net</th><th class="num">VAT</th><th>Action</th></tr></thead>
         <tbody>${state.orders.map(({ o, customerId }, idx) => {
@@ -206,6 +248,8 @@ function invoiceVatCode(codes, ratePct) {
 const SAMPLE_ORDER = {
   id: '5001',
   date: '2026-10-20',
+  status: 'Sendt',
+  credited: false,
   customerName: 'Nordic Retail AS',
   customerEmail: 'post+mystore@aiak.no',
   currency: 'NOK',
@@ -244,6 +288,7 @@ export async function handle(request, env) {
               <div class="mapping-grid">
                 <div class="field"><label for="ec-shopName">Store name</label><input id="ec-shopName" name="shopName" type="text" required placeholder="minbutikk"></div>
                 <div class="field"><label for="ec-apiToken">Personal access token</label><input id="ec-apiToken" name="apiToken" type="password" autocomplete="off" required placeholder="Token"></div>
+                <div class="field"><label for="ec-from">Orders from</label><input id="ec-from" name="fromDate" type="date" value="${new Date().toISOString().slice(0, 7)}-01" required></div>
               </div>
               <div class="inline-row">
                 <button type="submit" class="button primary">Scan ${BRAND}</button>
@@ -282,7 +327,7 @@ export async function handle(request, env) {
 
     if (pathname === `${BASE_PATH}/scan`) {
       const [store, pRaw, cRaw] = await Promise.all([
-        fetchApi({ shopName: String(form.get('shopName') ?? ''), apiToken: String(form.get('apiToken') ?? '') }),
+        fetchApi({ shopName: String(form.get('shopName') ?? ''), apiToken: String(form.get('apiToken') ?? ''), fromDate: String(form.get('fromDate') ?? '') }),
         reaiAll(env, '/api/products', auth),
         reaiAll(env, '/api/customers', auth),
       ]);
@@ -306,6 +351,9 @@ export async function handle(request, env) {
       const title = String(form.get('title') ?? '').trim().slice(0, 200);
       const price = Number(form.get('price') ?? '0');
       if (!sku || !title || !Number.isFinite(price)) throw new HttpError(400, 'Product needs a SKU, a title and a price.');
+      const found = /** @type {{ items?: ReAIProduct[] }} */ (await reaiRequest(env, '/api/products', { ...auth, query: { query: sku, pageSize: '50' } }));
+      const same = (found.items ?? []).find((x) => (x.variants ?? []).some((v) => (v.sku ?? '').trim().toLowerCase() === sku.toLowerCase()));
+      if (same) return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))} NOK</td><td>${reaiBadge({ text: `In ReAI #${same.id}`, tone: 'neutral' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { ...auth, method: 'POST', body: { title, stockItem: true, variants: [{ sku, sellingPrice: Math.max(0, Number(price.toFixed(2))) }] } }));
       return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))} NOK</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
     }
@@ -317,8 +365,8 @@ export async function handle(request, env) {
       const problem = orderProblem(o);
       if (problem) throw new HttpError(400, problem);
       const externalReference = `mystore-${o.id}`;
-      const existing = /** @type {Array<{ id: number | null, externalReference?: string | null }>} */ (await reaiAll(env, '/api/orders', { ...auth, query: { externalReference } }));
-      const dup = existing.find((x) => x.id && x.externalReference === externalReference);
+      const existing = /** @type {{ items?: Array<{ id: number | null }> }} */ (await reaiRequest(env, '/api/orders', { ...auth, query: { externalReference, status: 'all', pageSize: '1' } }));
+      const dup = existing.items?.find((x) => x.id);
       if (dup) return htmlResponse(html`<tr><td class="mono">${o.id}</td><td class="mono">${o.date}</td><td>${o.customerName}</td><td class="num">${formatMinor(o.netMinor)}</td><td class="num">${formatMinor(o.vatMinor)}</td><td><a href="${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already in ReAI ↗</a></td></tr>`);
       const vatCodes = /** @type {ReAIVatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } }));
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', {

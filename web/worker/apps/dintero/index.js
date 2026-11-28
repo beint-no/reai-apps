@@ -55,8 +55,31 @@ async function providerJson(url, init, errPrefix, fetchImpl = fetch) {
   if (res.status >= 300 && res.status < 400) {
     throw new HttpError(502, `${errPrefix} returned an unexpected redirect.`);
   }
+  if (res.status === 429) {
+    const wait = Number(res.headers.get('retry-after') ?? '');
+    throw new HttpError(429, `${errPrefix} rate limit reached. Try again${Number.isFinite(wait) && wait > 0 ? ` in ${Math.ceil(wait)} seconds` : ' shortly'}.`);
+  }
   const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new HttpError(502, `${errPrefix} returned a response that is not JSON.`);
+  }
+  return { status: res.status, ok: res.ok, data };
+}
+
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** @param {unknown} iso @returns {string} */
+function osloDay(iso) {
+  const t = Date.parse(String(iso ?? ''));
+  return Number.isNaN(t) ? '' : OSLO_DAY.format(new Date(t));
+}
+
+/** @param {string} day @param {number} delta */
+function shiftDay(day, delta) {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + delta * 86_400_000).toISOString().slice(0, 10);
 }
 
 /**
@@ -64,8 +87,10 @@ async function providerJson(url, init, errPrefix, fetchImpl = fetch) {
  * Docs: https://docs.dintero.com/docs/checkout/checkout-client.md (Backoffice API client, client credentials),
  * https://docs.dintero.com/api-reference/authenticate/aid_auths_oauth_token_post.md (POST /accounts/{aid}/auth/token
  * with Basic client_id:client_secret and audience), https://docs.dintero.com/api-reference/settlements/aid_settlements_list.md
- * (GET /accounts/{aid}/settlements: limit, created_at.gte/lte on settled_at, starting_after_id/date paging,
- * items[].amounts[] with amount = capture - refund - fee in minor units, payment_status paid or postponed).
+ * (GET /accounts/{aid}/settlements: limit up to 1000, created_at.gte/lte filter settled_at, starting_after_id
+ * plus starting_after_date from last_evaluated_key, items[].amounts[] with amount, capture, refund, fee and
+ * currency, payment_status paid or postponed). The window is widened by a day on each side and each
+ * settlement is kept by its Europe/Oslo settled_at day.
  * @param {Record<string, string>} fields
  * @param {string} start
  * @param {string} end
@@ -90,7 +115,7 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
     fetchImpl,
   );
   if (!tokRes.ok || !tokRes.data?.access_token) {
-    throw new HttpError(400, 'Dintero rejected these credentials. Check settlement report permissions.');
+    throw new HttpError(400, 'Dintero rejected the client ID or secret. Check the API client in Dintero Backoffice under Settings → API clients.');
   }
   const headers = { authorization: `Bearer ${tokRes.data.access_token}`, accept: 'application/json' };
   /** @type {import('../../lib/reconcile.js').PayoutItem[]} */
@@ -99,11 +124,12 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
   let cursor = null;
   const seen = new Set();
 
-  for (let p = 0; p < 50; p++) {
+  const lastDay = shiftDay(end, -1);
+  for (let p = 0; p < 10; p++) {
     const url = new URL(`${base}/settlements`);
-    url.searchParams.set('limit', '100');
-    url.searchParams.set('created_at.gte', start);
-    url.searchParams.set('created_at.lte', end);
+    url.searchParams.set('limit', '1000');
+    url.searchParams.set('created_at.gte', shiftDay(start, -1));
+    url.searchParams.set('created_at.lte', shiftDay(lastDay, 1));
     if (cursor) {
       if (!cursor.settled_at) {
         throw new HttpError(502, 'Dintero omitted a pagination date.');
@@ -112,6 +138,9 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
       url.searchParams.set('starting_after_date', cursor.settled_at);
     }
     const r = await providerJson(url.toString(), { headers }, 'Dintero', fetchImpl);
+    if (r.status === 401 || r.status === 403) {
+      throw new HttpError(400, 'The Dintero API client may not read settlements. Grant it read:settlements or read:reports in Dintero Backoffice.');
+    }
     if (!r.ok) {
       throw new HttpError(400, `Dintero settlements returned HTTP ${r.status}.`);
     }
@@ -121,7 +150,7 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
         throw new HttpError(502, 'Dintero repeated a settlement page.');
       }
       seen.add(item.id);
-      const day = typeof item.settled_at === 'string' ? item.settled_at.slice(0, 10) : '';
+      const day = osloDay(item.settled_at);
       if (String(item.payment_status ?? '').toLowerCase() !== 'paid' || day < start || day >= end) {
         continue;
       }
@@ -139,11 +168,11 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
       });
     }
     cursor = r.data?.last_evaluated_key ?? null;
-    if (!cursor) {
-      break;
+    if (!cursor || items.length === 0) {
+      return payouts;
     }
   }
-  return payouts;
+  throw new HttpError(400, 'Dintero has too many settlements in this month for one review.');
 }
 
 /**
@@ -359,7 +388,7 @@ export async function handle(request, env) {
 
       const marker = `Dintero withheld fees ${accountID} ${bounds.month}`;
       const [vouchers, expenseOpts, clearingOpts] = await Promise.all([
-        reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: company.id, query: { startDate: bounds.start, endDate: bounds.end } }),
+        reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: company.id, query: { startDate: bounds.lastDay, endDate: bounds.lastDay, voucherType: 'manual' } }),
         reaiRequest(env, '/api/chart-of-accounts/accounts', { token: session.accessToken, tenantId: company.id, query: { accountNumberPrefix: expense } }),
         reaiRequest(env, '/api/chart-of-accounts/accounts', { token: session.accessToken, tenantId: company.id, query: { accountNumberPrefix: clearing } }),
       ]);

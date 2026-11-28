@@ -14,11 +14,11 @@ highlights:
 
 ## Move Finago Busy hours into ReAI
 
-Busy is now called Finago Busy and is provided by 24SevenOffice. The integration fetches hour entries for a period, deducts breaks and shows the Busy project, user and comment. You choose the employee and, if you like, the project in ReAI and post the entries one by one.
+Busy is now called Finago Busy and is provided by 24SevenOffice. The integration fetches hour entries for a period, deducts breaks and shows the Busy project, user and comment. Each entry goes to the ReAI employee with the same email as the Busy user. When you fetch one person's hours, the employee you choose is used. Entries already posted to ReAI are skipped.
 
 ## Set up Finago Busy with ReAI
 
 1. An admin creates an API token in the Finago Busy workspace settings under **Integrations**. Give it the scopes `hourEntries:read`, `users:read` and `projects:read`.
-2. Click **Open integration**, connect ReAI and choose the employee and, optionally, the project.
+2. Click **Open integration**, connect ReAI and, optionally, choose the employee and the project.
 3. Paste the token, choose the period and, optionally, the Busy user's email to fetch one person's hours.
 4. Review the hours and click **Post to ReAI** for each entry.

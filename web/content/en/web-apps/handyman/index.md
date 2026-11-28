@@ -14,7 +14,7 @@ highlights:
 
 ## Move Handyman service orders into ReAI
 
-Handyman from GSGroup has a REST API that runs on the customer's own Handyman server. The integration fetches orders completed in the period, totals hours from salary codes measured in hours, and values the order from the customer price of labour and materials or from the fixed price. You can stage the order in ReAI and log the hours on an employee.
+Handyman from GSGroup has a REST API that runs on the customer's own Handyman server. The integration fetches orders completed in the period, totals hours from salary codes measured in hours, and values the order from the customer price of labour and materials or from the fixed price. You can stage the order in ReAI and log the hours on an employee. Orders and hours already sent to ReAI are recognised and not created twice. If Handyman has many completed orders in the period, choose a shorter period.
 
 ## Set up Handyman with ReAI
 

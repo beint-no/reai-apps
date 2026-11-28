@@ -16,7 +16,7 @@ highlights:
 
 Integrasjonen leser timer (AssignmentService) og varer (AssignmentProduct) registrert i valgt periode, sammen med arbeidsordren, kunden og den ansatte de hører til.
 
-* **Timer** blir timelisterader i ReAI. Timetyper som SpeedyCraft holder utenfor timesummen, for eksempel kjøring og tilleggskostnader, og fraværstyper føres ikke som timer.
+* **Timer** blir timelisterader i ReAI. En time som allerede er ført, blir ikke ført på nytt. Timetyper som SpeedyCraft holder utenfor timesummen, for eksempel kjøring og tilleggskostnader, og fraværstyper føres ikke som timer.
 * **Fakturagrunnlag** blir ett ordreutkast i ReAI per arbeidsordre. Beløpet er antall ganger kundepris minus rabatt for timer og varer, eks. mva. Ordren får arbeidsordrenummeret som ekstern referanse, så samme arbeidsordre åpner det eksisterende utkastet i stedet for å lage et nytt.
 
 Ingenting faktureres eller bokføres automatisk. Du kontrollerer og fakturerer hvert ordreutkast i ReAI, der salgskonto og mva-kode settes.

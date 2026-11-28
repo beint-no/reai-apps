@@ -16,7 +16,7 @@ highlights:
 
 Integrasjonen leser timer som ikke er fakturert i Ordrestyring, med starttid i valgt periode, og varer og andre utlegg lagt til på sakene i samme periode.
 
-* **Timer** blir timelisterader i ReAI med timetype, beskrivelse og sak. Ansatte kobles til ansatte i ReAI på navn, og du velger en ansatt som brukes når navnet ikke finnes. Avviste timer tas ikke med.
+* **Timer** blir timelisterader i ReAI med timetype, beskrivelse og sak. Ansatte kobles til ansatte i ReAI på navn, og du velger en ansatt som brukes når navnet ikke finnes. Avviste timer tas ikke med, og en time som allerede er ført i ReAI, føres ikke på nytt.
 * **Fakturagrunnlag** blir ett ordreutkast i ReAI per sak: salgsprisen for timene pluss summen av varer og andre utlegg, eks. mva. Linjer som allerede ligger i et fakturautkast i Ordrestyring, tas ikke med. Ordren får saksnummeret som ekstern referanse, så samme sak åpner det eksisterende utkastet i stedet for å lage et nytt.
 
 Ingenting faktureres eller bokføres automatisk. Du kontrollerer og fakturerer hvert ordreutkast i ReAI, der salgskonto og mva-kode settes.

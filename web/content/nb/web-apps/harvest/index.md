@@ -14,7 +14,7 @@ highlights:
 
 ## Overfør timer fra Harvest til ReAI
 
-Integrasjonen henter avsluttede timeføringer for en måned fra Harvest, med prosjekt, bruker og kommentar. Du velger ansatt og eventuelt prosjekt i ReAI og fører timene én og én.
+Integrasjonen henter avsluttede timeføringer for en måned fra Harvest, med prosjekt, bruker og kommentar. Du velger ansatt og eventuelt prosjekt i ReAI og fører timene én og én. Føringer som allerede er sendt til ReAI, blir gjenkjent og ikke ført på nytt.
 
 ## Slik setter du opp Harvest mot ReAI
 

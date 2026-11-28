@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The app reads current employments and the matching user profiles in 4human HRM. Former and vacant positions are skipped. For each employee you choose **Create in ReAI**, which creates the employee and an employment line with start date and position percentage. Email, phone, address, national identity number and a MOD11 verified Norwegian bank account are included when 4human has them.
+The app reads current employments and the matching user profiles in 4human HRM. Former and vacant positions are skipped. Profiles are read for 25 employees at a time, sorted by name; **Next 25 employees** fetches the next group. For each employee you choose **Create in ReAI**, which creates the employee and an employment line with start date and position percentage. Email, phone, address, national identity number and a MOD11 verified Norwegian bank account are included when 4human has them.
 
 Creating an employee in ReAI does not create a user, send an invitation, submit an A-melding or run payroll. Check the tax card, salary and employment details in ReAI before the first payroll. Employees that already exist in ReAI with the same email or name are shown but not created again.
 

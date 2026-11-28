@@ -21,7 +21,7 @@ The integration reads the product catalog and orders with state **processing** o
 | Product with SKU, name and price | Product with the same SKU, created only when you click **Create in ReAI** |
 | Order with grand total | Order with one line, amount excluding VAT (grand total minus tax), external reference `magento-<id>` |
 
-Each order is linked to a ReAI customer with the same email or name. If the customer is missing, create it in ReAI first. Product prices are taken as Magento stores them, so check whether your store uses prices including or excluding VAT.
+Each order is linked to a ReAI customer with the same email or name. If the customer is missing, create it in ReAI first. Product prices are taken as Magento stores them, so check whether your store uses prices including or excluding VAT. Orders with a refund in Magento are listed but not staged, so handle them manually.
 
 ## Setup
 

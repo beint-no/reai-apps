@@ -23,7 +23,7 @@ Caspeco leverer alle salgslinjer i driftsdagen, fra kl. 06.00 på valgt dato til
 | Salg inklusive MVA med 25 %, 15 % og 12 % | `3000`, `3010` og `3020` med utgående MVA-kode i ReAI |
 | Tips til ansatte | `2930` |
 
-Caspeco oppgir én betalingstype per salgslinje, så en kvittering som er delt mellom flere betalingstyper havner under typen på linjene. Sammenlign betalingene med dagsrapporten i Caspeco før du bokfører.
+Caspeco oppgir én betalingstype per salgslinje, så en kvittering som er delt mellom flere betalingstyper havner under typen på linjene. Rabatter som Caspeco oppgir, vises i forhåndsvisningen. Sammenlign betalinger og salg med dagsrapporten i Caspeco før du bokfører.
 
 ## Slik kommer du i gang
 

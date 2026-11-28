@@ -20,5 +20,5 @@ Sales teams work in HubSpot while finance invoices in ReAI. Retyping names, addr
 
 1. In HubSpot, go to **Development → Keys → Service keys**, choose **Create service key** and add the `crm.objects.companies.read` scope. An existing private app token with the same scope also works.
 2. HubSpot has no standard organization number property. If you keep it in a custom company property, find its internal name under **Settings → Properties → Company properties**.
-3. Click **Open integration**, connect ReAI and paste the key and, optionally, the property name.
-4. Review the list. Norwegian companies without a valid organization number get a field to fill in before the customer is created.
+3. Click **Open integration**, connect ReAI and paste the key and, optionally, the property name. A **Changed since** date limits the scan to companies changed after that day.
+4. Review the list. Norwegian companies without a valid organization number get a field to fill in before the customer is created. Each create checks again that the customer is not already in ReAI.

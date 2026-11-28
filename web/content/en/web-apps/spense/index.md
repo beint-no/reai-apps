@@ -24,7 +24,7 @@ The integration reads that report for one month, matches each net payout against
 | Fees withheld by Spense (debit) | `7770` |
 | Customer payments settled by Spense (credit) | Clearing account `1580` |
 
-Fees are booked only when the payout is lower than the gross amount. Fees that Spense invoices later are not booked here. Use the clearing account where your workshop system books invoices that customers pay through Spense.
+Each month can be booked once. To book it again, reverse the voucher in ReAI first. Fees are booked only when the payout is lower than the gross amount. Fees that Spense invoices later are not booked here. Use the clearing account where your workshop system books invoices that customers pay through Spense.
 
 ## Setup
 

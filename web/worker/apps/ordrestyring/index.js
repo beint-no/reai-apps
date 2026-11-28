@@ -231,7 +231,7 @@ function renderPreview(state) {
       <div class="metric-grid">
         ${reaiMetric({ label: 'Rows', value: String(state.rows.length), detail: 'Each row is staged only when you click it' })}
         ${reaiMetric({ label: 'Hours', value: `${totalHours.toFixed(2)} h`, detail: 'Logged as ReAI timesheet rows' })}
-        ${reaiMetric({ label: 'Invoice basis ex. VAT', value: `${formatMinor(Math.round(totalAmt * 100))} NOK`, detail: 'Staged as ReAI draft orders' })}
+        ${reaiMetric({ label: 'Invoice basis ex. VAT', value: formatMinor(Math.round(totalAmt * 100)), detail: 'Staged as ReAI draft orders in the company currency' })}
       </div>
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Ref</th><th>Date</th><th>Customer / project</th><th>Employee</th><th class="num">Hours</th><th class="num">Ex. VAT</th><th>Action</th></tr></thead>
@@ -319,7 +319,8 @@ export async function handle(request, env) {
       const externalReference = `${SLUG}-${ref}`.slice(0, 100);
       const existing = /** @type {{ items: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/orders', { ...auth, query: { externalReference, pageSize: '1' } }));
       const found = existing.items[0];
-      const created = found ?? /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { ...auth, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${BRAND} ${ref}`, ...(projectId > 0 ? { projectId } : {}), orderLines: [{ itemName: description, quantity: 1, unitPrice: amount }] } }));
+      const currencyCode = session.tenants.find((t) => t.id === session.tenantId)?.currencyCode ?? 'NOK';
+      const created = found ?? /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { ...auth, method: 'POST', body: { customerId, currencyCode, daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${BRAND} ${ref}`, ...(projectId > 0 ? { projectId } : {}), orderLines: [{ itemName: description, quantity: 1, unitPrice: amount }] } }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
       return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>${description}</td><td>—</td><td class="num">—</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">${found ? 'Already staged' : 'Draft order'} #${created.id} ↗</a></td></tr>`);
     }
@@ -329,6 +330,13 @@ export async function handle(request, env) {
       const employeeId = Number(form.get('employeeId') ?? '0');
       const comment = String(form.get('description') ?? BRAND).slice(0, 1000);
       if (employeeId <= 0 || hours < 0.01 || hours > 24) throw new HttpError(400, 'A ReAI employee and 0.01 to 24 hours are required.');
+      // Duplicate check: the comment starts with "[Ordrestyring OS-<hour id>]", so the same hour is logged once.
+      const tag = /^\[[^\]]+\]/.exec(comment)?.[0] ?? '';
+      if (tag) {
+        const sameDay = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { ...auth, query: { startDate: date, endDate: date, employeeId: String(employeeId) } }));
+        const dup = Array.isArray(sameDay) ? sameDay.find((t) => typeof t.comment === 'string' && t.comment.startsWith(tag)) : undefined;
+        if (dup) return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'warn' })}</td></tr>`);
+      }
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { ...auth, method: 'POST', body: { employeeId, date, hours, ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }

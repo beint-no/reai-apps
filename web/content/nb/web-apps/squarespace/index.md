@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter ordrer opprettet i valgt periode. Kansellerte ordrer tas ikke med. Squarespace oppgir MVA samlet per ordre, så integrasjonen regner ut ordrens sats og bruker den på alle linjene når den er 25, 15, 12 eller 0 prosent. Ellers får linjene standard MVA-kode i ReAI. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
+Integrasjonen henter ordrer opprettet i valgt periode etter norsk tid. Testordrer, kansellerte ordrer og ordrer som er refundert i sin helhet tas ikke med. Delvis refunderte ordrer merkes, så du kan kreditere refusjonen i ReAI. Squarespace oppgir MVA samlet per ordre, så integrasjonen regner ut ordrens sats og bruker den på alle linjene når den er 25, 15, 12 eller 0 prosent. Ellers får linjene standard MVA-kode i ReAI. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
 
 | Fra Squarespace | I ReAI |
 | --- | --- |

@@ -10,6 +10,7 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 /**
  * @typedef {{ sku: string, name: string, barcode: string, salesPrice: number, costPrice: number, stock: number }} RackbeatProduct
  * @typedef {{ product: RackbeatProduct, exists: boolean }} ProductRow
+ * @typedef {{ products: RackbeatProduct[], total: number }} RackbeatScan
  */
 
 const BRAND = 'Rackbeat';
@@ -18,18 +19,19 @@ const LEAD = 'Compare the Rackbeat product register with ReAI Products by SKU an
 const BASE = '/app/rackbeat';
 const RACKBEAT_API = 'https://app.rackbeat.com/api';
 const PAGE_LIMIT = 100;
-const MAX_PAGES = 50;
+const MAX_PAGES = 30;
 
 /**
- * Fetches all sellable, non barred Rackbeat products.
+ * Fetches sellable, non barred Rackbeat products (up to MAX_PAGES pages of PAGE_LIMIT; 480 requests per minute per account).
  * Docs:
  * - https://developer.rackbeat.com/reference/authentication-1 (Company settings > API, Authorization: Bearer)
- * - https://developer.rackbeat.com/reference/getproducts (GET https://app.rackbeat.com/api/products, is_barred filter, response `products[]`)
+ * - https://developer.rackbeat.com/reference/getproducts (GET https://app.rackbeat.com/api/products, is_barred and is_sellable filters, response `products[]`)
+ * - https://developer.rackbeat.com/reference/errors (480 requests per minute per account, HTTP 429)
  * - https://developer.rackbeat.com/reference/pagination (page/limit, `pages`, HTTP 206 Partial Content)
  * - https://developer.rackbeat.com/reference/customizable-requests (`fields` selection)
  * @param {Record<string, string>} creds `apiToken`
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<RackbeatProduct[]>}
+ * @returns {Promise<RackbeatScan>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
   const token = (creds.apiToken ?? '').trim();
@@ -37,9 +39,10 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const headers = { authorization: `Bearer ${token}`, accept: 'application/json', 'content-type': 'application/json' };
   /** @type {RackbeatProduct[]} */
   const products = [];
+  let total = 0;
   for (let page = 1; page <= MAX_PAGES; page++) {
     const data = await fetchJson(
-      `${RACKBEAT_API}/products?fields=number,name,barcode,sales_price,cost_price,stock_quantity,is_barred&is_barred=false&page=${page}&limit=${PAGE_LIMIT}`,
+      `${RACKBEAT_API}/products?fields=number,name,barcode,sales_price,cost_price,stock_quantity,is_barred&is_barred=false&is_sellable=true&page=${page}&limit=${PAGE_LIMIT}`,
       { headers },
       BRAND,
       fetchImpl,
@@ -52,22 +55,24 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         sku,
         name: String(p.name ?? sku).trim() || sku,
         barcode: String(p.barcode ?? '').trim(),
-        salesPrice: num(p.sales_price),
-        costPrice: num(p.cost_price),
+        salesPrice: Math.round(num(p.sales_price) * 100) / 100,
+        costPrice: Math.round(num(p.cost_price) * 100) / 100,
         stock: num(p.stock_quantity),
       });
     }
+    total = Number(data?.total ?? total);
     const pages = Number(data?.pages ?? 1);
     if (rows.length === 0 || page >= pages) break;
   }
-  return products;
+  return { products, total: Math.max(total, products.length) };
 }
 
 /**
  * @param {ProductRow[]} rows
  * @param {boolean} isSample
+ * @param {number} [total] Products Rackbeat reported, when more than were fetched
  */
-function renderScan(rows, isSample) {
+function renderScan(rows, isSample, total = rows.length) {
   const missing = rows.filter((r) => !r.exists).length;
   return html`
     <div class="metric-grid">
@@ -96,6 +101,7 @@ function renderScan(rows, isSample) {
           </tr>`)}</tbody>
         </table></div>
         ${rows.length > 500 ? html`<p class="muted-note">Showing the first 500 of ${rows.length} products.</p>` : ''}
+        ${total > rows.length ? reaiCallout({ tone: 'warn', body: `Rackbeat has ${total} sellable products. Only the first ${rows.length} were scanned.` }) : ''}
         <p class="muted-note">ReAI products are created as stock items with SKU, sales price, cost price and barcode. Stock quantities are shown for reference only and are not posted to ReAI.</p>`,
     })}
   `;
@@ -156,13 +162,13 @@ export async function handle(request, env) {
     const form = await request.formData();
 
     if (pathname === `${BASE}/scan`) {
-      const [products, reaiProducts] = await Promise.all([
+      const [scan, reaiProducts] = await Promise.all([
         fetchApi({ apiToken: String(form.get('apiToken') ?? '') }),
         /** @type {Promise<Array<{ variants?: Array<{ sku?: string | null }> }>>} */ (reaiAll(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId })),
       ]);
       const skus = new Set();
       for (const p of reaiProducts) for (const v of p.variants ?? []) if (v.sku) skus.add(v.sku.trim().toLowerCase());
-      return htmlResponse(renderScan(products.map((product) => ({ product, exists: skus.has(product.sku.toLowerCase()) })), false));
+      return htmlResponse(renderScan(scan.products.map((product) => ({ product, exists: skus.has(product.sku.toLowerCase()) })), false, scan.total));
     }
 
     if (pathname === `${BASE}/sync-product`) {

@@ -6,7 +6,7 @@ import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
 import { reaiAll, reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard } from '../../lib/ui.js';
 
-/** @typedef {{ date: string, hours: number, project: string, user: string, comment: string }} HoursRow */
+/** @typedef {{ id: string, date: string, hours: number, project: string, user: string, comment: string }} HoursRow */
 /** @typedef {{ id: number, name: string }} SimpleOpt */
 
 const BRAND = 'EG HoltePortalen';
@@ -17,8 +17,8 @@ const PAGE = 500;
 
 /** @type {HoursRow[]} */
 const SAMPLE_ROWS = [
-  { date: '2026-10-14', hours: 7.5, project: '2207 Rehabilitering Storgata 12', user: 'Demo Tømrer', comment: 'Riving og bæring' },
-  { date: '2026-10-15', hours: 8, project: '2207 Rehabilitering Storgata 12', user: 'Demo Tømrer', comment: 'Montering av bjelkelag' },
+  { id: '5f0c2a91', date: '2026-10-14', hours: 7.5, project: '2207 Rehabilitering Storgata 12', user: 'Demo Tømrer', comment: 'Riving og bæring' },
+  { id: '7b13e4c0', date: '2026-10-15', hours: 8, project: '2207 Rehabilitering Storgata 12', user: 'Demo Tømrer', comment: 'Montering av bjelkelag' },
 ];
 
 /** @param {any} payload @returns {any[]} */
@@ -27,8 +27,28 @@ function odataList(payload) {
   return Array.isArray(payload?.value) ? payload.value : [];
 }
 
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
 /**
- * Reads an OData collection page by page, stopping when a page brings nothing new.
+ * Returns the Oslo calendar day of an OData date-time. A value at midnight is taken as that day;
+ * a UTC instant such as 2026-10-13T22:00:00Z becomes 2026-10-14.
+ * @param {unknown} value
+ */
+function osloDay(value) {
+  const s = String(value ?? '').trim();
+  if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}(T00:00(:00(\.0+)?)?([+-][0-9]{2}:?[0-9]{2}|Z)?)?$/.test(s)) return s.slice(0, 10);
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? '' : OSLO_DAY.format(new Date(t));
+}
+
+/** @param {string} day @param {number} delta */
+function addDays(day, delta) {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + delta * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Reads an OData collection with $count, $orderby and $top/$skip, following @odata.nextLink when the
+ * server pages on its own.
  * @param {string} path
  * @param {Record<string, string>} params
  * @param {Record<string, string>} headers
@@ -37,14 +57,19 @@ function odataList(payload) {
  */
 async function odataAll(path, params, headers, fetchImpl) {
   /** @type {Map<string, any>} */ const byId = new Map();
-  for (let page = 0; page < 20; page++) {
-    const query = new URLSearchParams({ ...params, $top: String(PAGE), $skip: String(page * PAGE) });
-    const items = odataList(await fetchJson(`${API}${path}?${query}`, { headers }, BRAND, fetchImpl));
+  let skip = 0;
+  for (let page = 0; page < 15; page++) {
+    const query = new URLSearchParams({ ...params, $orderby: 'id', $count: 'true', $top: String(PAGE), $skip: String(skip) });
+    const payload = await fetchJson(`${API}${path}?${query}`, { headers }, BRAND, fetchImpl);
+    const items = odataList(payload);
     const before = byId.size;
     for (const item of items) byId.set(String(item.id), item);
-    if (items.length < PAGE || byId.size === before) return [...byId.values()];
+    skip += items.length;
+    const total = Number(payload?.['@odata.count']);
+    const more = Number.isFinite(total) ? skip < total : items.length === PAGE || typeof payload?.['@odata.nextLink'] === 'string';
+    if (!more || items.length === 0 || byId.size === before) return [...byId.values()];
   }
-  throw new HttpError(400, `${BRAND} returned too many registrations. Choose a shorter period.`);
+  throw new HttpError(400, `${BRAND} returned more than 7,500 rows. Enter a user email or choose a shorter period.`);
 }
 
 /**
@@ -53,7 +78,8 @@ async function odataAll(path, params, headers, fetchImpl) {
  * /odata/Registration with date, totalHours, projectId, userId, comment, absenceCodeId; /odata/Project with
  * projectName and projectNumber; /odata/User with firstName, lastName, email) and
  * https://smartapizulu.holte.no/Documentation/Tokens.pdf (API token from HoltePortalen settings, sent in the
- * X-Holte-Token header, not as a bearer token). Filtering uses standard OData $filter, $top and $skip.
+ * X-Holte-Token header, not as a bearer token). Filtering uses standard OData $filter, $select, $orderby,
+ * $count, $top and $skip. Usually 3 subrequests (users, registrations, projects), at most 45.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<HoursRow[]>}
@@ -65,16 +91,18 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, `Enter your ${BRAND} API token.`);
   if (to < from) throw new HttpError(400, 'The to date must be on or after the from date.');
   const headers = { 'x-holte-token': token, accept: 'application/json' };
-  const next = new Date(Date.parse(`${to}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  // One extra day on each side catches dates stored as UTC instants; the Oslo day is checked below.
+  const start = addDays(from, -1);
+  const next = addDays(to, 2);
   const users = await odataAll('/odata/User', { $select: 'id,firstName,lastName,email' }, headers, fetchImpl);
   const email = (creds.userEmail ?? '').trim().toLowerCase();
-  let filter = `date ge ${from}T00:00:00Z and date lt ${next}T00:00:00Z`;
+  let filter = `date ge ${start}T00:00:00Z and date lt ${next}T00:00:00Z and absenceCodeId eq null and isNegative eq false`;
   if (email) {
     const user = users.find((u) => String(u.email ?? '').trim().toLowerCase() === email);
     if (!user) throw new HttpError(400, `No ${BRAND} user has the email ${creds.userEmail}.`);
     filter += ` and userId eq ${String(user.id).replace(/[^0-9a-f-]/gi, '')}`;
   }
-  const registrations = (await odataAll('/odata/Registration', { $filter: filter }, headers, fetchImpl))
+  const registrations = (await odataAll('/odata/Registration', { $filter: filter, $select: 'id,date,totalHours,projectId,userId,comment,absenceCodeId,isNegative' }, headers, fetchImpl))
     .filter((r) => r.projectId && !r.absenceCodeId && !r.isNegative);
   /** @type {Map<string, string>} */ const userNames = new Map(users.map((u) => [String(u.id), [u.firstName, u.lastName].filter(Boolean).join(' ')]));
   /** @type {Map<string, string>} */ const projectNames = new Map();
@@ -85,7 +113,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   }
   const rows = registrations
     .map((r) => ({
-      date: isoDate(r.date, ''),
+      id: String(r.id ?? '').slice(0, 8),
+      date: osloDay(r.date),
       hours: Number(num(r.totalHours).toFixed(2)),
       project: projectNames.get(String(r.projectId)) ?? 'Project',
       user: userNames.get(String(r.userId)) ?? '',
@@ -104,7 +133,7 @@ function renderHours(rows, empId, projId, isSample) {
     badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready', tone: 'success' }),
     body: html`<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Project</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((r, idx) => html`<tr id="ho-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}${r.user ? html`<br><span class="muted-note">${r.user}</span>` : ''}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/holte/import" hx-target="#ho-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[Holte] ${r.project}: ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
+      <tbody>${rows.map((r, idx) => html`<tr id="ho-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}${r.user ? html`<br><span class="muted-note">${r.user}</span>` : ''}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/holte/import" hx-target="#ho-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[Holte ${r.id}] ${r.project}: ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
     </table></div>`,
   });
 }
@@ -178,6 +207,12 @@ export async function handle(request, env) {
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? BRAND).slice(0, 1000);
       if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
+      const marker = comment.match(/^\[Holte [0-9a-f]+\]/i)?.[0] ?? '';
+      if (marker) {
+        const logged = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+        const dup = Array.isArray(logged) ? logged.find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker)) : undefined;
+        if (dup) return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'warn' })}</td></tr>`);
+      }
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }

@@ -21,10 +21,10 @@ Each line becomes a row in one manual voucher, flagged for review:
 | Posting | Account |
 | --- | --- |
 | Purchase (debit) | The Mynt **Account** column, or `6800` if empty |
-| Input VAT | ReAI VAT code `1`, `11` or `13` from the Mynt **VAT rate** |
+| Input VAT | The Mynt **VAT code** when ReAI has it, otherwise the ReAI input VAT code for the Mynt **VAT rate** |
 | Mynt card (credit) | Separate card account, default `1925` |
 
-Mynt recommends a separate `19xx` ledger account for the card. Lines marked **Reverse VAT** are booked with VAT code `0` so you can set the right reverse charge code in review.
+Mynt recommends a separate `19xx` ledger account for the card. Lines marked **Reverse VAT** without a VAT code from Mynt are booked with VAT code `0` so you can set the right reverse charge code in review.
 
 ## Setup
 

@@ -24,7 +24,7 @@ Integrasjonen henter fakturaene med fakturadato i valgt periode. Utkast tas ikke
 | Salg uten MVA | `3100` |
 | Salg med MVA | `3000`, ført inklusive MVA med utgående MVA-kode |
 
-Bare fakturaer i NOK kan bokføres.
+Alle fakturaene i perioden må ha samme valuta som selskapet fører regnskapet i. Salg uten MVA føres med MVA-koden for omsetning utenfor merverdiavgiftsloven når selskapet har den. Er en faktura kreditert, viser forhåndsvisningen en advarsel slik at du kan kontrollere kreditnotaen.
 
 ## Slik kommer du i gang
 

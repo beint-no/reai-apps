@@ -9,6 +9,27 @@ import { appShell, reaiBadge, reaiCallout, reaiCard } from '../../lib/ui.js';
 
 /** @typedef {{ sku: string, name: string, price: number, cost: number, barcode: string, stock: number }} WmsArticle */
 
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 10;
+
+/**
+ * GET with Ongoing's documented 429 handling (Retry-After in seconds, no retry loop inside one request).
+ * @param {string} url
+ * @param {Record<string, string>} headers
+ * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
+ */
+async function ongoingGet(url, headers, fetchImpl) {
+  const res = await fetchImpl(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
+  if (res.status === 429) {
+    const wait = Number(res.headers.get('retry-after') ?? '');
+    throw new HttpError(429, `Ongoing WMS is rate limiting this API user. Try again in ${Number.isFinite(wait) && wait > 0 ? `${Math.ceil(wait)} seconds` : 'a few minutes'}.`);
+  }
+  if (res.status === 401 || res.status === 403) throw new HttpError(400, 'Ongoing WMS rejected the API user. Check the credentials, the goods owner ID and that the user may read articles.');
+  if (res.status === 404) throw new HttpError(400, 'Ongoing WMS did not find this warehouse. Check the warehouse name in your login address.');
+  if (!res.ok) throw new HttpError(400, `Ongoing WMS API returned HTTP ${res.status}.`);
+  return res.json();
+}
+
 /**
  * Reads the goods owner's articles from the Ongoing WMS Goods Owner REST API.
  * Docs: https://developer.ongoingwarehouse.com/REST/v1/index.html (base https://api.ongoingsystems.se/{warehouse}/api/v1/,
@@ -40,12 +61,14 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {WmsArticle[]} */
   const out = [];
   let from = 0;
-  for (let page = 0; page < 10; page++) {
+  // Documented pagination: take the highest articleSystemId on a page and continue from that plus one
+  // until a page is empty or short (https://developer.ongoingwarehouse.com/paginating-responses, 1000 per page).
+  for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL(`https://api.ongoingsystems.se/${encodeURIComponent(warehouse)}/api/v1/articles`);
     url.searchParams.set('goodsOwnerId', goodsOwnerId);
     url.searchParams.set('articleSystemIdFrom', String(from));
-    url.searchParams.set('maxArticlesToGet', '200');
-    const data = await fetchJson(url.toString(), { headers }, 'Ongoing WMS', fetchImpl);
+    url.searchParams.set('maxArticlesToGet', String(PAGE_SIZE));
+    const data = await ongoingGet(url.toString(), headers, fetchImpl);
     /** @type {any[]} */ const items = Array.isArray(data) ? data : [];
     for (const a of items) {
       const sku = String(a.articleNumber ?? '').trim();
@@ -59,10 +82,12 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         stock: Number(a.inventoryInfo?.numberOfItems ?? 0) || 0,
       });
     }
-    if (items.length < 200) break;
-    from = Math.max(...items.map((a) => Number(a.articleSystemId ?? 0))) + 1;
+    if (items.length < PAGE_SIZE) return out;
+    const next = Math.max(...items.map((a) => Number(a.articleSystemId ?? 0))) + 1;
+    if (!(next > from)) throw new HttpError(502, 'Ongoing WMS paging did not advance.');
+    from = next;
   }
-  return out;
+  throw new HttpError(400, `The goods owner has more than ${PAGE_SIZE * MAX_PAGES} articles, more than one scan reads.`);
 }
 
 /**
@@ -174,6 +199,11 @@ export async function handle(request, env) {
       const cost = Number(form.get('cost') ?? '0');
       const barcode = String(form.get('barcode') ?? '').trim();
       if (!sku || !name) throw new HttpError(400, 'The article needs an article number and a name.');
+      const found = /** @type {{ items?: Array<{ id: number, variants?: Array<{ sku?: string | null }> }> }} */ (
+        await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, query: { query: sku, page: '1', pageSize: '200' } })
+      );
+      const dup = (found.items ?? []).find((p) => (p.variants ?? []).some((v) => (v.sku ?? '').trim().toLowerCase() === sku.toLowerCase()));
+      if (dup) return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${name}</strong></td><td class="num">—</td><td class="num">${formatMinor(Math.round(price * 100))}</td><td>${reaiBadge({ text: `Already in ReAI #${dup.id}`, tone: 'neutral' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/products', {
           token: session.accessToken, tenantId: session.tenantId, method: 'POST',

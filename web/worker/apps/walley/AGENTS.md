@@ -2,37 +2,61 @@
 
 Route `/app/walley/`. Docs pages: `web/content/{nb,en}/web-apps/walley/index.md`.
 
-## Vendor API
+Read-only: lists Walley settlements paid out in one month, matches each payout against pending
+ReAI bank transactions and exports a CSV. Nothing is booked.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://dev.walleypay.com/docs/reports/overview
-- https://dev.walleypay.com/docs/reports/authentication
-- https://dev.walleypay.com/docs/reports/endpoints
-- https://dev.walleypay.com/docs/reports/settlements-api/search
-- https://dev.walleypay.com/docs/reports/settlements-api/settlements
-- https://dev.walleypay.com/openapi/walley-api.json
+- Overview: https://dev.walleypay.com/docs/reports/overview
+- Auth: https://dev.walleypay.com/docs/reports/authentication
+- Hosts: https://dev.walleypay.com/docs/reports/endpoints
+- Reference: https://dev.walleypay.com/docs/reports/settlements-api/search, https://dev.walleypay.com/docs/reports/settlements-api/settlements
+- OpenAPI: https://dev.walleypay.com/openapi/walley-api.json
+- Changelog: https://feed.walleypay.com/ (product feed; no API changelog or version number published)
 
-- Mode: api
-- Auth: Merchant creates an API key in Walley Merchant Hub (name menu > Manage Organization > Create new > Api key) and gets client ID + secret. App does OAuth2 client_credentials POST https://api.walleypay.com/oauth2/v2.0/token with documented PROD scope a3f3019f-2be9-41cc-a254-7bb347238e89/.default, then Authorization: Bearer <access_token>.
-- Hosts in code: `api.walleypay.com`, `dev.walleypay.com`
-- Vendor status: Swedish company, no Norwegian register entry found by name. walley.no live with merchant and consumer offering.
+## API version
+
+Reports API on `https://api.walleypay.com/reports` (unversioned paths). No newer version or
+sunset announced as of the verification date.
+
+## Auth
+
+Merchant Hub: name menu > Manage Organization > Create new > Api key gives a client ID and secret.
+`POST https://api.walleypay.com/oauth2/v2.0/token` (form: `client_id`, `client_secret`,
+`grant_type=client_credentials`, `scope=a3f3019f-2be9-41cc-a254-7bb347238e89/.default`, the
+documented PROD scope), then `Authorization: Bearer <access_token>`. One token per action.
+
+## Endpoints used
+
+- `GET /reports/settlements?query=startDate:>=<month start - 45d> AND endDate:<=<month end> AND currency:<company currency>&page=N&perPage=1000`
+  (documented query syntax; perPage max 1000). Stops at `metaData.numberOfPages`, max 5 pages.
+  `paidOutAt` is not filterable, so payouts are kept when `paidOutAt` (ISO with offset) falls in
+  the month on the Europe/Oslo calendar.
+
+## Budget per action
+
+Review: 1 token + 1 settlements page (normal) + 1 ReAI bank read = 3 subrequests. No rate limits
+documented; 429 surfaces as an HTTP error via `fetchJson`.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- none
+- `GET /api/company-banks` (page load, bank picker)
+- `GET /api/bank-reconciliations/{bankAccountId}?month&include=pending_transactions`
+
+## Mapping
+
+Payout = `totalAmount` (decimal, major units) to minor units with `Math.round(x*100)`; fees =
+`|compensations|`; currency from the settlement; reference = `reference` (only present when the
+merchant enabled settlement references) or the settlement id. Matching uses
+`lib/reconcile.js` (amount, ±8 days, reference in bank text).
 
 ## Caveats
 
-GET /reports/settlements?query=startDate:>=<month start - 45d> AND endDate:<=<month end>&page&perPage=100 (documented query syntax), then filtered on paidOutAt within the month. Payout = totalAmount, fees = |compensations|. Whether fees are deducted or invoiced depends on the merchant agreement. Read-only reconcile + CSV like klarna.js; nothing is booked. No dedicated Norwegian partner/integration address found; help@walley.se is Merchant Services in the dev portal footer.
+- Whether fees are deducted or invoiced depends on the merchant agreement.
+- Settlements with `totalAmount <= 0` (negative carried balance) are not listed.
+- Amount units and the sign of `compensations` are inferred from the example; not verified live.
+- Merchant Services contact: help@walley.se (dev portal footer).
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

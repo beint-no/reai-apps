@@ -14,6 +14,7 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
  */
 
 const SLUG = 'shopware';
+const MAX_PAGES = 20;
 const BRAND = 'Shopware';
 const BASE_PATH = '/app/shopware';
 const TITLE = 'Shopware 6 Orders to ReAI';
@@ -54,20 +55,34 @@ function line(name, quantity, total, pct) {
 }
 
 /**
- * Converts a Shopware CalculatedPrice to an ex VAT total and a single tax rate.
+ * Converts a Shopware CalculatedPrice to ex VAT parts, one per tax rate. A promotion or shipping cost spread over
+ * several rates carries one CalculatedTax per rate whose price is that rate's share (gross in gross orders).
  * @param {any} price CalculatedPrice { totalPrice, calculatedTaxes: [{ tax, taxRate, price }] }
  * @param {string} taxStatus order.taxStatus: gross, net or tax-free
+ * @returns {Array<{ total: number, pct: number | null }>}
  */
-function exVat(price, taxStatus) {
+function exVatParts(price, taxStatus) {
   const raw = price?.calculatedTaxes;
   /** @type {any[]} */ const taxes = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : [];
   const total = num(price?.totalPrice);
   const tax = taxes.reduce((t, x) => t + num(x?.tax), 0);
-  const rates = [...new Set(taxes.map((x) => num(x?.taxRate)))];
-  return {
-    total: taxStatus === 'gross' ? Math.round((total - tax) * 100) / 100 : total,
-    pct: taxStatus === 'tax-free' ? 0 : rates.length === 1 ? /** @type {number} */ (rates[0]) : null,
-  };
+  const gross = taxStatus === 'gross';
+  if (taxStatus === 'tax-free') return [{ total, pct: 0 }];
+  if (taxes.length <= 1) return [{ total: gross ? Math.round((total - tax) * 100) / 100 : total, pct: taxes.length === 1 ? num(taxes[0]?.taxRate) : null }];
+  const parts = taxes.map((x) => ({ total: Math.round((gross ? num(x?.price) - num(x?.tax) : num(x?.price)) * 100) / 100, pct: num(x?.taxRate) }));
+  const expected = Math.round((gross ? total - tax : total) * 100);
+  return parts.reduce((t, x) => t + Math.round(x.total * 100), 0) === expected ? parts : [{ total: expected / 100, pct: null }];
+}
+
+/**
+ * True when the order's current payment is paid: the primary transaction (Shopware 6.7) or else the newest one.
+ * @param {any} o
+ */
+function isPaid(o) {
+  /** @type {any[]} */ const tx = Array.isArray(o?.transactions) ? o.transactions : [];
+  const current = tx.find((t) => o.primaryOrderTransactionId && t.id === o.primaryOrderTransactionId)
+    ?? tx.toSorted((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))[0];
+  return current?.stateMachineState?.technicalName === 'paid';
 }
 
 /**
@@ -97,7 +112,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const headers = { authorization: `Bearer ${tok.access_token}`, 'content-type': 'application/json', accept: 'application/json' };
   /** @type {ShopOrder[]} */
   const orders = [];
-  for (let page = 1; page <= 10; page++) {
+  for (let page = 1; ; page++) {
+    if (page > MAX_PAGES) throw new HttpError(400, `Shopware has more than ${MAX_PAGES * 100} paid orders in this period. Choose a shorter period.`);
     const criteria = {
       page,
       limit: 100,
@@ -105,22 +121,25 @@ export async function fetchApi(creds, fetchImpl = fetch) {
       filter: [
         { type: 'range', field: 'orderDate', parameters: { gte: from, lte: to } },
         { type: 'equals', field: 'transactions.stateMachineState.technicalName', value: 'paid' },
+        { type: 'not', operator: 'and', queries: [{ type: 'equals', field: 'stateMachineState.technicalName', value: 'cancelled' }] },
       ],
       sort: [{ field: 'orderDateTime', order: 'ASC' }],
     };
     const data = await fetchJson(`${base}/api/search/order`, { method: 'POST', headers, body: JSON.stringify(criteria) }, BRAND, fetchImpl);
     /** @type {any[]} */ const rows = Array.isArray(data?.data) ? data.data : [];
     for (const o of rows) {
+      if (!isPaid(o)) continue;
       const taxStatus = String(o.taxStatus ?? 'gross');
       /** @type {OrderLine[]} */ const lines = [];
       for (const li of /** @type {any[]} */ (Array.isArray(o.lineItems) ? o.lineItems : [])) {
         if (li.parentId) continue;
-        const p = exVat(li.price ?? { totalPrice: li.totalPrice }, taxStatus);
+        const parts = exVatParts(li.price ?? { totalPrice: li.totalPrice }, taxStatus);
         const sku = li.payload?.productNumber ? ` (${li.payload.productNumber})` : '';
-        lines.push(line(`${String(li.label ?? 'Item')}${sku}`.slice(0, 200), num(li.quantity), p.total, p.pct));
+        const name = `${String(li.label ?? 'Item')}${sku}`;
+        for (const p of parts) lines.push(line(`${name}${parts.length > 1 ? ` ${p.pct}%` : ''}`.slice(0, 200), parts.length > 1 ? 1 : num(li.quantity), p.total, p.pct));
       }
-      const ship = exVat(o.shippingCosts, taxStatus);
-      if (ship.total !== 0) lines.push(line('Shipping', 1, ship.total, ship.pct));
+      const ship = exVatParts(o.shippingCosts, taxStatus);
+      for (const p of ship) if (p.total !== 0) lines.push(line(ship.length > 1 ? `Shipping ${p.pct}%` : 'Shipping', 1, p.total, p.pct));
       const c = o.orderCustomer ?? {};
       const company = String(c.company ?? '').trim();
       orders.push({
@@ -192,7 +211,7 @@ function vatCodeFor(codes, pct) {
  */
 async function customerFor(env, auth, o) {
   /** @param {Record<string, string>} query */
-  const find = async (query) => /** @type {{ items: Array<{ id: number, archived: boolean }> }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '5' } })).items.find((c) => !c.archived)?.id;
+  const find = async (query) => /** @type {{ items: Array<{ id: number, name: string, archived: boolean }> }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '50' } })).items.find((c) => !c.archived && (query.name === undefined || c.name.trim().toLowerCase() === query.name.trim().toLowerCase()))?.id;
   const hit = (o.customerEmail ? await find({ email: o.customerEmail }) : undefined) ?? (await find({ name: o.customerName }));
   if (hit) return hit;
   const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/customers', { ...auth, method: 'POST', body: { name: o.customerName.slice(0, 200), email: o.customerEmail || null, privateContact: !o.company } }));

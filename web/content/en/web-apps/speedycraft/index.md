@@ -16,7 +16,7 @@ highlights:
 
 The integration reads service hours (AssignmentService) and materials (AssignmentProduct) registered in the chosen period, together with the work order, customer and employee they belong to.
 
-* **Hours** become ReAI timesheet rows. Service types that SpeedyCraft excludes from hour totals, such as driving or extra costs, and absence types are not logged as hours.
+* **Hours** become ReAI timesheet rows. An hour row that is already logged is not logged again. Service types that SpeedyCraft excludes from hour totals, such as driving or extra costs, and absence types are not logged as hours.
 * **Invoice basis** becomes one draft ReAI order per work order. The amount is quantity times customer price less discount for hours and materials, ex. VAT. The order carries the work order number as external reference, so staging the same work order twice opens the existing draft instead of creating a new one.
 
 Nothing is invoiced or booked automatically. You review and invoice each draft order in ReAI, where the sales account and VAT code are set.

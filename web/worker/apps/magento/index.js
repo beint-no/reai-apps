@@ -61,11 +61,67 @@ function assertPublicHttpsBase(raw) {
   return parsed.origin + parsed.pathname.replace(/\/+$/, '');
 }
 
+const PAGE_SIZE = 300;
+const MAX_PAGES = 5;
+const OSLO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' });
+
 /**
- * Fetches products and invoiced orders from the Magento 2 / Adobe Commerce REST API.
+ * Europe/Oslo calendar day of a Magento UTC timestamp ("YYYY-MM-DD HH:MM:SS").
+ * @param {unknown} v
+ * @param {string} fallback
+ */
+export function osloDay(v, fallback) {
+  const s = String(v ?? '').trim();
+  const t = Date.parse(`${s.replace(' ', 'T')}${/[zZ]|[+-][0-9]{2}:?[0-9]{2}$/.test(s) ? '' : 'Z'}`);
+  if (Number.isNaN(t)) return isoDate(s, fallback);
+  const parts = Object.fromEntries(OSLO.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+/**
+ * UTC timestamp ("YYYY-MM-DD HH:MM:SS") of midnight Europe/Oslo on the given day.
+ * @param {string} day
+ */
+export function osloMidnightUtc(day) {
+  const [y, m, d] = day.split('-').map(Number);
+  for (const offsetHours of [1, 2]) {
+    const t = Date.UTC(Number(y), Number(m) - 1, Number(d)) - offsetHours * 3_600_000;
+    const parts = Object.fromEntries(OSLO.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    if (`${parts.year}-${parts.month}-${parts.day}` === day && parts.hour === '00') return new Date(t).toISOString().slice(0, 19).replace('T', ' ');
+  }
+  return `${day} 00:00:00`;
+}
+
+/**
+ * Reads a searchCriteria listing page by page until total_count is reached.
+ * @param {string} url Listing URL with searchCriteria and fields parameters, without paging.
+ * @param {Record<string, string>} headers
+ * @param {string} what
+ * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
+ * @returns {Promise<any[]>}
+ */
+async function listAll(url, headers, what, fetchImpl) {
+  /** @type {any[]} */
+  const items = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const body = await fetchJson(`${url}&searchCriteria[pageSize]=${PAGE_SIZE}&searchCriteria[currentPage]=${page}`, { headers }, 'Magento', fetchImpl);
+    const batch = Array.isArray(body?.items) ? body.items : [];
+    items.push(...batch);
+    const total = Number(body?.total_count ?? 0);
+    // Magento returns the last page again for a currentPage past the end, so stop on total_count.
+    if (batch.length < PAGE_SIZE || items.length >= total) return items;
+  }
+  throw new HttpError(400, `The Magento store has more than ${PAGE_SIZE * MAX_PAGES} ${what}. Choose a later order date or contact us about a larger catalog.`);
+}
+
+/**
+ * Fetches products and processing or complete orders from the Magento 2 / Adobe Commerce REST API.
  * Docs: https://developer.adobe.com/commerce/webapi/rest/use-rest/performing-searches/ (searchCriteria filter_groups,
- * condition_type in/gteq, sortOrders, pageSize), https://developer.adobe.com/commerce/webapi/rest/quick-reference/
- * (GET /rest/V1/products catalogProductRepositoryV1, GET /rest/V1/orders salesOrderRepositoryV1) and
+ * condition_type in/gteq, sortOrders, pageSize, currentPage),
+ * https://developer.adobe.com/commerce/webapi/rest/use-rest/retrieve-filtered-responses/ (fields=items[...]),
+ * https://developer.adobe.com/commerce/webapi/get-started/api-security (maximum page size 300 when input limits are on),
+ * https://developer.adobe.com/commerce/webapi/rest/quick-reference/ (GET /rest/V1/products catalogProductRepositoryV1,
+ * GET /rest/V1/orders salesOrderRepositoryV1) and
  * https://developer.adobe.com/commerce/webapi/get-started/authentication/gs-authentication-token/ (integration access
  * token sent as Bearer; since 2.4.4 this needs Stores > Configuration > Services > OAuth > Consumer Settings >
  * Allow OAuth Access Tokens to be used as standalone Bearer tokens = Yes).
@@ -79,40 +135,43 @@ export async function fetchApi(fields, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, 'Enter the Magento integration access token.');
   const from = isoDate(fields.fromDate, `${new Date().toISOString().slice(0, 7)}-01`);
   const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
-  const productQuery = new URLSearchParams({ 'searchCriteria[pageSize]': '50', 'searchCriteria[currentPage]': '1' });
+  const productQuery = new URLSearchParams({
+    'searchCriteria[sortOrders][0][field]': 'entity_id',
+    'searchCriteria[sortOrders][0][direction]': 'ASC',
+    fields: 'items[sku,name,price,type_id],total_count',
+  });
   const orderQuery = new URLSearchParams({
     'searchCriteria[filter_groups][0][filters][0][field]': 'state',
     'searchCriteria[filter_groups][0][filters][0][value]': 'processing,complete',
     'searchCriteria[filter_groups][0][filters][0][condition_type]': 'in',
     'searchCriteria[filter_groups][1][filters][0][field]': 'created_at',
-    'searchCriteria[filter_groups][1][filters][0][value]': `${from} 00:00:00`,
+    'searchCriteria[filter_groups][1][filters][0][value]': osloMidnightUtc(from),
     'searchCriteria[filter_groups][1][filters][0][condition_type]': 'gteq',
     'searchCriteria[sortOrders][0][field]': 'created_at',
     'searchCriteria[sortOrders][0][direction]': 'DESC',
-    'searchCriteria[pageSize]': '50',
-    'searchCriteria[currentPage]': '1',
+    fields: 'items[entity_id,increment_id,created_at,customer_firstname,customer_lastname,customer_email,billing_address[firstname,lastname,company],grand_total,tax_amount,total_refunded,order_currency_code,status,state],total_count',
   });
-  const [pBody, oBody] = await Promise.all([
-    fetchJson(`${base}/rest/V1/products?${productQuery}`, { headers }, 'Magento', fetchImpl),
-    fetchJson(`${base}/rest/V1/orders?${orderQuery}`, { headers }, 'Magento', fetchImpl),
+  const [pItems, oItems] = await Promise.all([
+    listAll(`${base}/rest/V1/products?${productQuery}`, headers, 'products', fetchImpl),
+    listAll(`${base}/rest/V1/orders?${orderQuery}`, headers, 'orders', fetchImpl),
   ]);
   return {
-    products: (Array.isArray(pBody?.items) ? pBody.items : []).map((/** @type {any} */ p) => ({
+    products: pItems.map((/** @type {any} */ p) => ({
       sku: String(p.sku ?? '').trim(),
       title: String(p.name ?? p.sku ?? 'Product').trim(),
       priceExVat: Number(num(p.price).toFixed(2)),
       currency: 'NOK',
       stockItem: p.type_id !== 'virtual' && p.type_id !== 'downloadable',
     })).filter((/** @type {StoreProduct} */ p) => p.sku),
-    orders: (Array.isArray(oBody?.items) ? oBody.items : []).map((/** @type {any} */ o) => ({
+    orders: oItems.map((/** @type {any} */ o) => ({
       id: String(o.entity_id ?? o.increment_id),
       number: String(o.increment_id ?? o.entity_id),
-      date: isoDate(o.created_at, from),
-      customerName: `${o.customer_firstname ?? o.billing_address?.firstname ?? ''} ${o.customer_lastname ?? o.billing_address?.lastname ?? ''}`.trim() || 'Magento customer',
-      customerEmail: String(o.customer_email ?? ''),
-      totalExVat: Number((num(o.grand_total) - num(o.tax_amount)).toFixed(2)),
+      date: osloDay(o.created_at, from),
+      customerName: (String(o.billing_address?.company ?? '').trim() || `${o.customer_firstname ?? o.billing_address?.firstname ?? ''} ${o.customer_lastname ?? o.billing_address?.lastname ?? ''}`.trim()) || 'Magento customer',
+      customerEmail: String(o.customer_email ?? '').trim().toLowerCase(),
+      totalExVat: (Math.round(num(o.grand_total) * 100) - Math.round(num(o.tax_amount) * 100)) / 100,
       currency: String(o.order_currency_code ?? 'NOK').toUpperCase(),
-      status: String(o.status ?? o.state ?? ''),
+      status: Math.round(num(o.total_refunded) * 100) > 0 ? 'refunded' : String(o.status ?? o.state ?? ''),
     })).filter((/** @type {StoreOrder} */ o) => o.totalExVat > 0),
     storeLabel: new URL(base).hostname,
   };
@@ -132,7 +191,7 @@ function renderStoreSync(state) {
       title: 'Products',
       badge: reaiBadge({ text: `${newProds} new`, tone: newProds > 0 ? 'accent' : 'success' }),
       body: html`<div class="table-wrap"><table class="data-table">
-        <thead><tr><th>SKU</th><th>Product</th><th class="num">Price ex. VAT</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Product</th><th class="num">Magento price</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${state.products.slice(0, 80).map(({ p, exists }, idx) => html`<tr id="ec-p-${idx}">
           <td class="mono">${p.sku || '—'}</td><td><strong>${p.title}</strong></td><td class="num">${formatMinor(Math.round(p.priceExVat * 100))} ${p.currency}</td>
           <td>${exists ? reaiBadge({ text: 'In ReAI', tone: 'neutral' }) : reaiBadge({ text: 'New SKU', tone: 'success' })}</td>
@@ -152,8 +211,8 @@ function renderStoreSync(state) {
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th class="num">Total ex. VAT</th><th>Action</th></tr></thead>
         <tbody>${state.orders.slice(0, 80).map(({ o, customerId }, idx) => html`<tr id="ec-o-${idx}">
           <td class="mono">${o.number}</td><td class="mono">${o.date}</td><td><strong>${o.customerName}</strong></td><td class="num">${formatMinor(Math.round(o.totalExVat * 100))} ${o.currency}</td>
-          <td>${state.isSample || !customerId
-            ? html`<span class="muted-note">${state.isSample ? 'Demo only' : 'No matching ReAI customer'}</span>`
+          <td>${state.isSample || !customerId || o.status === 'refunded'
+            ? html`<span class="muted-note">${state.isSample ? 'Demo only' : o.status === 'refunded' ? 'Refunded in Magento, stage it manually' : 'No matching ReAI customer'}</span>`
             : html`<form hx-post="/app/magento/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
                 <input type="hidden" name="orderId" value="${o.id}"><input type="hidden" name="number" value="${o.number}"><input type="hidden" name="date" value="${o.date}"><input type="hidden" name="total" value="${o.totalExVat.toFixed(2)}"><input type="hidden" name="currency" value="${o.currency}"><input type="hidden" name="customerId" value="${customerId}">
                 <button type="submit" class="button primary">Stage order</button>
@@ -246,7 +305,7 @@ export async function handle(request, env) {
         products: store.products.map((p) => ({ p, exists: Boolean(p.sku && skus.has(p.sku.trim().toLowerCase())) })),
         orders: store.orders.map((o) => ({
           o,
-          customerId: custs.find((c) => (o.customerEmail && (c.email === o.customerEmail || c.invoiceEmail === o.customerEmail)) || c.name.trim().toLowerCase() === o.customerName.trim().toLowerCase())?.id ?? null,
+          customerId: custs.find((c) => (o.customerEmail && [c.email, c.invoiceEmail].some((e) => (e ?? '').trim().toLowerCase() === o.customerEmail)) || (c.name ?? '').trim().toLowerCase() === o.customerName.trim().toLowerCase())?.id ?? null,
         })),
       }));
     }
@@ -255,7 +314,11 @@ export async function handle(request, env) {
       const sku = String(form.get('sku') ?? '').trim();
       const title = String(form.get('title') ?? '').trim();
       const price = Number(form.get('price') ?? '0');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { title, stockItem: form.get('stockItem') !== '0', variants: [{ sku, sellingPrice: price >= 0 ? price : 0 }] } }));
+      if (!sku || !title || !Number.isFinite(price)) throw new HttpError(400, 'Product needs a SKU, a title and a price.');
+      const found = /** @type {{ items?: ReAIProduct[] }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, query: { query: sku, pageSize: '50' } }));
+      const same = (found.items ?? []).find((x) => (x.variants ?? []).some((v) => (v.sku ?? '').trim().toLowerCase() === sku.toLowerCase()));
+      if (same) return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))}</td><td>${reaiBadge({ text: `In ReAI #${same.id}`, tone: 'neutral' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { title, stockItem: form.get('stockItem') !== '0', variants: [{ sku, sellingPrice: Math.max(0, Number(price.toFixed(2))) }] } }));
       return htmlResponse(html`<tr><td class="mono">${sku}</td><td><strong>${title}</strong></td><td class="num">${formatMinor(Math.round(price * 100))}</td><td>${reaiBadge({ text: `Created #${created.id}`, tone: 'success' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
     }
 

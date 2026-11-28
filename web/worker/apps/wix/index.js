@@ -9,7 +9,7 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 
 /**
  * @typedef {{ name: string, quantity: number, unitPrice: number, ratePct: number | null }} OrderLine
- * @typedef {{ id: string, number: string, date: string, currency: string, customerName: string, customerEmail: string, company: boolean, lines: OrderLine[] }} ShopOrder
+ * @typedef {{ id: string, number: string, date: string, currency: string, customerName: string, customerEmail: string, company: boolean, refunded: boolean, lines: OrderLine[] }} ShopOrder
  * @typedef {{ code: string, rate: number, vatType: string }} VatCode
  */
 
@@ -32,7 +32,7 @@ const API = 'https://www.wixapis.com/ecom/v1/orders/search';
 /** @type {ShopOrder[]} */
 const SAMPLE = [
   {
-    id: 'sample-10004', number: '10004', date: '2026-10-20', currency: 'NOK', customerName: 'Kari Nordmann', customerEmail: 'post+wix-sample@aiak.no', company: false,
+    id: 'sample-10004', number: '10004', date: '2026-10-20', currency: 'NOK', customerName: 'Kari Nordmann', customerEmail: 'post+wix-sample@aiak.no', company: false, refunded: false,
     lines: [
       { name: 'Ullgenser', quantity: 1, unitPrice: 959.2, ratePct: 25 },
       { name: 'Kokebok', quantity: 2, unitPrice: 199, ratePct: 0 },
@@ -45,6 +45,22 @@ const SAMPLE = [
 function ratePct(rate) {
   if (rate === undefined || rate === null || rate === '') return null;
   return Math.round(num(rate) * 10000) / 100;
+}
+
+/**
+ * Returns the UTC instant of 00:00 Europe/Oslo on a calendar day.
+ * @param {string} day YYYY-MM-DD
+ */
+function osloMidnightUtc(day) {
+  const guess = new Date(`${day}T00:00:00Z`);
+  const local = new Date(guess.toLocaleString('sv-SE', { timeZone: 'Europe/Oslo' }).replace(' ', 'T') + 'Z');
+  return new Date(guess.getTime() - (local.getTime() - guess.getTime())).toISOString();
+}
+
+/** @param {string} iso @returns {string} Calendar day in Norwegian time. */
+function osloDay(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Oslo' });
 }
 
 /**
@@ -63,8 +79,9 @@ function line(name, quantity, total, pct) {
  * Fetches paid Wix eCommerce orders created in a date range.
  * Docs: https://dev.wix.com/docs/api-reference/articles/authentication/api-keys/make-api-calls-with-an-api-key (Authorization: API key, wix-site-id header)
  * and https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/search-orders
- * (POST /ecom/v1/orders/search, filter createdDate $gte/$lt and paymentStatus, cursorPaging limit 100, metadata.cursors.next;
- * lineItems[].totalPriceBeforeTax, lineItems[].taxInfo.taxRate, shippingInfo.cost.totalPriceBeforeTax).
+ * (POST /ecom/v1/orders/search, filter createdDate $gte/$lt, status and paymentStatus, cursorPaging limit 100 (the maximum),
+ * metadata.hasNext and metadata.cursors.next; demo marks test orders (changelog 2026-11-22); lineItems[].totalPriceBeforeTax is after discounts, lineItems[].taxInfo.taxRate,
+ * shippingInfo.cost.totalPriceBeforeTax, additionalFees[].priceBeforeTax and taxInfo.taxRate).
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<ShopOrder[]>}
@@ -75,7 +92,10 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!siteId || !apiKey) throw new HttpError(400, 'Enter the Wix site ID and API key.');
   const from = isoDate(creds.from);
   const to = isoDate(creds.to);
-  const end = new Date(Date.parse(`${to}T00:00:00Z`) + 86_400_000).toISOString();
+  if (from > to) throw new HttpError(400, 'The from date must be on or before the to date.');
+  // Bookkeeping days are Norwegian calendar days; Wix filters on UTC instants.
+  const start = osloMidnightUtc(from);
+  const end = osloMidnightUtc(new Date(Date.parse(`${to}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10));
   const headers = { authorization: apiKey, 'wix-site-id': siteId, 'content-type': 'application/json', accept: 'application/json' };
   /** @type {ShopOrder[]} */
   const orders = [];
@@ -84,7 +104,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   for (let page = 0; page < 10; page++) {
     const search = cursor
       ? { cursorPaging: { limit: 100, cursor } }
-      : { filter: { paymentStatus: { $eq: 'PAID' }, createdDate: { $gte: `${from}T00:00:00Z`, $lt: end } }, cursorPaging: { limit: 100 } };
+      : {
+          filter: { status: { $eq: 'APPROVED' }, paymentStatus: { $in: ['PAID', 'PARTIALLY_REFUNDED'] }, archived: { $ne: true }, demo: { $ne: true }, createdDate: { $gte: start, $lt: end } },
+          sort: [{ fieldName: 'createdDate', order: 'ASC' }],
+          cursorPaging: { limit: 100 },
+        };
     const data = await fetchJson(API, { method: 'POST', headers, body: JSON.stringify({ search }) }, BRAND, fetchImpl);
     for (const o of /** @type {any[]} */ (Array.isArray(data?.orders) ? data.orders : [])) {
       /** @type {OrderLine[]} */
@@ -92,16 +116,21 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         line(String(li.productName?.original ?? 'Item').slice(0, 200), num(li.quantity), num(li.totalPriceBeforeTax?.amount), ratePct(li.taxInfo?.taxRate)));
       const ship = num(o.shippingInfo?.cost?.totalPriceBeforeTax?.amount);
       if (ship !== 0) lines.push(line('Shipping', 1, ship, ratePct(o.shippingInfo?.cost?.taxInfo?.taxRate)));
+      for (const fee of /** @type {any[]} */ (Array.isArray(o.additionalFees) ? o.additionalFees : [])) {
+        const amount = num(fee.priceBeforeTax?.amount);
+        if (amount !== 0) lines.push(line(String(fee.name ?? 'Fee').slice(0, 200), 1, amount, ratePct(fee.taxInfo?.taxRate)));
+      }
       const contact = o.billingInfo?.contactDetails ?? {};
       const company = String(contact.company ?? '').trim();
       orders.push({
         id: String(o.id ?? ''),
         number: String(o.number ?? o.id ?? ''),
-        date: isoDate(o.createdDate),
-        currency: String(o.currency ?? 'NOK').toUpperCase(),
+        date: osloDay(String(o.createdDate ?? '')),
+        currency: String(o.currency ?? '').toUpperCase(),
         customerName: company || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || String(o.buyerInfo?.email ?? 'Wix customer'),
         customerEmail: String(o.buyerInfo?.email ?? ''),
         company: Boolean(company),
+        refunded: o.paymentStatus === 'PARTIALLY_REFUNDED',
         lines: lines.filter((l) => l.unitPrice !== 0),
       });
     }
@@ -109,7 +138,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     if (!data?.metadata?.hasNext || typeof next !== 'string' || !next) break;
     cursor = next;
   }
-  return orders.filter((o) => o.id && o.lines.length > 0);
+  return orders.filter((o) => o.id && o.date && /^[A-Z]{3}$/.test(o.currency) && o.lines.length > 0);
 }
 
 /** @param {ShopOrder} o */
@@ -131,7 +160,7 @@ function renderOrders(orders, isSample) {
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Lines</th><th class="num">Excl. VAT</th><th>Action</th></tr></thead>
         <tbody>${orders.slice(0, 200).map((o, idx) => html`<tr id="${SLUG}-o-${idx}">
-          <td class="mono">${o.number}</td><td class="mono">${o.date}</td><td>${o.customerName}</td>
+          <td class="mono">${o.number}</td><td class="mono">${o.date}</td><td>${o.customerName}${o.refunded ? html` ${reaiBadge({ text: 'Partly refunded', tone: 'warn' })}` : ''}</td>
           <td>${o.lines.map((l) => html`<div>${l.quantity} x ${l.name} (${l.ratePct === null ? 'default VAT' : `${l.ratePct}% VAT`})</div>`)}</td>
           <td class="num">${formatMinor(orderTotal(o))} ${o.currency}</td>
           <td>${isSample
@@ -142,7 +171,7 @@ function renderOrders(orders, isSample) {
               </form>`}</td>
         </tr>`)}</tbody>
       </table></div>
-      <p class="muted-note">Each order becomes a ReAI order for review before invoicing. The customer is matched by email or name, or created as a new customer. Orders already staged are skipped by their Wix order id.</p>
+      <p class="muted-note">Each order becomes a ReAI order for review before invoicing. The customer is matched by email or name, or created as a new customer. Orders already staged are skipped by their Wix order id. Partly refunded orders are staged at the full sale; book the refund as a credit note in ReAI.</p>
     `,
   });
 }

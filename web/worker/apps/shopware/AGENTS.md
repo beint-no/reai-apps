@@ -1,39 +1,48 @@
-# Shopware 6 Sync
+# Shopware 6
 
 Route `/app/shopware/`. Docs pages: `web/content/{nb,en}/web-apps/shopware/index.md`.
 
-## Vendor API
+Stages paid Shopware 6 orders as ReAI orders with one line per item, discount and shipping, using the tax Shopware calculated.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developer.shopware.com/docs/guides/development/integrations-api/
-- https://developer.shopware.com/docs/guides/development/integrations-api/search-criteria.html
-- https://github.com/shopware/shopware/blob/trunk/src/Core/Checkout/Order/OrderDefinition.php
-- https://github.com/shopware/shopware/blob/trunk/src/Core/Checkout/Order/Aggregate/OrderLineItem/OrderLineItemDefinition.php
-- https://github.com/shopware/shopware/blob/trunk/src/Core/Checkout/Cart/Price/Struct/CalculatedPrice.php
+- Admin API and integrations (auth): https://developer.shopware.com/docs/guides/development/integrations-api/
+- Search criteria (filters, associations, paging): https://developer.shopware.com/docs/guides/development/integrations-api/search-criteria.html
+- Admin API reference: https://shopware.stoplight.io/docs/admin-api
+- Entity definitions: https://github.com/shopware/shopware/blob/trunk/src/Core/Checkout/Order/OrderDefinition.php, `Aggregate/OrderLineItem/OrderLineItemDefinition.php`, `src/Core/Checkout/Cart/Tax/Struct/CalculatedTax.php`
+- Releases and upgrade notes: https://github.com/shopware/shopware/releases
 
-- Mode: fix
-- Calls: POST /api/oauth/token, then POST /api/search/order with criteria: range filter orderDate, equals transactions.stateMachineState.technicalName = paid (documented example), associations lineItems/currency/orderCustomer/transactions.stateMachineState, page/limit. Line items (skipping children with parentId) and shippingCosts converted to ex VAT using CalculatedPrice.calculatedTaxes and order.taxStatus; one ReAI order line per item, promotion and shipping with the VAT code from GET /api/vat-codes?usage=customer_invoice; currency from currency.isoCode; duplicate check via GET /api/orders?externalReference; customer by email/name or created. Product sync removed (orders only).
-- Hosts in code: `developer.shopware.com`, `github.com`, `shop.example.no`
-- Vendor status: Shopware 6 is actively developed (shopware/shopware trunk, docs at developer.shopware.com updated); Admin API integration docs current.
+## API version
+
+The Admin API is unversioned (`/api`). Written against Shopware 6.7 (6.7.16.2 is the latest on 2026-11-28) and compatible with 6.6 (still receiving security releases): `primaryOrderTransactionId` (6.7) is used when present, else the newest transaction.
+
+## Auth
+
+Settings → System → Integrations: an integration with read access to orders gives an access key ID and secret. `POST {shop}/api/oauth/token` `{ grant_type: client_credentials, client_id, client_secret }` returns `access_token`; calls send `Authorization: Bearer`. One token per fetch, never stored. Any public https shop host is accepted (SSRF guard).
+
+## Endpoints
+
+- `POST /api/search/order` criteria: `page`, `limit: 100`, associations `lineItems`, `currency`, `orderCustomer`, `transactions.stateMachineState`; filters `range orderDate gte/lte`, `equals transactions.stateMachineState.technicalName = paid`, `not (stateMachineState.technicalName = cancelled)`; sort `orderDateTime ASC`.
+- Locally the current transaction (primary, else newest `createdAt`) must be `paid`, so later refunded or cancelled payments are skipped.
+- Paging stops on a short page; more than 20 pages (2,000 orders) is an error asking for a shorter period.
+
+## Budget and limits
+
+Fetch: 1 token + 1 call per 100 orders (2 for a normal month, at most 21). Stage one order: up to 6 ReAI calls. Shopware has no documented Admin API rate limit for integrations.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- `GET /api/orders?externalReference=shopware-<id>` duplicate check.
+- `GET /api/vat-codes?usage=customer_invoice`: `output_vat` code with the line's rate (0%: exempt or outside scope).
+- `GET /api/customers?email=` then `?name=` with an exact name match; else `POST /api/customers` (private unless the order customer has a company).
+- `POST /api/orders` with `currencyCode` from `currency.isoCode`, `issueDate`/`orderDate` = `orderDate`, lines excl. VAT.
 
-- `/api/customers`
-- `/api/orders`
-- `/api/vat-codes`
+## Mapping
+
+Top level line items (children with `parentId` skipped). `CalculatedPrice.totalPrice` minus `calculatedTaxes[].tax` for `taxStatus` gross; net prices as is; tax-free is 0%. A price with several `calculatedTaxes` (proportional discounts, shipping) becomes one line per rate from each tax's `price`; if those parts do not add up, one line with the default VAT code. Shipping from `order.shippingCosts`.
 
 ## Caveats
 
-Product catalog sync was dropped to keep the module to documented order fields. Line items with mixed tax rates get the ReAI default code. Self-hosted shops: any public https host is accepted (SSRF guard). Not tested against a live shop.
-
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+`orderDate` is the Shopware (UTC based) order date, not an Oslo day. Refunds after staging must be credited in ReAI by hand. Not tested against a live shop.
 
 Last verified: 2026-11-28.

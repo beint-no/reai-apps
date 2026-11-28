@@ -26,6 +26,6 @@ Fakturaer og abonnementer med rabatt, MVA, flere linjer eller annen valuta enn s
 1. Gå til **Developers → API keys** i Stripe Dashboard og klikk **Create restricted key**. Gi lesetilgang til Customers, Invoices og Subscriptions, og kopier nøkkelen som starter med `rk_live_`.
 2. Opprett et produkt uten MVA i ReAI som fakturalinjene kan knyttes til.
 3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
-4. Lim inn nøkkelen, velg produktet og kontroller listen. Importer fakturaer og klargjør abonnementer én og én.
+4. Lim inn nøkkelen, velg produktet og eventuelt en startdato for fakturaene, og kontroller listen. Importer fakturaer og klargjør abonnementer én og én.
 
 Nøkkelen brukes bare til disse forespørslene og lagres aldri.

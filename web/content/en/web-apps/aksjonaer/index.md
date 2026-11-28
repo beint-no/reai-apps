@@ -1,30 +1,36 @@
 ---
-title: "Aksjonærregister & Share Investments"
-seoTitle: "Aksjonærregister & Share Investments — Free Open-Source ReAI Integration"
-description: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV) into ReAI Share Investments with fritaksmetoden support."
-summary: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV) into ReAI Share Investments with fritaksmetoden support."
+title: "Share investments from CSV"
+seoTitle: "Share investments from CSV to ReAI | Free open source integration"
+description: "Register share holdings from a portfolio file in ReAI Share Investments, matched to the ReAI securities catalogue by ISIN."
+summary: "Register share holdings from a portfolio file in ReAI and review the holdings already there."
 industry: operations
 webAppUrl: /app/aksjonaer/
 sourcePath: web/worker/apps/aksjonaer/
 highlights:
-  - "Built for Norwegian bookkeeping rules (Holding companies & Norwegian equity portfolios)"
-  - "Direct integration with ReAI Public API (POST /api/share-investments & GET /api/share-investments)"
-  - "Included free with ReAI — MIT open source with 1-click sample preview"
+  - "Matches each holding to the ReAI securities catalogue by ISIN"
+  - "Skips holdings that already exist in ReAI"
+  - "Sets the exemption method only when the file says so"
 ---
 
-## How Aksjonærregister & Share Investments works with ReAI
+## What moves into ReAI
 
-Use **Aksjonærregister & Share Investments** directly in your browser at `apps.reai.no/app/aksjonaer/` with zero add-on fees.
+The app reads a CSV with one row per holding and registers it in ReAI Share Investments:
 
-| Dimension | Details |
+| Column in the file | In ReAI |
 | --- | --- |
-| **Workflow** | Holding companies & Norwegian equity portfolios |
-| **ReAI API / NS 4102** | `POST /api/share-investments & GET /api/share-investments` |
-| **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/aksjonaer.js`) |
+| Name (required) | Holding name |
+| ISIN | Matched to the ReAI securities catalogue |
+| Type: listed, unlisted, fund, bond or other | Instrument type, needed when the ISIN is not in the catalogue |
+| Account | Balance sheet account, such as `1350` or `1810` |
+| Quantity, cost and date | Opening position |
+| Exemption: yes or no | Within the exemption method; empty means not assessed |
+
+Holdings with the same ISIN, or the same name without an ISIN, that already exist in ReAI are not registered again. The app creates no vouchers.
 
 ## Getting started
 
-1. Open [apps.reai.no/app/aksjonaer/](/app/aksjonaer/) and click **Connect to ReAI**.
-2. Try the built-in **Load sample** button or connect your live account/export.
-3. Verify the preview table and push directly to your ReAI company.
+1. Make a CSV with the columns above. Numbers may use comma or point as the decimal separator.
+2. Open the app, click **Connect to ReAI** and choose a company.
+3. Upload the file, check the preview and click **Register** for each holding.
+
+Import Nordnet transactions in ReAI under Share investments. Review the exemption method for each holding before sales or dividends.

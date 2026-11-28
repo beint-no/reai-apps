@@ -7,7 +7,10 @@ import { reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 import { extractNorwegianOrg } from '../../lib/norway.js';
 
-/** @typedef {{ kind: 'customer' | 'supplier' | 'product', externalId: string, name: string, orgnr: string, email: string, price: number }} MigrateItem */
+/**
+ * @typedef {{ line1: string, line2: string, postalCode: string, city: string, countryCode: string }} MigrateAddress
+ * @typedef {{ kind: 'customer' | 'supplier' | 'product', externalId: string, name: string, orgnr: string, email: string, price: number, person?: boolean, phone?: string, invoiceEmail?: string, address?: MigrateAddress }} MigrateItem
+ */
 
 const SLUG = 'poweroffice-migrate';
 const BRAND = 'PowerOffice Go';
@@ -23,27 +26,30 @@ const API_FIELDS = [
 ];
 const AUTH_URL = 'https://goapi.poweroffice.net/OAuth/Token';
 const API = 'https://goapi.poweroffice.net/v2';
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = 5000;
 const MAX_ITEMS = 2000;
 
 /** @type {MigrateItem[]} */
 const SAMPLE = [
-  { kind: 'customer', externalId: '10001', name: 'Fjord Bygg AS', orgnr: '935606403', email: 'post+fjordbygg@aiak.no', price: 0 },
+  { kind: 'customer', externalId: '10001', name: 'Fjord Bygg AS', orgnr: '935606403', email: 'post+fjordbygg@aiak.no', price: 0, address: { line1: 'Kaigaten 14', line2: '', postalCode: '5015', city: 'Bergen', countryCode: 'NO' } },
   { kind: 'supplier', externalId: '20001', name: 'Norsk Grossist AS', orgnr: '923609016', email: 'post+grossist@aiak.no', price: 0 },
   { kind: 'product', externalId: 'KONS-1', name: 'Konsulenttime', orgnr: '', email: '', price: 1450 },
 ];
 
+const CONTACT_FIELDS = 'Id,Number,Name,FirstName,LastName,IsPerson,IsArchived,IsActive,OrganizationNumber,EmailAddress,PhoneNumber,MailAddress';
+
 /**
- * Reads every page of one PowerOffice Go v2 list endpoint.
+ * Reads the pages of one PowerOffice Go v2 list endpoint (PageSize 5000 is the default page size).
  * @param {string} path
+ * @param {Record<string, string>} query
  * @param {Record<string, string>} headers
  * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
  * @returns {Promise<any[]>}
  */
-async function readAll(path, headers, fetchImpl) {
+async function readAll(path, query, headers, fetchImpl) {
   /** @type {any[]} */ const all = [];
-  for (let page = 1; page <= 5 && all.length < MAX_ITEMS; page++) {
-    const data = await fetchJson(`${API}${path}?${new URLSearchParams({ PageNumber: String(page), PageSize: String(PAGE_SIZE) })}`, { headers }, BRAND, fetchImpl);
+  for (let page = 1; page <= 2 && all.length <= MAX_ITEMS; page++) {
+    const data = await fetchJson(`${API}${path}?${new URLSearchParams({ ...query, PageNumber: String(page), PageSize: String(PAGE_SIZE) })}`, { headers }, BRAND, fetchImpl);
     const rows = Array.isArray(data) ? data : [];
     all.push(...rows);
     if (rows.length < PAGE_SIZE) break;
@@ -55,12 +61,13 @@ async function readAll(path, headers, fetchImpl) {
  * Fetches customers, suppliers and products from PowerOffice Go API v2.
  * Docs: https://developer.poweroffice.net/documentation/authentication (POST /OAuth/Token with
  * Basic base64(applicationKey:clientKey), Ocp-Apim-Subscription-Key, grant_type=client_credentials; token lasts 20 minutes),
- * https://swagger.poweroffice.net/openapispecs/customers.json (GET /v2/Customers: Number, Name, OrganizationNumber, EmailAddress, IsArchived),
- * https://swagger.poweroffice.net/openapispecs/suppliers.json (GET /v2/Suppliers) and
- * https://swagger.poweroffice.net/openapispecs/products.json (GET /v2/Products: Code, Name, UnitPrice, IsArchived).
+ * https://developer.poweroffice.net/documentation/requests (default page size 5000, Fields filter, 10 requests per second),
+ * https://swagger.poweroffice.net/openapispecs/customers.json (GET /v2/Customers: Number, Name, IsPerson, OrganizationNumber, EmailAddress,
+ * InvoiceEmailAddress, PhoneNumber, MailAddress, IsArchived, IsActive), https://swagger.poweroffice.net/openapispecs/suppliers.json
+ * (GET /v2/Suppliers) and https://swagger.poweroffice.net/openapispecs/products.json (GET /v2/Products?isArchived=false: Code, Name, UnitPrice).
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<MigrateItem[]>}
+ * @returns {Promise<{ items: MigrateItem[], capped: string[] }>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
   const subscriptionKey = (creds.subscriptionKey ?? '').trim();
@@ -81,27 +88,49 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, 'PowerOffice Go did not return an access token. Check the three keys.');
   const headers = { authorization: `Bearer ${token}`, 'ocp-apim-subscription-key': subscriptionKey, accept: 'application/json' };
 
-  const customers = await readAll('/Customers', headers, fetchImpl);
-  const suppliers = await readAll('/Suppliers', headers, fetchImpl);
-  const products = await readAll('/Products', headers, fetchImpl);
+  const [customers, suppliers, products] = await Promise.all([
+    readAll('/Customers', { Fields: `${CONTACT_FIELDS},InvoiceEmailAddress` }, headers, fetchImpl),
+    readAll('/Suppliers', { Fields: CONTACT_FIELDS }, headers, fetchImpl),
+    readAll('/Products', { isArchived: 'false', Fields: 'Id,Code,Name,UnitPrice,IsArchived' }, headers, fetchImpl),
+  ]);
   /** @param {any} c */
   const contactName = (c) => String(c.Name ?? '').trim() || [c.FirstName, c.LastName].filter(Boolean).join(' ').trim();
+  /** @param {any} c @param {'customer' | 'supplier'} kind @returns {MigrateItem} */
+  const contact = (c, kind) => {
+    const a = c.MailAddress ?? {};
+    const countryCode = /^[A-Z]{2}$/.test(String(a.CountryCode ?? '').toUpperCase()) ? String(a.CountryCode).toUpperCase() : 'NO';
+    return {
+      kind,
+      externalId: String(c.Number ?? ''),
+      name: contactName(c),
+      orgnr: countryCode === 'NO' && c.IsPerson !== true ? extractNorwegianOrg(String(c.OrganizationNumber ?? '')) : '',
+      email: String(c.EmailAddress ?? '').trim(),
+      invoiceEmail: kind === 'customer' ? String(c.InvoiceEmailAddress ?? '').trim() : '',
+      phone: String(c.PhoneNumber ?? '').replace(/\s+/g, ''),
+      person: c.IsPerson === true,
+      price: 0,
+      address: { line1: String(a.AddressLine1 ?? '').trim(), line2: String(a.AddressLine2 ?? '').trim(), postalCode: String(a.ZipCode ?? '').trim(), city: String(a.City ?? '').trim(), countryCode },
+    };
+  };
   /** @type {MigrateItem[]} */
   const items = [];
   for (const c of customers) {
-    if (c.IsArchived === true || !contactName(c)) continue;
-    items.push({ kind: 'customer', externalId: String(c.Number ?? ''), name: contactName(c), orgnr: extractNorwegianOrg(String(c.OrganizationNumber ?? '')), email: String(c.EmailAddress ?? c.InvoiceEmailAddress ?? '').trim(), price: 0 });
+    if (c.IsArchived === true || c.IsActive === false || !contactName(c)) continue;
+    items.push(contact(c, 'customer'));
   }
   for (const s of suppliers) {
-    if (s.IsArchived === true || !contactName(s)) continue;
-    items.push({ kind: 'supplier', externalId: String(s.Number ?? ''), name: contactName(s), orgnr: extractNorwegianOrg(String(s.OrganizationNumber ?? '')), email: String(s.EmailAddress ?? '').trim(), price: 0 });
+    if (s.IsArchived === true || s.IsActive === false || !contactName(s)) continue;
+    items.push(contact(s, 'supplier'));
   }
   for (const p of products) {
     if (p.IsArchived === true || !String(p.Name ?? '').trim()) continue;
     items.push({ kind: 'product', externalId: String(p.Code ?? p.Id ?? ''), name: String(p.Name).trim(), orgnr: '', email: '', price: Math.max(0, num(p.UnitPrice)) });
   }
   if (items.length === 0) throw new HttpError(400, 'PowerOffice Go returned no active customers, suppliers or products.');
-  return items.slice(0, MAX_ITEMS);
+  /** @type {Array<[MigrateItem['kind'], string]>} */
+  const kinds = [['customer', 'customers'], ['supplier', 'suppliers'], ['product', 'products']];
+  const capped = kinds.filter(([k]) => items.filter((i) => i.kind === k).length > MAX_ITEMS).map(([, label]) => label);
+  return { items: kinds.flatMap(([k]) => items.filter((i) => i.kind === k).slice(0, MAX_ITEMS)), capped };
 }
 
 /** @param {MigrateItem} it @param {import('../../lib/html.js').HtmlValue} action */
@@ -113,8 +142,8 @@ function itemRow(it, action) {
     <td>${action}</td>`;
 }
 
-/** @param {MigrateItem[]} items @param {boolean} isSample */
-function renderItems(items, isSample) {
+/** @param {MigrateItem[]} items @param {boolean} isSample @param {string[]} [capped] */
+function renderItems(items, isSample, capped = []) {
   /** @param {MigrateItem['kind']} k */
   const count = (k) => String(items.filter((i) => i.kind === k).length);
   return reaiCard({
@@ -127,6 +156,7 @@ function renderItems(items, isSample) {
         ${reaiMetric({ label: 'Suppliers', value: count('supplier') })}
         ${reaiMetric({ label: 'Products', value: count('product'), detail: 'Price excluding VAT' })}
       </div>
+      ${capped.length ? reaiCallout({ tone: 'warn', body: `Only the first ${MAX_ITEMS} ${capped.join(' and ')} are listed here.` }) : ''}
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Type</th><th>Number</th><th>Name</th><th>Org.nr / price</th><th>Action</th></tr></thead>
         <tbody>${items.map((it, idx) => html`<tr id="sw-row-${idx}">${itemRow(it, isSample
@@ -158,21 +188,27 @@ async function importItem(env, session, it) {
     return `Imported #${created.id}`;
   }
   const path = it.kind === 'supplier' ? '/api/suppliers' : '/api/customers';
-  if (it.orgnr) {
-    const found = /** @type {{ items?: Array<{ id: number }> }} */ (await reaiRequest(env, path, { ...auth, query: { organizationNumber: it.orgnr, pageSize: '1' } }));
-    const hit = found.items?.[0];
-    if (hit) return `Already in ReAI #${hit.id}`;
-  }
+  const name = it.name.slice(0, 75);
+  const found = /** @type {{ items?: Array<{ id: number, name?: string | null }> }} */ (await reaiRequest(env, path, { ...auth, query: it.orgnr ? { organizationNumber: it.orgnr, pageSize: '1' } : { name, pageSize: '20' } }));
+  const hit = it.orgnr ? found.items?.[0] : found.items?.find((x) => (x.name ?? '').trim().toLowerCase() === name.trim().toLowerCase());
+  if (hit) return `Already in ReAI #${hit.id}`;
+  const a = it.address;
+  const hasAddress = Boolean(a && a.line1 && a.city);
+  const email = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(it.email) ? it.email : '';
+  const invoiceEmail = it.invoiceEmail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(it.invoiceEmail) && it.invoiceEmail !== email ? it.invoiceEmail : '';
   const created = /** @type {{ id: number }} */ (await reaiRequest(env, path, {
     ...auth,
     method: 'POST',
     body: {
-      name: it.name.slice(0, 75),
+      name,
       ...(it.externalId ? { number: it.externalId.slice(0, 50) } : {}),
       ...(it.orgnr ? { organizationNumber: it.orgnr } : {}),
-      ...(it.email ? { email: it.email } : {}),
-      countryCode: 'NO',
-      privateContact: false,
+      ...(email ? { email } : {}),
+      ...(invoiceEmail && it.kind === 'customer' ? { invoiceEmail } : {}),
+      ...(it.phone && /^\+[1-9][0-9]{6,14}$/.test(it.phone) ? { phone: it.phone } : {}),
+      ...(hasAddress && a ? { addressPart1: a.line1, ...(a.line2 ? { addressPart2: a.line2 } : {}), ...(a.postalCode ? { postalCode: a.postalCode } : {}), city: a.city } : {}),
+      countryCode: a?.countryCode || 'NO',
+      privateContact: it.person === true,
     },
   }));
   return `Imported #${created.id}`;
@@ -225,7 +261,8 @@ export async function handle(request, env) {
     if (pathname === `${BASE_PATH}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      return htmlResponse(renderItems(await fetchApi(creds), false));
+      const fetched = await fetchApi(creds);
+      return htmlResponse(renderItems(fetched.items, false, fetched.capped));
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

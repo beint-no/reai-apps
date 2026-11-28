@@ -42,8 +42,29 @@ function assertRange(from, to) {
   if (days > MAX_DAYS) throw new HttpError(400, `Choose a period of at most ${MAX_DAYS} days.`);
 }
 
+/** Timetype values that are allowances or units rather than worked hours (GetTimelinjeModel.Timetype). */
+const NON_HOUR_TYPES = new Set(['tillegg', 'enhetstillegg']);
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
 /**
- * Follows OData @odata.nextLink pages on api.tidsbanken.net.
+ * Europe/Oslo day of a Tidsbanken date. The docs warn that date fields can carry a wrong time zone shift, so a value
+ * with an offset or Z is converted to the Oslo calendar day.
+ * @param {unknown} v
+ */
+function osloDay(v) {
+  const s = String(v ?? '').trim();
+  if (!/(Z|[+-][0-9]{2}:?[0-9]{2})$/i.test(s)) return isoDate(s, '');
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? '' : OSLO_DAY.format(t);
+}
+
+/** @param {string} day @param {number} delta */
+function shiftDay(day, delta) {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + delta * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Follows OData @odata.nextLink pages on api.tidsbanken.net (10,000 rows per page).
  * @param {string} url
  * @param {Record<string, string>} headers
  * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
@@ -52,22 +73,24 @@ function assertRange(from, to) {
 async function odataAll(url, headers, fetchImpl) {
   /** @type {any[]} */ const out = [];
   let next = url;
-  for (let page = 0; page < 20 && next; page++) {
+  for (let page = 0; page < 10 && next; page++) {
     const data = await fetchJson(next, { headers }, BRAND, fetchImpl);
     out.push(...(Array.isArray(data) ? data : Array.isArray(data?.value) ? data.value : []));
     const link = typeof data?.['@odata.nextLink'] === 'string' ? data['@odata.nextLink'] : '';
     next = link && new URL(link, API).origin === API ? new URL(link, API).toString() : '';
   }
+  if (next) throw new HttpError(400, 'Tidsbanken returned more hours than one fetch can read. Choose a shorter period.');
   return out;
 }
 
 /**
  * Fetches approved time lines from the Tidsbanken API.
- * Docs: https://developer.tidsbanken.net/apis (Timelinje API GET /timelinje/TimelinjeBehandlet with fields Id, AnsattId,
- * Dato, AntallTimer, ProsjektId, Notat, Godkjent; Prosjekt API GET /prosjekt/Prosjekt with Id, Navn), headers tb-key,
- * Ocp-Apim-Subscription-Key and x-api-version; OData $select/$filter/$expand/$top as in
- * https://developer.tidsbanken.net/odata ; paging with @odata.nextLink as in https://developer.tidsbanken.net/pagination ;
- * tb-key location in https://developer.tidsbanken.net/find-your-tb-key .
+ * Docs: https://developer.tidsbanken.net/apis . Timelinje API version 3.0 (x-api-version header; version 3.1 only adds
+ * /timeeksport): GET /timelinje/TimelinjeBehandlet with $select, $filter, $top (max 10,000 per page, then
+ * @odata.nextLink). Ansatt API 3.0: GET /ansatt/ansatt with Id, Fornavn, Etternavn. Prosjekt API 3.0: GET /prosjekt/Prosjekt
+ * with Id, Navn. Headers tb-key, Ocp-Apim-Subscription-Key and x-api-version; rate limit 300 calls per 60 seconds.
+ * OData syntax: https://developer.tidsbanken.net/odata ; paging: https://developer.tidsbanken.net/pagination ;
+ * tb-key: https://developer.tidsbanken.net/find-your-tb-key .
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<HoursRow[]>}
@@ -81,31 +104,38 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   assertRange(from, to);
   const headers = { 'tb-key': tbKey, 'Ocp-Apim-Subscription-Key': subscriptionKey, 'x-api-version': API_VERSION, accept: 'application/json' };
 
+  // One day of margin on each side absorbs the documented time zone shift; rows are then filtered by Oslo day.
   const lines = await odataAll(`${API}/timelinje/TimelinjeBehandlet?${new URLSearchParams({
-    $select: 'Id,AnsattId,Dato,AntallTimer,ProsjektId,Notat,Godkjent',
-    $filter: `Dato ge ${from} and Dato le ${to} and Godkjent eq true`,
-    $expand: 'Ansatt($select=Fornavn,Etternavn)',
+    $select: 'Id,AnsattId,Dato,AntallTimer,ProsjektId,Notat,Godkjent,Timetype',
+    $filter: `Dato ge ${shiftDay(from, -1)} and Dato le ${shiftDay(to, 1)} and Godkjent eq true`,
+    $orderby: 'Dato',
     $top: '10000',
   })}`, headers, fetchImpl);
-  const projectIds = new Set(lines.map((l) => String(l.ProsjektId ?? '')).filter(Boolean));
-  /** @type {Map<string, string>} */ const projects = new Map();
-  if (projectIds.size > 0) {
-    const list = await odataAll(`${API}/prosjekt/Prosjekt?${new URLSearchParams({ $select: 'Id,Navn', $top: '10000' })}`, headers, fetchImpl);
-    for (const p of list) projects.set(String(p.Id), String(p.Navn ?? '').trim());
-  }
+  const kept = lines
+    .map((l) => ({ l, date: osloDay(l.Dato) }))
+    .filter(({ l, date }) => date && date >= from && date <= to && !NON_HOUR_TYPES.has(String(l.Timetype ?? '').trim().toLowerCase()));
+  const hasProjects = kept.some(({ l }) => String(l.ProsjektId ?? '').trim());
+  // Names come from the Ansatt and Prosjekt APIs in parallel, once per fetch.
+  const [people, projectList] = kept.length === 0 ? [[], []] : await Promise.all([
+    odataAll(`${API}/ansatt/ansatt?${new URLSearchParams({ $select: 'Id,Fornavn,Etternavn', $top: '10000' })}`, headers, fetchImpl),
+    hasProjects ? odataAll(`${API}/prosjekt/Prosjekt?${new URLSearchParams({ $select: 'Id,Navn', $top: '10000' })}`, headers, fetchImpl) : Promise.resolve([]),
+  ]);
+  /** @type {Map<string, string>} */ const names = new Map(people.map((a) => [String(a.Id), [a.Fornavn, a.Etternavn].filter(Boolean).join(' ').trim()]));
+  /** @type {Map<string, string>} */ const projects = new Map(projectList.map((p) => [String(p.Id), String(p.Navn ?? '').trim()]));
   const wanted = (creds.person ?? '').trim().toLowerCase();
-  const rows = lines
-    .map((l) => {
+  const rows = kept
+    .map(({ l, date }) => {
       const pid = String(l.ProsjektId ?? '').trim();
+      const aid = l.AnsattId != null ? String(l.AnsattId) : '';
       return {
-        date: isoDate(l.Dato, ''),
-        hours: Number(num(l.AntallTimer).toFixed(2)),
-        person: [l.Ansatt?.Fornavn, l.Ansatt?.Etternavn].filter(Boolean).join(' ').trim() || (l.AnsattId != null ? `Ansatt ${l.AnsattId}` : '—'),
+        date,
+        hours: Math.round(num(l.AntallTimer) * 100) / 100,
+        person: names.get(aid) || (aid ? `Ansatt ${aid}` : '—'),
         project: pid ? (projects.get(pid) || `Prosjekt ${pid}`) : '—',
         comment: String(l.Notat ?? '').trim() || 'Tidsbanken hours',
       };
     })
-    .filter((r) => r.date && r.hours >= 0.01 && r.hours <= 24 && (!wanted || r.person.toLowerCase().includes(wanted)));
+    .filter((r) => r.hours >= 0.01 && r.hours <= 24 && (!wanted || r.person.toLowerCase().includes(wanted)));
   if (rows.length === 0) throw new HttpError(400, `Tidsbanken has no approved hours from ${from} to ${to}${wanted ? ` for "${creds.person}"` : ''}.`);
   return rows;
 }
@@ -191,7 +221,13 @@ export async function handle(request, env) {
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? BRAND).trim().slice(0, 1000);
       if (!(employeeId > 0) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'A ReAI employee, a date and 0.01 to 24 hours are required.');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const existing = /** @type {Array<{ id?: number | null, hours: number, comment?: string | null, projectId?: number | null }>} */ (
+        await reaiRequest(env, '/api/timesheets', { ...auth, query: { employeeId: String(employeeId), startDate: date, endDate: date } })
+      );
+      const dup = (Array.isArray(existing) ? existing : []).find((t) => Math.abs(Number(t.hours) - hours) < 0.005 && (t.comment ?? '') === comment && (t.projectId ?? 0) === (projectId > 0 ? projectId : 0));
+      if (dup) return htmlResponse(html`<tr><td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged${dup.id ? ` #${dup.id}` : ''}`, tone: 'warn' })}</td></tr>`);
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { ...auth, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {

@@ -1,20 +1,25 @@
 # UI Component Lab
 
-Route `/app/lab/`. Docs pages: `web/content/{nb,en}/web-apps/lab/index.md`.
+Route `/app/lab/`. No docs pages and no catalog entry: this is an internal playground for the shared
+SSR components in `web/worker/lib/ui.js` (Declarative Shadow DOM, HTMX 4 swap, native popover and
+dialog invokers).
 
-This app works with ReAI data or files only; it calls no third-party API.
+## Vendor API
+
+None. The app calls no third-party API.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+None. No session, no ReAI calls, zero subrequests per action.
 
-- none
+## Routes
 
-## Rules
+- `GET /app/lab/`: component gallery.
+- `POST /app/lab/ping`: same-origin HTMX fragment swap demo.
+- No `/sample` route by design: the page is itself the sample, and there is no data to preview.
 
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+## Caveats
+
+Keep it free of credentials and customer data. If a shared component changes, check it renders here.
 
 Last verified: 2026-11-28.

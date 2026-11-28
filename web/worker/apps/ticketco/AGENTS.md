@@ -2,35 +2,61 @@
 
 Route `/app/ticketco/`. Docs pages: `web/content/{nb,en}/web-apps/ticketco/index.md`.
 
-## Vendor API
+Turns TicketCo item gross transactions for a period (optionally one event) into one balanced ReAI review voucher.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://apidoc.ticketco.events/api/v1/public?env=Production
-- https://ticketco.io/en/support/accessing-and-testing-the-ticketco-public-api
+- Reference (Swagger 2.0 JSON): https://apidoc.ticketco.events/api/v1/public?env=Production
+- Access and token: https://ticketco.io/en/support/accessing-and-testing-the-ticketco-public-api
+- Changelog: none published. The Swagger is "Ticketco public API" version 1.0.0; no deprecation notices.
 
-- Mode: fix
-- Calls: GET https://ticketco.events/api/public/v1/item_grosses with token, pii=false, optional event_id and page; rows filtered by transaction_datestamp (no date filter exists); VAT rate derived from vat/(price minus vat) snapped to 25/15/12/0; refunds by transaction_type subtracted; fees from ticketco_total_fee and ticketco_vat. Voucher: 1580 due from TicketCo, 7770 fees (input VAT code when ticketco_vat present), 3100/3000/3010/3020 sales VAT inclusive with real codes from GET /api/vat-codes (exempt code for 0 %), rows paired by pairVoucherRows, duplicate check via /api/vouchers description marker.
-- Hosts in code: `apidoc.ticketco.events`, `ticketco.events`, `ticketco.io`
-- Vendor status: Brreg 999104134 TICKETCO AS: konkurs false, underAvvikling false, tvangsavvikling false, no slettedato. Public API live: ticketco.events/api/public/v1/item_grosses?token=x returns 401 with an invalid key message.
+## API version and auth
 
-## ReAI API
+- Public API v1 (`https://ticketco.events/api/public/v1`), the only version. `buyer_phone` is the only deprecated
+  parameter and is not used.
+- Token issued by TicketCo support: the customer emails cs@ticketco.net from the address on their TicketCo user and
+  asks for item grosses (transaction data). Tokens are per data set. Sent as query parameter `token`.
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+## Endpoints
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /item_grosses?token&pii=false&page[&event_id]`. Reads `transaction_datestamp`, `transaction_type`, `price`, `vat`,
+  `ticketco_total_fee`, `ticketco_vat`. No date filter exists; rows are filtered locally by the Europe/Oslo day of
+  `transaction_datestamp` (an ISO time with offset).
+- Paging: 50 rows per page (Meta `per_page`), no page size parameter. Page 1 is read first; when `meta.total_pages` is
+  present the rest are read with concurrency 4, otherwise sequentially until a page has fewer than 50 rows.
+- Rate limits: not documented.
+
+## Subrequest budget
+
+- Fetch: 1 to 40 TicketCo pages. More than 40 pages (2,000 rows) stops with a message to fetch one event at a time.
+- Book: 3 ReAI calls (`GET /api/vouchers` and `GET /api/vat-codes` in parallel, then `POST /api/manual-vouchers`),
+  plus more `/api/vouchers` pages only when that day has over 200 vouchers.
+
+## ReAI endpoints
+
+- `GET /api/vouchers?startDate&endDate&includeReversed=true` (duplicate check on description `TicketCo <ref>`)
+- `GET /api/vat-codes`
+- `POST /api/manual-vouchers`
+
+## Accounting mapping
+
+Voucher dated the last day of the period, postings in NOK, rows paired with `pairVoucherRows`:
+
+- `1580` debit: due from TicketCo (sales less TicketCo fees).
+- `7770` debit: `ticketco_total_fee`, with the input VAT code when `ticketco_vat` is non zero.
+- `3000`/`3010`/`3020`/`3100` credit: `price` per VAT rate 25/15/12/0, VAT inclusive with the matching output code
+  (exempt code for 0 %). The rate is derived from `vat / (price - vat)` and snapped to a Norwegian rate; any other
+  share stops the fetch.
+- A row is negative when `price` is negative or `transaction_type` matches refund/return/cancel/credit.
 
 ## Caveats
 
-Token is issued by TicketCo support (cs@ticketco.net). Swagger does not document refund transaction_type values or pagination meta in the item_grosses response; module treats types matching refund/return/cancel/credit as negative and stops on a short page (<50) or meta.total_pages. Whether price includes the buyer fee kept by the organizer is inferred from the example (price 120 = actual_price 100 + fee 20). fetchApi signature and return shape changed: web/test/provider-api.test.mjs (TicketCo in the 'Settlements' test) needs an update.
+- Swagger lists no `transaction_type` values and no `meta` in `PublicItemGrossResponse` (only a separate `Meta`
+  definition), so refund detection and paging fallbacks are inferred.
+- Whether `price` includes the buyer fee kept by the organizer is inferred from the example (price 120 = actual_price
+  100 + fee 20).
+- No currency field: NOK is assumed. TicketCo Sweden organisers would need a currency check.
+- Booking a whole period and then one event of the same period books those sales twice; the duplicate check only
+  compares the same reference.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

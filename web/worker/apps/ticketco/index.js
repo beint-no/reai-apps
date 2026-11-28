@@ -20,7 +20,7 @@ const BASE_PATH = '/app/ticketco';
 const TITLE = 'TicketCo Ticket Sales Accounting';
 const EYEBROW = 'EVENTS · TICKETING';
 const LEAD = 'Turn TicketCo ticket transactions for a period or one event into a balanced ReAI review voucher: sales per VAT rate, TicketCo fees and the amount due from TicketCo.';
-const API_HINT = 'TicketCo issues the API token on request: email cs@ticketco.net from the address on your TicketCo user and ask for access to item grosses (transaction data). Leave the event id empty to include every event.';
+const API_HINT = 'TicketCo issues the API token on request: email cs@ticketco.net from the address on your TicketCo user and ask for access to item grosses (transaction data). Leave the event id empty to include every event. Accounts with many transactions fetch one event at a time.';
 /** @type {import('../../lib/api-http.js').ApiFieldSpec[]} */
 const API_FIELDS = [
   { name: 'token', label: 'TicketCo API token', type: 'password' },
@@ -36,13 +36,32 @@ const REVENUE_ACCOUNTS = { 25: '3000', 15: '3010', 12: '3020', 0: '3100' };
 /** @type {Settlement} */
 const SAMPLE = { from: '2026-10-01', to: '2026-10-31', ref: '2026-10-01 to 2026-10-31', count: 412, sales: [{ ratePct: 0, grossMinor: 14800000 }, { ratePct: 25, grossMinor: 3125000 }], feeMinor: 540000, feeVatMinor: 0 };
 
+/** Most item_grosses pages one fetch may read (TicketCo returns 50 rows per page; Workers cap subrequests). */
+const MAX_PAGES = 40;
+const PAGE_CONCURRENCY = 4;
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Bookkeeping day in Europe/Oslo for a TicketCo timestamp such as 2018-08-31T12:15:40+00:00.
+ * @param {unknown} v
+ * @returns {string}
+ */
+function osloDay(v) {
+  const s = String(v ?? '').trim();
+  if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s)) return s;
+  if (!/(Z|[+-][0-9]{2}:?[0-9]{2})$/i.test(s)) return isoDate(s, '');
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? '' : OSLO_DAY.format(t);
+}
+
 /**
  * Reads TicketCo item gross transactions in a date range and sums them per VAT rate.
- * Docs: https://apidoc.ticketco.events/api/v1/public?env=Production (Swagger: host ticketco.events, basePath /api/public/v1,
- * GET /item_grosses with query token, event_id, pii and page; item_grosses[] with transaction_datestamp, transaction_type,
- * price, vat, ticketco_vat and ticketco_total_fee) and
- * https://ticketco.io/en/support/accessing-and-testing-the-ticketco-public-api (token from cs@ticketco.net).
- * The endpoint has no date filter, so pages are read until a page is short and rows are filtered by transaction_datestamp.
+ * Docs: https://apidoc.ticketco.events/api/v1/public?env=Production (Swagger 2.0 "Ticketco public API" 1.0.0: host
+ * ticketco.events, basePath /api/public/v1, GET /item_grosses with query token, event_id, pii and page; item_grosses[] with
+ * transaction_datestamp, transaction_type, price, vat, ticketco_vat and ticketco_total_fee; Meta with page, per_page 50,
+ * total_pages, total_count) and https://ticketco.io/en/support/accessing-and-testing-the-ticketco-public-api (token from
+ * cs@ticketco.net). The endpoint has no date filter, so pages are read (at most MAX_PAGES) and rows are filtered by the
+ * Europe/Oslo day of transaction_datestamp.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<Settlement>}
@@ -54,31 +73,56 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (eventId && !/^[0-9]+$/.test(eventId)) throw new HttpError(400, 'The event id is a number.');
   const from = isoDate(creds.from);
   const to = isoDate(creds.to);
+  if (from > to) throw new HttpError(400, 'The from date must be on or before the to date.');
+  const tooMany = `TicketCo has more than ${MAX_PAGES * 50} transactions${eventId ? ' for this event' : ''}, more than one fetch can read. ${eventId ? 'Ask TicketCo support for a token limited to your division.' : 'Enter an event id and fetch one event at a time.'}`;
+  /** @param {number} page @returns {Promise<any>} */
+  const getPage = (page) => {
+    const query = new URLSearchParams({ token, pii: 'false', page: String(page) });
+    if (eventId) query.set('event_id', eventId);
+    return fetchJson(`${API}?${query}`, { headers: { accept: 'application/json' } }, BRAND, fetchImpl);
+  };
+  /** @param {any} data @returns {any[]} */
+  const rowsOf = (data) => (Array.isArray(data?.item_grosses) ? data.item_grosses : []);
+
+  const first = await getPage(1);
+  /** @type {any[]} */ const all = [...rowsOf(first)];
+  const totalPages = Math.trunc(num(first?.meta?.total_pages));
+  if (totalPages > 1) {
+    if (totalPages > MAX_PAGES) throw new HttpError(400, tooMany);
+    // Meta gives the page count, so the remaining pages are read with bounded concurrency.
+    const pages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+    for (let i = 0; i < pages.length; i += PAGE_CONCURRENCY) {
+      const batch = await Promise.all(pages.slice(i, i + PAGE_CONCURRENCY).map(getPage));
+      for (const data of batch) all.push(...rowsOf(data));
+    }
+  } else if (totalPages === 0) {
+    // No meta: read sequentially until a page is short.
+    let last = rowsOf(first);
+    for (let page = 2; last.length >= 50; page++) {
+      if (page > MAX_PAGES) throw new HttpError(400, tooMany);
+      last = rowsOf(await getPage(page));
+      all.push(...last);
+    }
+  }
+
   /** @type {Map<number, number>} */ const byRate = new Map();
   let feeMinor = 0;
   let feeVatMinor = 0;
   let count = 0;
-  for (let page = 1; page <= 200; page++) {
-    const query = new URLSearchParams({ token, pii: 'false', page: String(page) });
-    if (eventId) query.set('event_id', eventId);
-    const data = await fetchJson(`${API}?${query}`, { headers: { accept: 'application/json' } }, BRAND, fetchImpl);
-    /** @type {any[]} */ const rows = Array.isArray(data?.item_grosses) ? data.item_grosses : [];
-    for (const r of rows) {
-      const day = isoDate(r.transaction_datestamp, '');
-      if (!day || day < from || day > to) continue;
-      const sign = /refund|return|cancel|credit/i.test(String(r.transaction_type ?? '')) ? -1 : 1;
-      const price = Math.abs(num(r.price));
-      const vat = Math.abs(num(r.vat));
-      const implied = price - vat > 0 ? (vat / (price - vat)) * 100 : 0;
-      const rate = KNOWN_RATES.find((k) => Math.abs(k - implied) < 0.5);
-      if (rate === undefined) throw new HttpError(400, `TicketCo transaction ${String(r.id)} has a VAT share (${implied.toFixed(1)}%) that is not a Norwegian rate.`);
-      byRate.set(rate, (byRate.get(rate) ?? 0) + sign * Math.round(price * 100));
-      feeMinor += sign * Math.round(Math.abs(num(r.ticketco_total_fee)) * 100);
-      feeVatMinor += sign * Math.round(Math.abs(num(r.ticketco_vat)) * 100);
-      count += 1;
-    }
-    const totalPages = num(data?.meta?.total_pages);
-    if (rows.length === 0 || (totalPages > 0 ? page >= totalPages : rows.length < 50)) break;
+  for (const r of all) {
+    const day = osloDay(r.transaction_datestamp);
+    if (!day || day < from || day > to) continue;
+    const refund = num(r.price) < 0 || /refund|return|cancel|credit/i.test(String(r.transaction_type ?? ''));
+    const sign = refund ? -1 : 1;
+    const priceMinor = Math.round(Math.abs(num(r.price)) * 100);
+    const vatMinor = Math.round(Math.abs(num(r.vat)) * 100);
+    const implied = priceMinor - vatMinor > 0 ? (vatMinor / (priceMinor - vatMinor)) * 100 : 0;
+    const rate = KNOWN_RATES.find((k) => Math.abs(k - implied) < 0.5);
+    if (rate === undefined) throw new HttpError(400, `TicketCo transaction ${String(r.id)} has a VAT share (${implied.toFixed(1)}%) that is not a Norwegian rate.`);
+    byRate.set(rate, (byRate.get(rate) ?? 0) + sign * priceMinor);
+    feeMinor += sign * Math.round(Math.abs(num(r.ticketco_total_fee)) * 100);
+    feeVatMinor += sign * Math.round(Math.abs(num(r.ticketco_vat)) * 100);
+    count += 1;
   }
   if (count === 0) throw new HttpError(400, `TicketCo has no transactions from ${from} to ${to}${eventId ? ` for event ${eventId}` : ''}.`);
   const sales = [...byRate.entries()].map(([ratePct, grossMinor]) => ({ ratePct, grossMinor })).filter((s) => s.grossMinor !== 0);
@@ -191,10 +235,14 @@ export async function handle(request, env) {
       if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
       const marker = `${BRAND} ${String(v.ref).slice(0, 80)}`;
       const auth = { token: session.accessToken, tenantId: session.tenantId };
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
+      const [existingRaw, codesRaw] = await Promise.all([
+        reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }),
+        reaiRequest(env, '/api/vat-codes', auth),
+      ]);
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (existingRaw);
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
-      const codes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', auth));
+      const codes = /** @type {VatCode[]} */ (codesRaw);
       const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/manual-vouchers', {
         ...auth,
         method: 'POST',

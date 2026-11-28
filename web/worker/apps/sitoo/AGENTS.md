@@ -2,36 +2,44 @@
 
 Route `/app/sitoo/`. Docs pages: `web/content/{nb,en}/web-apps/sitoo/index.md`.
 
-## Vendor API
+Combines the POS Z-reports closed on one Oslo day into one balanced review voucher: tenders against sales by VAT rate.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developer.sitoo.com/introduction
-- https://developer.sitoo.com/api-reference/z-reports
-- https://developer.sitoo.com/api-reference/overview
+- Introduction (auth, base URL, errors): https://developer.sitoo.com/introduction
+- Z-reports reference: https://developer.sitoo.com/api-reference/z-reports
+- Reference overview: https://developer.sitoo.com/api-reference/overview
+- Release notes: linked from developer.sitoo.com
 
-- Mode: api
-- Auth: Customer generates an API user password in Sitoo Backoffice under Settings / Sitoo REST API (Administrator, API extension required); app sends Authorization: Basic base64(API ID:password) to the account base URL (default https://api.mysitoo.com) with the account ID.
-- Hosts in code: `api.mysitoo.com`, `developer.sitoo.com`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. (Sitoo Norge NUF). sitoo.com live, sells Sitoo POS.
+## API version
+
+REST API `v2` (`/v2/accounts/{account_id}/...`), the only current version on 2026-11-28; no deprecation notices on the Z-report endpoints.
+
+## Auth
+
+Sitoo Backoffice → Settings / Sitoo REST API (Administrator, API extension): generate a password for the API user. The form takes base URL (default `https://api.mysitoo.com`), account ID, API ID and password; calls send `Authorization: Basic base64(apiId:password)`. Never stored. If the key is IP restricted, Worker egress must be allowed.
+
+## Endpoints
+
+- `GET /v2/accounts/{account_id}/pos-z-reports?dateaddedfrom=&dateaddedto=` (Unix seconds). Sorted by `dateadded` ascending, at most 500 items; the next call starts at the last `dateadded` (inclusive, deduplicated by `registerid|zreportid`). Window: the day start in Oslo minus slack to four days later, then filtered locally on `datecreated` in Europe/Oslo.
+- Fields used: `zreportid`, `registerid`, `registernumber`, `datecreated`, `dateadded`, `currencycode`, `vatgroupssales`/`vatgroupsrefund` (`vatvalue`, `moneytotal`), `paymentssales`/`paymentsrefund` (`name`, `moneytotal`), `moneyroundoff`.
+
+## Budget and limits
+
+Fetch: 1 call per 500 reports (normally 1), capped at 10. Book: `GET /api/vat-codes`, `GET /api/vouchers` (1+ pages), `POST /api/manual-vouchers`. Sitoo documents `429` without published limits.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- `GET /api/vat-codes`: checks codes 3/31/33 (VAT inclusive output) and 5 (0%) exist with the expected rate before booking.
+- `GET /api/vouchers?startDate=&endDate=&includeReversed=true` duplicate check on `Sitoo Z-reports <date>`.
+- `POST /api/manual-vouchers` with `reviewReason`, rows from `pairVoucherRows`.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+## Mapping
+
+Sales gross per VAT rate: 25% 3000/code 3, 15% 3010/31, 12% 3020/33, 0% 3100/5; refunds debit the same accounts. Tenders: cash 1900, gift card 2900, invoice 1570, others 1580; refunds credit them. Round off 7790. Only NOK reports; other currencies and VAT rates are errors.
 
 ## Caveats
 
-No public email on sitoo.com (contact and partner pages use forms only); use the form at https://sitoo.com/contact or https://sitoo.com/partners/technology-partners. Uses GET /v2/accounts/{id}/pos-z-reports (plain array, max 500, paged by dateadded), filters by datecreated in Europe/Oslo. Store Z-reports need Sitoo backend config and are not used. Sales are posted gross with ReAI VAT codes 3/31/33 (vat_inclusive) and 5 for 0% (zero-rated), verified against GET /api/vat-codes before booking; tenders: cash 1900, gift card 2900, invoice 1570, others 1580; roundoff 7790. Refund sign in vatgroupsrefund/paymentsrefund is not documented, so absolute values are used. If the customer IP-restricts the API key, Worker egress IPs must be allowed. NOK only.
-
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+The refund sign in `vatgroupsrefund`/`paymentsrefund` is not documented, so absolute values are used. Store Z-reports need Sitoo backend configuration and are not used.
 
 Last verified: 2026-11-28.

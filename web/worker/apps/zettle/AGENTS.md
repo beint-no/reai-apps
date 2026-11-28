@@ -2,35 +2,62 @@
 
 Route `/app/zettle/`. Docs pages: `web/content/{nb,en}/web-apps/zettle/index.md`.
 
-## Vendor API
+Read-only: lists PayPal Point of Sale (formerly Zettle) payouts from the liquid account for one
+month, matches them against pending ReAI bank transactions and exports a CSV. Nothing is booked.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://github.com/iZettle/api-documentation/blob/master/authorization.md
-- https://github.com/iZettle/api-documentation/blob/master/finance-api/api-reference-v2.yaml
-- https://github.com/iZettle/api-documentation/blob/master/finance-api/user-guides/fetch-account-transactions-v2.md
-- https://www.zettle.com/no
+- Finance API overview: https://developer.zettle.com/docs/api/finance/overview
+- Reference (v2): https://developer.zettle.com/docs/api/finance/reference
+- Fetch transactions guide: https://developer.zettle.com/docs/api/finance/user-guides/fetch-account-transactions
+- Auth (assertion grant): https://developer.zettle.com/docs/api/oauth/user-guides/set-up-app-authorisation/set-up-authorisation-assertion-grant
+- API key link: https://developer.zettle.com/docs/get-started/user-guides/create-app-credentials/create-app-credentials-for-self-hosted-app/create-credentials-self-hosted-app
+- The GitHub repo iZettle/api-documentation is deprecated since 2022-05-09; do not use it.
+- Changelog: none published on the portal.
 
-- Mode: rename
-- Calls: Brand PayPal Point of Sale (Zettle) in title, lead, UI and docs. Balance currency read from currencyId; start/end without Z; accepts both the reference (array, originatorTransactionUuid, string amount) and the user guide shape (data, originatingTransactionUuid); limit 1000 with offset paging; fetchZettlePayouts exported with fetchImpl for testing. Docs rewritten with my.zettle.com/apps/api-keys steps.
-- Hosts in code: `finance.izettle.com`, `github.com`, `oauth.zettle.com`
-- Vendor status: Foreign vendor, not in Brreg. zettle.com/no says "Zettle by PayPal blir til PayPal Point of Sale"; still sold in Norway (PayPal Reader from 249 kr). Finance API v2 still documented in iZettle/api-documentation.
+## API version
+
+Finance API v2 (`https://finance.izettle.com/v2`); v1 is deprecated. No v3 or sunset announced.
+
+## Auth
+
+The merchant creates an API key at https://my.zettle.com/apps/api-keys (the UI links it
+prefilled with `?name=ReAI&scopes=READ:FINANCE`) and copies the client ID shown with it.
+`POST https://oauth.zettle.com/token` (form: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`,
+`client_id`, `assertion=<API key>`), then `Authorization: Bearer <access_token>`. One token per action.
+
+## Endpoints used
+
+- `GET /v2/accounts/liquid/balance` for `currencyId` (transactions carry no currency).
+- `GET /v2/accounts/liquid/transactions?start&end&includeTransactionType=PAYOUT&includeTransactionType=FAILED_PAYOUT&limit=10000&offset`
+  `start` inclusive, `end` exclusive, UTC `YYYY-MM-DDThh:mm:ss`, set to 00:00 Europe/Oslo of the
+  month bounds. `limit` max 10000; next page only when a full page returns (max 5).
+
+## Budget per action
+
+Review: 1 token + balance and first page in parallel + 1 ReAI bank read = 4 subrequests.
+No rate limits documented; 429 gives a retry message.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- none
+- `GET /api/company-banks`
+- `GET /api/bank-reconciliations/{bankAccountId}?month&include=pending_transactions`
+
+## Mapping
+
+Negative `PAYOUT` amounts (minor units, string or number) become payouts of `-amount`; positive
+PAYOUT (PayPal Wallet back to liquid) is ignored. A `FAILED_PAYOUT` with the same originating
+uuid removes the payout. Date = Oslo day of `timestamp` (UTC, offset optional). Reference = the
+uuid. Both `originatingTransactionUuid` (guide) and `originatorTransactionUuid` (reference) and
+both a bare array (reference) and `{ data: [...] }` (guide) are accepted.
 
 ## Caveats
 
-Slug, icon and URL stay zettle; coordinator should decide whether to add a paypal-pos alias and update apps.json/catalog names. With the new PayPal linked model payouts can go to the PayPal Wallet instead of a bank account, so some payouts will not match a bank line. The API key page my.zettle.com/apps/api-keys is from the developer docs and was not verified after the rebrand.
+- That a FAILED_PAYOUT carries the voided payout's uuid is assumed; unmatched failures are only
+  counted in a warning.
+- With the PayPal linked model payouts can go to the PayPal Wallet, so some will not match a bank line.
+- Slug and URL stay `zettle`.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

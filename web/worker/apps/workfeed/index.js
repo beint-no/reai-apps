@@ -17,6 +17,9 @@ const TITLE = 'Workfeed Shift Hours';
 const LEAD = 'Fetch worked Workfeed shifts for a period and post the hours to ReAI Timesheets per employee, as the basis for payroll and project billing.';
 const API_BASE = 'https://europe-west1-production-eu-327a3.cloudfunctions.net/api';
 const MAX_ROWS = 1000;
+/** ReAI writes per bulk request, so one Worker invocation stays well under the subrequest limit. */
+const BULK_CHUNK = 40;
+const BULK_CONCURRENCY = 4;
 
 /** @param {string} iso @returns {string} Calendar day in Norwegian time. */
 function osloDay(iso) {
@@ -35,7 +38,8 @@ function addDays(day, offset) {
 /**
  * Fetches shifts from the Workfeed open API.
  * Docs: https://docs.workfeed.io/ (Postman collection: GET /companies/{companyID}/shifts?startFrom&startTo,
- * GET /companies/{companyID}/employees, GET /companies/{companyID}/departments; header `Authorization: <API key>`),
+ * GET /companies/{companyID}/employees, GET /companies/{companyID}/departments; header `Authorization: <API key>`;
+ * no paging is documented; start/end are the worked times and approval.originalStart/originalEnd keep the planned ones),
  * key setup: https://help.workfeed.io/en/articles/15956343-how-to-get-access-to-our-api
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
@@ -64,7 +68,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {Map<string, string>} */
   const deptById = new Map((Array.isArray(departments) ? departments : []).map((d) => [String(d.id), String(d.name ?? '')]));
   const rows = (Array.isArray(shifts) ? shifts : [])
-    .filter((s) => s && s.employeeID && (!approvedOnly || s.approval))
+    .filter((s) => s && s.employeeID && s.start && s.end && (!approvedOnly || s.approval))
     .map((s) => {
       const ms = new Date(String(s.end)).getTime() - new Date(String(s.start)).getTime();
       const breakHours = Number(s.customBreak?.duration ?? 0) || 0;
@@ -86,9 +90,9 @@ export async function fetchApi(creds, fetchImpl = fetch) {
 }
 
 const SAMPLE_ROWS = /** @type {ShiftRow[]} */ ([
-  { shiftId: 'demo-1', date: '2026-10-12', employeeName: 'Freja Lindqvist (Demo)', email: 'freja@demo.invalid', department: 'Kitchen', hours: 7.5, approved: true },
-  { shiftId: 'demo-2', date: '2026-10-12', employeeName: 'Mikkel Sorensen (Demo)', email: 'mikkel@demo.invalid', department: 'Bar', hours: 6, approved: true },
-  { shiftId: 'demo-3', date: '2026-10-13', employeeName: 'Freja Lindqvist (Demo)', email: 'freja@demo.invalid', department: 'Kitchen', hours: 8.25, approved: true },
+  { shiftId: 'demo-1', date: '2026-10-12', employeeName: 'Freja Lindqvist (Demo)', email: 'post+workfeed-freja@aiak.no', department: 'Kitchen', hours: 7.5, approved: true },
+  { shiftId: 'demo-2', date: '2026-10-12', employeeName: 'Mikkel Sorensen (Demo)', email: 'post+workfeed-mikkel@aiak.no', department: 'Bar', hours: 6, approved: true },
+  { shiftId: 'demo-3', date: '2026-10-13', employeeName: 'Freja Lindqvist (Demo)', email: 'post+workfeed-freja@aiak.no', department: 'Kitchen', hours: 8.25, approved: true },
 ]);
 
 /** @param {ShiftRow} row @param {ReaiEmployee[]} employees */
@@ -136,7 +140,7 @@ function renderShifts(state) {
         ? html`<form class="stack-sm confirm-box" hx-post="/app/workfeed/import-all" hx-target="#wfd-bulk" hx-swap="innerHTML">
             <input type="hidden" name="projectId" value="${state.projectId}">
             <input type="hidden" name="rowsJson" value="${JSON.stringify(matched.map(({ row, employeeId }) => ({ employeeId, date: row.date, hours: row.hours, comment: commentFor(row) })))}">
-            <label class="check-row"><input type="checkbox" name="confirm" required> I checked these hours. Post ${matched.length} matched shifts to ReAI Timesheets.</label>
+            <label class="check-row"><input type="checkbox" name="confirm" required> I checked these hours. Post ${matched.length} matched shifts to ReAI Timesheets${matched.length > BULK_CHUNK ? ` in batches of ${BULK_CHUNK}` : ''}.</label>
             <div><button type="submit" class="button primary">Post all matched shifts</button></div>
           </form><div id="wfd-bulk" class="stack-sm"></div>`
         : state.isSample ? reaiCallout({ tone: 'info', body: 'Sample shifts loaded. Connect to ReAI and fetch from Workfeed to post real hours.' }) : ''}
@@ -150,6 +154,38 @@ async function postTimesheet(env, session, e) {
   return /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', {
     token: session.accessToken, tenantId: session.tenantId, method: 'POST',
     body: { employeeId: e.employeeId, date: e.date, hours: Number(e.hours.toFixed(2)), ...(e.projectId > 0 ? { projectId: e.projectId } : {}), ...(e.comment ? { comment: e.comment.slice(0, 1000) } : {}) },
+  }));
+}
+
+/** @param {string} comment @returns {string} Workfeed shift id recorded in a timesheet comment, or ''. */
+function shiftIdIn(comment) {
+  return /\[Workfeed\].*\bshift (\S+)$/.exec(comment)?.[1] ?? '';
+}
+
+/**
+ * Lists Workfeed shift ids already posted to ReAI Timesheets in a date range (one ReAI request).
+ * @param {import('../../lib/types.d.ts').Env} env @param {{ accessToken: string, tenantId: number }} session
+ * @param {string} startDate @param {string} endDate @param {number} [employeeId]
+ */
+async function postedShiftIds(env, session, startDate, endDate, employeeId) {
+  const res = await reaiRequest(env, '/api/timesheets', {
+    token: session.accessToken, tenantId: session.tenantId,
+    query: { startDate, endDate, ...(employeeId ? { employeeId: String(employeeId) } : {}) },
+  });
+  return new Set((Array.isArray(res) ? /** @type {Array<{ comment?: string | null }>} */ (res) : []).map((t) => shiftIdIn(String(t.comment ?? ''))).filter(Boolean));
+}
+
+/**
+ * Runs tasks with at most `limit` in flight.
+ * @template T @param {T[]} items @param {number} limit @param {(item: T) => Promise<void>} task
+ */
+async function eachLimited(items, limit, task) {
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const item = /** @type {T} */ (items[next++]);
+      await task(item);
+    }
   }));
 }
 
@@ -207,32 +243,54 @@ export async function handle(request, env) {
     if (pathname === `${basePath}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      const rows = await fetchApi(creds);
       const session = await readSession(env, request);
-      /** @type {ReaiEmployee[]} */ let employees = [];
-      if (session && session.tenantId > 0) {
-        const res = await reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId });
-        employees = Array.isArray(res) ? /** @type {ReaiEmployee[]} */ (res) : [];
-      }
+      const [rows, res] = await Promise.all([
+        fetchApi(creds),
+        session && session.tenantId > 0 ? reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId }) : Promise.resolve([]),
+      ]);
+      /** @type {ReaiEmployee[]} */ const employees = Array.isArray(res) ? /** @type {ReaiEmployee[]} */ (res) : [];
       return htmlResponse(renderShifts({ rows: rows.map((row) => ({ row, employeeId: matchEmployee(row, employees) })), projectId: Number(creds.projectId ?? '0') || 0, isSample: false }));
     }
     const session = await readSession(env, request);
     if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
     if (pathname === `${basePath}/import`) {
       const entry = { employeeId: Number(form.get('employeeId') ?? '0'), date: String(form.get('date') ?? '').trim(), hours: Number(form.get('hours') ?? '0'), projectId: Number(form.get('projectId') ?? '0'), comment: String(form.get('comment') ?? '').trim() };
+      const cells = html`<td class="mono">${entry.date}</td><td><strong>${String(form.get('employeeName') ?? '')}</strong></td><td>${entry.comment}</td><td class="num">${entry.hours.toFixed(2)}</td>`;
+      const shiftId = shiftIdIn(entry.comment);
+      if (shiftId && entry.employeeId > 0 && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(entry.date) && (await postedShiftIds(env, session, entry.date, entry.date, entry.employeeId)).has(shiftId)) {
+        return htmlResponse(html`<tr>${cells}<td>${reaiBadge({ text: 'Already in ReAI', tone: 'neutral' })}</td></tr>`);
+      }
       const created = await postTimesheet(env, session, entry);
-      return htmlResponse(html`<tr><td class="mono">${entry.date}</td><td><strong>${String(form.get('employeeName') ?? '')}</strong></td><td>${entry.comment}</td><td class="num">${entry.hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
+      return htmlResponse(html`<tr>${cells}<td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
     if (pathname === `${basePath}/import-all`) {
       if (form.get('confirm') !== 'on') throw new HttpError(400, 'Confirm the hours first.');
       const projectId = Number(form.get('projectId') ?? '0');
-      const entries = /** @type {Array<{ employeeId: number, date: string, hours: number, comment: string }>} */ (JSON.parse(String(form.get('rowsJson') ?? '[]'))).slice(0, MAX_ROWS);
+      /** @type {Array<{ employeeId: number, date: string, hours: number, comment: string }>} */
+      const all = JSON.parse(String(form.get('rowsJson') ?? '[]'));
+      if (!Array.isArray(all) || all.length === 0) throw new HttpError(400, 'No shifts to post.');
+      const entries = all.slice(0, MAX_ROWS);
+      const dates = entries.map((e) => String(e.date)).filter((d) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d)).sort();
+      // One ReAI read for the whole period, so shifts posted earlier (or in an earlier batch) are skipped.
+      const posted = dates.length ? await postedShiftIds(env, session, /** @type {string} */ (dates[0]), /** @type {string} */ (dates[dates.length - 1])) : new Set();
+      const todo = entries.filter((e) => !posted.has(shiftIdIn(String(e.comment ?? ''))));
+      const skipped = entries.length - todo.length;
+      const batch = todo.slice(0, BULK_CHUNK);
+      const rest = todo.slice(BULK_CHUNK);
       let ok = 0;
       /** @type {string[]} */ const failed = [];
-      for (const e of entries) {
+      await eachLimited(batch, BULK_CONCURRENCY, async (e) => {
         try { await postTimesheet(env, session, { ...e, projectId }); ok++; } catch (err) { failed.push(`${e.date} employee #${e.employeeId}: ${err instanceof Error ? err.message : 'failed'}`); }
-      }
-      return htmlResponse(reaiCallout({ tone: failed.length ? 'warn' : 'success', title: `Posted ${ok} of ${entries.length} shifts to ReAI Timesheets`, body: failed.length ? html`<ul>${failed.slice(0, 20).map((f) => html`<li>${f}</li>`)}</ul>` : 'Review them under Timesheets in ReAI before approval and payroll.' }));
+      });
+      const summary = `Posted ${ok} of ${batch.length} shifts to ReAI Timesheets${skipped ? `, skipped ${skipped} already in ReAI` : ''}.`;
+      return htmlResponse(html`${reaiCallout({ tone: failed.length ? 'warn' : 'success', title: summary, body: failed.length ? html`<ul>${failed.slice(0, 20).map((f) => html`<li>${f}</li>`)}</ul>` : rest.length ? `${rest.length} shifts remain.` : 'Review them under Timesheets in ReAI before approval and payroll.' })}
+        ${rest.length > 0
+          ? html`<form class="stack-sm" hx-post="/app/workfeed/import-all" hx-target="#wfd-bulk" hx-swap="innerHTML">
+              <input type="hidden" name="projectId" value="${projectId}"><input type="hidden" name="confirm" value="on">
+              <input type="hidden" name="rowsJson" value="${JSON.stringify(rest)}">
+              <div><button type="submit" class="button primary">Post the next ${Math.min(BULK_CHUNK, rest.length)} of ${rest.length} shifts</button></div>
+            </form>`
+          : ''}`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

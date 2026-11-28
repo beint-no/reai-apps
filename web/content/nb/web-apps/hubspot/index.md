@@ -20,5 +20,5 @@ Når salget skjer i HubSpot og faktureringen i ReAI, gir manuell kopiering lett 
 
 1. Gå til **Development → Keys → Service keys** i HubSpot og velg **Create service key**. Gi nøkkelen tilgangen `crm.objects.companies.read`. Et eksisterende token fra en privat app med samme tilgang fungerer også.
 2. HubSpot har ikke et eget felt for organisasjonsnummer. Bruker dere en egen egenskap til dette, finner du det interne navnet under **Settings → Properties → Company properties**.
-3. Klikk **Åpne integrasjon**, koble til ReAI og lim inn nøkkelen og eventuelt navnet på egenskapen.
-4. Kontroller listen. Norske bedrifter uten gyldig organisasjonsnummer får et felt der du fyller det inn før kunden opprettes.
+3. Klikk **Åpne integrasjon**, koble til ReAI og lim inn nøkkelen og eventuelt navnet på egenskapen. Med en dato i **Changed since** hentes bare bedrifter som er endret etter den datoen.
+4. Kontroller listen. Norske bedrifter uten gyldig organisasjonsnummer får et felt der du fyller det inn før kunden opprettes. Før kunden opprettes, sjekker integrasjonen på nytt at den ikke allerede finnes i ReAI.

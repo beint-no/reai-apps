@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads the scheduled shifts of one Quinyx employee in the chosen period. Hours run from shift start to shift end, minus breaks. Free days, deleted shifts and shifts that do not count as worked hours are left out. Each shift is shown with date, group and comment, and you post it to a ReAI employee and an optional project with one click.
+The integration reads the scheduled shifts of one Quinyx employee in the chosen period. Hours run from shift start to shift end, minus breaks. Free days, deleted shifts and shifts that do not count as worked hours are left out. Each shift is shown with date, group and comment, and you post it to a ReAI employee and an optional project with one click. The timesheet comment carries the Quinyx shift ID, so a shift that is already logged is not posted again.
 
 | From Quinyx | In ReAI |
 | --- | --- |

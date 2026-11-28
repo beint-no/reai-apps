@@ -14,9 +14,9 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter attesterte timer fra SmartDok i valgt periode, høyst 93 dager om gangen. Også timer som allerede er sendt til lønn, kommer med. Tillegg, diett og maskintimer tas ikke med. Du kan begrense til én ansatt med navn eller ansattnummer. Antall timer er nettotimer etter pause når SmartDok oppgir dem.
+Integrasjonen henter attesterte timer fra SmartDok i valgt periode, høyst 93 dager om gangen. Også timer som allerede er sendt til lønn, kommer med. Fravær, tillegg, diett og maskintimer tas ikke med. Du kan begrense til én ansatt med navn eller ansattnummer. Antall timer er nettotimer etter pause når SmartDok oppgir dem.
 
-Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
+Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger. En linje som allerede er ført, blir ikke ført på nytt.
 
 ## Slik kommer du i gang
 

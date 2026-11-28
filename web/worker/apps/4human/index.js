@@ -18,7 +18,7 @@ const LEAD = 'Fetch employees from 4human HRM and create them in ReAI Employees 
 const API = 'https://api.hrm-4human.com';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 20;
-const MAX_PROFILES = 200;
+const BATCH = 25;
 const SKIP_STATUSES = new Set(['former', 'vacant']);
 
 /** @param {string} jwt @returns {string} The instanceId claim 4human requires as X-Api-Key. */
@@ -33,14 +33,38 @@ function instanceIdFromToken(jwt) {
 }
 
 /**
- * Fetches employments and user profiles from the 4human HRM REST API.
+ * GET with the exponential backoff 4human asks for on 429 (throttling active since 2026).
+ * @param {string} url
+ * @param {Record<string, string>} headers
+ * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
+ * @returns {Promise<any>}
+ */
+async function getWithBackoff(url, headers, fetchImpl) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetchImpl(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+    if (res.status === 429 && attempt < 3) {
+      const retryAfter = Number(res.headers.get('retry-after'));
+      const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(12, retryAfter) * 1000 : 500 * 2 ** attempt * (1 + Math.random() * 0.2);
+      await new Promise((r) => setTimeout(r, wait));
+      continue;
+    }
+    if (res.status === 429) throw new HttpError(429, '4human is throttling API calls. Wait a minute and fetch again.');
+    if (res.status === 401 || res.status === 403) throw new HttpError(400, '4human rejected the token. Check the Client ID and Secret Key, and ask 4human support to confirm API access.');
+    if (!res.ok) throw new HttpError(400, `4human API returned HTTP ${res.status}.`);
+    return res.json();
+  }
+}
+
+/**
+ * Fetches employments and, for one batch of employees, user profiles from the 4human HRM REST API.
  * Docs: https://4human-api-doc-prod.s3.eu-west-1.amazonaws.com/prod/index.html (POST /token client_credentials,
  * GET /personnel/employments?limit&page, GET /personnel/profiles/{userId}; `Authorization: Bearer <token>`),
  * access: https://support.4humanhrm.no/hc/no/articles/4405979813522-Tilgang-til-data-via-REST-API-i-V8,
  * X-Api-Key header: https://support.4humanhrm.no/hc/no/articles/34974007319442
- * @param {Record<string, string>} creds
+ * Profiles are one call per employee, so they are read for BATCH employees per request (sorted by name, from `offset`).
+ * @param {Record<string, string>} creds `clientId`, `clientSecret`, optional `offset`
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
- * @returns {Promise<HrEmployee[]>}
+ * @returns {Promise<{ rows: HrEmployee[], total: number, offset: number }>}
  */
 export async function fetchApi(creds, fetchImpl = fetch) {
   const clientId = (creds.clientId ?? '').trim();
@@ -60,7 +84,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {any[]} */
   const employments = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const res = await fetchJson(`${API}/personnel/employments?limit=${PAGE_SIZE}&page=${page}`, { headers }, BRAND, fetchImpl);
+    const res = await getWithBackoff(`${API}/personnel/employments?limit=${PAGE_SIZE}&page=${page}`, headers, fetchImpl);
     const items = Array.isArray(res?.items) ? res.items : [];
     employments.push(...items);
     if (items.length === 0 || page >= Number(res?.pages ?? page)) break;
@@ -73,14 +97,20 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     const prev = byUser.get(String(e.userId));
     if (!prev || (e.isLastEmployment && !prev.isLastEmployment)) byUser.set(String(e.userId), e);
   }
-  const selected = [...byUser.values()];
+  const all = [...byUser.values()].sort((a, b) => String(a.userName ?? '').localeCompare(String(b.userName ?? '')) || String(a.userId).localeCompare(String(b.userId)));
+  const total = all.length;
+  const offset = Math.max(0, Math.min(Math.floor(Number(creds.offset ?? 0)) || 0, Math.max(0, total - 1)));
+  const selected = all.slice(offset, offset + BATCH);
 
   /** @type {Map<string, any>} */
   const profiles = new Map();
-  const queue = selected.slice(0, MAX_PROFILES).map((e) => String(e.userId));
+  const queue = selected.map((e) => String(e.userId));
   await Promise.all(Array.from({ length: 4 }, async () => {
     for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
-      try { profiles.set(id, await fetchJson(`${API}/personnel/profiles/${encodeURIComponent(id)}`, { headers }, BRAND, fetchImpl)); } catch { /* profile details are optional */ }
+      try { profiles.set(id, await getWithBackoff(`${API}/personnel/profiles/${encodeURIComponent(id)}`, headers, fetchImpl)); } catch (err) {
+        if (err instanceof HttpError && err.status === 429) throw err;
+        /* other profile failures leave the details empty */
+      }
     }
   }));
 
@@ -92,11 +122,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     return {
       userId: String(e.userId),
       name,
-      email: String(e.emailWork ?? p.emailPrivate ?? '').trim(),
-      phone: String(e.phoneNumberWork ?? p.phoneNumberPrivate ?? '').trim(),
+      email: String(e.emailWork || p.emailPrivate || '').trim(),
+      phone: String(e.phoneNumberWork || p.phoneNumberPrivate || '').trim(),
       startDate: isoDate(e.startDate),
       percent: Math.min(100, Math.max(1, Math.round(fte * 10000) / 100)),
-      employeeNumber: String(e.number ?? p.instanceEmployeeId ?? '').trim(),
+      employeeNumber: String(e.number || p.instanceEmployeeId || '').trim(),
       bank: verifiedNorwegianAccount(String(p.paymentDetails?.accountNumber ?? '')),
       nin: /^[0-9]{11}$/.test(nin) ? nin : '',
       address: String(p.addressLine1 ?? '').trim(),
@@ -104,22 +134,23 @@ export async function fetchApi(creds, fetchImpl = fetch) {
       city: String(p.city ?? '').trim(),
       status: String(e.employmentCalculatedStatus ?? ''),
     };
-  }).filter((r) => r.name.length > 0).sort((a, b) => a.name.localeCompare(b.name));
-  if (rows.length === 0) throw new HttpError(400, '4human returned 0 current employees.');
-  return rows;
+  }).filter((r) => r.name.length > 0);
+  if (rows.length === 0) throw new HttpError(400, '4human returned no current employees.');
+  return { rows, total, offset };
 }
 
 const SAMPLE_ROWS = /** @type {HrEmployee[]} */ ([
-  { userId: 'demo-1', name: 'Kari Nordmann (Demo)', email: 'kari@demo.invalid', phone: '40000001', startDate: '2026-11-01', percent: 100, employeeNumber: '101', bank: '86011117947', nin: '', address: 'Storgata 1', postalCode: '0155', city: 'Oslo', status: 'active' },
-  { userId: 'demo-2', name: 'Per Hansen (Demo)', email: 'per@demo.invalid', phone: '', startDate: '2026-11-15', percent: 60, employeeNumber: '102', bank: '', nin: '', address: '', postalCode: '', city: '', status: 'pending' },
+  { userId: 'demo-1', name: 'Kari Nordmann (Demo)', email: 'post+kari@aiak.no', phone: '40000001', startDate: '2026-11-01', percent: 100, employeeNumber: '101', bank: '86011117947', nin: '', address: 'Storgata 1', postalCode: '0155', city: 'Oslo', status: 'active' },
+  { userId: 'demo-2', name: 'Per Hansen (Demo)', email: 'post+per@aiak.no', phone: '', startDate: '2026-11-15', percent: 60, employeeNumber: '102', bank: '', nin: '', address: '', postalCode: '', city: '', status: 'pending' },
 ]);
 
-/** @param {Array<{ emp: HrEmployee, existsId: number }>} rows @param {boolean} isSample */
-function renderEmployees(rows, isSample) {
+/** @param {Array<{ emp: HrEmployee, existsId: number }>} rows @param {boolean} isSample @param {{ total: number, offset: number }} [batch] */
+function renderEmployees(rows, isSample, batch) {
+  const nextOffset = batch ? batch.offset + BATCH : 0;
   const fresh = rows.filter((r) => r.existsId <= 0);
   return reaiCard({
     eyebrow: '4HUMAN → REAI EMPLOYEES',
-    title: `${rows.length} employees`,
+    title: batch && batch.total > rows.length ? `Employees ${batch.offset + 1} to ${batch.offset + rows.length} of ${batch.total}` : `${rows.length} employees`,
     badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: `${fresh.length} new`, tone: 'success' }),
     body: html`
       <div class="metric-grid">
@@ -139,6 +170,7 @@ function renderEmployees(rows, isSample) {
               </form>`}</td>
         </tr>`)}</tbody>
       </table></div>
+      ${batch && nextOffset < batch.total ? html`<div class="inline-row"><button type="button" class="button secondary" hx-post="/app/4human/fetch-api" hx-include="#fh-form" hx-vals='{"offset":"${nextOffset}"}' hx-target="#fh-output" hx-swap="innerHTML">Next ${BATCH} employees</button></div>` : ''}
       ${isSample ? reaiCallout({ tone: 'info', body: 'Sample employees loaded. Connect to ReAI and fetch from 4human to create real employees.' }) : reaiCallout({ tone: 'info', body: 'Each employee is created only when you click. Check tax card, salary and employment details in ReAI before the first payroll.' })}
     `,
   });
@@ -164,7 +196,7 @@ export async function handle(request, env) {
           eyebrow: 'LIVE 4HUMAN API',
           title: 'Fetch employees from 4human',
           body: html`<p class="muted-note">4human support issues a Client ID and Secret Key for the REST API on request. They are used for this single request and never stored.</p>
-            <form class="stack" hx-post="${basePath}/fetch-api" hx-target="#fh-output" hx-swap="innerHTML">
+            <form id="fh-form" class="stack" hx-post="${basePath}/fetch-api" hx-target="#fh-output" hx-swap="innerHTML">
               <div class="mapping-grid">
                 <div class="field"><label for="fh-cid">Client ID</label><input id="fh-cid" name="clientId" type="text" autocomplete="off" required></div>
                 <div class="field"><label for="fh-secret">Secret Key</label><input id="fh-secret" name="clientSecret" type="password" autocomplete="off" required></div>
@@ -190,7 +222,7 @@ export async function handle(request, env) {
     if (pathname === `${basePath}/fetch-api`) {
       /** @type {Record<string, string>} */ const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      const rows = await fetchApi(creds);
+      const { rows, total, offset } = await fetchApi(creds);
       /** @type {ReaiEmployee[]} */ let existing = [];
       if (session && session.tenantId > 0) {
         const res = await reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId });
@@ -199,24 +231,28 @@ export async function handle(request, env) {
       return htmlResponse(renderEmployees(rows.map((emp) => ({
         emp,
         existsId: existing.find((x) => (emp.email && String(x.email ?? '').toLowerCase() === emp.email.toLowerCase()) || x.name.trim().toLowerCase() === emp.name.toLowerCase())?.id ?? 0,
-      })), false));
+      })), false, { total, offset }));
     }
     if (pathname === `${basePath}/import`) {
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
       const emp = /** @type {HrEmployee} */ (JSON.parse(String(form.get('employeeJson') ?? '{}')));
-      const name = String(emp.name ?? '').trim().slice(0, 200);
+      const name = String(emp.name ?? '').trim().slice(0, 75);
       const startDate = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(emp.startDate)) ? emp.startDate : new Date().toISOString().slice(0, 10);
       const bank = verifiedNorwegianAccount(String(emp.bank ?? ''));
       const nin = /^[0-9]{11}$/.test(String(emp.nin ?? '')) ? emp.nin : '';
       const percent = Math.min(100, Math.max(1, Number(emp.percent) || 100));
       if (!name) throw new HttpError(400, 'Employee name is required.');
+      const current = await reaiRequest(env, '/api/employees', { token: session.accessToken, tenantId: session.tenantId });
+      const email = String(emp.email ?? '').trim().toLowerCase();
+      const dup = (Array.isArray(current) ? /** @type {ReaiEmployee[]} */ (current) : []).find((x) => (email && String(x.email ?? '').toLowerCase() === email) || x.name.trim().toLowerCase() === name.toLowerCase());
+      if (dup) return htmlResponse(html`<tr><td><strong>${name}</strong></td><td>${emp.email || '—'}</td><td class="mono">${emp.employeeNumber || '—'}</td><td class="mono">${startDate}</td><td class="num">${percent}</td><td class="mono">${bank || '—'}</td><td>${reaiBadge({ text: `In ReAI #${dup.id}`, tone: 'neutral' })}</td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/employees', {
         token: session.accessToken, tenantId: session.tenantId, method: 'POST',
         body: {
           name,
           dateOfEmployment: startDate,
           ...(emp.email ? { email: emp.email } : {}),
-          ...(emp.phone ? { phone: emp.phone } : {}),
+          ...(emp.phone ? { phone: String(emp.phone).slice(0, 30) } : {}),
           ...(bank ? { accountNumber: bank } : {}),
           ...(nin ? { nationalIdentityNumber: nin } : {}),
           ...(emp.address ? { addressPart1: emp.address } : {}),

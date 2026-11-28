@@ -200,6 +200,13 @@ export async function handle(request, env) {
       if (!(customerId > 0) || !(monthlyRent > 0) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(startDate)) throw new HttpError(400, 'Customer, start date and rent are required.');
       const codes = await loadVatCodes(env, session);
       if (!codes.some((c) => c.code === vatCode)) throw new HttpError(400, `VAT code ${vatCode} is not available for invoices in this ReAI company.`);
+      const existing = /** @type {{ items: Array<{ id?: number | null, intervalMonths: number, active: boolean, amounts?: { discountedSubTotal?: number } }> }} */ (
+        await reaiRequest(env, '/api/subscriptions', { token: session.accessToken, tenantId: session.tenantId, query: { customerId: String(customerId), pageSize: '200' } })
+      );
+      const dup = existing.items.find((x) => x.intervalMonths === 1 && Math.round(Number(x.amounts?.discountedSubTotal ?? -1) * 100) === Math.round(monthlyRent * 100));
+      if (dup) {
+        return htmlResponse(html`<tr><td class="mono">${leaseId}</td><td>Customer #${customerId}</td><td>${unit}</td><td class="mono">${startDate}</td><td class="num">${formatMinor(Math.round(monthlyRent * 100))} NOK</td><td>${reaiBadge({ text: `Already in ReAI #${dup.id ?? ''}`, tone: 'neutral' })}</td></tr>`);
+      }
       const created = /** @type {{ id?: number, webUrl?: string }} */ (
         await reaiRequest(env, '/api/subscriptions', {
           token: session.accessToken, tenantId: session.tenantId, method: 'POST',

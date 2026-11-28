@@ -6,7 +6,7 @@ import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
 import { reaiAll, reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard } from '../../lib/ui.js';
 
-/** @typedef {{ date: string, hours: number, project: string, comment: string }} HoursRow */
+/** @typedef {{ shiftId: string, date: string, hours: number, project: string, comment: string }} HoursRow */
 /** @typedef {{ id: number, name: string }} SimpleOpt */
 
 const BRAND = 'Planday';
@@ -18,15 +18,15 @@ const API = 'https://openapi.planday.com';
 
 /** @type {HoursRow[]} */
 const SAMPLE_ROWS = [
-  { date: '2026-10-14', hours: 7.5, project: 'Avdeling Sentrum', comment: 'Dagvakt' },
-  { date: '2026-10-15', hours: 8, project: 'Avdeling Sentrum', comment: 'Kveldsvakt' },
+  { shiftId: '9001', date: '2026-10-14', hours: 7.5, project: 'Avdeling Sentrum', comment: 'Dagvakt' },
+  { shiftId: '9002', date: '2026-10-15', hours: 8, project: 'Avdeling Sentrum', comment: 'Kveldsvakt' },
 ];
 
 /**
  * Fetches approved shifts for one Planday employee and converts them to worked hours.
  * Docs: https://openapi.planday.com/gettingstarted/authorization/ (refresh token → POST https://id.planday.com/connect/token,
  * then Authorization: Bearer + X-ClientId on every call), https://openapi.planday.com/api/schedule
- * (GET /scheduling/v1.0/shifts with from, to, employeeId, shiftStatus, limit, offset; spec at
+ * (GET /scheduling/v1.0/shifts with from, to, employeeId, shiftStatus, limit (max 5000), offset; spec at
  * https://openapi.planday.com/scheduling/swagger/v1.0/swagger.json) and https://openapi.planday.com/api/hr
  * (GET /hr/v1.0/departments). Hours are endDateTime minus startDateTime minus unpaid manualBreaks.
  * @param {Record<string, string>} creds
@@ -61,12 +61,12 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   }
 
   /** @type {any[]} */ const shifts = [];
-  for (let offset = 0; offset < 20_000; offset += 1000) {
-    const query = new URLSearchParams({ from, to, employeeId, shiftStatus: 'Approved', limit: '1000', offset: String(offset) });
+  for (let offset = 0; offset < 20_000; offset += 5000) {
+    const query = new URLSearchParams({ from, to, employeeId, shiftStatus: 'Approved', limit: '5000', offset: String(offset) });
     const page = await fetchJson(`${API}/scheduling/v1.0/shifts?${query}`, { headers }, BRAND, fetchImpl);
     /** @type {any[]} */ const data = Array.isArray(page?.data) ? page.data : [];
     shifts.push(...data);
-    if (data.length < 1000 || offset + data.length >= Number(page?.paging?.total ?? 0)) break;
+    if (data.length < 5000 || offset + data.length >= Number(page?.paging?.total ?? 0)) break;
   }
 
   /** @param {unknown} a @param {unknown} b */
@@ -78,10 +78,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
       const unpaid = breaks.filter((br) => br && br.isPaidBreak === false).reduce((t, br) => t + Math.max(0, minutes(br.startDateTime, br.endDateTime) || 0), 0);
       const worked = minutes(sh.startDateTime, sh.endDateTime) - unpaid;
       return {
+        shiftId: String(sh.id),
         date: isoDate(sh.date ?? sh.startDateTime, from),
         hours: Number((worked / 60).toFixed(2)),
         project: departments.get(Number(sh.departmentId)) || (sh.departmentId ? `Department ${sh.departmentId}` : '—'),
-        comment: String(sh.comment ?? '').trim() || `${BRAND} shift ${sh.id}`,
+        comment: String(sh.comment ?? '').trim(),
       };
     })
     .filter((x) => x.hours >= 0.01 && x.hours <= 24)
@@ -98,7 +99,7 @@ function renderHours(rows, empId, projId, isSample) {
     badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready', tone: 'success' }),
     body: html`<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Project / Unit</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((r, idx) => html`<tr id="wf-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/planday/import" hx-target="#wf-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[${BRAND}] ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
+      <tbody>${rows.map((r, idx) => html`<tr id="wf-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}</td><td>${r.comment || '—'}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/planday/import" hx-target="#wf-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="shiftId" value="${r.shiftId}"><input type="hidden" name="comment" value="${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
     </table></div>`,
   });
 }
@@ -172,8 +173,13 @@ export async function handle(request, env) {
       const projectId = Number(form.get('projectId') ?? '0');
       const date = String(form.get('date') ?? '').slice(0, 10);
       const hours = Number(form.get('hours') ?? '0');
-      const comment = String(form.get('comment') ?? BRAND).slice(0, 1000);
-      if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
+      const shiftId = String(form.get('shiftId') ?? '');
+      if (employeeId <= 0 || !/^[0-9]+$/.test(shiftId) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, shift, date and hours (0.01 to 24) are required.');
+      const marker = `[${BRAND} shift ${shiftId}]`;
+      const comment = `${marker} ${String(form.get('comment') ?? '').trim()}`.trim().slice(0, 1000);
+      const sameDay = /** @type {Array<{ id?: number | null, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+      const dup = sameDay.find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker));
+      if (dup) return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged #${dup.id ?? ''}`, tone: 'neutral' })}</td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }

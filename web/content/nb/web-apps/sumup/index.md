@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter alle vellykkede utbetalinger fra SumUp for én måned og matcher dem mot uavstemte banktransaksjoner i ReAI på beløp, dato og referanse. Du får en CSV-rapport som dokumentasjon. Ingenting bokføres.
+Integrasjonen henter alle vellykkede utbetalinger fra SumUp for én måned og matcher dem mot uavstemte banktransaksjoner i ReAI på beløp, dato og referanse. Trekk for refusjoner og tilbakeføringer vises som en egen merknad. Du får en CSV-rapport som dokumentasjon. Ingenting bokføres.
 
 SumUp trekker kortgebyret før pengene utbetales. Brutto omsetning, kortgebyr (`7770`, MVA-kode `0`) og netto innskudd på bank føres hver for seg.
 

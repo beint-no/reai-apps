@@ -51,9 +51,10 @@ async function providerJson(url, init, fetchImpl) {
  * @param {string} start First day of the window (inclusive).
  * @param {string} end Day after the window (exclusive).
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
+ * @param {string} [currency] ISO 4217 code; sent as the documented `currency` filter when set.
  * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
  */
-export async function fetchApi(fields, start, end, fetchImpl = fetch) {
+export async function fetchApi(fields, start, end, fetchImpl = fetch, currency = '') {
   const secretKey = (fields.secretKey ?? '').trim();
   if (!secretKey) throw new HttpError(400, 'Enter your Nexi Checkout secret key.');
   const host = secretKey.startsWith('test-') ? TEST_API : API;
@@ -69,12 +70,15 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
     url.searchParams.set('toDate', lastDay);
     url.searchParams.set('pageNumber', String(page));
     url.searchParams.set('pageSize', String(pageSize));
+    if (/^[A-Z]{3}$/.test(currency)) url.searchParams.set('currency', currency);
     if (merchant) url.searchParams.set('merchantNumber', merchant);
     const r = await providerJson(url.toString(), { headers: { authorization: secretKey, accept: 'application/json' } }, fetchImpl);
     if (!r.ok) {
       throw new HttpError(400, r.status === 401 || r.status === 403
         ? 'Nexi Checkout rejected this secret key. Use the live secret key from the Nexi Checkout portal.'
-        : `Nexi Checkout Reporting API returned HTTP ${r.status}.`);
+        : r.status === 429
+          ? 'Nexi Checkout is rate limiting requests. Wait a minute and try again.'
+          : `Nexi Checkout Reporting API returned HTTP ${r.status}${typeof r.data?.message === 'string' ? `: ${r.data.message.slice(0, 200)}` : ''}.`);
     }
     /** @type {any[]} */ const rows = Array.isArray(r.data?.payouts) ? r.data.payouts : [];
     for (const row of rows) {
@@ -82,6 +86,7 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
       const date = String(row.date ?? '').slice(0, 10);
       if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !Number.isFinite(amount) || amount === 0) continue;
       const fees = Number(row.fees ?? 0);
+      const feeTax = Number(row.feeTaxAmount ?? 0);
       payouts.push({
         id: String(row.id ?? `${date}-${amount}`),
         date,
@@ -89,13 +94,13 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
         feeMinor: Number.isFinite(fees) ? Math.round(Math.abs(fees)) : 0,
         currency: String(row.currency ?? 'NOK').toUpperCase(),
         reference: String(row.reference ?? row.id ?? ''),
-        detail: `${CFG.brand} payout · charged ${(Number(row.chargedAmount ?? 0) / 100).toFixed(2)}, refunded ${(Number(row.refundedAmount ?? 0) / 100).toFixed(2)}`,
+        detail: `${CFG.brand} payout · charged ${(Number(row.chargedAmount ?? 0) / 100).toFixed(2)}, refunded ${(Number(row.refundedAmount ?? 0) / 100).toFixed(2)}${Number.isFinite(feeTax) && feeTax !== 0 ? `, fee tax ${(Math.abs(feeTax) / 100).toFixed(2)}` : ''}`,
       });
     }
     const total = Number(r.data?.numberOfPayouts ?? 0);
-    if (rows.length < pageSize || (page + 1) * pageSize >= total) break;
+    if (rows.length < pageSize || (total > 0 && (page + 1) * pageSize >= total)) return payouts;
   }
-  return payouts;
+  throw new HttpError(400, 'Nexi Checkout returned more than 2000 payouts for the month. Contact ReAI support.');
 }
 
 /**
@@ -259,7 +264,7 @@ export async function handle(request, env) {
         fields[f.key] = val;
       }
       const [fetched, bankTx] = await Promise.all([
-        fetchApi(fields, bounds.start, bounds.end),
+        fetchApi(fields, bounds.start, bounds.end, fetch, company.currencyCode),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));

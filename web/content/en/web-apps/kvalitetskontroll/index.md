@@ -14,14 +14,14 @@ highlights:
 
 ## What moves into ReAI
 
-Approved hour registrations from Kvalitetskontroll become timesheet rows in ReAI. Each row keeps the date, the hours after break, the hour type and the comment. Employees are matched to ReAI employees by name, with a fallback employee you choose. You can link the rows to one ReAI project.
+Approved hour registrations from Kvalitetskontroll become timesheet rows in ReAI. Each row keeps the date, the hours after break, the hour type and the comment. Employees and projects are matched to ReAI by name, with a fallback employee and project you choose. A row that is already logged in ReAI is not logged again.
 
 Nothing is booked to the ledger. Hours land in ReAI Timesheets, where you approve them and invoice them from the project as usual. Registrations that are not approved in Kvalitetskontroll are left out.
 
 ## Setup
 
 1. Log in at **api.kvalitetskontroll.no/admin** with your Kvalitetskontroll user and add a new **Personal Access Token**.
-2. Click **Open integration**, connect your ReAI company and choose a fallback employee and an optional project.
+2. Click **Open integration**, connect your ReAI company and choose a fallback employee and, if you like, a fallback project.
 3. Paste the token, choose the period and click **Fetch from Kvalitetskontroll API**.
 4. Review the rows and click **Log hours** on the ones you want in ReAI.
 

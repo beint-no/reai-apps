@@ -23,6 +23,6 @@ Timesheet entries are not postings. They are the basis for payroll and project i
 1. In Workfeed, open **Settings → Integrations → Workfeed API**, generate a key and give it a name. The open API requires the Pro+ plan.
 2. Click **Open integration**, connect your ReAI company and enter the key, your Workfeed company ID and the period.
 3. Keep **Approved shifts only** checked for payroll, then fetch the shifts.
-4. Check the hours and post them one by one or all matched shifts at once.
+4. Check the hours and post them one by one or all matched shifts together. Large periods are posted in batches, and you click on to the next batch. Shifts already in ReAI are skipped.
 
 Workfeed API keys can also change data in Workfeed. This app only reads shifts, employees and departments, and uses the key for one request without storing it. Revoke the key in Workfeed when you no longer need it.

@@ -212,6 +212,8 @@ export async function handle(request, env) {
       const session = await readSession(env, request);
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
       if (form.get('confirm') !== 'on') throw new HttpError(400, 'Confirm the verification checkbox first.');
+      const tenant = session.tenants.find((t) => t.id === session.tenantId);
+      if (tenant && tenant.currencyCode !== 'NOK') throw new HttpError(400, `This ReAI company keeps its books in ${tenant.currencyCode}; Two settlements are booked in NOK only.`);
       const s = /** @type {TwoSettlement} */ (JSON.parse(String(form.get('settlementJson') ?? '{}')));
       const accounts = readAccounts(/** @type {Record<string, string>} */ (JSON.parse(String(form.get('accountsJson') ?? '{}'))));
       if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(s.date)) || s.currency !== 'NOK' || ![s.grossMinor, s.paidMinor, s.feeMinor].every(Number.isInteger) || s.grossMinor - s.paidMinor !== s.feeMinor) {

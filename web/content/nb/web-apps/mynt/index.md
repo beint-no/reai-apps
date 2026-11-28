@@ -21,10 +21,10 @@ Hver linje blir en rad i ett manuelt bilag som merkes for kontroll:
 | Postering | Konto |
 | --- | --- |
 | Kjøp (debet) | Kolonnen **Account** fra Mynt, eller `6800` hvis den er tom |
-| Inngående mva | Mva-kode `1`, `11` eller `13` i ReAI ut fra **VAT rate** i Mynt |
+| Inngående mva | **VAT code** fra Mynt når koden finnes i ReAI, ellers mva-koden for inngående mva i ReAI ut fra **VAT rate** |
 | Mynt-kortet (kredit) | Egen kortkonto, standard `1925` |
 
-Mynt anbefaler en egen `19xx`-konto for kortet. Linjer merket **Reverse VAT** føres med mva-kode `0`, slik at du kan velge riktig kode for omvendt avgiftsplikt i kontrollen.
+Mynt anbefaler en egen `19xx`-konto for kortet. Linjer merket **Reverse VAT** uten mva-kode fra Mynt føres med mva-kode `0`, slik at du kan velge riktig kode for omvendt avgiftsplikt i kontrollen.
 
 ## Slik kommer du i gang
 

@@ -30,6 +30,6 @@ Hver tur du registrerer blir en tur i ReAI Kjørebok med dato, strekning, formå
 2. Kontoeier eller administrator lager deretter API-nøkkelen under **API-klienter** og godtar vilkårene for API. Noter **Client ID** og **Client Secret**.
 3. Opprett en egen integrasjonsbruker i Autogear med tilgang til kjøretøyene som skal overføres.
 4. Klikk **Åpne integrasjon**, koble til ReAI, fyll inn integrasjonsbruker, passord, Client ID og Client Secret, velg periode og hent turene.
-5. Kontroller turene og klikk **Record trip** på hver tur som skal inn i ReAI. Påloggingen brukes bare i denne forespørselen og lagres aldri.
+5. Kontroller turene og klikk **Record trip** på hver tur som skal inn i ReAI. En tur som allerede ligger i kjøreboken med samme dato, strekning og kilometer, registreres ikke på nytt. Påloggingen brukes bare i denne forespørselen og lagres aldri.
 
 Ikke send de samme turene fra Autogear til et annet lønns- eller reiseregningssystem i tillegg, ellers blir godtgjørelsen utbetalt to ganger.

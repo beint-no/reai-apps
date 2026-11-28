@@ -40,6 +40,9 @@ const API_FIELDS = [
   { name: 'date', label: 'Settlement date', type: 'date', defaultValue: '$TODAY' },
 ];
 const API = 'https://api.kasseservice.no/v1';
+const LIST_LENGTH = 100;
+const MAX_DEPARTMENTS = 15;
+const DEPARTMENT_CONCURRENCY = 4;
 
 /** @type {Settlement} */
 const SAMPLE = {
@@ -79,6 +82,9 @@ function collectGbatLines(node, out, depth = 0) {
  * Docs: https://api.kasseservice.no/docs/authentication/ (POST /getaccesstokens, Bearer token valid 3 days),
  * https://api.kasseservice.no/docs/department/list/, https://api.kasseservice.no/docs/z-report/list/
  * (GET /account/cashsettlements) and https://api.kasseservice.no/docs/z-report/view/ (GET /account/gbat10).
+ * Listing APIs page with start/length (default length 20, https://api.kasseservice.no/docs/requests/), so
+ * lists ask for length 100 and stop with an error when total_count says rows are missing. Departments are
+ * read with at most four calls in flight (the API allows 100 requests per minute per client).
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<Settlement>}
@@ -97,33 +103,46 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, 'Duell did not return an access token. Check the client number and token.');
   const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
 
-  const deptData = await fetchJson(`${API}/department/list?${new URLSearchParams({ 'filter[is_active]': '1' })}`, { headers }, BRAND, fetchImpl);
+  const deptData = await fetchJson(`${API}/department/list?${new URLSearchParams({ 'filter[is_active]': '1', 'filter[is_deleted]': '0', start: '0', length: String(LIST_LENGTH) })}`, { headers }, BRAND, fetchImpl);
   /** @type {any[]} */ const departments = Array.isArray(deptData?.departments) ? deptData.departments : [];
+  if (num(deptData?.total_count) > departments.length) throw new HttpError(400, `Duell has more than ${departments.length} active departments. Enter one department id or name.`);
   const wanted = (creds.department ?? '').trim().toLowerCase();
   const chosen = wanted
     ? departments.filter((d) => String(d.department_id) === wanted || String(d.department_name ?? '').trim().toLowerCase() === wanted)
     : departments.filter((d) => String(d.is_deleted ?? '0') !== '1');
   if (chosen.length === 0) throw new HttpError(400, wanted ? `No active Duell department matches "${creds.department}".` : 'Duell returned no active departments.');
+  if (chosen.length > MAX_DEPARTMENTS) throw new HttpError(400, `Duell has ${chosen.length} active departments. Enter one department id or name, or book them in groups.`);
 
   const next = new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   /** @type {Payment[]} */ const payments = [];
   /** @type {SalesRate[]} */ const sales = [];
   /** @type {string[]} */ const zNumbers = [];
-  for (const dept of chosen.slice(0, 20)) {
-    const list = await fetchJson(`${API}/account/cashsettlements?${new URLSearchParams({ department_token: String(dept.api_token ?? ''), start_date: `${date} 00:00:00`, end_date: `${next} 23:59:59` })}`, { headers }, BRAND, fetchImpl);
-    /** @type {any[]} */ const settlements = (Array.isArray(list?.cashsettlements) ? list.cashsettlements : [])
-      .filter((/** @type {any} */ z) => isoDate(z.cash_settlement_date ?? z.timestamp, '') === date);
-    if (settlements.length === 0) continue;
+  /** @param {any} dept */
+  const readDepartment = async (dept) => {
+    const list = await fetchJson(`${API}/account/cashsettlements?${new URLSearchParams({ department_token: String(dept.api_token ?? ''), start_date: `${date} 00:00:00`, end_date: `${next} 23:59:59`, start: '0', length: String(LIST_LENGTH) })}`, { headers }, BRAND, fetchImpl);
+    /** @type {any[]} */ const all = Array.isArray(list?.cashsettlements) ? list.cashsettlements : [];
+    if (num(list?.total_count) > all.length) throw new HttpError(400, `Duell returned only part of the Z-reports for ${String(dept.department_name ?? dept.department_id)}.`);
+    const settlements = all.filter((/** @type {any} */ z) => isoDate(z.cash_settlement_date ?? z.timestamp, '') === date);
+    if (settlements.length === 0) return { dept, settlements, lines: /** @type {any[]} */ ([]) };
     const query = new URLSearchParams({ department_id: String(dept.department_id) });
-    for (const z of /** @type {any[]} */ (settlements)) query.append('cashsettlement_id[]', String(z.cash_settlement_id));
+    for (const z of settlements) query.append('cashsettlement_id[]', String(z.cash_settlement_id));
     const journal = await fetchJson(`${API}/account/gbat10?${query}`, { headers }, BRAND, fetchImpl);
     /** @type {any[]} */ const lines = [];
     collectGbatLines(journal?.gbat ?? journal, lines);
-    for (const z of /** @type {any[]} */ (settlements)) zNumbers.push(String(z.cash_settlement_seq_no ?? z.cash_settlement_id));
+    return { dept, settlements, lines };
+  };
+  /** @type {Array<{ dept: any, settlements: any[], lines: any[] }>} */ const results = [];
+  for (let i = 0; i < chosen.length; i += DEPARTMENT_CONCURRENCY) {
+    results.push(...await Promise.all(chosen.slice(i, i + DEPARTMENT_CONCURRENCY).map(readDepartment)));
+  }
+  for (const { dept, settlements, lines } of results) {
+    for (const z of settlements) zNumbers.push(String(z.cash_settlement_seq_no ?? z.cash_settlement_id));
     const deptLabel = chosen.length > 1 ? ` (${String(dept.department_name ?? dept.department_id)})` : '';
     for (const l of lines) {
       const account = String(l.account_number ?? '').trim();
-      const amountMinor = minor(l.balance);
+      const raw = minor(l.balance);
+      const side = String(l.balance_type ?? '').toLowerCase();
+      const amountMinor = side === 'credit' ? -Math.abs(raw) : side === 'debit' ? Math.abs(raw) : raw;
       if (!/^[0-9]{4}$/.test(account) || amountMinor === 0) continue;
       const label = `${String(l.ledger_description ?? l.record_type ?? 'Z-report line').trim()}${deptLabel}`;
       const ratePct = num(l.vatrate_percent);
@@ -270,9 +289,11 @@ export async function handle(request, env) {
       if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
       const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);
       if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
+      const company = session.tenants.find((t) => t.id === session.tenantId);
+      if (company && company.currencyCode !== 'NOK') throw new HttpError(400, `${BRAND} reports are in NOK, but the ReAI company uses ${company.currencyCode}.`);
       const marker = `${BRAND} ${String(v.ref).slice(0, 80)} ${v.date}`;
       const auth = { token: session.accessToken, tenantId: session.tenantId };
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, voucherType: 'manual' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
       const vatCodes = /** @type {Array<{ code: string, rate: number, vatType: string, amountBasis: string, reverseCharge: boolean }>} */ (await reaiRequest(env, '/api/vat-codes', auth));

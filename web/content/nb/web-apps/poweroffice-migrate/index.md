@@ -14,12 +14,12 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter aktive kunder, leverandører og produkter fra PowerOffice Go og viser alt før noe sendes til ReAI. Du importerer hver rad med ett klikk. Finnes organisasjonsnummeret eller varenummeret allerede i ReAI, opprettes ingen ny post.
+Integrasjonen henter aktive kunder, leverandører og produkter fra PowerOffice Go og viser alt før noe sendes til ReAI. Du importerer hver rad med ett klikk. Finnes organisasjonsnummeret, navnet eller varenummeret allerede i ReAI, opprettes ingen ny post. Privatpersoner opprettes som private kontakter.
 
 | Fra PowerOffice Go | I ReAI |
 | --- | --- |
-| Kunde | Kunde med samme nummer, organisasjonsnummer og e-post |
-| Leverandør | Leverandør med samme nummer, organisasjonsnummer og e-post |
+| Kunde | Kunde med samme nummer, organisasjonsnummer, e-post, telefon og adresse |
+| Leverandør | Leverandør med samme nummer, organisasjonsnummer, e-post, telefon og adresse |
 | Produkt | Produkt med varenummer som SKU og pris eksklusive MVA |
 
 Produktene får standard MVA-kode og salgskonto i ReAI, så kontroller dem etter importen. Inngående balanse fører du fra SAF-T-filen i [SAF-T-verktøyet](/app/saft/).

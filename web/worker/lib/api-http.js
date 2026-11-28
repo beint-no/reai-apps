@@ -58,6 +58,22 @@ export function pickList(payload, keys = ['items', 'values', 'data', 'records', 
 }
 
 /**
+ * Seconds to wait from `Retry-After` (seconds or HTTP date) or `x-ratelimit-reset` (seconds or epoch seconds).
+ * @param {Response} res
+ * @returns {number}
+ */
+export function retryAfterSeconds(res) {
+  const raw = res.headers.get('retry-after') ?? res.headers.get('x-ratelimit-reset') ?? '';
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) {
+    const seconds = n > 1_000_000_000 ? n - Date.now() / 1000 : n;
+    return Math.max(1, Math.ceil(seconds));
+  }
+  const date = Date.parse(raw);
+  return Number.isFinite(date) ? Math.max(1, Math.ceil((date - Date.now()) / 1000)) : 0;
+}
+
+/**
  * Performs a bounded HTTPS JSON request with consistent error formatting.
  * @param {string} url
  * @param {RequestInit} init
@@ -72,6 +88,13 @@ export async function fetchJson(url, init, brand, fetchImpl = fetch) {
     redirect: 'manual',
     signal: AbortSignal.timeout(20_000),
   });
+  if (res.status >= 300 && res.status < 400) {
+    throw new HttpError(400, `${brand} API redirected the request (HTTP ${res.status}). Check the API address and that the key belongs to this environment.`);
+  }
+  if (res.status === 429) {
+    const wait = retryAfterSeconds(res);
+    throw new HttpError(429, `${brand} API rate limit reached.${wait ? ` Try again in ${wait} seconds.` : ' Try again in a minute.'}`);
+  }
   if (!res.ok) {
     const statusNote = res.status === 401 || res.status === 403 ? 'rejected the API key/token' : `returned HTTP ${res.status}`;
     throw new HttpError(400, `${brand} API ${statusNote}. Verify your credentials and permissions.`);
