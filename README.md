@@ -4,16 +4,17 @@ Web and desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/
 
 **[apps.reai.no](https://apps.reai.no/)** (and legacy [GitHub Pages downloads](https://beint-no.github.io/reai-apps/)) — Web apps run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
 
-### Web apps (hosted on `apps.reai.no`)
+### Web apps (hosted on `apps.reai.no` — 82 live integrations + UI Lab)
 
 Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`, backed by encrypted `HttpOnly` session cookies and Declarative Shadow DOM `<r-*>` Web Components.
 
 | Category | Apps & routes |
 | --- | --- |
-| **Payments & POS** | [Vipps](/app/vipps/), [Klarna](/app/klarna/), [Stripe](/app/stripe/), [Zettle](/app/zettle/), [SumUp](/app/sumup/), [Dintero](/app/dintero/), [Nets Easy](/app/nets/), [PayPal](/app/paypal/), [POS Z-Report](/app/z-report/), [Front Systems](/app/front-systems/) |
-| **Ecommerce (Product + Sales Sync)** | [Mystore.no](/app/mystore/), [24Nettbutikk](/app/24nettbutikk/), [Magento](/app/magento/), [PrestaShop](/app/prestashop/), [Shopware 6](/app/shopware/), [Wix Stores](/app/wix/) |
-| **CRM, Time & Cards** | [HubSpot](/app/hubspot/), [Pipedrive](/app/pipedrive/), [RecMan](/app/recman/), [Toggl Track](/app/toggl/), [Clockify](/app/clockify/), [Harvest](/app/harvest/), [Tidsbanken / SmartDok](/app/tidsbanken/), [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Booking & Clinic (Timma / Fresha / Aspit)](/app/timma/) |
-| **Real Estate, Import & BI** | [Hybel](/app/hybel/), [Fazile](/app/fazile/), [CSV Import](/app/import/), [BI & Excel Export](/app/export/), [UI Component Lab](/app/lab/) |
+| **Migration & Exports** | [SAF-T Norway Switcher](/app/saft/), [CSV Import](/app/import/), [BI & Excel Export](/app/export/), [UI Component Lab](/app/lab/) |
+| **Payments, Inkasso & POS** | [Vipps](/app/vipps/), [Klarna](/app/klarna/), [Stripe](/app/stripe/), [Zettle](/app/zettle/), [SumUp](/app/sumup/), [Dintero](/app/dintero/), [Nets Easy](/app/nets/), [PayPal](/app/paypal/), [Two B2B](/app/two/), [Paddle / Chargebee](/app/paddle/), [Inkasso (Kredinor/Intrum/Lowell)](/app/inkasso/), [Kravia / Svea](/app/kravia/), [POS Z-Report](/app/z-report/), [Front Systems](/app/front-systems/), [PCKasse](/app/pckasse/), [ExtendaGO](/app/extendago/), [Susoft](/app/susoft/), [Favrit](/app/favrit/), [Quickorder](/app/quickorder/), [Munu](/app/munu/), [Lightspeed](/app/lightspeed/), [VisBook](/app/visbook/), [Mews](/app/mews/), [Wolt & Foodora](/app/wolt-foodora/) |
+| **Ecommerce, Transport & Fleet** | [Mystore.no](/app/mystore/), [24Nettbutikk](/app/24nettbutikk/), [Magento](/app/magento/), [PrestaShop](/app/prestashop/), [Shopware 6](/app/shopware/), [Wix Stores](/app/wix/), [Squarespace / BigCommerce](/app/squarespace/), [Ongoing WMS](/app/ongoing-wms/), [ABAX Driving Log](/app/abax/), [Opter TMS](/app/opter/), [AutoNet](/app/autonet/), [Logistra](/app/logistra/) |
+| **Trades, Staffing, CRM & HR** | [RecMan](/app/recman/), [SmartDok](/app/smartdok/), [Svenn](/app/svenn/), [Cordel](/app/cordel/), [Holte](/app/holte/), [Handyman](/app/handyman/), [Minuba](/app/minuba/), [HubSpot](/app/hubspot/), [Pipedrive](/app/pipedrive/), [SuperOffice](/app/superoffice/), [Lime CRM](/app/lime/), [Salesforce](/app/salesforce/), [Planday](/app/planday/), [Tamigo](/app/tamigo/), [Quinyx](/app/quinyx/), [Huma HR](/app/huma/), [Simployer](/app/simployer/), [Acubiz](/app/acubiz/), [Busy](/app/busy/), [Milient](/app/milient/), [Severa](/app/severa/), [Toggl](/app/toggl/), [Clockify](/app/clockify/), [Harvest](/app/harvest/), [Tidsbanken](/app/tidsbanken/) |
+| **Clinics, Salons, Events & Property** | [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Opus Dental](/app/opus-dental/), [Fixit](/app/fixit/), [Hano](/app/hano/), [PasientSky](/app/pasientsky/), [Membro](/app/membro/), [EasyPractice](/app/easypractice/), [Booking & Clinic](/app/timma/), [TicketCo](/app/ticketco/), [Checkin](/app/checkin/), [Hoopla](/app/hoopla/), [Spond & Rubic](/app/spond-rubic/), [Hybel](/app/hybel/), [Fazile](/app/fazile/), [Airbnb / Booking.com](/app/airbnb/), [Husleie.no](/app/husleie/), [Fenistra / Propely](/app/fenistra/) |
 
 ### Maintained native apps
 

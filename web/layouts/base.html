@@ -17,6 +17,7 @@
   {{ partial "header" . }}
   <main id="content">{{ block "main" . }}{{ end }}</main>
   {{ partial "footer" . }}
+  {{ with asset "catalog-filter.js" }}<script type="module" src="{{ .RelPermalink }}" integrity="{{ .Integrity }}"></script>{{ end }}
   <script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/app/*"]}},{"not":{"selector_matches":"[download], [target=_blank]"}}]},"eagerness":"moderate"}]}</script>
 </body>
 </html>

@@ -140,6 +140,19 @@
       gap: 4px;
     }
 
+    & .switcher-search {
+      grid-column: 1 / -1;
+      margin-bottom: 6px;
+      padding: 8px 12px;
+      font: inherit;
+      font-size: 13px;
+      border-radius: 10px;
+      border: 1px solid var(--r-line);
+      background: var(--r-lowered);
+      color: var(--r-text);
+      min-height: 36px;
+    }
+
     & a {
       padding: 8px 11px;
       border-radius: 9px;

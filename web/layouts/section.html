@@ -8,6 +8,7 @@
   {{ $pages := .Pages }}
   {{ if $pages }}
     <section class="section wrap">
+      {{ if eq .Section "web-apps" }}{{ partial "catalog-filter" . }}{{ end }}
       <div class="card-grid">
         {{ range $pages }}{{ partial "app-card" (dict "page" . "level" "h2") }}{{ end }}
       </div>

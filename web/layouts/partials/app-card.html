@@ -1,6 +1,6 @@
 {{ $p := .page }}
 {{ $h2 := eq .level "h2" }}
-<article class="app-card">
+<article class="app-card"{{ with $p.Params.industry }} data-industry="{{ . }}"{{ end }} data-search="{{ $p.Title }} {{ $p.Summary }}">
   <div class="card-head">
     {{ with $p.Params.icon }}{{ with asset . }}<img class="app-icon" src="{{ .RelPermalink }}" width="116" height="40" alt="">{{ end }}{{ end }}
     <div class="card-badges">

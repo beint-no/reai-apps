@@ -9,6 +9,7 @@
     <div class="hero-actions">
       <a class="button primary" href="{{ site.Params.signupUrl }}">{{ T "try_reai_free" }} →</a>
       <a class="button secondary" href="#integrations">{{ T "home_cta_secondary" }}</a>
+      <a class="button secondary" href="/app/saft/">{{ T "home_cta_saft" }} →</a>
     </div>
   </section>
 
@@ -17,6 +18,7 @@
       <h2>{{ T "home_web_heading" }}</h2>
       <p>{{ T "home_web_intro" }}</p>
     </div>
+    {{ partial "catalog-filter" . }}
     <div class="card-grid">
       {{ range $webSection.Pages }}{{ partial "app-card" (dict "page" . "level" "h3") }}{{ end }}
     </div>

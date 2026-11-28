@@ -464,5 +464,173 @@
     "industry": "ecommerce-logistics",
     "path": "web/worker/apps/verticals.js",
     "route": "/app/ongoing-wms/"
+  },
+  "abax-web": {
+    "name": "ReAI ABAX",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/transport-auto.js",
+    "route": "/app/abax/"
+  },
+  "opter-web": {
+    "name": "ReAI Opter TMS",
+    "platform": "web",
+    "industry": "ecommerce-logistics",
+    "path": "web/worker/apps/transport-auto.js",
+    "route": "/app/opter/"
+  },
+  "autonet-web": {
+    "name": "ReAI AutoNet",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/transport-auto.js",
+    "route": "/app/autonet/"
+  },
+  "logistra-web": {
+    "name": "ReAI Logistra",
+    "platform": "web",
+    "industry": "ecommerce-logistics",
+    "path": "web/worker/apps/transport-auto.js",
+    "route": "/app/logistra/"
+  },
+  "fixit-web": {
+    "name": "ReAI Fixit",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/wellness-gym.js",
+    "route": "/app/fixit/"
+  },
+  "hano-web": {
+    "name": "ReAI Hano",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/wellness-gym.js",
+    "route": "/app/hano/"
+  },
+  "pasientsky-web": {
+    "name": "ReAI PasientSky",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/wellness-gym.js",
+    "route": "/app/pasientsky/"
+  },
+  "membro-web": {
+    "name": "ReAI Membro Gym",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/wellness-gym.js",
+    "route": "/app/membro/"
+  },
+  "easypractice-web": {
+    "name": "ReAI EasyPract",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/wellness-gym.js",
+    "route": "/app/easypractice/"
+  },
+  "inkasso-web": {
+    "name": "ReAI Inkasso NO",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/collection.js",
+    "route": "/app/inkasso/"
+  },
+  "kravia-web": {
+    "name": "ReAI Kravia",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/collection.js",
+    "route": "/app/kravia/"
+  },
+  "two-web": {
+    "name": "ReAI Two B2B",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/collection.js",
+    "route": "/app/two/"
+  },
+  "airbnb-web": {
+    "name": "ReAI Airbnb",
+    "platform": "web",
+    "industry": "real-estate",
+    "path": "web/worker/apps/property.js",
+    "route": "/app/airbnb/"
+  },
+  "husleie-web": {
+    "name": "ReAI Husleie.no",
+    "platform": "web",
+    "industry": "real-estate",
+    "path": "web/worker/apps/property.js",
+    "route": "/app/husleie/"
+  },
+  "fenistra-web": {
+    "name": "ReAI Fenistra",
+    "platform": "web",
+    "industry": "real-estate",
+    "path": "web/worker/apps/property.js",
+    "route": "/app/fenistra/"
+  },
+  "simployer-web": {
+    "name": "ReAI Simployer",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/hr-expense.js",
+    "route": "/app/simployer/"
+  },
+  "acubiz-web": {
+    "name": "ReAI Acubiz",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/hr-expense.js",
+    "route": "/app/acubiz/"
+  },
+  "quinyx-web": {
+    "name": "ReAI Quinyx",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/hr-expense.js",
+    "route": "/app/quinyx/"
+  },
+  "severa-web": {
+    "name": "ReAI Severa",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/hr-expense.js",
+    "route": "/app/severa/"
+  },
+  "saft-web": {
+    "name": "ReAI SAF-T NO",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/migration-ecom.js",
+    "route": "/app/saft/"
+  },
+  "hoopla-web": {
+    "name": "ReAI Hoopla",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/migration-ecom.js",
+    "route": "/app/hoopla/"
+  },
+  "squarespace-web": {
+    "name": "ReAI Squarespace",
+    "platform": "web",
+    "industry": "ecommerce-logistics",
+    "path": "web/worker/apps/migration-ecom.js",
+    "route": "/app/squarespace/"
+  },
+  "paddle-web": {
+    "name": "ReAI Paddle",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/migration-ecom.js",
+    "route": "/app/paddle/"
+  },
+  "salesforce-web": {
+    "name": "ReAI Salesforce",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/migration-ecom.js",
+    "route": "/app/salesforce/"
   }
 }
