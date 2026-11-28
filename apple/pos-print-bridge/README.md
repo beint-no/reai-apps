@@ -21,25 +21,25 @@ Receipts from before you choose a cash point are not printed. Let one computer p
 - **Installed printer (raw):** a USB printer added under **System Settings → Printers & Scanners**. The app sends raw ESC/POS with `lp -o raw`, bypassing the driver. Star printers must be set to ESC/POS mode (Star Line mode is not supported).
 - **Paper width:** 80 mm prints 48 characters per line, 58 mm prints 32.
 - **Characters:** text is sent in code page PC865 (Nordic, `ESC t 5`), which contains Æ, Ø and Å on every Epson TM model. Characters outside PC865 are replaced by the closest letter or `?`.
-- **Cash drawer:** connect the drawer to the printer's RJ11/RJ12 drawer port. With **Open cash drawer for cash payments** on, receipts with a cash payment or cash refund open the drawer (`ESC p`, pin 2). **Open drawer** opens it manually. Copies never open the drawer.
+- **Cash drawer:** connect the drawer to the printer's RJ11/RJ12 drawer port. With **Open cash drawer for cash payments** on, receipts with a cash payment or cash refund open the drawer (`ESC p`, pin 2). **Open drawer** opens it manually.
 - **Receipt QR code:** prints the same identifier as ReAI's receipt PDF (`reai:receipt:<company>:<cash point>:<Oslo date>:<receipt number>`) with `GS ( k`. Turn it off if your printer cannot print QR codes.
 
 ## What is printed
 
 The receipt follows the content and order of ReAI's fiscal receipt PDF: the statutory heading (**Salgskvittering**, **Returkvittering** and so on), company name, address, organization number with **MVA** when VAT registered, **Foretaksregisteret** for AS, ASA and NUF, receipt number, date and time (Oslo), lines with quantity, VAT rate and amount, discounts, subtotal excluding VAT, VAT, total, payment methods and transaction IDs, VAT per rate, cash point ID and the receipt QR code.
 
-Everything comes from ReAI's public API. Prices, VAT and totals are printed as recorded in the receipt snapshot; the app never recalculates them. A receipt the app cannot lay out from ReAI's data, for example with a VAT code that has no rate, is held as **Print it from ReAI** and is never printed automatically.
+Everything comes from ReAI's public API. Prices, VAT and totals are printed as recorded in the receipt snapshot; the app never recalculates them. A receipt the app cannot lay out from ReAI's data, for example with a VAT code that has no rate, is held with the reason and never printed automatically. Fix the data in ReAI and click **Print**, or print the receipt from ReAI instead.
 
-## Copies and reprints
+## Copies
 
-**Print copy** prints one copy of a receipt marked **KOPI** in double-size text, as kassasystemforskriften § 2-8-6 requires. Only one copy can be printed per receipt (§ 2-6). The copy is not yet recorded in ReAI's electronic journal; ReAI's public API has no endpoint for it.
+The bridge prints each original receipt once and has no copy or reprint button. Make copies in ReAI, which owns the electronic journal.
 
 ## Recovery
 
 - Each receipt is saved in a local ledger before printing. Restarting never prints a receipt twice, and receipts that arrived while the Mac was off print when it starts again.
 - If the printer cannot be reached, nothing was sent: the receipt waits and is retried with increasing delays up to one minute.
-- If the connection breaks while sending, or the app stops mid-print, the receipt is marked **Check the printer** and is never printed again automatically. Use **Print** only if no receipt came out.
-- Receipts older than 24 hours when the printer becomes available are not printed automatically; print them manually if still needed.
+- If the connection breaks while sending, or the app stops mid-print, the receipt is marked **Check the printer** and is never sent again. If no receipt came out, make a copy in ReAI.
+- Receipts older than 24 hours when the printer becomes available are not printed automatically; click **Print** if the customer still needs it.
 - **Sent to printer** means the printer or the macOS queue accepted the job. Check the printer if it is out of paper.
 
 The app checks ReAI every 3 seconds, backing off to one minute on errors. **Pause printing** stops checking; receipts made while paused print when you resume.

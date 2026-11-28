@@ -6,7 +6,6 @@ struct SettingsView: View {
     @State private var cashPointText = ""
     @State private var confirmDisconnect = false
     @State private var confirmPrint: ReceiptRecord?
-    @State private var confirmCopy: ReceiptRecord?
     @State private var openAtLogin = LoginItem.enabled
 
     var body: some View {
@@ -43,10 +42,7 @@ struct SettingsView: View {
         } message: { Text("Receipts stop printing here. Revoke access in your ReAI profile to remove it from ReAI.") }
         .confirmationDialog("Print this receipt?", isPresented: Binding(get: { confirmPrint != nil }, set: { if !$0 { confirmPrint = nil } })) {
             if let record = confirmPrint { Button("Print receipt") { Task { await model.printOriginal(record.id) }; confirmPrint = nil } }
-        } message: { Text("Only print if no receipt came out. Check the printer first.") }
-        .confirmationDialog("Print a copy?", isPresented: Binding(get: { confirmCopy != nil }, set: { if !$0 { confirmCopy = nil } })) {
-            if let record = confirmCopy { Button("Print copy") { Task { await model.printCopy(record.id) }; confirmCopy = nil } }
-        } message: { Text("The copy is marked KOPI. Only one copy can be printed per receipt.") }
+        } message: { Text("This receipt was never sent to the printer. It prints once.") }
     }
 
     private var connection: some View {
@@ -136,13 +132,11 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(record.receiptNumber) · cash point \(record.cashPointId)").font(.callout.weight(.medium))
                         Text(record.date, format: .dateTime.day().month().hour().minute()).font(.caption).foregroundStyle(.secondary)
-                        Text(describe(record)).font(.caption).foregroundStyle(record.state == .printed && record.copy != .uncertain ? Color.secondary : Color.orange)
+                        Text(describe(record)).font(.caption).foregroundStyle(record.state == .printed ? Color.secondary : Color.orange)
                     }
                     Spacer()
                     Text(ReceiptRenderer.money(record.grossAmount)).monospacedDigit()
-                    if record.state == .printed {
-                        Button("Print copy") { confirmCopy = record }.disabled(record.copy != nil || model.busy || !model.state.printer.configured)
-                    } else if record.state != .printing {
+                    if record.state == .blocked || record.state == .skipped {
                         Button("Print") { confirmPrint = record }.disabled(model.busy || !model.state.printer.configured)
                     }
                 }
@@ -151,17 +145,11 @@ struct SettingsView: View {
     }
 
     private func describe(_ record: ReceiptRecord) -> String {
-        let base = switch record.state {
+        switch record.state {
         case .pending: record.detail.map { "Waiting: \($0)" } ?? "Waiting for the printer"
         case .printing: "Printing"
         case .printed: "Sent to printer"
         case .uncertain, .blocked, .skipped: record.detail ?? "Check the printer"
-        }
-        switch record.copy {
-        case .printed?: return base + " · Copy printed"
-        case .uncertain?: return base + " · Copy may not have printed; no further copy allowed"
-        case .printing?: return base + " · Printing copy"
-        case nil: return base
         }
     }
 

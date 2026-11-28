@@ -10,7 +10,7 @@ public enum TextSize : byte
 {
     Normal = 0x00,
     Tall = 0x01,
-    /// <summary>Double width and height: 100 % larger than amount text, as kassasystemforskriften § 2-8-6 requires for «KOPI».</summary>
+    /// <summary>Double width and height.</summary>
     Large = 0x11
 }
 
@@ -25,7 +25,7 @@ public abstract record ReceiptElement
     public sealed record Qr(string Payload) : ReceiptElement;
 }
 
-public sealed record ReceiptContext(int TenantId, Merchant Merchant, string CompanyCurrency, IReadOnlyDictionary<string, decimal> VatRates, int Columns, bool Copy, bool PrintQrCode);
+public sealed record ReceiptContext(int TenantId, Merchant Merchant, string CompanyCurrency, IReadOnlyDictionary<string, decimal> VatRates, int Columns, bool PrintQrCode);
 
 /// <summary>The receipt cannot be laid out from ReAI's data. Such receipts are never printed automatically.</summary>
 public sealed class ReceiptException(string message) : Exception(message);
@@ -72,7 +72,6 @@ public static partial class ReceiptRenderer
         string Signed(decimal amount) => Money(amount * sign);
 
         List<ReceiptElement> output = [];
-        if (context.Copy) output.Add(new ReceiptElement.Text("KOPI", Align.Center, true, TextSize.Large));
         output.Add(new ReceiptElement.Text(title, Align.Center, true, TextSize.Tall));
         output.Add(new ReceiptElement.Feed());
 

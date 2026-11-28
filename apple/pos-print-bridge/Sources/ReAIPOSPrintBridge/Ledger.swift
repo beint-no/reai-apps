@@ -8,14 +8,13 @@ struct ReceiptRecord: Codable, Equatable, Identifiable, Sendable {
         /// Saved before sending; found on launch only if the app stopped mid-print.
         case printing
         case printed
-        /// Bytes may have reached the printer. Only printed again after explicit confirmation.
+        /// Bytes may have reached the printer. Never printed again here; copies are made in ReAI.
         case uncertain
         /// The receipt cannot be laid out from ReAI's data. Never printed automatically.
         case blocked
         /// Older than 24 hours when the printer became available. Print manually if still needed.
         case skipped
     }
-    enum CopyState: String, Codable, Sendable { case printing, printed, uncertain }
 
     let id: Int64
     let tenantId: Int
@@ -29,8 +28,6 @@ struct ReceiptRecord: Codable, Equatable, Identifiable, Sendable {
     var detail: String?
     var attempts = 0
     var updatedAt: Date
-    /// At most one copy per receipt (kassasystemforskriften § 2-6).
-    var copy: CopyState?
 
     var date: Date { ReceiptRenderer.parseInstant(occurredAt) ?? .distantPast }
 }

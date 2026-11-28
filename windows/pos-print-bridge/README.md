@@ -37,21 +37,21 @@ Receipts from before you choose a cash point are not printed. Let one computer p
 - **Installed printer (raw):** a USB printer added under **Settings → Bluetooth & devices → Printers & scanners**, for example with the Epson APD or Star driver, or **Generic / Text Only**. The app writes raw ESC/POS through the Windows spooler with the RAW datatype, bypassing the driver's rendering. Star printers must be set to ESC/POS mode.
 - **Paper width:** 80 mm prints 48 characters per line, 58 mm prints 32.
 - **Characters:** text is sent in code page PC865 (Nordic, `ESC t 5`), which contains Æ, Ø and Å on every Epson TM model. Characters outside PC865 are replaced by the closest letter or `?`.
-- **Cash drawer:** connect the drawer to the printer's RJ11/RJ12 drawer port. With **Open cash drawer for cash payments** on, receipts with a cash payment or cash refund open the drawer (`ESC p`, pin 2). **Open drawer** opens it manually. Copies never open the drawer.
+- **Cash drawer:** connect the drawer to the printer's RJ11/RJ12 drawer port. With **Open cash drawer for cash payments** on, receipts with a cash payment or cash refund open the drawer (`ESC p`, pin 2). **Open drawer** opens it manually.
 - **Receipt QR code:** prints the same identifier as ReAI's receipt PDF with `GS ( k`. Turn it off if your printer cannot print QR codes.
 
 ## What is printed
 
-The receipt follows the content and order of ReAI's fiscal receipt PDF: the statutory heading (**Salgskvittering**, **Returkvittering** and so on), company name, address, organization number with **MVA** when VAT registered, **Foretaksregisteret** for AS, ASA and NUF, receipt number, date and time (Oslo), lines with quantity, VAT rate and amount, discounts, subtotal excluding VAT, VAT, total, payment methods and transaction IDs, VAT per rate, cash point ID and the receipt QR code. Prices, VAT and totals are printed as recorded in ReAI; the app never recalculates them. A receipt the app cannot lay out from ReAI's data is held as **Print it from ReAI** and never printed automatically.
+The receipt follows the content and order of ReAI's fiscal receipt PDF: the statutory heading (**Salgskvittering**, **Returkvittering** and so on), company name, address, organization number with **MVA** when VAT registered, **Foretaksregisteret** for AS, ASA and NUF, receipt number, date and time (Oslo), lines with quantity, VAT rate and amount, discounts, subtotal excluding VAT, VAT, total, payment methods and transaction IDs, VAT per rate, cash point ID and the receipt QR code. Prices, VAT and totals are printed as recorded in ReAI; the app never recalculates them. A receipt the app cannot lay out from ReAI's data is held with the reason and never printed automatically. Fix the data in ReAI and click **Print**, or print the receipt from ReAI instead.
 
-**Print copy** prints one copy marked **KOPI** in double-size text (kassasystemforskriften § 2-8-6). Only one copy can be printed per receipt. The copy is not yet recorded in ReAI's electronic journal; ReAI's public API has no endpoint for it.
+The bridge prints each original receipt once and has no copy or reprint button. Make copies in ReAI, which owns the electronic journal.
 
 ## Recovery and privacy
 
 - Each receipt is saved in a local ledger before printing. Restarting never prints a receipt twice, and receipts that arrived while the PC was off print when it starts again.
 - If the printer cannot be reached, nothing was sent: the receipt waits and is retried with increasing delays up to one minute.
-- If the connection breaks while sending, or the app stops mid-print, the receipt is marked **Check the printer** and never printed again automatically. Use **Print** only if no receipt came out.
-- Receipts older than 24 hours when the printer becomes available are not printed automatically.
+- If the connection breaks while sending, or the app stops mid-print, the receipt is marked **Check the printer** and is never sent again. If no receipt came out, make a copy in ReAI.
+- Receipts older than 24 hours when the printer becomes available are not printed automatically; click **Print** if the customer still needs it.
 - **Sent to printer** means the printer or the Windows spooler accepted the job. Check the printer if it is out of paper.
 
 The access key stays in Windows Credential Locker and is bound to the approved company. Requests go only to `https://app.reai.no`, with redirects blocked; the bridge only reads from ReAI. `%LOCALAPPDATA%\ReAI\POS Print Bridge\bridge.json` holds your settings and the receipt ledger (receipt IDs, numbers, totals and print states, kept for 30 days); no access key. If it cannot be read, printing pauses rather than starting over.

@@ -250,31 +250,23 @@ public sealed class MainWindow : Window
             testPrint.IsEnabled = openDrawer.IsEnabled = printer.Configured && !busy;
 
             var records = model.Receipts.Take(40).ToList();
-            var receiptKey = $"{busy}|{printer.Configured}|" + string.Join(";", records.Select(r => $"{r.Id}:{r.State}:{r.Copy}:{r.Detail}"));
+            var receiptKey = $"{busy}|{printer.Configured}|" + string.Join(";", records.Select(r => $"{r.Id}:{r.State}:{r.Detail}"));
             if (receiptKey == shownReceipts) return;
             shownReceipts = receiptKey;
             receipts.Children.Clear();
             if (records.Count == 0) receipts.Children.Add(Text("Printed receipts will appear here.", dim: true));
             foreach (var record in records)
             {
-                var detail = Text(Describe(record), 12, dim: record.State == ReceiptState.Printed && record.Copy != CopyState.Uncertain);
-                if (record.State != ReceiptState.Printed || record.Copy == CopyState.Uncertain) detail.Foreground = new SolidColorBrush(Colors.DarkOrange);
+                var detail = Text(Describe(record), 12, dim: record.State == ReceiptState.Printed);
+                if (record.State != ReceiptState.Printed) detail.Foreground = new SolidColorBrush(Colors.DarkOrange);
                 var info = Stack(2, Text($"{record.ReceiptNumber} · cash point {record.CashPointId}", bold: true),
                     Text(record.Date.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) + " · " + ReceiptRenderer.Money(record.GrossAmount), 12, dim: true), detail);
                 Button? action = null;
-                if (record.State == ReceiptState.Printed)
-                {
-                    action = Command("Print copy", async () =>
-                    {
-                        if (await Confirm("Print a copy?", "The copy is marked KOPI. Only one copy can be printed per receipt.", "Print copy")) await model.PrintCopy(record.Id);
-                    });
-                    action.IsEnabled = record.Copy == null && !busy && printer.Configured;
-                }
-                else if (record.State != ReceiptState.Printing)
+                if (record.State is ReceiptState.Blocked or ReceiptState.Skipped)
                 {
                     action = Command("Print", async () =>
                     {
-                        if (await Confirm("Print this receipt?", "Only print if no receipt came out. Check the printer first.", "Print receipt")) await model.PrintOriginal(record.Id);
+                        if (await Confirm("Print this receipt?", "This receipt was never sent to the printer. It prints once.", "Print receipt")) await model.PrintOriginal(record.Id);
                     });
                     action.IsEnabled = !busy && printer.Configured;
                 }
@@ -284,21 +276,11 @@ public sealed class MainWindow : Window
         finally { rendering = false; }
     }
 
-    private static string Describe(ReceiptRecord record)
+    private static string Describe(ReceiptRecord record) => record.State switch
     {
-        var text = record.State switch
-        {
-            ReceiptState.Pending => record.Detail is { } detail ? "Waiting: " + detail : "Waiting for the printer",
-            ReceiptState.Printing => "Printing",
-            ReceiptState.Printed => "Sent to printer",
-            _ => record.Detail ?? "Check the printer"
-        };
-        return text + record.Copy switch
-        {
-            CopyState.Printed => " · Copy printed",
-            CopyState.Uncertain => " · Copy may not have printed; no further copy allowed",
-            CopyState.Printing => " · Printing copy",
-            _ => ""
-        };
-    }
+        ReceiptState.Pending => record.Detail is { } detail ? "Waiting: " + detail : "Waiting for the printer",
+        ReceiptState.Printing => "Printing",
+        ReceiptState.Printed => "Sent to printer",
+        _ => record.Detail ?? "Check the printer"
+    };
 }

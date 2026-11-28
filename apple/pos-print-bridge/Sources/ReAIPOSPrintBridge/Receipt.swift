@@ -55,7 +55,6 @@ struct ReceiptContext: Sendable {
     /// VAT code to display rate in percent, from GET /api/vat-codes.
     let vatRates: [String: Decimal]
     let columns: Int
-    let copy: Bool
     let printQRCode: Bool
 }
 
@@ -83,7 +82,7 @@ enum ReceiptElement: Equatable, Sendable {
 enum TextSize: UInt8, Sendable {
     case normal = 0x00
     case tall = 0x01
-    /// Double width and height: 100 % larger than amount text, as kassasystemforskriften § 2-8-6 requires for «KOPI».
+    /// Double width and height.
     case large = 0x11
     var widthFactor: Int { self == .large ? 2 : 1 }
 }
@@ -135,7 +134,6 @@ enum ReceiptRenderer {
         func signed(_ amount: Decimal) -> String { money(amount * sign) }
 
         var out: [ReceiptElement] = []
-        if context.copy { out.append(.text("KOPI", align: .center, bold: true, size: .large)) }
         out.append(.text(title, align: .center, bold: true, size: .tall))
         out.append(.feed)
 

@@ -6,4 +6,4 @@ Core owns the API client, receipt renderer, ESC/POS encoder (PC865), ledger, pol
 
 Without arguments the window opens (CI expects a native window with **Connect to ReAI**). `--background` from the Run key starts in the tray when a connection is stored. Closing the window hides it; Quit is in the tray menu.
 
-WinSpool: OpenPrinter or StartDocPrinter failure is not-sent; a failed write that AbortPrinter removes is not-sent; anything else after StartDocPrinter is uncertain. Never retry uncertain prints automatically. No updater; releases are unsigned portable ZIPs. Temporary tests live outside the repository.
+WinSpool: OpenPrinter or StartDocPrinter failure is not-sent; a failed write that AbortPrinter removes is not-sent; anything else after StartDocPrinter is uncertain. Uncertain and printed receipts are never sent again, and there is no copy or reprint feature; copies are made in ReAI. No updater; releases are unsigned portable ZIPs. Temporary tests live outside the repository.

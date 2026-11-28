@@ -47,7 +47,7 @@ final class BridgeModel {
     var connected: Bool { company != nil }
     var receipts: [ReceiptRecord] { state.receipts.filter { $0.tenantId == company?.id }.sorted { $0.id > $1.id } }
     var waiting: Int { receipts.filter { $0.state == .pending }.count }
-    var attention: [ReceiptRecord] { receipts.filter { [.uncertain, .blocked, .skipped, .printing].contains($0.state) || $0.copy == .uncertain } }
+    var attention: [ReceiptRecord] { receipts.filter { [.uncertain, .blocked, .skipped, .printing].contains($0.state) } }
     var knownCashPoints: [Int] { Set(state.knownCashPoints.keys.compactMap(Int.init) + state.cashPoints).sorted() }
     var serverNow: Date { Date().addingTimeInterval(clockOffset) }
     var selecting: Bool { state.allCashPoints || !state.cashPoints.isEmpty }
@@ -65,10 +65,9 @@ final class BridgeModel {
             for index in state.receipts.indices {
                 if state.receipts[index].state == .printing {
                     state.receipts[index].state = .uncertain
-                    state.receipts[index].detail = "The app stopped while printing. Check the printer before printing again."
+                    state.receipts[index].detail = "The app stopped while printing. Check the printer; make a copy in ReAI if no receipt came out."
                     changed = true
                 }
-                if state.receipts[index].copy == .printing { state.receipts[index].copy = .uncertain; changed = true }
             }
             if changed { save() }
         } catch {
@@ -277,20 +276,21 @@ final class BridgeModel {
 
     // MARK: Printing
 
-    /// Prints the original receipt. Returns false when the printer is unavailable, so the queue waits.
+    /// Prints the original receipt once: automatically when pending, or on request when it was blocked or skipped and never sent.
+    /// Returns false when the printer is unavailable, so the queue waits.
     @discardableResult
     func printOriginal(_ id: Int64) async -> Bool {
         guard let token, let company, let record = state.receipts.first(where: { $0.id == id && $0.tenantId == company.id }),
-              record.state != .printed, record.state != .printing else { return false }
+              [.pending, .blocked, .skipped].contains(record.state) else { return false }
         busy = true; defer { busy = false }
         let elements: [ReceiptElement]
         let sale: Sale
         do {
             if record.state == .blocked { try await loadReference(force: true) }
             if let cached = sales[id] { sale = cached } else { sale = try await api.sale(id, token: token, company: company.id); sales[id] = sale }
-            elements = try ReceiptRenderer.render(sale, context: context(company: company, copy: false))
+            elements = try ReceiptRenderer.render(sale, context: context(company: company))
         } catch let error as ReceiptError {
-            change(id) { $0.state = .blocked; $0.detail = error.localizedDescription + " Print it from ReAI." }
+            change(id) { $0.state = .blocked; $0.detail = error.localizedDescription + " Fix it in ReAI and click Print, or print the receipt from ReAI instead." }
             return true
         } catch {
             connectionProblem = error.localizedDescription
@@ -310,27 +310,10 @@ final class BridgeModel {
             printerProblem = reason
             return false
         case .uncertain(let reason):
-            change(id) { $0.state = .uncertain; $0.detail = reason }
+            change(id) { $0.state = .uncertain; $0.detail = reason + " Make a copy in ReAI if no receipt came out." }
             printerProblem = nil
             return true
         }
-    }
-
-    /// Prints the single permitted copy, marked «KOPI». Copies never open the cash drawer.
-    func printCopy(_ id: Int64) async {
-        guard let token, let company, let record = state.receipts.first(where: { $0.id == id && $0.tenantId == company.id }),
-              record.state == .printed, record.copy == nil else { return }
-        busy = true; defer { busy = false }
-        do {
-            let sale = try await api.sale(id, token: token, company: company.id)
-            let elements = try ReceiptRenderer.render(sale, context: context(company: company, copy: true))
-            change(id) { $0.copy = .printing }
-            switch await printer.send(EscPos.encode(elements, columns: state.printer.columns, openDrawer: false), to: state.printer) {
-            case .sent: change(id) { $0.copy = .printed }; notice = "Copy of \(record.receiptNumber) sent to the printer."
-            case .notSent(let reason): change(id) { $0.copy = nil }; error = reason
-            case .uncertain(let reason): change(id) { $0.copy = .uncertain }; error = reason + " No further copy can be printed."
-            }
-        } catch { self.error = error.localizedDescription }
     }
 
     func testPrint() async {
@@ -351,10 +334,10 @@ final class BridgeModel {
         }
     }
 
-    private func context(company: Company, copy: Bool) throws -> ReceiptContext {
+    private func context(company: Company) throws -> ReceiptContext {
         guard let merchant else { throw appError("Company details from ReAI are not loaded yet.") }
         return ReceiptContext(tenantId: company.id, merchant: merchant, companyCurrency: company.currencyCode, vatRates: vatRates,
-                              columns: state.printer.columns, copy: copy, printQRCode: state.printQRCode)
+                              columns: state.printer.columns, printQRCode: state.printQRCode)
     }
 
     private func change(_ id: Int64, _ edit: (inout ReceiptRecord) -> Void) {

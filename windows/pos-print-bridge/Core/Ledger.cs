@@ -12,16 +12,13 @@ public enum ReceiptState
     /// <summary>Saved before sending; found on launch only if the app stopped mid-print.</summary>
     Printing,
     Printed,
-    /// <summary>Bytes may have reached the printer. Only printed again after explicit confirmation.</summary>
+    /// <summary>Bytes may have reached the printer. Never printed again here; copies are made in ReAI.</summary>
     Uncertain,
     /// <summary>The receipt cannot be laid out from ReAI's data. Never printed automatically.</summary>
     Blocked,
     /// <summary>Older than 24 hours when the printer became available. Print manually if still needed.</summary>
     Skipped
 }
-
-[JsonConverter(typeof(JsonStringEnumConverter<CopyState>))]
-public enum CopyState { Printing, Printed, Uncertain }
 
 /// <summary>One fiscal receipt the bridge has seen. Its state survives restarts so receipts are neither printed twice nor skipped.</summary>
 public sealed class ReceiptRecord
@@ -38,8 +35,6 @@ public sealed class ReceiptRecord
     public string? Detail { get; set; }
     public int Attempts { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
-    /// <summary>At most one copy per receipt (kassasystemforskriften § 2-6).</summary>
-    public CopyState? Copy { get; set; }
     [JsonIgnore] public DateTimeOffset Date => ReceiptRenderer.ParseInstant(OccurredAt) ?? DateTimeOffset.MinValue;
 }
 

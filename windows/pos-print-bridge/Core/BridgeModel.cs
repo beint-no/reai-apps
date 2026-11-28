@@ -36,7 +36,7 @@ public sealed class BridgeModel(ReAIClient api, Store store, IRawPrinting printi
 
     public IEnumerable<ReceiptRecord> Receipts => State.Receipts.Where(record => record.TenantId == Company?.Id).OrderByDescending(record => record.Id);
     public int Waiting => Receipts.Count(record => record.State == ReceiptState.Pending);
-    public IEnumerable<ReceiptRecord> Attention => Receipts.Where(record => record.State is ReceiptState.Uncertain or ReceiptState.Blocked or ReceiptState.Skipped || record.Copy == CopyState.Uncertain);
+    public IEnumerable<ReceiptRecord> Attention => Receipts.Where(record => record.State is ReceiptState.Uncertain or ReceiptState.Blocked or ReceiptState.Skipped);
     public IEnumerable<int> KnownCashPoints => State.KnownCashPoints.Keys.Select(key => int.TryParse(key, out var id) ? id : 0).Where(id => id > 0).Concat(State.CashPoints).Distinct().Order();
     public DateTimeOffset ServerNow => DateTimeOffset.UtcNow + clockOffset;
     public bool Selecting => State.AllCashPoints || State.CashPoints.Count > 0;
@@ -52,8 +52,7 @@ public sealed class BridgeModel(ReAIClient api, Store store, IRawPrinting printi
             bool changed = false;
             foreach (var record in State.Receipts)
             {
-                if (record.State == ReceiptState.Printing) { record.State = ReceiptState.Uncertain; record.Detail = "The app stopped while printing. Check the printer before printing again."; changed = true; }
-                if (record.Copy == CopyState.Printing) { record.Copy = CopyState.Uncertain; changed = true; }
+                if (record.State == ReceiptState.Printing) { record.State = ReceiptState.Uncertain; record.Detail = "The app stopped while printing. Check the printer; make a copy in ReAI if no receipt came out."; changed = true; }
             }
             if (changed) Save();
         }
@@ -249,10 +248,11 @@ public sealed class BridgeModel(ReAIClient api, Store store, IRawPrinting printi
         }
     }
 
-    /// <summary>Prints the original receipt. Returns false when the printer or ReAI is unavailable, so the queue waits.</summary>
+    /// <summary>Prints the original receipt once: automatically when pending, or on request when it was blocked or skipped and never sent.
+    /// Returns false when the printer or ReAI is unavailable, so the queue waits.</summary>
     public async Task<bool> PrintOriginal(long id)
     {
-        if (token == null || Company is not { } company || Receipts.FirstOrDefault(r => r.Id == id) is not { } record || record.State is ReceiptState.Printed or ReceiptState.Printing) return false;
+        if (token == null || Company is not { } company || Receipts.FirstOrDefault(r => r.Id == id) is not { } record || record.State is not (ReceiptState.Pending or ReceiptState.Blocked or ReceiptState.Skipped)) return false;
         Busy = true; Changed?.Invoke();
         try
         {
@@ -262,9 +262,9 @@ public sealed class BridgeModel(ReAIClient api, Store store, IRawPrinting printi
             {
                 if (record.State == ReceiptState.Blocked) await LoadReference(force: true);
                 if (!sales.TryGetValue(id, out sale!)) sales[id] = sale = await api.Sale(id, token, company.Id);
-                elements = ReceiptRenderer.Render(sale, Context(company, copy: false));
+                elements = ReceiptRenderer.Render(sale, Context(company));
             }
-            catch (ReceiptException e) { Change(record, r => { r.State = ReceiptState.Blocked; r.Detail = e.Message + " Print it from ReAI."; }); return true; }
+            catch (ReceiptException e) { Change(record, r => { r.State = ReceiptState.Blocked; r.Detail = e.Message + " Fix it in ReAI and click Print, or print the receipt from ReAI instead."; }); return true; }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidDataException or InvalidOperationException or System.Text.Json.JsonException)
             { ConnectionProblem = e.Message; return false; }
             Change(record, r => { r.State = ReceiptState.Printing; r.Attempts++; });
@@ -281,33 +281,12 @@ public sealed class BridgeModel(ReAIClient api, Store store, IRawPrinting printi
                     PrinterProblem = notSent.Reason;
                     return false;
                 case SendOutcome.Uncertain uncertain:
-                    Change(record, r => { r.State = ReceiptState.Uncertain; r.Detail = uncertain.Reason; });
+                    Change(record, r => { r.State = ReceiptState.Uncertain; r.Detail = uncertain.Reason + " Make a copy in ReAI if no receipt came out."; });
                     PrinterProblem = null;
                     return true;
             }
             return true;
         }
-        finally { Busy = false; Changed?.Invoke(); }
-    }
-
-    /// <summary>Prints the single permitted copy, marked «KOPI». Copies never open the cash drawer.</summary>
-    public async Task PrintCopy(long id)
-    {
-        if (token == null || Company is not { } company || Receipts.FirstOrDefault(r => r.Id == id) is not { State: ReceiptState.Printed, Copy: null } record) return;
-        Busy = true; Changed?.Invoke();
-        try
-        {
-            var sale = await api.Sale(id, token, company.Id);
-            var elements = ReceiptRenderer.Render(sale, Context(company, copy: true));
-            Change(record, r => r.Copy = CopyState.Printing);
-            switch (await Send(EscPos.Encode(elements, State.Printer.Columns, openDrawer: false)))
-            {
-                case SendOutcome.Sent: Change(record, r => r.Copy = CopyState.Printed); Notice = $"Copy of {record.ReceiptNumber} sent to the printer."; break;
-                case SendOutcome.NotSent notSent: Change(record, r => r.Copy = null); Error = notSent.Reason; break;
-                case SendOutcome.Uncertain uncertain: Change(record, r => r.Copy = CopyState.Uncertain); Error = uncertain.Reason + " No further copy can be printed."; break;
-            }
-        }
-        catch (Exception e) { Error = e.Message; }
         finally { Busy = false; Changed?.Invoke(); }
     }
 
@@ -333,8 +312,8 @@ public sealed class BridgeModel(ReAIClient api, Store store, IRawPrinting printi
     private Task<SendOutcome> Send(byte[] data) => !State.Printer.Configured ? Task.FromResult<SendOutcome>(new SendOutcome.NotSent("Choose a receipt printer."))
         : State.Printer.Kind == PrinterKind.Network ? NetworkPrinter.Send(data, State.Printer.Host, State.Printer.Port) : printing.SendToQueue(data, State.Printer.Queue);
 
-    private ReceiptContext Context(Company company, bool copy) =>
-        new(company.Id, merchant ?? throw new InvalidOperationException("Company details from ReAI are not loaded yet."), company.CurrencyCode, vatRates, State.Printer.Columns, copy, State.PrintQrCode);
+    private ReceiptContext Context(Company company) =>
+        new(company.Id, merchant ?? throw new InvalidOperationException("Company details from ReAI are not loaded yet."), company.CurrencyCode, vatRates, State.Printer.Columns, State.PrintQrCode);
 
     private void Change(ReceiptRecord record, Action<ReceiptRecord> edit)
     {
