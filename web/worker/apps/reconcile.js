@@ -16,7 +16,7 @@ import {
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
- * @typedef {'vipps' | 'klarna' | 'zettle' | 'dintero' | 'sumup'} ProviderSlug
+ * @typedef {'vipps' | 'klarna' | 'zettle' | 'dintero' | 'sumup' | 'nets' | 'paypal'} ProviderSlug
  * @typedef {{ key: string, label: string, secret?: boolean, placeholder: string }} CredentialField
  * @typedef {{ slug: ProviderSlug, brand: string, title: string, lead: string, clientId: string, clientName: string, fields: CredentialField[], hasFees?: boolean }} ProviderConfig
  */
@@ -84,6 +84,30 @@ const PROVIDERS = {
     fields: [
       { key: 'merchantCode', label: 'SumUp Merchant Code', placeholder: 'M1234ABCD' },
       { key: 'apiKey', label: 'SumUp API key', secret: true, placeholder: 'sup_sk_…' },
+    ],
+  },
+  nets: {
+    slug: 'nets',
+    brand: 'Nets Easy',
+    title: 'Nets Easy / Nexi Reconcile',
+    lead: 'Compare Nets Easy (Nexi Checkout) settlement payouts against pending ReAI bank transactions for one month and export an audit CSV.',
+    clientId: 'reai-nets-web',
+    clientName: 'ReAI Nets Easy Reconcile (Web)',
+    fields: [
+      { key: 'secretKey', label: 'Nets Easy Secret API key', secret: true, placeholder: 'live-secret-key-…' },
+      { key: 'merchantNumber', label: 'Merchant ID (optional, or "all")', placeholder: 'all' },
+    ],
+  },
+  paypal: {
+    slug: 'paypal',
+    brand: 'PayPal',
+    title: 'PayPal Reconcile',
+    lead: 'Compare PayPal Business payout withdrawals against pending ReAI bank transactions for one month and export a reconciliation CSV.',
+    clientId: 'reai-paypal-web',
+    clientName: 'ReAI PayPal Reconcile (Web)',
+    fields: [
+      { key: 'clientId', label: 'PayPal REST Client ID', placeholder: 'A21AA…' },
+      { key: 'clientSecret', label: 'PayPal REST Client Secret', secret: true, placeholder: 'Secret from PayPal Developer Dashboard' },
     ],
   },
 };
@@ -446,6 +470,128 @@ async function fetchSumUpPayouts(fields, start, end) {
 }
 
 /**
+ * Fetches Nets Easy / Nexi Checkout Reporting API payouts for the date window.
+ * @param {Record<string, string>} fields
+ * @param {string} start
+ * @param {string} end
+ * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
+ */
+async function fetchNetsPayouts(fields, start, end) {
+  const secretKey = (fields.secretKey ?? '').trim();
+  if (!secretKey) {
+    throw new HttpError(400, 'Enter your Nets Easy Secret API key.');
+  }
+  const host = secretKey.startsWith('test-') ? 'https://test.api.dibspayment.eu' : 'https://api.dibspayment.eu';
+  const lastDay = new Date(Date.parse(`${end}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  const url = new URL(`${host}/report/v1/payouts`);
+  url.searchParams.set('fromDate', start);
+  url.searchParams.set('toDate', lastDay);
+  const merchant = (fields.merchantNumber ?? '').trim();
+  if (merchant && merchant.toLowerCase() !== 'all') {
+    url.searchParams.set('merchantNumber', merchant);
+  }
+  const r = await providerJson(
+    url.toString(),
+    { headers: { authorization: secretKey, accept: 'application/json' } },
+    'Nets Easy',
+  );
+  if (!r.ok) {
+    throw new HttpError(
+      400,
+      r.status === 401 || r.status === 403
+        ? 'Nets Easy rejected this key or Reporting API access is not enabled on the merchant account.'
+        : `Nets Easy Reporting API returned HTTP ${r.status}.`,
+    );
+  }
+  const rows = Array.isArray(r.data) ? r.data : Array.isArray(r.data?.payouts) ? r.data.payouts : [];
+  /** @type {import('../lib/reconcile.js').PayoutItem[]} */
+  const payouts = [];
+  for (const row of rows) {
+    const rawAmount = typeof row.amount === 'number' ? row.amount : typeof row.netAmount === 'number' ? row.netAmount : 0;
+    const date = String(row.payoutDate ?? row.date ?? '').slice(0, 10);
+    if (!date || rawAmount === 0) {
+      continue;
+    }
+    payouts.push({
+      id: String(row.payoutId ?? row.reference ?? `${date}-${rawAmount}`),
+      date,
+      amountMinor: Math.round(Math.abs(rawAmount)),
+      currency: String(row.currency ?? 'NOK').toUpperCase(),
+      reference: String(row.bankReference ?? row.reference ?? row.payoutId ?? ''),
+      detail: `Nets Easy settlement · ${String(row.status ?? 'paid')}`,
+    });
+  }
+  return payouts;
+}
+
+/**
+ * Fetches PayPal Business payout/withdrawal transactions via Reporting API v1.
+ * @param {Record<string, string>} fields
+ * @param {string} start
+ * @param {string} end
+ * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
+ */
+async function fetchPayPalPayouts(fields, start, end) {
+  const basic = btoa(`${fields.clientId ?? ''}:${fields.clientSecret ?? ''}`);
+  const tokRes = await providerJson(
+    'https://api-m.paypal.com/v1/oauth2/token',
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Basic ${basic}`,
+        'content-type': 'application/x-www-form-urlencoded',
+        accept: 'application/json',
+      },
+      body: 'grant_type=client_credentials',
+    },
+    'PayPal',
+  );
+  if (!tokRes.ok || !tokRes.data?.access_token) {
+    throw new HttpError(400, 'PayPal rejected these REST API credentials.');
+  }
+  const headers = { authorization: `Bearer ${tokRes.data.access_token}`, accept: 'application/json' };
+  const lastDay = new Date(Date.parse(`${end}T00:00:00Z`) - 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+  const url = new URL('https://api-m.paypal.com/v1/reporting/transactions');
+  url.searchParams.set('start_date', `${start}T00:00:00Z`);
+  url.searchParams.set('end_date', lastDay);
+  url.searchParams.set('fields', 'transaction_info');
+  url.searchParams.set('page_size', '500');
+  const r = await providerJson(url.toString(), { headers }, 'PayPal');
+  if (!r.ok) {
+    throw new HttpError(
+      400,
+      r.status === 403
+        ? 'Enable Transaction Search permission on your PayPal REST app.'
+        : `PayPal Reporting API returned HTTP ${r.status}.`,
+    );
+  }
+  const details = Array.isArray(r.data?.transaction_details) ? r.data.transaction_details : [];
+  /** @type {import('../lib/reconcile.js').PayoutItem[]} */
+  const payouts = [];
+  for (const item of details) {
+    const info = item.transaction_info ?? {};
+    const code = String(info.transaction_event_code ?? '');
+    const amtVal = Number(info.transaction_amount?.value ?? '0');
+    const feeVal = Number(info.fee_amount?.value ?? '0');
+    if (!code.startsWith('T04') && !code.startsWith('T0001')) {
+      continue;
+    }
+    if (!Number.isFinite(amtVal) || amtVal === 0) {
+      continue;
+    }
+    payouts.push({
+      id: String(info.transaction_id ?? `${info.transaction_initiation_date}-${amtVal}`),
+      date: String(info.transaction_updated_date ?? info.transaction_initiation_date ?? '').slice(0, 10),
+      amountMinor: Math.round(Math.abs(amtVal) * 100),
+      currency: String(info.transaction_amount?.currency_code ?? 'NOK').toUpperCase(),
+      reference: String(info.bank_reference_id ?? info.transaction_id ?? ''),
+      detail: `PayPal ${code} · fee ${Math.abs(feeVal).toFixed(2)}`,
+    });
+  }
+  return payouts;
+}
+
+/**
  * @param {ProviderSlug} slug
  * @returns {{ payouts: import('../lib/reconcile.js').PayoutItem[], bankTx: import('../lib/reconcile.js').BankTx[], month: string, currency: string }}
  */
@@ -764,7 +910,11 @@ export async function handleReconcile(request, env, slug) {
               ? fetchZettlePayouts(fields, bounds.start, bounds.end)
               : slug === 'sumup'
                 ? fetchSumUpPayouts(fields, bounds.start, bounds.end)
-                : fetchDinteroSettlements(fields, bounds.start, bounds.end),
+                : slug === 'nets'
+                  ? fetchNetsPayouts(fields, bounds.start, bounds.end)
+                  : slug === 'paypal'
+                    ? fetchPayPalPayouts(fields, bounds.start, bounds.end)
+                    : fetchDinteroSettlements(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
 

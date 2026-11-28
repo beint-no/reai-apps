@@ -1,8 +1,8 @@
 ---
 title: "Ecommerce & logistics"
 seoTitle: "Ecommerce & logistics Integrations — ReAI"
-description: Print Zebra shipping labels, bulk price tags and barcodes directly from your ReAI orders and product catalog.
-summary: Direct printer apps for warehouses, retail stores and online merchants.
+description: Sync Mystore.no, 24Nettbutikk, Magento, PrestaShop, Shopware 6 and Wix Stores with ReAI, plus print Zebra shipping labels and product tags natively.
+summary: Product and sales sync for online stores plus direct thermal printer apps.
 industry: ecommerce-logistics
 eyebrow: INDUSTRY
 ---

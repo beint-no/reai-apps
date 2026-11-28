@@ -52,81 +52,34 @@
     "sparkle": true,
     "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
   },
-  "vipps-web": {
-    "name": "ReAI Vipps Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/vipps/"
-  },
-  "klarna-web": {
-    "name": "ReAI Klarna Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/klarna/"
-  },
-  "stripe-web": {
-    "name": "ReAI Stripe Import",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/stripe.js",
-    "route": "/app/stripe/"
-  },
-  "zettle-web": {
-    "name": "ReAI Zettle Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/zettle/"
-  },
-  "sumup-web": {
-    "name": "ReAI SumUp Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/sumup/"
-  },
-  "dintero-web": {
-    "name": "ReAI Dintero Fees",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/dintero/"
-  },
-  "hubspot-web": {
-    "name": "ReAI HubSpot CRM Sync",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/hubspot.js",
-    "route": "/app/hubspot/"
-  },
-  "hybel-web": {
-    "name": "ReAI Hybel Journal",
-    "platform": "web",
-    "industry": "real-estate",
-    "path": "web/worker/apps/hybel.js",
-    "route": "/app/hybel/"
-  },
-  "import-web": {
-    "name": "ReAI Spreadsheet Import",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/import.js",
-    "route": "/app/import/"
-  },
-  "export-web": {
-    "name": "ReAI BI & Accounting Export",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/export.js",
-    "route": "/app/export/"
-  },
-  "ui-lab": {
-    "name": "ReAI UI Component Lab",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/lab.js",
-    "route": "/app/lab/"
-  }
+  "vipps-web": { "name": "ReAI Vipps Reconcile", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/vipps/" },
+  "klarna-web": { "name": "ReAI Klarna Reconcile", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/klarna/" },
+  "stripe-web": { "name": "ReAI Stripe Import", "platform": "web", "industry": "payments", "path": "web/worker/apps/stripe.js", "route": "/app/stripe/" },
+  "zettle-web": { "name": "ReAI Zettle Reconcile", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/zettle/" },
+  "sumup-web": { "name": "ReAI SumUp Reconcile", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/sumup/" },
+  "dintero-web": { "name": "ReAI Dintero Fees", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/dintero/" },
+  "nets-web": { "name": "ReAI Nets Easy Reconcile", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/nets/" },
+  "paypal-web": { "name": "ReAI PayPal Reconcile", "platform": "web", "industry": "payments", "path": "web/worker/apps/reconcile.js", "route": "/app/paypal/" },
+  "z-report-web": { "name": "ReAI POS Daily Z-Report", "platform": "web", "industry": "payments", "path": "web/worker/apps/pos.js", "route": "/app/z-report/" },
+  "front-systems-web": { "name": "ReAI Front Systems POS", "platform": "web", "industry": "payments", "path": "web/worker/apps/pos.js", "route": "/app/front-systems/" },
+  "mystore-web": { "name": "ReAI Mystore.no Sync", "platform": "web", "industry": "ecommerce-logistics", "path": "web/worker/apps/ecommerce.js", "route": "/app/mystore/" },
+  "24nettbutikk-web": { "name": "ReAI 24Nettbutikk Sync", "platform": "web", "industry": "ecommerce-logistics", "path": "web/worker/apps/ecommerce.js", "route": "/app/24nettbutikk/" },
+  "magento-web": { "name": "ReAI Magento Sync", "platform": "web", "industry": "ecommerce-logistics", "path": "web/worker/apps/ecommerce.js", "route": "/app/magento/" },
+  "prestashop-web": { "name": "ReAI PrestaShop Sync", "platform": "web", "industry": "ecommerce-logistics", "path": "web/worker/apps/ecommerce.js", "route": "/app/prestashop/" },
+  "shopware-web": { "name": "ReAI Shopware 6 Sync", "platform": "web", "industry": "ecommerce-logistics", "path": "web/worker/apps/ecommerce.js", "route": "/app/shopware/" },
+  "wix-web": { "name": "ReAI Wix Stores Sync", "platform": "web", "industry": "ecommerce-logistics", "path": "web/worker/apps/ecommerce.js", "route": "/app/wix/" },
+  "hubspot-web": { "name": "ReAI HubSpot CRM Sync", "platform": "web", "industry": "operations", "path": "web/worker/apps/hubspot.js", "route": "/app/hubspot/" },
+  "pipedrive-web": { "name": "ReAI Pipedrive CRM Sync", "platform": "web", "industry": "operations", "path": "web/worker/apps/pipedrive.js", "route": "/app/pipedrive/" },
+  "toggl-web": { "name": "ReAI Toggl Track Sync", "platform": "web", "industry": "operations", "path": "web/worker/apps/timetracking.js", "route": "/app/toggl/" },
+  "clockify-web": { "name": "ReAI Clockify Sync", "platform": "web", "industry": "operations", "path": "web/worker/apps/timetracking.js", "route": "/app/clockify/" },
+  "harvest-web": { "name": "ReAI Harvest Sync", "platform": "web", "industry": "operations", "path": "web/worker/apps/timetracking.js", "route": "/app/harvest/" },
+  "tidsbanken-web": { "name": "ReAI Tidsbanken / SmartDok Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/timetracking.js", "route": "/app/tidsbanken/" },
+  "pleo-web": { "name": "ReAI Pleo Expenses Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/cards.js", "route": "/app/pleo/" },
+  "revolut-web": { "name": "ReAI Revolut & Wise Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/cards.js", "route": "/app/revolut/" },
+  "timma-web": { "name": "ReAI Booking & Clinic Settlement", "platform": "web", "industry": "operations", "path": "web/worker/apps/billing.js", "route": "/app/timma/" },
+  "hybel-web": { "name": "ReAI Hybel Journal", "platform": "web", "industry": "real-estate", "path": "web/worker/apps/hybel.js", "route": "/app/hybel/" },
+  "fazile-web": { "name": "ReAI Fazile Property Billing", "platform": "web", "industry": "real-estate", "path": "web/worker/apps/billing.js", "route": "/app/fazile/" },
+  "import-web": { "name": "ReAI Spreadsheet Import", "platform": "web", "industry": "operations", "path": "web/worker/apps/import.js", "route": "/app/import/" },
+  "export-web": { "name": "ReAI BI & Accounting Export", "platform": "web", "industry": "operations", "path": "web/worker/apps/export.js", "route": "/app/export/" },
+  "ui-lab": { "name": "ReAI UI Component Lab", "platform": "web", "industry": "operations", "path": "web/worker/apps/lab.js", "route": "/app/lab/" }
 }

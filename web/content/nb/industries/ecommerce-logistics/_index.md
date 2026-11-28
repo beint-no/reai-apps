@@ -1,8 +1,8 @@
 ---
 title: Netthandel og logistikk
 seoTitle: Netthandel og logistikk — Integrasjoner for ReAI
-description: Skriv ut Zebra fraktetiketter, prislapper og strekkoder direkte fra ordrer og varekatalog i ReAI.
-summary: Direkte skriverapper for lager, butikk og nettbutikk.
+description: Synkroniser Mystore.no, 24Nettbutikk, Magento, PrestaShop, Shopware 6 og Wix Stores med ReAI, samt skriv ut Zebra fraktetiketter og prislapper.
+summary: Produkt- og salgssynk for nettbutikker samt direkte skriverapper for lager.
 industry: ecommerce-logistics
 eyebrow: BRANSJE
 ---

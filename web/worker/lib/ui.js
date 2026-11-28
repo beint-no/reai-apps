@@ -1,25 +1,25 @@
 // @ts-check
 import { html, raw } from './html.js';
 
-const CARD_STYLE = `:host{display:block;background:var(--reai-surface,#fff);border:1px solid var(--reai-line,#dce1d9);border-radius:var(--reai-radius,16px);padding:24px}:host([data-padded="compact"]){padding:16px}.head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--reai-green,#006c51);margin:0 0 4px}h2{margin:0;font-size:20px;letter-spacing:-.02em;color:var(--reai-ink,#182723)}`;
+const CARD_STYLE = `:host{display:block;background:var(--r-surface,#fff);border:1px solid var(--r-line,#e4e9f2);border-radius:var(--r-radius,16px);padding:24px;box-shadow:0 1px 2px rgb(16 38 84/.04)}:host([data-padded="compact"]){padding:16px}.head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--r-brand,#2e6ee8);margin:0 0 4px}h2{margin:0;font-size:20px;letter-spacing:-.02em;color:var(--r-ink,#0b1c45)}`;
 
-const BADGE_STYLE = `:host{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:650;line-height:1.4;border:1px solid var(--reai-line,#dce1d9);background:var(--reai-bg,#f5f6f2);color:var(--reai-muted,#52615a)}:host([data-tone="accent"]){background:color-mix(in oklch,var(--reai-green,#006c51) 12%,white);color:var(--reai-green,#006c51);border-color:color-mix(in oklch,var(--reai-green,#006c51) 28%,white)}:host([data-tone="success"]){background:#e7f6ee;color:#0e5c3e;border-color:#b8e1cc}:host([data-tone="warn"]){background:#fdf4e1;color:#7a4f01;border-color:#efd296}:host([data-tone="danger"]){background:#fdecec;color:#8f1d1d;border-color:#f0bcbc}`;
+const BADGE_STYLE = `:host{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:650;line-height:1.4;border:1px solid var(--r-line,#e4e9f2);background:var(--r-lowered,#f3f6fb);color:var(--r-muted,#54627c)}:host([data-tone="accent"]){background:var(--r-brand-soft,#eef4ff);color:#1f55c4;border-color:#bcd5ff}:host([data-tone="success"]){background:#ebf8f1;color:#12704a;border-color:#b8e1cc}:host([data-tone="warn"]){background:#fff6e0;color:#8a5a00;border-color:#efd296}:host([data-tone="danger"]){background:#fff0ef;color:#c42b3f;border-color:#f4c0c6}`;
 
-const CALLOUT_STYLE = `:host{display:block;border-radius:12px;padding:14px 16px;border:1px solid var(--reai-line,#dce1d9);background:var(--reai-surface,#fff);font-size:14px;line-height:1.55}:host([data-tone="info"]){background:#eef5f2;border-color:#bfd6cc;color:#143b2f}:host([data-tone="success"]){background:#e7f6ee;border-color:#b8e1cc;color:#0e5c3e}:host([data-tone="warn"]){background:#fdf4e1;border-color:#efd296;color:#6c4500}:host([data-tone="danger"]){background:#fdecec;border-color:#f0bcbc;color:#8f1d1d}strong{display:block;margin-bottom:4px;font-weight:650}`;
+const CALLOUT_STYLE = `:host{display:block;border-radius:12px;padding:14px 16px;border:1px solid var(--r-line,#e4e9f2);background:var(--r-surface,#fff);font-size:14px;line-height:1.55}:host([data-tone="info"]){background:#eef4ff;border-color:#bcd5ff;color:#122e6e}:host([data-tone="success"]){background:#ebf8f1;border-color:#b8e1cc;color:#0e5c3e}:host([data-tone="warn"]){background:#fff6e0;border-color:#efd296;color:#7a4f01}:host([data-tone="danger"]){background:#fff0ef;border-color:#f4c0c6;color:#991b2b}strong{display:block;margin-bottom:4px;font-weight:650}`;
 
-const METRIC_STYLE = `:host{display:grid;gap:4px;padding:14px 16px;background:var(--reai-bg,#f5f6f2);border:1px solid var(--reai-line,#dce1d9);border-radius:12px}.label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--reai-muted,#52615a)}.value{font-size:22px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--reai-ink,#182723)}.detail{font-size:12px;color:var(--reai-muted,#52615a)}`;
+const METRIC_STYLE = `:host{display:grid;gap:4px;padding:14px 16px;background:var(--r-lowered,#f3f6fb);border:1px solid var(--r-line,#e4e9f2);border-radius:12px}.label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--r-muted,#54627c)}.value{font-size:22px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--r-ink,#0b1c45)}.detail{font-size:12px;color:var(--r-muted,#54627c)}`;
 
-const DROPZONE_STYLE = `:host{display:block;border:1.5px dashed color-mix(in oklch,var(--reai-green,#006c51) 42%,var(--reai-line,#dce1d9));border-radius:14px;padding:24px;text-align:center;background:color-mix(in oklch,var(--reai-green,#006c51) 4%,white);transition:border-color 140ms ease,background-color 140ms ease}:host([data-dragging]){border-color:var(--reai-green,#006c51);background:color-mix(in oklch,var(--reai-green,#006c51) 11%,white)}.hint{margin:8px 0 0;font-size:13px;color:var(--reai-muted,#52615a)}`;
+const DROPZONE_STYLE = `:host{display:block;border:1.5px dashed #91b8ff;border-radius:14px;padding:24px;text-align:center;background:#f7faff;transition:border-color 140ms ease,background-color 140ms ease}:host([data-dragging]){border-color:var(--r-brand,#2e6ee8);background:#eef4ff}.hint{margin:8px 0 0;font-size:13px;color:var(--r-muted,#54627c)}`;
 
 /**
- * Declarative Shadow DOM card component (zero FOUC, zero Lit).
+ * Declarative Shadow DOM <r-card> component (zero FOUC, zero Lit).
  * @param {{ title?: string, eyebrow?: string, badge?: import('./html.js').SafeHtml | null, id?: string, compact?: boolean, body: import('./html.js').HtmlValue }} props
  * @returns {import('./html.js').SafeHtml}
  */
 export function reaiCard(props) {
   const idAttr = props.id ? html` id="${props.id}"` : '';
   const padAttr = props.compact ? html` data-padded="compact"` : '';
-  return html`<reai-card${idAttr}${padAttr}>
+  return html`<r-card${idAttr}${padAttr}>
     <template shadowrootmode="open">
       <style>${raw(CARD_STYLE)}</style>
       ${props.title || props.eyebrow || props.badge
@@ -35,59 +35,59 @@ export function reaiCard(props) {
     </template>
     ${props.badge ? html`<span slot="badge">${props.badge}</span>` : ''}
     ${props.body}
-  </reai-card>`;
+  </r-card>`;
 }
 
 /**
- * Declarative Shadow DOM status badge.
+ * Declarative Shadow DOM <r-badge>.
  * @param {{ text: string, tone?: 'neutral' | 'accent' | 'success' | 'warn' | 'danger' }} props
  * @returns {import('./html.js').SafeHtml}
  */
 export function reaiBadge(props) {
   const tone = props.tone ?? 'neutral';
-  return html`<reai-badge data-tone="${tone}"><template shadowrootmode="open"><style>${raw(BADGE_STYLE)}</style><slot></slot></template>${props.text}</reai-badge>`;
+  return html`<r-badge data-tone="${tone}"><template shadowrootmode="open"><style>${raw(BADGE_STYLE)}</style><slot></slot></template>${props.text}</r-badge>`;
 }
 
 /**
- * Declarative Shadow DOM callout banner.
+ * Declarative Shadow DOM <r-callout>.
  * @param {{ tone?: 'info' | 'success' | 'warn' | 'danger', title?: string, body: import('./html.js').HtmlValue }} props
  * @returns {import('./html.js').SafeHtml}
  */
 export function reaiCallout(props) {
   const tone = props.tone ?? 'info';
-  return html`<reai-callout data-tone="${tone}">
+  return html`<r-callout data-tone="${tone}">
     <template shadowrootmode="open">
       <style>${raw(CALLOUT_STYLE)}</style>
       ${props.title ? html`<strong>${props.title}</strong>` : ''}
       <slot></slot>
     </template>
     ${props.body}
-  </reai-callout>`;
+  </r-callout>`;
 }
 
 /**
- * Declarative Shadow DOM metric tile.
+ * Declarative Shadow DOM <r-metric>.
  * @param {{ label: string, value: string, detail?: string }} props
  * @returns {import('./html.js').SafeHtml}
  */
 export function reaiMetric(props) {
-  return html`<reai-metric>
+  return html`<r-metric>
     <template shadowrootmode="open">
       <style>${raw(METRIC_STYLE)}</style>
       <span class="label">${props.label}</span>
       <span class="value">${props.value}</span>
       ${props.detail ? html`<span class="detail">${props.detail}</span>` : ''}
     </template>
-  </reai-metric>`;
+  </r-metric>`;
 }
 
 /**
- * Declarative Shadow DOM file dropzone enhanced progressively by /app/shared/ui.js.
+ * Declarative Shadow DOM <r-dropzone> enhanced progressively by /app/shared/ui.js.
  * @param {{ inputId: string, name: string, accept: string, label: string, hint: string }} props
  * @returns {import('./html.js').SafeHtml}
  */
 export function reaiDropzone(props) {
-  return html`<reai-dropzone>
+  return html`<r-dropzone>
     <template shadowrootmode="open">
       <style>${raw(DROPZONE_STYLE)}</style>
       <slot></slot>
@@ -95,8 +95,41 @@ export function reaiDropzone(props) {
     </template>
     <label class="button primary" for="${props.inputId}">${props.label}</label>
     <input id="${props.inputId}" class="sr-file" type="file" name="${props.name}" accept="${props.accept}">
-  </reai-dropzone>`;
+  </r-dropzone>`;
 }
+
+/** @type {Array<[string, string]>} */
+const APP_LINKS = [
+  ['/app/vipps/', 'Vipps'],
+  ['/app/klarna/', 'Klarna'],
+  ['/app/stripe/', 'Stripe'],
+  ['/app/zettle/', 'Zettle'],
+  ['/app/sumup/', 'SumUp'],
+  ['/app/dintero/', 'Dintero'],
+  ['/app/nets/', 'Nets Easy'],
+  ['/app/paypal/', 'PayPal'],
+  ['/app/mystore/', 'Mystore'],
+  ['/app/24nettbutikk/', '24Nettbutikk'],
+  ['/app/magento/', 'Magento'],
+  ['/app/prestashop/', 'PrestaShop'],
+  ['/app/shopware/', 'Shopware 6'],
+  ['/app/wix/', 'Wix Stores'],
+  ['/app/z-report/', 'POS Z-Report'],
+  ['/app/front-systems/', 'Front Systems'],
+  ['/app/hubspot/', 'HubSpot CRM'],
+  ['/app/pipedrive/', 'Pipedrive CRM'],
+  ['/app/toggl/', 'Toggl Track'],
+  ['/app/clockify/', 'Clockify'],
+  ['/app/harvest/', 'Harvest'],
+  ['/app/tidsbanken/', 'Tidsbanken / SmartDok'],
+  ['/app/pleo/', 'Pleo Expenses'],
+  ['/app/revolut/', 'Revolut / Wise'],
+  ['/app/hybel/', 'Hybel'],
+  ['/app/fazile/', 'Fazile'],
+  ['/app/timma/', 'Booking & Clinic'],
+  ['/app/import/', 'CSV Import'],
+  ['/app/export/', 'BI & Excel Export'],
+];
 
 /**
  * Full HTML document shell for server-rendered HTMX 4 web apps under /app/*.
@@ -125,22 +158,16 @@ export function appShell(props) {
   <header class="app-header wrap">
     <a class="brand" href="/"><span class="brand-mark">r</span>ReAI <span class="brand-suffix">Apps</span></a>
     <nav class="app-nav">
-      <button type="button" class="nav-pill" popovertarget="app-switcher">Switch app ▾</button>
-      <a href="/web-apps/">All web apps</a>
-      <a href="/desktop/">Desktop</a>
-      <a href="https://github.com/beint-no/reai-apps">GitHub ↗</a>
+      <button type="button" class="nav-pill" popovertarget="app-switcher">Switch integration ▾</button>
+      <a href="/web-apps/">All integrations</a>
+      <a href="/docs/">Docs</a>
+      <a class="button primary nav-cta" href="https://app.reai.no/auth/signup">Try ReAI free →</a>
     </nav>
     <nav id="app-switcher" popover class="app-switcher">
-      <a href="/app/vipps/"${props.activePath === '/app/vipps/' ? html` data-current="true"` : ''}>Vipps Reconcile</a>
-      <a href="/app/klarna/"${props.activePath === '/app/klarna/' ? html` data-current="true"` : ''}>Klarna Reconcile</a>
-      <a href="/app/stripe/"${props.activePath === '/app/stripe/' ? html` data-current="true"` : ''}>Stripe Import</a>
-      <a href="/app/zettle/"${props.activePath === '/app/zettle/' ? html` data-current="true"` : ''}>Zettle Reconcile</a>
-      <a href="/app/sumup/"${props.activePath === '/app/sumup/' ? html` data-current="true"` : ''}>SumUp Reconcile</a>
-      <a href="/app/dintero/"${props.activePath === '/app/dintero/' ? html` data-current="true"` : ''}>Dintero Fees</a>
-      <a href="/app/hubspot/"${props.activePath === '/app/hubspot/' ? html` data-current="true"` : ''}>HubSpot CRM Sync</a>
-      <a href="/app/hybel/"${props.activePath === '/app/hybel/' ? html` data-current="true"` : ''}>Hybel Journal</a>
-      <a href="/app/import/"${props.activePath === '/app/import/' ? html` data-current="true"` : ''}>Spreadsheet Import</a>
-      <a href="/app/export/"${props.activePath === '/app/export/' ? html` data-current="true"` : ''}>BI &amp; Excel Export</a>
+      ${APP_LINKS.map(
+        ([href, label]) =>
+          html`<a href="${href}"${props.activePath === href ? html` data-current="true"` : ''}>${label}</a>`,
+      )}
     </nav>
   </header>
   <main class="app-main wrap">${props.body}</main>
@@ -149,6 +176,7 @@ export function appShell(props) {
     <nav class="app-nav">
       <a href="/docs/">Docs</a>
       <a href="/app/lab/">UI Lab</a>
+      <a href="https://github.com/beint-no/reai-apps">GitHub ↗</a>
       <a href="https://app.reai.no/user/profile#user-access-tokens">Manage tokens ↗</a>
     </nav>
   </footer>

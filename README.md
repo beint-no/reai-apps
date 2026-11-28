@@ -6,21 +6,14 @@ Web and desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/
 
 ### Web apps (hosted on `apps.reai.no`)
 
-Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`, backed by encrypted `HttpOnly` session cookies and Declarative Shadow DOM Web Components.
+Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`, backed by encrypted `HttpOnly` session cookies and Declarative Shadow DOM `<r-*>` Web Components.
 
-| App | Route | What it does |
-| --- | --- | --- |
-| [Vipps Reconcile](web/worker/apps/reconcile.js) | `/app/vipps/` | Compare Vipps scheduled payouts against pending ReAI bank transactions and export CSV. |
-| [Klarna Reconcile](web/worker/apps/reconcile.js) | `/app/klarna/` | Compare Klarna settlement payouts against pending ReAI bank transactions and export CSV. |
-| [Stripe Import](web/worker/apps/stripe.js) | `/app/stripe/` | Import eligible paid tax-free Stripe invoices and stage simple subscriptions with automatic billing off. |
-| [Zettle Reconcile](web/worker/apps/reconcile.js) | `/app/zettle/` | Compare Zettle liquid-account payouts against pending ReAI bank transactions and export CSV. |
-| [SumUp Reconcile](web/worker/apps/reconcile.js) | `/app/sumup/` | Compare SumUp card terminal payouts and fees against pending ReAI bank transactions and export CSV. |
-| [Dintero Fees](web/worker/apps/reconcile.js) | `/app/dintero/` | Review withheld Dintero settlement fees, export CSV and optionally create a monthly review voucher. |
-| [HubSpot CRM Sync](web/worker/apps/hubspot.js) | `/app/hubspot/` | Compare HubSpot CRM companies against ReAI customers and create missing records with Mod11 org.nr checks. |
-| [Hybel Journal](web/worker/apps/hybel.js) | `/app/hybel/` | Preview a monthly Hybel CSV journal (or synthetic sample), validate accounts against ReAI and create a review voucher. |
-| [Spreadsheet Import](web/worker/apps/import.js) | `/app/import/` | Import products, customers and suppliers from CSV/TSV with header auto-matching, duplicate checks and result export. |
-| [BI & Accounting Export](web/worker/apps/export.js) | `/app/export/` | Export ReAI general-ledger postings, invoices, customers and products as Excel UTF-8 BOM CSV or BI JSON. |
-| [UI Component Lab](web/worker/apps/lab.js) | `/app/lab/` | Interactive playground for zero-framework Declarative Shadow DOM `<reai-*>` components and HTMX 4 swaps. |
+| Category | Apps & routes |
+| --- | --- |
+| **Payments & POS** | [Vipps](/app/vipps/), [Klarna](/app/klarna/), [Stripe](/app/stripe/), [Zettle](/app/zettle/), [SumUp](/app/sumup/), [Dintero](/app/dintero/), [Nets Easy](/app/nets/), [PayPal](/app/paypal/), [POS Z-Report](/app/z-report/), [Front Systems](/app/front-systems/) |
+| **Ecommerce (Product + Sales Sync)** | [Mystore.no](/app/mystore/), [24Nettbutikk](/app/24nettbutikk/), [Magento](/app/magento/), [PrestaShop](/app/prestashop/), [Shopware 6](/app/shopware/), [Wix Stores](/app/wix/) |
+| **CRM, Time & Cards** | [HubSpot](/app/hubspot/), [Pipedrive](/app/pipedrive/), [Toggl Track](/app/toggl/), [Clockify](/app/clockify/), [Harvest](/app/harvest/), [Tidsbanken / SmartDok](/app/tidsbanken/), [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Booking & Clinic (Timma / Fresha / Aspit)](/app/timma/) |
+| **Real Estate, Import & BI** | [Hybel](/app/hybel/), [Fazile](/app/fazile/), [CSV Import](/app/import/), [BI & Excel Export](/app/export/), [UI Component Lab](/app/lab/) |
 
 ### Maintained native apps
 
