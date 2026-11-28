@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { HOSP_API_UI, fetchHospitalityApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
@@ -187,6 +188,16 @@ export async function handleHospitality(request, env, slug) {
       </section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} (Web)` })}
+        ${HOSP_API_UI[slug]
+          ? renderApiFetchCard({
+              basePath,
+              targetId: 'hosp-output',
+              brand: HOSP_API_UI[slug].brand,
+              hint: HOSP_API_UI[slug].hint,
+              fields: HOSP_API_UI[slug].fields,
+              sampleAction: true,
+            })
+          : ''}
         ${reaiCard({
           eyebrow: `${cfg.brand.toUpperCase()} DAILY / PERIOD SETTLEMENT`,
           title: 'Enter settlement totals (NOK incl. VAT)',
@@ -240,6 +251,13 @@ export async function handleHospitality(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api` && slug !== 'wolt-foodora') {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const input = await fetchHospitalityApi(slug, creds);
+      return htmlResponse(renderHospPreview(slug, buildHospVoucher(cfg.brand, input), false));
+    }
     if (pathname === `${basePath}/preview`) {
       /** @param {string} k */
       const m = (k) => Math.round(Math.max(0, Number(form.get(k) ?? '0') || 0) * 100);

@@ -114,6 +114,7 @@ def main() -> None:
     copy_app_assets()
     if not args.skip_typecheck:
         subprocess.run(['npm', 'run', 'typecheck'], cwd=WEB, check=True)
+        subprocess.run(['npm', 'test'], cwd=WEB, check=True)
     print(f'Built {WEB / "public"}')
 
 

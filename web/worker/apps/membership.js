@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { SETTLEMENT_API_UI, fetchPayoutSettlementApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
@@ -107,6 +108,16 @@ export async function handleMembership(request, env, slug) {
       </section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} (Web)` })}
+        ${slug === 'ticketco' || slug === 'checkin'
+          ? renderApiFetchCard({
+              basePath,
+              targetId: 'mb-output',
+              brand: SETTLEMENT_API_UI[slug].brand,
+              hint: SETTLEMENT_API_UI[slug].hint,
+              fields: SETTLEMENT_API_UI[slug].fields,
+              sampleAction: true,
+            })
+          : ''}
         ${reaiCard({
           eyebrow: `${cfg.brand.toUpperCase()} PAYOUT STATEMENT`,
           title: 'Enter settlement summary (NOK)',
@@ -142,6 +153,13 @@ export async function handleMembership(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api` && (slug === 'ticketco' || slug === 'checkin')) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const summary = await fetchPayoutSettlementApi(slug, creds);
+      return htmlResponse(renderMemberPreview(slug, summary, false));
+    }
     if (pathname === `${basePath}/preview`) {
       /** @param {string} k */
       const m = (k) => Math.round(Math.max(0, Number(form.get(k) ?? '0') || 0) * 100);

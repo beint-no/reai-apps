@@ -3,6 +3,7 @@ import { readSession, renderConnectPanel } from '../lib/auth.js';
 import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiRequest } from '../lib/reai.js';
+import { WFM_HR_API_UI, fetchHumaEmployeesApi, fetchWfmHoursApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 import { verifiedNorwegianAccount } from './recman-core.js';
@@ -134,6 +135,14 @@ export async function handleWorkforce(request, env, slug) {
       </section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} (Web)` })}
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'wfm-output',
+          brand: WFM_HR_API_UI[slug].brand,
+          hint: WFM_HR_API_UI[slug].hint,
+          fields: WFM_HR_API_UI[slug].fields,
+          sampleAction: true,
+        })}
         ${reaiCard({
           eyebrow: `IMPORT FROM ${cfg.brand.toUpperCase()}`,
           title: cfg.mode === 'employees' ? 'Upload Huma employee CSV' : `Upload ${cfg.brand} hours CSV`,
@@ -256,6 +265,17 @@ export async function handleWorkforce(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      if (slug === 'huma') {
+        const emps = await fetchHumaEmployeesApi(creds);
+        return htmlResponse(renderEmployees(emps.map((emp) => ({ emp, existsId: null })), false));
+      }
+      const rows = await fetchWfmHoursApi(slug, creds);
+      return htmlResponse(renderHours(rows, 0, 0, false));
+    }
     if (pathname === `${basePath}/preview`) {
       const file = form.get('file');
       if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) throw new HttpError(400, 'Choose a CSV file or load sample.');

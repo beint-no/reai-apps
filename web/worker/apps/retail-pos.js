@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { RETAIL_API_UI, fetchRetailPosApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../lib/ui.js';
 import { decodeCsvBytes, parseCsv } from './hybel-journal.js';
 
@@ -149,6 +150,14 @@ export async function handleRetailPos(request, env, slug) {
       </section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} (Web)` })}
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'rt-output',
+          brand: RETAIL_API_UI[slug].brand,
+          hint: RETAIL_API_UI[slug].hint,
+          fields: RETAIL_API_UI[slug].fields,
+          sampleAction: true,
+        })}
         ${reaiCard({
           eyebrow: 'UPLOAD ACCOUNTING EXPORT CSV',
           title: `Import ${cfg.brand} Z-report journal`,
@@ -184,6 +193,13 @@ export async function handleRetailPos(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      const lines = await fetchRetailPosApi(slug, creds);
+      return htmlResponse(renderRetailPreview(slug, lines, false));
+    }
     if (pathname === `${basePath}/preview`) {
       const file = form.get('file');
       if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) {

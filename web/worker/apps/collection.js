@@ -4,6 +4,7 @@ import { html, htmlResponse } from '../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../lib/reai.js';
 import { formatMinor } from '../lib/reconcile.js';
+import { SETTLEMENT_API_UI, fetchTwoApi, renderApiFetchCard } from '../lib/provider-api.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
@@ -80,6 +81,14 @@ export async function handleCollection(request, env, slug) {
       <section class="app-intro"><p class="eyebrow">${cfg.eyebrow}</p><h1>${cfg.title}</h1><p class="lead">${cfg.lead}</p></section>
       <div class="stack">
         ${renderConnectPanel(session, { clientId: `reai-${slug}-web`, clientName: `ReAI ${cfg.brand} (Web)` })}
+        ${renderApiFetchCard({
+          basePath,
+          targetId: 'cl-output',
+          brand: SETTLEMENT_API_UI.two.brand,
+          hint: SETTLEMENT_API_UI.two.hint,
+          fields: SETTLEMENT_API_UI.two.fields,
+          sampleAction: true,
+        })}
         ${reaiCard({
           eyebrow: `${cfg.brand.toUpperCase()} STATEMENT`,
           title: 'Enter settlement totals (NOK)',
@@ -111,6 +120,12 @@ export async function handleCollection(request, env, slug) {
 
   try {
     const form = await request.formData();
+    if (pathname === `${basePath}/fetch-api`) {
+      /** @type {Record<string, string>} */
+      const creds = {};
+      for (const [k, v] of form.entries()) creds[k] = String(v);
+      return htmlResponse(renderColl(slug, await fetchTwoApi(creds), false));
+    }
     if (pathname === `${basePath}/preview`) {
       /** @param {string} k */
       const m = (k) => Math.round(Math.max(0, Number(form.get(k) ?? '0') || 0) * 100);
