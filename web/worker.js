@@ -2,17 +2,13 @@
 import { handle as app_24nettbutikk } from './worker/apps/24nettbutikk.js';
 import { handle as app_24sevenoffice_migrate } from './worker/apps/24sevenoffice-migrate.js';
 import { handle as app_abax } from './worker/apps/abax.js';
-import { handle as app_accountant_hub } from './worker/apps/accountant-hub.js';
 import { handle as app_acubiz } from './worker/apps/acubiz.js';
-import { handle as app_ads_spend } from './worker/apps/ads-spend.js';
 import { handle as app_airbnb } from './worker/apps/airbnb.js';
 import { handle as app_aksjonaer } from './worker/apps/aksjonaer.js';
 import { handle as app_aspit } from './worker/apps/aspit.js';
-import { handle as app_assets } from './worker/apps/assets.js';
 import { handle as app_automations } from './worker/apps/automations.js';
 import { handle as app_autonet } from './worker/apps/autonet.js';
 import { handle as app_autopass } from './worker/apps/autopass.js';
-import { handle as app_brreg_leads } from './worker/apps/brreg-leads.js';
 import { handle as app_budget } from './worker/apps/budget.js';
 import { handle as app_busy } from './worker/apps/busy.js';
 import { handle as app_checkin } from './worker/apps/checkin.js';
@@ -29,7 +25,6 @@ import { handle as app_fiken_migrate } from './worker/apps/fiken-migrate.js';
 import { handle as app_fixit } from './worker/apps/fixit.js';
 import { handle as app_fresha } from './worker/apps/fresha.js';
 import { handle as app_front_systems } from './worker/apps/front-systems.js';
-import { handle as app_gift_cards } from './worker/apps/gift-cards.js';
 import { handle as app_handyman } from './worker/apps/handyman.js';
 import { handle as app_hano } from './worker/apps/hano.js';
 import { handle as app_harvest } from './worker/apps/harvest.js';
@@ -51,7 +46,6 @@ import { handle as app_membro } from './worker/apps/membro.js';
 import { handle as app_mews } from './worker/apps/mews.js';
 import { handle as app_milient } from './worker/apps/milient.js';
 import { handle as app_minuba } from './worker/apps/minuba.js';
-import { handle as app_mrr } from './worker/apps/mrr.js';
 import { handle as app_munu } from './worker/apps/munu.js';
 import { handle as app_mystore } from './worker/apps/mystore.js';
 import { handle as app_nets } from './worker/apps/nets.js';
@@ -80,7 +74,6 @@ import { handle as app_simployer } from './worker/apps/simployer.js';
 import { handle as app_smartdok } from './worker/apps/smartdok.js';
 import { handle as app_spond_rubic } from './worker/apps/spond-rubic.js';
 import { handle as app_squarespace } from './worker/apps/squarespace.js';
-import { handle as app_stock_count } from './worker/apps/stock-count.js';
 import { handleStripe as app_stripe } from './worker/apps/stripe.js';
 import { handle as app_sumup } from './worker/apps/sumup.js';
 import { handle as app_superoffice } from './worker/apps/superoffice.js';
@@ -112,17 +105,13 @@ const ROUTES = {
   '24nettbutikk': app_24nettbutikk,
   '24sevenoffice-migrate': app_24sevenoffice_migrate,
   'abax': app_abax,
-  'accountant-hub': app_accountant_hub,
   'acubiz': app_acubiz,
-  'ads-spend': app_ads_spend,
   'airbnb': app_airbnb,
   'aksjonaer': app_aksjonaer,
   'aspit': app_aspit,
-  'assets': app_assets,
   'automations': app_automations,
   'autonet': app_autonet,
   'autopass': app_autopass,
-  'brreg-leads': app_brreg_leads,
   'budget': app_budget,
   'busy': app_busy,
   'checkin': app_checkin,
@@ -139,7 +128,6 @@ const ROUTES = {
   'fixit': app_fixit,
   'fresha': app_fresha,
   'front-systems': app_front_systems,
-  'gift-cards': app_gift_cards,
   'handyman': app_handyman,
   'hano': app_hano,
   'harvest': app_harvest,
@@ -161,7 +149,6 @@ const ROUTES = {
   'mews': app_mews,
   'milient': app_milient,
   'minuba': app_minuba,
-  'mrr': app_mrr,
   'munu': app_munu,
   'mystore': app_mystore,
   'nets': app_nets,
@@ -190,7 +177,6 @@ const ROUTES = {
   'smartdok': app_smartdok,
   'spond-rubic': app_spond_rubic,
   'squarespace': app_squarespace,
-  'stock-count': app_stock_count,
   'stripe': app_stripe,
   'sumup': app_sumup,
   'superoffice': app_superoffice,
@@ -212,6 +198,9 @@ const ROUTES = {
   'zettle': app_zettle,
 };
 
+/** Retired apps that duplicated the ReAI UI; old links land on the catalog. */
+const RETIRED = new Set(['brreg-leads', 'accountant-hub', 'assets', 'gift-cards', 'mrr', 'stock-count', 'ads-spend']);
+
 /**
  * Single Cloudflare Worker for apps.reai.no.
  * Everything outside /app/* is pure static assets served directly by Cloudflare edge.
@@ -227,6 +216,7 @@ export default {
       if (pathname === '/app' || pathname === '/app/') return Response.redirect(new URL('/web-apps/', request.url), 302);
 
       const segment = pathname.startsWith('/app/') ? (pathname.slice(5).split('/')[0] ?? '') : '';
+      if (RETIRED.has(segment)) return Response.redirect(new URL('/web-apps/', request.url), 301);
       const handler = segment ? ROUTES[segment] : undefined;
       if (handler) return await handler(request, env);
 

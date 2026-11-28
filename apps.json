@@ -647,13 +647,6 @@
     "path": "web/worker/apps/24sevenoffice-migrate.js",
     "route": "/app/24sevenoffice-migrate/"
   },
-  "brreg-leads-web": {
-    "name": "ReAI Brreg Leads",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/brreg-leads.js",
-    "route": "/app/brreg-leads/"
-  },
   "aksjonaer-web": {
     "name": "ReAI Aksjonær & Shares",
     "platform": "web",
@@ -661,47 +654,12 @@
     "path": "web/worker/apps/aksjonaer.js",
     "route": "/app/aksjonaer/"
   },
-  "assets-web": {
-    "name": "ReAI Fixed Assets",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/assets.js",
-    "route": "/app/assets/"
-  },
   "budget-web": {
     "name": "ReAI Company Budget",
     "platform": "web",
     "industry": "operations",
     "path": "web/worker/apps/budget.js",
     "route": "/app/budget/"
-  },
-  "mrr-web": {
-    "name": "ReAI SaaS MRR / ARR",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/mrr.js",
-    "route": "/app/mrr/"
-  },
-  "gift-cards-web": {
-    "name": "ReAI Gift Cards",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/gift-cards.js",
-    "route": "/app/gift-cards/"
-  },
-  "accountant-hub-web": {
-    "name": "ReAI Accountant Hub",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/accountant-hub.js",
-    "route": "/app/accountant-hub/"
-  },
-  "stock-count-web": {
-    "name": "ReAI Stock Valuation",
-    "platform": "web",
-    "industry": "ecommerce-logistics",
-    "path": "web/worker/apps/stock-count.js",
-    "route": "/app/stock-count/"
   },
   "fresha-web": {
     "name": "ReAI Fresha Salon",
@@ -737,13 +695,6 @@
     "industry": "real-estate",
     "path": "web/worker/apps/unibo.js",
     "route": "/app/unibo/"
-  },
-  "ads-spend-web": {
-    "name": "ReAI Google / Meta Ads",
-    "platform": "web",
-    "industry": "operations",
-    "path": "web/worker/apps/ads-spend.js",
-    "route": "/app/ads-spend/"
   },
   "autopass-web": {
     "name": "ReAI AutoPASS / EasyPark",
