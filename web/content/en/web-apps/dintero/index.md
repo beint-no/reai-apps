@@ -6,7 +6,7 @@ summary: Match paid Dintero settlements against ReAI bank feeds and optionally b
 industry: payments
 icon: icons/dintero.svg
 webAppUrl: /app/dintero/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/dintero.js
 highlights:
   - "Totals withheld fees across paid Dintero settlements in your company currency"
   - "Matches net settlements against pending ReAI bank transactions and exports CSV"

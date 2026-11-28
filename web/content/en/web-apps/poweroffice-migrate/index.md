@@ -6,7 +6,7 @@ summary: "Migrate customers, suppliers and products from PowerOffice Go CSV expo
 industry: operations
 icon: icons/poweroffice-migrate.svg
 webAppUrl: /app/poweroffice-migrate/
-sourcePath: web/worker/apps/switchers.js
+sourcePath: web/worker/apps/poweroffice-migrate.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Accounting migration (PowerOffice Go -> ReAI))"
   - "Direct integration with ReAI Public API (PowerOffice Go CSV -> ReAI master data + /app/saft/)"
@@ -22,7 +22,7 @@ Use **Switch from PowerOffice Go to ReAI** directly in your browser at `apps.rea
 | **Workflow** | Accounting migration (PowerOffice Go -> ReAI) |
 | **ReAI API / NS 4102** | `PowerOffice Go CSV -> ReAI master data + /app/saft/` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/switchers.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/poweroffice-migrate.js`) |
 
 ## Getting started
 

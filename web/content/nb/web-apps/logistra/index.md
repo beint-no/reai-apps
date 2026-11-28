@@ -6,7 +6,7 @@ summary: "Overfør fraktgrunnlag og EDI-sendinger fra Logistra Cargonizer eller 
 industry: ecommerce-logistics
 icon: icons/logistra.svg
 webAppUrl: /app/logistra/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/logistra.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Ecommerce & wholesale shipping (EDI-frakt)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/orders)"

@@ -6,7 +6,7 @@ summary: "Synkroniser produkter på varenummer og importer betalte ordrer fra 24
 industry: ecommerce-logistics
 icon: icons/24nettbutikk.svg
 webAppUrl: /app/24nettbutikk/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/24nettbutikk.js
 highlights:
   - "Henter produkter og betalte ordrer rett fra 24Nettbutikk-API-et"
   - "Duplikatsjekker både varenummer (SKU) og ordrenummer automatisk"

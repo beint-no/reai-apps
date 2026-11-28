@@ -6,7 +6,7 @@ summary: "Book Hoopla and Deltager.no payout statements into ReAI separating 0% 
 industry: operations
 icon: icons/hoopla.svg
 webAppUrl: /app/hoopla/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/hoopla.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Concerts, festivals & races (Billettsalg)"
   - "Direct mapping to NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 7770)"

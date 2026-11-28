@@ -6,7 +6,7 @@ summary: "Import approved Planday shift schedules and worked hours directly into
 industry: operations
 icon: icons/planday.svg
 webAppUrl: /app/planday/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/planday.js
 highlights:
   - "Purpose-built for Norwegian accounting in Retail & hospitality shift planning (Vaktplan)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"

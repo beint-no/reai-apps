@@ -6,7 +6,7 @@ summary: "Importer godkjente prosjekttimer fra Visma Severa rett inn i ReAI Time
 industry: operations
 icon: icons/severa.svg
 webAppUrl: /app/severa/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/severa.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Consulting & professional services (Konsulent)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/timesheets)"

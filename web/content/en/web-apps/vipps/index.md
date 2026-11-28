@@ -6,7 +6,7 @@ summary: Match Vipps MobilePay scheduled payouts with pending ReAI bank transact
 industry: payments
 icon: icons/vipps.svg
 webAppUrl: /app/vipps/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/vipps.js
 highlights:
   - "Reads Vipps Report API v2 scheduled payouts directly by month"
   - "Matches payouts against pending ReAI bank transactions within an 8-day settlement window"

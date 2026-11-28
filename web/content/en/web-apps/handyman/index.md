@@ -6,7 +6,7 @@ summary: "Import completed GSGroup Handyman mobile service orders and technician
 industry: operations
 icon: icons/handyman.svg
 webAppUrl: /app/handyman/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/handyman.js
 highlights:
   - "Purpose-built for Norwegian accounting in Field service & technical installation (Servicebedrifter)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Orders)"

@@ -6,7 +6,7 @@ summary: "Importer godkjente vaktplaner og arbeidstimer fra Planday rett inn i R
 industry: operations
 icon: icons/planday.svg
 webAppUrl: /app/planday/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/planday.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Retail & hospitality shift planning (Vaktplan)"
   - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"

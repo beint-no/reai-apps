@@ -6,7 +6,7 @@ summary: "Importer dagsoppgjør og bilagsjournal fra Confirma PCKasse rett inn i
 industry: payments
 icon: icons/pckasse.svg
 webAppUrl: /app/pckasse/
-sourcePath: web/worker/apps/retail-pos.js
+sourcePath: web/worker/apps/pckasse.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Norwegian retail & specialty stores (Faghandel)"
   - "Kobles rett mot NS 4102 og ReAI Public API (1900, 1580, 3000, 2700)"

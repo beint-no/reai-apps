@@ -6,7 +6,7 @@ summary: "Import daily Lightspeed Restaurant / Gastrofix settlements into balanc
 industry: payments
 icon: icons/lightspeed.svg
 webAppUrl: /app/lightspeed/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/lightspeed.js
 highlights:
   - "Purpose-built for Norwegian accounting in Full-service restaurants (Restaurantkjeder)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 (25%), 3010 (15%), 2930)"

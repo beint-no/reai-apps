@@ -6,7 +6,7 @@ summary: "Bokfør dagsoppgjør fra Hano i ReAI med automatisk skille mellom avgi
 industry: payments
 icon: icons/hano.svg
 webAppUrl: /app/hano/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/hano.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Salons, spas & clinics (Salong og spa)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 3100 (0%), 3000 (25%))"

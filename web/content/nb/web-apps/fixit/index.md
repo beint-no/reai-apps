@@ -6,7 +6,7 @@ summary: "Bokfør dagsoppgjør fra Fixit frisør- og skjønnhetskasse direkte i 
 industry: payments
 icon: icons/fixit.svg
 webAppUrl: /app/fixit/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/fixit.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Hair salons & beauty studios (Frisør)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 1900, 3000 (25%), 7770)"

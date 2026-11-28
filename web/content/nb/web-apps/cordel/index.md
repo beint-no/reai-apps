@@ -6,7 +6,7 @@ summary: "Overfør ferdige arbeidsordrer og timer fra Cordel for elektro, VVS og
 industry: operations
 icon: icons/cordel.svg
 webAppUrl: /app/cordel/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/cordel.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Electricians, plumbers & contractors (Elektro / VVS)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Orders)"

@@ -6,7 +6,7 @@ summary: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI og 
 industry: operations
 icon: icons/budget.svg
 webAppUrl: /app/budget/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/budget.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (FP&A & annual company budgeting)"
   - "Direkte kobling mot ReAI sitt åpne API (PUT /api/company-budgets/{year} & GET /api/company-budgets/{year})"
@@ -22,7 +22,7 @@ Bruk **12-måneders NS 4102 budsjettimport** rett i nettleseren på `apps.reai.n
 | **Bruksområde** | FP&A & annual company budgeting |
 | **ReAI API / NS 4102** | `PUT /api/company-budgets/{year} & GET /api/company-budgets/{year}` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/budget.js`) |
 
 ## Kom i gang på 2 minutter
 

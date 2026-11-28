@@ -6,7 +6,7 @@ summary: "Henter daglig butikkomsetning fra Front Systems fordelt på betalingsm
 industry: payments
 icon: icons/front-systems.svg
 webAppUrl: /app/front-systems/
-sourcePath: web/worker/apps/pos.js
+sourcePath: web/worker/apps/front-systems.js
 highlights:
   - "Kobler rett mot Front Systems API v2 (/v2/Sales) med X-API-Key"
   - "Summerer kontant, kort og Vipps mot 25 %, 15 %, 12 % og 0 % MVA"

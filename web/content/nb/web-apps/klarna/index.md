@@ -6,7 +6,7 @@ summary: Sammenlign oppgjør fra Klarna med banktransaksjoner i ReAI og eksporte
 industry: payments
 icon: icons/klarna.svg
 webAppUrl: /app/klarna/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/klarna.js
 highlights:
   - "Henter Klarna Settlements v1 med oversikt over salg, gebyrer og returer"
   - "Finner matchende banktransaksjoner i ReAI på utbetalingsreferanse og beløp"

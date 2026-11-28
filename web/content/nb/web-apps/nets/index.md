@@ -6,7 +6,7 @@ summary: "Match utbetalinger fra Nets Easy / Nexi mot banktransaksjoner i ReAI o
 industry: payments
 icon: icons/nets.svg
 webAppUrl: /app/nets/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/nets.js
 highlights:
   - "Henter utbetalinger direkte fra Nets Easy Reporting API per måned"
   - "Matcher bankinnskudd mot referanser og beløp (±8 dager)"

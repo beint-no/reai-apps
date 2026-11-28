@@ -6,7 +6,7 @@ summary: "Import approved construction hours, machine logs and project billing f
 industry: operations
 icon: icons/smartdok.svg
 webAppUrl: /app/smartdok/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/smartdok.js
 highlights:
   - "Purpose-built for Norwegian accounting in Construction & civil engineering (Bygg og anlegg)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Timesheets)"

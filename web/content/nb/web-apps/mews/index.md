@@ -6,7 +6,7 @@ summary: "Overfør hotelloppgjør fra Mews PMS til ReAI med riktig fordeling på
 industry: payments
 icon: icons/mews.svg
 webAppUrl: /app/mews/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/mews.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Modern cloud hotels (Hotell)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3020 (12%), 3010 (15%), 3000 (25%))"

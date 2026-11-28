@@ -235,7 +235,7 @@ export function appShell(props) {
       <a class="button primary nav-cta" href="https://app.reai.no/auth/signup">Try ReAI free →</a>
     </nav>
     <nav id="app-switcher" popover class="app-switcher">
-      <input type="search" id="app-switcher-filter" class="switcher-search" placeholder="Filter 100+ integrations…">
+      <input type="search" id="app-switcher-filter" class="switcher-search" placeholder="Filter integrations…">
       ${APP_LINKS.map(
         ([href, label]) =>
           html`<a href="${href}"${props.activePath === href ? html` data-current="true"` : ''}>${label}</a>`,

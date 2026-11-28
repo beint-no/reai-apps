@@ -6,7 +6,7 @@ summary: "Synkroniser produkter på SKU og importer betalte ordrer fra Magento 2
 industry: ecommerce-logistics
 icon: icons/magento.svg
 webAppUrl: /app/magento/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/magento.js
 highlights:
   - "Bruker standard Magento REST API v1 (/rest/V1/products og /orders)"
   - "Oppretter nye produkter i ReAI med pris og lagerstatus"

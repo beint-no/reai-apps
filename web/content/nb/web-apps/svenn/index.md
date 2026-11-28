@@ -6,7 +6,7 @@ summary: "Synkroniser godkjente håndverkertimer og fullførte oppdrag fra Svenn
 industry: operations
 icon: icons/svenn.svg
 webAppUrl: /app/svenn/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/svenn.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Carpentry, painting & SMB trades (Håndverkere)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Timesheets)"

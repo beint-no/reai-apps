@@ -6,7 +6,7 @@ summary: "Overfør prosjekttimer fra Milient (tidligere Moment) for arkitekter, 
 industry: operations
 icon: icons/milient.svg
 webAppUrl: /app/milient/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/milient.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Architects, engineers & consultants (Prosjekt)"
   - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"

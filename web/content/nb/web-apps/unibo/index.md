@@ -6,7 +6,7 @@ summary: "Bokfør månedlige felleskostnader og forvaltningsbilag for borettslag
 industry: real-estate
 icon: icons/unibo.svg
 webAppUrl: /app/unibo/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/unibo.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Boligforvaltning, borettslag & sameie)"
   - "Direkte kobling mot ReAI sitt åpne API (1580 / 7770 / 3100 felleskostnader review vouchers)"
@@ -22,7 +22,7 @@ Bruk **Boligforvaltning: Borettslag og Sameie (Unibo / OBOS)** rett i nettlesere
 | **Bruksområde** | Boligforvaltning, borettslag & sameie |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3100 felleskostnader review vouchers` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/norway-deep.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/unibo.js`) |
 
 ## Kom i gang på 2 minutter
 

@@ -6,7 +6,7 @@ summary: "Import Fazile lease schedules into ReAI recurring billing subscription
 industry: real-estate
 icon: icons/fazile.svg
 webAppUrl: /app/fazile/
-sourcePath: web/worker/apps/billing.js
+sourcePath: web/worker/apps/fazile.js
 highlights:
   - "Matches tenants automatically against your ReAI customer register"
   - "Supports both VAT-exempt residential/commercial rent (code 6) and voluntary VAT leases (code 3)"

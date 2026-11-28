@@ -6,7 +6,7 @@ summary: Sammenlign utbetalinger og kortgebyrer fra SumUp mot uavstemte banktran
 industry: payments
 icon: icons/sumup.svg
 webAppUrl: /app/sumup/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/sumup.js
 highlights:
   - "Henter utbetalinger direkte fra SumUp Payouts API med forhandlerkode og API-nøkkel"
   - "Viser netto utbetaling og trukket SumUp-gebyr sammen med banklinjer i ReAI"

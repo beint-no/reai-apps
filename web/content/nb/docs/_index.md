@@ -1,7 +1,7 @@
 ---
 title: Dokumentasjon og integrasjonsguide
-seoTitle: ReAI Integrasjonsguide — 100 gratis regnskapsintegrasjoner for Norge
-description: Komplett oversikt over innebygde koblinger (inkl. Kravia inkasso) og 100 gratis integrasjoner for betaling, nettbutikk, kasse, salong, klinikk, boligforvaltning og SAF-T.
+seoTitle: ReAI Integrasjonsguide — Gratis regnskapsintegrasjoner for Norge
+description: Komplett oversikt over innebygde koblinger (inkl. Kravia inkasso) og gratis integrasjoner for betaling, nettbutikk, kasse, salong, klinikk, boligforvaltning og SAF-T.
 summary: Alt du trenger for å koble betalingsløsninger, nettbutikker, kasser, salonger, klinikker, boligforvaltning, HR, CRM og systembytte til ReAI helt uten tilleggsgebyr.
 eyebrow: DOKUMENTASJON OG GUIDER
 ---

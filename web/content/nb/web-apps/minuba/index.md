@@ -6,7 +6,7 @@ summary: "Importer arbeidsordrer, materiell og timer fra Minuba rett inn i ReAI 
 industry: operations
 icon: icons/minuba.svg
 webAppUrl: /app/minuba/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/minuba.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Cloud trades order management (Håndverk)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Orders)"

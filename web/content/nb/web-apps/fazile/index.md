@@ -6,7 +6,7 @@ summary: "Importer leieoversikt fra Fazile boligforvaltning og klargjør månedl
 industry: real-estate
 icon: icons/fazile.svg
 webAppUrl: /app/fazile/
-sourcePath: web/worker/apps/billing.js
+sourcePath: web/worker/apps/fazile.js
 highlights:
   - "Matcher leietakere automatisk mot kunderegisteret i ReAI"
   - "Støtter både MVA-unntatt utleie (kode 6) og frivillig MVA-registrert utleie (kode 3)"

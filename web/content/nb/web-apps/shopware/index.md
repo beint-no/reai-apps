@@ -6,7 +6,7 @@ summary: "Koble til Shopware 6 Admin API for å synkronisere produkter og import
 industry: ecommerce-logistics
 icon: icons/shopware.svg
 webAppUrl: /app/shopware/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/shopware.js
 highlights:
   - "Logger på med Shopware 6 OAuth client credentials uten lagring av nøkler"
   - "Henter produkter og ordrer via Shopware Search API"

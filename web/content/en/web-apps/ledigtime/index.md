@@ -6,7 +6,7 @@ summary: "Book Ledigtime and Bokadirekt salon & wellness payouts cleanly into Re
 industry: operations
 icon: icons/ledigtime.svg
 webAppUrl: /app/ledigtime/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/ledigtime.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Norwegian & Nordic salon booking)"
   - "Direct integration with ReAI Public API (1580 / 7770 / 3000+2700 / 3100 review vouchers)"
@@ -22,7 +22,7 @@ Use **Ledigtime & Bokadirekt Accounting** directly in your browser at `apps.reai
 | **Workflow** | Norwegian & Nordic salon booking |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3000+2700 / 3100 review vouchers` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/ledigtime.js`) |
 
 ## Getting started
 

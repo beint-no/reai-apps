@@ -6,7 +6,7 @@ summary: "Stage Fenistra / Propely commercial leases and common-cost schedules (
 industry: real-estate
 icon: icons/fenistra.svg
 webAppUrl: /app/fenistra/
-sourcePath: web/worker/apps/property.js
+sourcePath: web/worker/apps/fenistra.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Commercial real estate (Næringseiendom)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/subscriptions)"

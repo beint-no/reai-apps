@@ -6,7 +6,7 @@ summary: "Last opp norsk SAF-T Financial XML fra Tripletex, Fiken, PowerOffice G
 industry: operations
 icon: icons/saft.svg
 webAppUrl: /app/saft/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/saft.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Switching Norwegian accounting systems (SAF-T)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (SAF-T XML -> Customers, Suppliers & Trial Balance)"

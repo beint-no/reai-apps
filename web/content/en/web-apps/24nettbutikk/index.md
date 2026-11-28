@@ -6,7 +6,7 @@ summary: "Connect your 24Nettbutikk store to ReAI for SKU-matched product sync a
 industry: ecommerce-logistics
 icon: icons/24nettbutikk.svg
 webAppUrl: /app/24nettbutikk/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/24nettbutikk.js
 highlights:
   - "Fetches products and paid orders directly from your 24Nettbutikk store API"
   - "Prevents duplicate SKUs and duplicate imported orders automatically"

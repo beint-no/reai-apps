@@ -6,7 +6,7 @@ summary: "Convert daily Quickorder / Shopbox restaurant Z-reports into balanced 
 industry: payments
 icon: icons/quickorder.svg
 webAppUrl: /app/quickorder/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/quickorder.js
 highlights:
   - "Purpose-built for Norwegian accounting in Restaurants & takeaway (Servering)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 (25%), 3010 (15%), 2930 (Tips))"

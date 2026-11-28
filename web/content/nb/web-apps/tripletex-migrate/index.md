@@ -6,7 +6,7 @@ summary: "Flytt kunder, leverandører og produkter rett fra Tripletex API v2 ell
 industry: operations
 icon: icons/tripletex-migrate.svg
 webAppUrl: /app/tripletex-migrate/
-sourcePath: web/worker/apps/switchers.js
+sourcePath: web/worker/apps/tripletex-migrate.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Accounting migration (Tripletex -> ReAI))"
   - "Direkte kobling mot ReAI sitt åpne API (Tripletex v2 API -> POST /api/customers, /api/suppliers, /api/products)"
@@ -22,7 +22,7 @@ Bruk **Bytt fra Tripletex til ReAI** rett i nettleseren på `apps.reai.no/app/tr
 | **Bruksområde** | Accounting migration (Tripletex -> ReAI) |
 | **ReAI API / NS 4102** | `Tripletex v2 API -> POST /api/customers, /api/suppliers, /api/products` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/switchers.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/tripletex-migrate.js`) |
 
 ## Kom i gang på 2 minutter
 

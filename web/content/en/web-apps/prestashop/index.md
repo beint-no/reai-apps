@@ -6,7 +6,7 @@ summary: "Fetch PrestaShop catalog items and paid orders via the Webservice API 
 industry: ecommerce-logistics
 icon: icons/prestashop.svg
 webAppUrl: /app/prestashop/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/prestashop.js
 highlights:
   - "Connects directly to PrestaShop Webservice API (JSON output)"
   - "Matches product references/SKUs against ReAI before creating items"

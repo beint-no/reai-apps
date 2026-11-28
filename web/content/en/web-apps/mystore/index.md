@@ -6,7 +6,7 @@ summary: "Sync Mystore.no catalog products by SKU and import paid Mystore orders
 industry: ecommerce-logistics
 icon: icons/mystore.svg
 webAppUrl: /app/mystore/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/mystore.js
 highlights:
   - "Connects directly to the Mystore.no JSON:API (/products and /orders)"
   - "Deduplicates products by SKU and creates missing items in ReAI"

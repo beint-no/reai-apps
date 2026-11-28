@@ -6,7 +6,7 @@ summary: "Sync Magento 2 / Adobe Commerce products by SKU and import paid orders
 industry: ecommerce-logistics
 icon: icons/magento.svg
 webAppUrl: /app/magento/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/magento.js
 highlights:
   - "Uses standard Magento REST API v1 Integration Bearer tokens"
   - "Syncs SKUs, pricing and stock-item flags straight to ReAI"

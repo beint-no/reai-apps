@@ -6,7 +6,7 @@ summary: Compare Klarna Settlements API payouts with pending ReAI bank transacti
 industry: payments
 icon: icons/klarna.svg
 webAppUrl: /app/klarna/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/klarna.js
 highlights:
   - "Reads Klarna Settlements v1 payouts with sales, fees and returns breakdown"
   - "Automatically finds matching ReAI bank transactions by payment reference or amount"

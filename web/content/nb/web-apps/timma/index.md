@@ -6,7 +6,7 @@ summary: "Importer oppgjørsrapporter fra Timma salong og booking i ReAI med aut
 industry: operations
 icon: icons/timma.svg
 webAppUrl: /app/timma/
-sourcePath: web/worker/apps/billing.js
+sourcePath: web/worker/apps/timma.js
 highlights:
   - "Skiller avgiftsfrie helsetjenester (3100) fra avgiftspliktig behandling og varesalg (3000 + 2700)"
   - "Bokfører kort- og bookinggebyrer ryddig på konto 7770"

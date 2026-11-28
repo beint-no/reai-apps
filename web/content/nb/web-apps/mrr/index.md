@@ -6,7 +6,7 @@ summary: "Følg MRR, ARR og aktive abonnementer direkte fra ReAI og generer forf
 industry: payments
 icon: icons/mrr.svg
 webAppUrl: /app/mrr/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/mrr.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (SaaS, retainers & recurring billing)"
   - "Direkte kobling mot ReAI sitt åpne API (GET /api/subscriptions & POST /api/subscriptions/generate-due)"
@@ -22,7 +22,7 @@ Bruk **SaaS MRR / ARR og abonnementsfakturering** rett i nettleseren på `apps.r
 | **Bruksområde** | SaaS, retainers & recurring billing |
 | **ReAI API / NS 4102** | `GET /api/subscriptions & POST /api/subscriptions/generate-due` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/mrr.js`) |
 
 ## Kom i gang på 2 minutter
 

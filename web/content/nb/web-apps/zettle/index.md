@@ -6,7 +6,7 @@ summary: Match utbetalinger fra Zettle mot uavstemte banktransaksjoner i ReAI og
 industry: payments
 icon: icons/zettle.svg
 webAppUrl: /app/zettle/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/zettle.js
 highlights:
   - "Henter utbetalinger fra Zettle Finance API v2 med READ:FINANCE-tilgang"
   - "Matcher kasseutbetalinger mot banktransaksjoner i ReAI innenfor 8 dager"

@@ -6,7 +6,7 @@ summary: "Bokfør SaaS-utbetalinger fra Paddle (Merchant of Record) og Chargebee
 industry: payments
 icon: icons/paddle.svg
 webAppUrl: /app/paddle/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/paddle.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Norwegian SaaS & software exports (SaaS)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 3100 (0% export), 7770)"

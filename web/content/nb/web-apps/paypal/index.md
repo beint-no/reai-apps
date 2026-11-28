@@ -6,7 +6,7 @@ summary: "Hent utbetalinger fra PayPal Business via Reporting API og match dem a
 industry: payments
 icon: icons/paypal.svg
 webAppUrl: /app/paypal/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/paypal.js
 highlights:
   - "Kobler direkte til PayPal REST Reporting API per måned"
   - "Viser utbetalinger og gebyrer side om side med banktransaksjoner i ReAI"

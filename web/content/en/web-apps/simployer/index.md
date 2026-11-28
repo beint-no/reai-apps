@@ -6,7 +6,7 @@ summary: "Import approved Simployer (Infotjenester) travel claims, per diem and 
 industry: operations
 icon: icons/simployer.svg
 webAppUrl: /app/simployer/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/simployer.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Norwegian HR & travel claims (Reiseregning)"
   - "Direct mapping to NS 4102 / ReAI Public API (7140, 7150, 2915)"

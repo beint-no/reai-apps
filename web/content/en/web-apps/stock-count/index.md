@@ -6,7 +6,7 @@ summary: "Inspect live SKU stock-on-hand, cost valuation (1460) and retail value
 industry: ecommerce-logistics
 icon: icons/stock-count.svg
 webAppUrl: /app/stock-count/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/stock-count.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Ecommerce & wholesale inventory (NS 4102 1460))"
   - "Direct integration with ReAI Public API (GET /api/warehouses/inventory)"
@@ -22,7 +22,7 @@ Use **Warehouse Stock & Inventory Valuation** directly in your browser at `apps.
 | **Workflow** | Ecommerce & wholesale inventory (NS 4102 1460) |
 | **ReAI API / NS 4102** | `GET /api/warehouses/inventory` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/stock-count.js`) |
 
 ## Getting started
 

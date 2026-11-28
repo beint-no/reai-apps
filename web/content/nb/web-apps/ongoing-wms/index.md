@@ -6,7 +6,7 @@ summary: "Synkroniser lagerartikler og varenumre (SKU) fra Ongoing WMS 3PL-lager
 industry: ecommerce-logistics
 icon: icons/ongoing-wms.svg
 webAppUrl: /app/ongoing-wms/
-sourcePath: web/worker/apps/verticals.js
+sourcePath: web/worker/apps/ongoing-wms.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for 3PL warehouses & ecommerce logistics (Lager/WMS)"
   - "Kobles rett mot NS 4102 og ReAI Public API (GET articles -> POST /api/products)"

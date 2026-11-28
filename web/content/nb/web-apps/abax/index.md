@@ -6,7 +6,7 @@ summary: "Importer godkjente yrkesreiser og bompenger fra ABAX Triplog rett inn 
 industry: operations
 icon: icons/abax.svg
 webAppUrl: /app/abax/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/abax.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Fleet, trades & field sales (Kjørebok)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/driving-log/trips)"

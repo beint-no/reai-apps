@@ -6,7 +6,7 @@ summary: "Overfør boligleiekontrakter fra Husleie.no til faste leieavtaler i Re
 industry: real-estate
 icon: icons/husleie.svg
 webAppUrl: /app/husleie/
-sourcePath: web/worker/apps/property.js
+sourcePath: web/worker/apps/husleie.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Residential landlords (Boligutleie)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/subscriptions)"

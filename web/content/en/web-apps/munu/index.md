@@ -6,7 +6,7 @@ summary: "Book daily Munu hospitality POS settlements directly into ReAI with ex
 industry: payments
 icon: icons/munu.svg
 webAppUrl: /app/munu/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/munu.js
 highlights:
   - "Purpose-built for Norwegian accounting in Hospitality & nightlife (Restaurant og uteliv)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 (25%), 3010 (15%), 1580)"

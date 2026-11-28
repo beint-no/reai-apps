@@ -6,7 +6,7 @@ summary: "Reconcile Two B2B buy-now-pay-later payouts in ReAI splitting settled 
 industry: payments
 icon: icons/two.svg
 webAppUrl: /app/two/
-sourcePath: web/worker/apps/collection.js
+sourcePath: web/worker/apps/two.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for B2B ecommerce & wholesale (B2B-betaling)"
   - "Direct mapping to NS 4102 / ReAI Public API (1580, 1579, 7770)"

@@ -6,7 +6,7 @@ summary: "Flytt kunder, leverandører og produkter fra PowerOffice Go til ReAI s
 industry: operations
 icon: icons/poweroffice-migrate.svg
 webAppUrl: /app/poweroffice-migrate/
-sourcePath: web/worker/apps/switchers.js
+sourcePath: web/worker/apps/poweroffice-migrate.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Accounting migration (PowerOffice Go -> ReAI))"
   - "Direkte kobling mot ReAI sitt åpne API (PowerOffice Go CSV -> ReAI master data + /app/saft/)"
@@ -22,7 +22,7 @@ Bruk **Bytt fra PowerOffice Go til ReAI** rett i nettleseren på `apps.reai.no/a
 | **Bruksområde** | Accounting migration (PowerOffice Go -> ReAI) |
 | **ReAI API / NS 4102** | `PowerOffice Go CSV -> ReAI master data + /app/saft/` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/switchers.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/poweroffice-migrate.js`) |
 
 ## Kom i gang på 2 minutter
 

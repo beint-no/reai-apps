@@ -6,7 +6,7 @@ summary: "Gjør daglige Z-rapporter fra Quickorder (Shopbox) om til balanserte b
 industry: payments
 icon: icons/quickorder.svg
 webAppUrl: /app/quickorder/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/quickorder.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Restaurants & takeaway (Servering)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 (25%), 3010 (15%), 2930 (Tips))"

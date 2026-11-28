@@ -6,7 +6,7 @@ summary: "Pull daily Front Systems store sales by payment type and VAT rate and 
 industry: payments
 icon: icons/front-systems.svg
 webAppUrl: /app/front-systems/
-sourcePath: web/worker/apps/pos.js
+sourcePath: web/worker/apps/front-systems.js
 highlights:
   - "Connects directly to Front Systems API v2 (/v2/Sales) using X-API-Key"
   - "Aggregates cash, card terminal and Vipps payments against 25%/15%/12%/0% VAT sales"

@@ -6,7 +6,7 @@ summary: "Hent timeregistreringer fra Clockify via API og importer dem rett inn 
 industry: operations
 icon: icons/clockify.svg
 webAppUrl: /app/clockify/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/clockify.js
 highlights:
   - "Kobler til Clockify API v1 med X-Api-Key uten lagring av nøkler"
   - "Konverterer varigheter nøyaktig til desimaltimer i ReAI"

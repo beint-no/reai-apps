@@ -6,7 +6,7 @@ summary: "Connect Squarespace Commerce or BigCommerce REST APIs to scan products
 industry: ecommerce-logistics
 icon: icons/squarespace.svg
 webAppUrl: /app/squarespace/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/squarespace.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Design & DTC online stores (Nettbutikk)"
   - "Direct mapping to NS 4102 / ReAI Public API (Commerce REST API -> ReAI)"

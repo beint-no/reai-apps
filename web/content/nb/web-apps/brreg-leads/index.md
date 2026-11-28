@@ -6,7 +6,7 @@ summary: "Søk direkte i Brønnøysundregistrene på navn, næringskode eller se
 industry: operations
 icon: icons/brreg-leads.svg
 webAppUrl: /app/brreg-leads/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/brreg-leads.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (B2B sales & prospecting (Enhetsregisteret))"
   - "Direkte kobling mot ReAI sitt åpne API (Live data.brreg.no API -> POST /api/leads)"
@@ -22,7 +22,7 @@ Bruk **Brønnøysund Enhetssøk til ReAI Leads** rett i nettleseren på `apps.re
 | **Bruksområde** | B2B sales & prospecting (Enhetsregisteret) |
 | **ReAI API / NS 4102** | `Live data.brreg.no API -> POST /api/leads` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/brreg-leads.js`) |
 
 ## Kom i gang på 2 minutter
 

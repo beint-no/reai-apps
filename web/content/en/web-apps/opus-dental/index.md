@@ -6,7 +6,7 @@ summary: "Book daily Opus Dental cashbooks into ReAI separating patient payments
 industry: operations
 icon: icons/opus-dental.svg
 webAppUrl: /app/opus-dental/
-sourcePath: web/worker/apps/verticals.js
+sourcePath: web/worker/apps/opus-dental.js
 highlights:
   - "Purpose-built for Norwegian accounting in Dental clinics & HELFO (Tannklinikk)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (1580, 1570 (HELFO), 3100, 3000)"

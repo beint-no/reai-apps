@@ -6,7 +6,7 @@ summary: "Book Checkin registration settlements into ReAI separating VAT-exempt 
 industry: operations
 icon: icons/checkin.svg
 webAppUrl: /app/checkin/
-sourcePath: web/worker/apps/membership.js
+sourcePath: web/worker/apps/checkin.js
 highlights:
   - "Purpose-built for Norwegian accounting in Courses, conferences & seminars (Kurs og konferanse)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3100 (0%), 3000 (25%), 7770)"

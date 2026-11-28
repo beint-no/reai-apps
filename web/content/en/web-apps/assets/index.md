@@ -6,7 +6,7 @@ summary: "Register and audit Norwegian fixed assets (accounts 1200–1299) strai
 industry: operations
 icon: icons/assets.svg
 webAppUrl: /app/assets/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/assets.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Fixed asset register & depreciation)"
   - "Direct integration with ReAI Public API (POST /api/assets & GET /api/assets)"
@@ -22,7 +22,7 @@ Use **Fixed Assets & Saldoavskrivning** directly in your browser at `apps.reai.n
 | **Workflow** | Fixed asset register & depreciation |
 | **ReAI API / NS 4102** | `POST /api/assets & GET /api/assets` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/assets.js`) |
 
 ## Getting started
 

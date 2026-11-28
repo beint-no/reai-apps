@@ -6,7 +6,7 @@ summary: "Samlet klientoversikt for regnskapsbyråer i ReAI — se alle klienter
 industry: operations
 icon: icons/accountant-hub.svg
 webAppUrl: /app/accountant-hub/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/accountant-hub.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Norwegian accounting firms (Regnskapsfører))"
   - "Direkte kobling mot ReAI sitt åpne API (GET /api/accountant-clients)"
@@ -22,7 +22,7 @@ Bruk **Regnskapsfører klientoversikt** rett i nettleseren på `apps.reai.no/app
 | **Bruksområde** | Norwegian accounting firms (Regnskapsfører) |
 | **ReAI API / NS 4102** | `GET /api/accountant-clients` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/accountant-hub.js`) |
 
 ## Kom i gang på 2 minutter
 

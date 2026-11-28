@@ -6,7 +6,7 @@ summary: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV) in
 industry: operations
 icon: icons/aksjonaer.svg
 webAppUrl: /app/aksjonaer/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/aksjonaer.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Holding companies & Norwegian equity portfolios)"
   - "Direct integration with ReAI Public API (POST /api/share-investments & GET /api/share-investments)"
@@ -22,7 +22,7 @@ Use **Aksjonærregister & Share Investments** directly in your browser at `apps.
 | **Workflow** | Holding companies & Norwegian equity portfolios |
 | **ReAI API / NS 4102** | `POST /api/share-investments & GET /api/share-investments` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/aksjonaer.js`) |
 
 ## Getting started
 

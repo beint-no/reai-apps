@@ -6,7 +6,7 @@ summary: "Book TicketCo payout statements into ReAI separating VAT-exempt cultur
 industry: operations
 icon: icons/ticketco.svg
 webAppUrl: /app/ticketco/
-sourcePath: web/worker/apps/membership.js
+sourcePath: web/worker/apps/ticketco.js
 highlights:
   - "Purpose-built for Norwegian accounting in Festivals, venues & culture (Arrangement)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3100 (0%), 3000 (25%), 7770)"

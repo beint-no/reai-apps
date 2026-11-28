@@ -6,7 +6,7 @@ summary: "Reconcile Fresha salon and barbershop payouts into ReAI separating 25%
 industry: operations
 icon: icons/fresha.svg
 webAppUrl: /app/fresha/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/fresha.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Salons, barbershops & beauty studios)"
   - "Direct integration with ReAI Public API (1580 / 7770 / 3000+2700 / 3100 review vouchers)"
@@ -22,7 +22,7 @@ Use **Fresha Salon & Barbershop Accounting** directly in your browser at `apps.r
 | **Workflow** | Salons, barbershops & beauty studios |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3000+2700 / 3100 review vouchers` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/fresha.js`) |
 
 ## Getting started
 

@@ -6,7 +6,7 @@ summary: "Sync Ongoing WMS 3PL warehouse articles and SKU inventory directly int
 industry: ecommerce-logistics
 icon: icons/ongoing-wms.svg
 webAppUrl: /app/ongoing-wms/
-sourcePath: web/worker/apps/verticals.js
+sourcePath: web/worker/apps/ongoing-wms.js
 highlights:
   - "Purpose-built for Norwegian accounting in 3PL warehouses & ecommerce logistics (Lager/WMS)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (GET articles -> POST /api/products)"

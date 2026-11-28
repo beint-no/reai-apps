@@ -6,7 +6,7 @@ summary: "Import approved Quinyx chain retail and hospitality shift hours direct
 industry: operations
 icon: icons/quinyx.svg
 webAppUrl: /app/quinyx/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/quinyx.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Enterprise retail & hospitality WFM (Turnus)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/timesheets)"

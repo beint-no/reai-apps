@@ -6,7 +6,7 @@ summary: "Fetch Clockify workspace time entries via API and import them into ReA
 industry: operations
 icon: icons/clockify.svg
 webAppUrl: /app/clockify/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/clockify.js
 highlights:
   - "Connects to Clockify API v1 using your personal X-Api-Key"
   - "Parses ISO-8601 durations into accurate two-decimal ReAI hours"

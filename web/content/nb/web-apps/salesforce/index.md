@@ -6,7 +6,7 @@ summary: "Koble Salesforce CRM mot ReAI for kundesynkronisering og fakturagrunnl
 industry: operations
 icon: icons/salesforce.svg
 webAppUrl: /app/salesforce/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/salesforce.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Enterprise B2B sales (CRM)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (Salesforce REST API -> ReAI)"

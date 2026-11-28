@@ -6,7 +6,7 @@ summary: "Issue gift cards, check live balances and reconcile outstanding Norweg
 industry: payments
 icon: icons/gift-cards.svg
 webAppUrl: /app/gift-cards/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/gift-cards.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Retail, hospitality & salon gift cards)"
   - "Direct integration with ReAI Public API (POST /api/gift-cards & GET /api/gift-cards)"
@@ -22,7 +22,7 @@ Use **Gift Card Issuer & Liability (2900)** directly in your browser at `apps.re
 | **Workflow** | Retail, hospitality & salon gift cards |
 | **ReAI API / NS 4102** | `POST /api/gift-cards & GET /api/gift-cards` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/gift-cards.js`) |
 
 ## Getting started
 

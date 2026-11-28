@@ -6,7 +6,7 @@ summary: "Avstem og bokfør utbetalinger fra Two B2B-faktura og checkout i ReAI 
 industry: payments
 icon: icons/two.svg
 webAppUrl: /app/two/
-sourcePath: web/worker/apps/collection.js
+sourcePath: web/worker/apps/two.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i B2B ecommerce & wholesale (B2B-betaling)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 1579, 7770)"

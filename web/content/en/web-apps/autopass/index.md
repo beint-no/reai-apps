@@ -6,7 +6,7 @@ summary: "Book Norwegian fleet road tolls (0% VAT account 7080) and EasyPark par
 industry: operations
 icon: icons/autopass.svg
 webAppUrl: /app/autopass/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/autopass.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Norwegian fleet tolls & corporate parking)"
   - "Direct integration with ReAI Public API (7080 (0% bom) + 7140/2710 (25% parkering) + 2400)"
@@ -22,7 +22,7 @@ Use **AutoPASS Tolls & EasyPark Expenses** directly in your browser at `apps.rea
 | **Workflow** | Norwegian fleet tolls & corporate parking |
 | **ReAI API / NS 4102** | `7080 (0% bom) + 7140/2710 (25% parkering) + 2400` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/autopass.js`) |
 
 ## Getting started
 

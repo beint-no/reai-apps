@@ -6,7 +6,7 @@ summary: "Overfør fullførte transportoppdrag og fraktfakturagrunnlag fra Opter
 industry: ecommerce-logistics
 icon: icons/opter.svg
 webAppUrl: /app/opter/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/opter.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Transport, couriers & distribution (Transport)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/orders)"

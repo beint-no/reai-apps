@@ -6,7 +6,7 @@ summary: "Bokfør dags- og månedsoppgjør fra VisBook i ReAI med riktig splitt 
 industry: payments
 icon: icons/visbook.svg
 webAppUrl: /app/visbook/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/visbook.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Hotels, cabins & camping (Hotell og reiseliv)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3020 (12%), 3010 (15%), 3000 (25%))"

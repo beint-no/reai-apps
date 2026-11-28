@@ -6,7 +6,7 @@ summary: "Track live MRR, ARR and active contracts from ReAI Subscriptions and t
 industry: payments
 icon: icons/mrr.svg
 webAppUrl: /app/mrr/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/mrr.js
 highlights:
   - "Built for Norwegian bookkeeping rules (SaaS, retainers & recurring billing)"
   - "Direct integration with ReAI Public API (GET /api/subscriptions & POST /api/subscriptions/generate-due)"
@@ -22,7 +22,7 @@ Use **SaaS MRR / ARR & Subscription Billing** directly in your browser at `apps.
 | **Workflow** | SaaS, retainers & recurring billing |
 | **ReAI API / NS 4102** | `GET /api/subscriptions & POST /api/subscriptions/generate-due` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/mrr.js`) |
 
 ## Getting started
 

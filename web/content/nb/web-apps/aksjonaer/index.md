@@ -6,7 +6,7 @@ summary: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 rett ti
 industry: operations
 icon: icons/aksjonaer.svg
 webAppUrl: /app/aksjonaer/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/aksjonaer.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Holding companies & Norwegian equity portfolios)"
   - "Direkte kobling mot ReAI sitt åpne API (POST /api/share-investments & GET /api/share-investments)"
@@ -22,7 +22,7 @@ Bruk **Aksjonærregister og aksjeinvesteringer** rett i nettleseren på `apps.re
 | **Bruksområde** | Holding companies & Norwegian equity portfolios |
 | **ReAI API / NS 4102** | `POST /api/share-investments & GET /api/share-investments` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/aksjonaer.js`) |
 
 ## Kom i gang på 2 minutter
 

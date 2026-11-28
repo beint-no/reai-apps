@@ -6,7 +6,7 @@ summary: "Book daily Favrit QR-ordering and restaurant settlements into ReAI spl
 industry: payments
 icon: icons/favrit.svg
 webAppUrl: /app/favrit/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/favrit.js
 highlights:
   - "Purpose-built for Norwegian accounting in Restaurants, bars & cafés (Servering)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 (25%), 3010 (15%), 2930 (Tips))"

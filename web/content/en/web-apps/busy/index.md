@@ -6,7 +6,7 @@ summary: "Import approved billable hours and project notes from Busy straight in
 industry: operations
 icon: icons/busy.svg
 webAppUrl: /app/busy/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/busy.js
 highlights:
   - "Purpose-built for Norwegian accounting in Agencies & consultancies (Byrå og konsulent)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"

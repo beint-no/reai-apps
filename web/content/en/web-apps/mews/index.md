@@ -6,7 +6,7 @@ summary: "Import Mews PMS hospitality settlements into ReAI supporting Norwegian
 industry: payments
 icon: icons/mews.svg
 webAppUrl: /app/mews/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/mews.js
 highlights:
   - "Purpose-built for Norwegian accounting in Modern cloud hotels (Hotell)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3020 (12%), 3010 (15%), 3000 (25%))"

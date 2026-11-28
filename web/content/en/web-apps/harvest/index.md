@@ -6,7 +6,7 @@ summary: "Fetch monthly project time entries from Harvest API v2 and import them
 industry: operations
 icon: icons/harvest.svg
 webAppUrl: /app/harvest/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/harvest.js
 highlights:
   - "Connects to Harvest REST API v2 with Personal Access Token + Account ID"
   - "Preserves project names and task notes as ReAI timesheet comments"

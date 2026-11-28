@@ -6,7 +6,7 @@ summary: "Bokfør månedlige oppgjør fra EasyPractice eller MakePlans i ReAI me
 industry: operations
 icon: icons/easypractice.svg
 webAppUrl: /app/easypractice/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/easypractice.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Therapists & private clinics (Terapeuter)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 1580)"

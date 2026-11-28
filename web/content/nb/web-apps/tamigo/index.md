@@ -6,7 +6,7 @@ summary: "Overfør godkjente skift og arbeidstimer fra Tamigo direkte inn i ReAI
 industry: operations
 icon: icons/tamigo.svg
 webAppUrl: /app/tamigo/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/tamigo.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Retail & service workforce management (Turnus)"
   - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"

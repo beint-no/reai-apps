@@ -6,7 +6,7 @@ summary: "Parse Revolut Business or Wise CSV statements, split FX/card fees onto
 industry: operations
 icon: icons/revolut.svg
 webAppUrl: /app/revolut/
-sourcePath: web/worker/apps/cards.js
+sourcePath: web/worker/apps/revolut.js
 highlights:
   - "Supports Revolut Business and Wise Business CSV statement exports"
   - "Automatically separates card & FX fees onto Norwegian account 7770"

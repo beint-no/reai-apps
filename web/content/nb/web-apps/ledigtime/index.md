@@ -6,7 +6,7 @@ summary: "Bokfør oppgjørsrapporter fra Ledigtime og Bokadirekt i ReAI med rikt
 industry: operations
 icon: icons/ledigtime.svg
 webAppUrl: /app/ledigtime/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/ledigtime.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Norwegian & Nordic salon booking)"
   - "Direkte kobling mot ReAI sitt åpne API (1580 / 7770 / 3000+2700 / 3100 review vouchers)"
@@ -22,7 +22,7 @@ Bruk **Integrasjon for Ledigtime og Bokadirekt** rett i nettleseren på `apps.re
 | **Bruksområde** | Norwegian & Nordic salon booking |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3000+2700 / 3100 review vouchers` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/norway-deep.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/ledigtime.js`) |
 
 ## Kom i gang på 2 minutter
 

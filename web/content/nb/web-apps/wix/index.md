@@ -6,7 +6,7 @@ summary: "Synkroniser varekatalog og betalte ordrer fra Wix Stores direkte til R
 industry: ecommerce-logistics
 icon: icons/wix.svg
 webAppUrl: /app/wix/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/wix.js
 highlights:
   - "Bruker Wix Stores og Wix eCommerce REST API direkte"
   - "Oppretter nye produkter med SKU og pris i ReAI"

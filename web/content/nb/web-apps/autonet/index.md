@@ -6,7 +6,7 @@ summary: "Overfør ferdige verkstedordrer med deler, arbeidstimer (25 % MVA), EU
 industry: operations
 icon: icons/autonet.svg
 webAppUrl: /app/autonet/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/autonet.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Car workshops & auto dealers (Bilverksted)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/orders)"

@@ -6,7 +6,7 @@ summary: "Reconcile Wolt and Foodora payout statements in ReAI: separates 15% ta
 industry: payments
 icon: icons/wolt-foodora.svg
 webAppUrl: /app/wolt-foodora/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/wolt-foodora.js
 highlights:
   - "Purpose-built for Norwegian accounting in Delivery restaurants & cafés (Takeaway)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3010 (15%), 7770 (Fee), 1580)"

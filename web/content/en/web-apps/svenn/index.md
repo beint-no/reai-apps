@@ -6,7 +6,7 @@ summary: "Sync Svenn craftsman hours and completed carpentry/trade work orders s
 industry: operations
 icon: icons/svenn.svg
 webAppUrl: /app/svenn/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/svenn.js
 highlights:
   - "Purpose-built for Norwegian accounting in Carpentry, painting & SMB trades (Håndverkere)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Timesheets)"

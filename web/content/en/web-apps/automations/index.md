@@ -6,7 +6,7 @@ summary: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapier R
 industry: operations
 icon: icons/automations.svg
 webAppUrl: /app/automations/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/automations.js
 highlights:
   - "Built for Norwegian bookkeeping rules (No-code & low-code workflow automation)"
   - "Direct integration with ReAI Public API (ReAI Public REST API (/api/customers, /api/orders, /api/leads))"
@@ -22,7 +22,7 @@ Use **Make, Zapier & n8n Automations Hub** directly in your browser at `apps.rea
 | **Workflow** | No-code & low-code workflow automation |
 | **ReAI API / NS 4102** | `ReAI Public REST API (/api/customers, /api/orders, /api/leads)` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/automations.js`) |
 
 ## Getting started
 

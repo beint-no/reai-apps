@@ -6,7 +6,7 @@ summary: "Import Minuba work orders, materials and billable craftsman hours into
 industry: operations
 icon: icons/minuba.svg
 webAppUrl: /app/minuba/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/minuba.js
 highlights:
   - "Purpose-built for Norwegian accounting in Cloud trades order management (Håndverk)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Orders)"

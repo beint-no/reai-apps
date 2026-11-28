@@ -6,7 +6,7 @@ summary: Compare SumUp card terminal payouts and transaction fees with pending R
 industry: payments
 icon: icons/sumup.svg
 webAppUrl: /app/sumup/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/sumup.js
 highlights:
   - "Reads SumUp Merchant Payouts API directly with your Merchant Code and API key"
   - "Shows net payout amount and deducted SumUp fee alongside ReAI bank candidates"

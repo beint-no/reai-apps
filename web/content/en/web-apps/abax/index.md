@@ -6,7 +6,7 @@ summary: "Import business trips and road tolls from ABAX Triplog straight into R
 industry: operations
 icon: icons/abax.svg
 webAppUrl: /app/abax/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/abax.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Fleet, trades & field sales (Kjørebok)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/driving-log/trips)"

@@ -6,7 +6,7 @@ summary: "Match Nets Easy / Nexi Checkout payouts against pending ReAI bank tran
 industry: payments
 icon: icons/nets.svg
 webAppUrl: /app/nets/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/nets.js
 highlights:
   - "Reads Nets Easy Reporting API (/report/v1/payouts) directly by month"
   - "Matches bank deposits against Nets settlement references within an 8-day window"
