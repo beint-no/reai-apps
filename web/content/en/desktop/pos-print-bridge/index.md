@@ -4,7 +4,6 @@ seoTitle: "ReAI POS Print Bridge: Receipt Printer and Cash Drawer for ReAI POS"
 description: Print ReAI POS receipts on Epson TM and Star ESC/POS receipt printers and open the cash drawer from a Mac or Windows PC, with no browser print dialog.
 summary: Prints new ReAI POS receipts on an ESC/POS receipt printer and opens the cash drawer for cash payments.
 industry: payments
-icon: icons/pos-print-bridge.svg
 appId: pos-print-bridge
 sourcePath: apple/pos-print-bridge
 highlights:

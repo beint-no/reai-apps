@@ -4,7 +4,6 @@ seoTitle: "ReAI POS Print Bridge: Kvitteringsskriver og kassaskuff for ReAI POS"
 description: Skriv ut kvitteringer fra ReAI POS på Epson TM- og Star-skrivere med ESC/POS og åpne kassaskuffen fra Mac eller Windows, uten utskriftsdialog i nettleseren.
 summary: Skriver ut nye kvitteringer fra ReAI POS på en ESC/POS-kvitteringsskriver og åpner kassaskuffen ved kontantbetaling.
 industry: payments
-icon: icons/pos-print-bridge.svg
 appId: pos-print-bridge
 sourcePath: apple/pos-print-bridge
 highlights:
