@@ -8,7 +8,7 @@ on:
         description: Windows app to release (unsigned, no signing fee)
         required: true
         type: choice
-        options: [shipping-windows, time-tracker-windows, document-scanner-windows]
+        options: [shipping-windows, pos-print-bridge-windows, time-tracker-windows, document-scanner-windows]
 permissions:
   contents: read
 concurrency:

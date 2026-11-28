@@ -26,6 +26,8 @@ In daily use and actively developed (require direct OS printer access).
 | [Product Labels for Mac](apple/product-labels) | Create price, product and barcode labels; print variants in bulk. |
 | [Shipping for Mac](apple/shipping) | Ship orders and print carrier labels directly from your Mac. |
 | [Shipping for Windows](windows/shipping) | Native Windows app to ship orders and print carrier labels. Unsigned ZIP download. |
+| [POS Print Bridge for Mac](apple/pos-print-bridge) | Print ReAI POS receipts on an ESC/POS receipt printer and open the cash drawer, from the menu bar. |
+| [POS Print Bridge for Windows](windows/pos-print-bridge) | The same receipt and cash drawer printing from the Windows notification area. Unsigned ZIP download. |
 
 ### Example native apps
 
@@ -54,6 +56,7 @@ Most apps use **Connect to ReAI** with browser approval. The Vipps, Klarna, Zett
 ```text
 apple/
   hybel/            Hybel monthly journal bridge
+  pos-print-bridge/ POS receipt printing and cash drawer
   product-labels/   Product, price and barcode labels
   shipping/         Shipment booking and label printing
   time-tracker/     Swift package and app source
@@ -67,6 +70,7 @@ apple/
 windows/
   document-scanner/ .NET 11 / WinUI 3 app and app-local upload logic
   import/           .NET 11 / WinUI 3 app and app-local import logic
+  pos-print-bridge/ .NET 11 / WinUI 3 tray app and app-local receipt logic
   shipping/         .NET 11 / WinUI 3 app and app-local shipping logic
   time-tracker/     .NET 11 / WinUI 3 app and app-local timer logic
   global.json       Pinned .NET SDK
@@ -103,6 +107,7 @@ tools/apple/build.py dintero
 tools/apple/build.py hybel
 tools/apple/build.py shipping
 tools/apple/build.py product-labels
+tools/apple/build.py pos-print-bridge
 ```
 
 Set `SWIFT_BIN` to the pinned Swift executable if needed. Local builds appear in `dist/<app>/` and are ad-hoc signed for development.
