@@ -6,14 +6,16 @@
   color-scheme: light;
   interpolate-size: allow-keywords;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --bg: #f5f6f2;
+  --bg: #fbfcfe;
   --surface: #ffffff;
-  --ink: #182723;
-  --muted: #52615a;
-  --green: #006c51;
-  --green-hover: #00543e;
-  --green-soft: color-mix(in oklch, var(--green) 11%, white);
-  --line: #dce1d9;
+  --lowered: #f3f6fb;
+  --ink: #0b1c45;
+  --text: #101a2d;
+  --muted: #54627c;
+  --brand: #2e6ee8;
+  --brand-hover: #1f55c4;
+  --brand-soft: #eef4ff;
+  --line: #e4e9f2;
   --radius: 16px;
 }
 
@@ -24,7 +26,7 @@
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--ink);
+  color: var(--text);
   line-height: 1.58;
   text-rendering: optimizeLegibility;
 }
@@ -35,7 +37,7 @@ a {
 
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid var(--green);
+  outline: 3px solid #5e94fb;
   outline-offset: 3px;
 }
 
@@ -84,7 +86,7 @@ button:focus-visible {
   width: 31px;
   height: 31px;
   border-radius: 9px;
-  background: var(--green);
+  background: linear-gradient(135deg, #2e6ee8, #1f55c4);
   color: #fff;
   font-size: 22px;
   line-height: 1;
@@ -108,7 +110,7 @@ button:focus-visible {
   }
 
   & a:not(.button):hover {
-    color: var(--green);
+    color: var(--brand-hover);
   }
 }
 
@@ -147,14 +149,14 @@ button:focus-visible {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--green);
+  color: var(--brand);
 }
 
 .status-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--brand);
 }
 
 .lead {
@@ -216,7 +218,7 @@ button:focus-visible {
   transition: border-color 140ms ease, transform 140ms ease;
 
   &:hover {
-    border-color: var(--green);
+    border-color: var(--brand);
     transform: translateY(-2px);
   }
 
@@ -259,15 +261,15 @@ button:focus-visible {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  background: var(--bg);
+  background: var(--lowered);
   color: var(--muted);
   border: 1px solid var(--line);
 }
 
 .accent {
-  background: var(--green-soft);
-  color: var(--green);
-  border-color: color-mix(in oklch, var(--green) 28%, white);
+  background: var(--brand-soft);
+  color: var(--brand-hover);
+  border-color: #bcd5ff;
 }
 
 .app-card {
@@ -276,6 +278,7 @@ button:focus-visible {
     margin: 0;
     font-size: 21px;
     letter-spacing: -0.02em;
+    color: var(--ink);
   }
 
   & h2 a,
@@ -285,7 +288,7 @@ button:focus-visible {
 
   & h2 a:hover,
   & h3 a:hover {
-    color: var(--green);
+    color: var(--brand-hover);
   }
 
   & p {
@@ -309,20 +312,23 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 11px 16px;
-  border-radius: 10px;
+  padding: 11px 18px;
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   min-height: 42px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
 .primary {
-  background: var(--green);
+  background: linear-gradient(135deg, #2e6ee8, #1f55c4);
   color: #fff;
+  box-shadow: 0 10px 18px -6px rgb(46 110 232 / 0.45);
 
   &:hover {
-    background: var(--green-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 24px -8px rgb(46 110 232 / 0.55);
   }
 }
 
@@ -332,14 +338,15 @@ button:focus-visible {
   border: 1px solid var(--line);
 
   &:hover {
-    border-color: var(--green);
+    border-color: var(--brand);
+    background: var(--lowered);
   }
 }
 
 .text-link {
   font-size: 13px;
   font-weight: 600;
-  color: var(--green);
+  color: var(--brand-hover);
   text-decoration: none;
 
   &:hover {
@@ -383,7 +390,7 @@ button:focus-visible {
 
   & li::before {
     content: "✓";
-    color: var(--green);
+    color: var(--brand);
     font-weight: 700;
     margin-right: 10px;
   }

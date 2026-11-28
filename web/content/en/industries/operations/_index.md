@@ -1,8 +1,8 @@
 ---
-title: "CRM, imports & BI exports"
-seoTitle: "CRM, imports & BI exports Integrations — ReAI"
-description: Sync HubSpot CRM companies, import CSV master data, export ReAI ledgers to Excel and Power BI, and track time natively.
-summary: CRM sync, spreadsheet imports, Excel/Power BI exports and daily tools.
+title: "CRM, time, cards & BI"
+seoTitle: "CRM, Time Tracking, Corporate Cards & BI Integrations — ReAI"
+description: Sync HubSpot and Pipedrive, import hours from Toggl, Clockify, Harvest and Tidsbanken, book Pleo, Revolut and clinic settlements, and export BI data.
+summary: CRM sync, time tracking, corporate cards, clinic booking, CSV import and BI export.
 industry: operations
 eyebrow: INDUSTRY
 ---

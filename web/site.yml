@@ -5,12 +5,31 @@ endpoints:
   - /app/import/
   - /app/export/
   - /app/hubspot/
+  - /app/pipedrive/
   - /app/stripe/
   - /app/vipps/
   - /app/klarna/
   - /app/zettle/
   - /app/dintero/
   - /app/sumup/
+  - /app/nets/
+  - /app/paypal/
+  - /app/mystore/
+  - /app/24nettbutikk/
+  - /app/magento/
+  - /app/prestashop/
+  - /app/shopware/
+  - /app/wix/
+  - /app/z-report/
+  - /app/front-systems/
+  - /app/toggl/
+  - /app/clockify/
+  - /app/harvest/
+  - /app/tidsbanken/
+  - /app/pleo/
+  - /app/revolut/
+  - /app/fazile/
+  - /app/timma/
   - /app/lab/
   - /app/auth/session
   - /app/auth/device/start
@@ -33,6 +52,10 @@ endpoints:
   - /app/hubspot/sample
   - /app/hubspot/scan
   - /app/hubspot/create
+  - /app/pipedrive/sample
+  - /app/pipedrive/scan
+  - /app/pipedrive/create-customer
+  - /app/pipedrive/create-order
   - /app/stripe/sample
   - /app/stripe/preview
   - /app/stripe/import-invoice
@@ -53,6 +76,66 @@ endpoints:
   - /app/sumup/sample
   - /app/sumup/review
   - /app/sumup/export
+  - /app/nets/sample
+  - /app/nets/review
+  - /app/nets/export
+  - /app/paypal/sample
+  - /app/paypal/review
+  - /app/paypal/export
+  - /app/mystore/sample
+  - /app/mystore/scan
+  - /app/mystore/sync-product
+  - /app/mystore/sync-order
+  - /app/24nettbutikk/sample
+  - /app/24nettbutikk/scan
+  - /app/24nettbutikk/sync-product
+  - /app/24nettbutikk/sync-order
+  - /app/magento/sample
+  - /app/magento/scan
+  - /app/magento/sync-product
+  - /app/magento/sync-order
+  - /app/prestashop/sample
+  - /app/prestashop/scan
+  - /app/prestashop/sync-product
+  - /app/prestashop/sync-order
+  - /app/shopware/sample
+  - /app/shopware/scan
+  - /app/shopware/sync-product
+  - /app/shopware/sync-order
+  - /app/wix/sample
+  - /app/wix/scan
+  - /app/wix/sync-product
+  - /app/wix/sync-order
+  - /app/z-report/sample
+  - /app/z-report/preview
+  - /app/z-report/book
+  - /app/front-systems/sample
+  - /app/front-systems/preview
+  - /app/front-systems/book
+  - /app/toggl/sample
+  - /app/toggl/preview
+  - /app/toggl/import
+  - /app/clockify/sample
+  - /app/clockify/preview
+  - /app/clockify/import
+  - /app/harvest/sample
+  - /app/harvest/preview
+  - /app/harvest/import
+  - /app/tidsbanken/sample
+  - /app/tidsbanken/preview
+  - /app/tidsbanken/import
+  - /app/pleo/sample
+  - /app/pleo/preview
+  - /app/pleo/book
+  - /app/revolut/sample
+  - /app/revolut/preview
+  - /app/revolut/book
+  - /app/fazile/sample
+  - /app/fazile/preview
+  - /app/fazile/stage
+  - /app/timma/sample
+  - /app/timma/preview
+  - /app/timma/book
   - /app/lab/ping
 languages:
   - code: en
@@ -63,7 +146,7 @@ languages:
         - name: Web apps
           pageRef: /web-apps/
           weight: 1
-        - name: Desktop
+        - name: Mac & Windows
           pageRef: /desktop/
           weight: 2
         - name: Industries
@@ -80,7 +163,7 @@ languages:
         - name: Nettapper
           pageRef: /web-apps/
           weight: 1
-        - name: Skrivebord
+        - name: Mac & Windows
           pageRef: /desktop/
           weight: 2
         - name: Bransjer

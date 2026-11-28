@@ -25,8 +25,8 @@ export async function handleLab(request) {
 
       <div class="stack">
         ${reaiCard({
-          eyebrow: 'COMPONENT · REAI-BADGE',
-          title: 'Status badges',
+          eyebrow: 'COMPONENT · R-BADGE',
+          title: 'Status badges (<r-badge>)',
           badge: reaiBadge({ text: 'SSR Shadow DOM', tone: 'accent' }),
           body: html`
             <div class="inline-row">
@@ -40,8 +40,8 @@ export async function handleLab(request) {
         })}
 
         ${reaiCard({
-          eyebrow: 'COMPONENT · REAI-METRIC',
-          title: 'Tabular accounting metrics',
+          eyebrow: 'COMPONENT · R-METRIC',
+          title: 'Tabular accounting metrics (<r-metric>)',
           body: html`
             <div class="metric-grid">
               ${reaiMetric({ label: 'Framework JS', value: '0 KB', detail: 'No Lit, no React, no bundler' })}
@@ -52,8 +52,8 @@ export async function handleLab(request) {
         })}
 
         ${reaiCard({
-          eyebrow: 'COMPONENT · REAI-CALLOUT',
-          title: 'Feedback banners',
+          eyebrow: 'COMPONENT · R-CALLOUT',
+          title: 'Feedback banners (<r-callout>)',
           body: html`
             <div class="stack-sm">
               ${reaiCallout({ tone: 'info', title: 'Single Cloudflare Worker', body: 'Static pages outside /app/* bypass the Worker completely and serve straight from Cloudflare edge.' })}
@@ -86,8 +86,8 @@ export async function handleLab(request) {
         })}
 
         ${reaiCard({
-          eyebrow: 'COMPONENT · REAI-DROPZONE',
-          title: 'Progressively enhanced dropzone',
+          eyebrow: 'COMPONENT · R-DROPZONE',
+          title: 'Progressively enhanced dropzone (<r-dropzone>)',
           body: html`
             ${reaiDropzone({
               inputId: 'lab-demo-file',
@@ -120,7 +120,7 @@ export async function handleLab(request) {
       reaiCallout({
         tone: 'success',
         title: 'Rendered on Cloudflare Worker',
-        body: `Swapped a Declarative Shadow DOM <reai-callout> fragment at ${now} with zero client rendering code.`,
+        body: `Swapped a Declarative Shadow DOM <r-callout> fragment at ${now} with zero client rendering code.`,
       }),
     );
   }

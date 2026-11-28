@@ -1,8 +1,8 @@
 ---
 title: "Real estate & rentals"
 seoTitle: "Real estate & rentals Integrations — ReAI"
-description: Bring monthly Hybel rental journals into ReAI as balanced, accountant-reviewed vouchers without manual re-keying.
-summary: Property management bridges and rental bookkeeping workflows for landlords.
+description: Import monthly Hybel rental journals and stage Fazile commercial property leases in ReAI without manual re-keying.
+summary: Property management journals and recurring lease billing for landlords.
 industry: real-estate
 eyebrow: INDUSTRY
 ---

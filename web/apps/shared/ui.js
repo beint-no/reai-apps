@@ -1,7 +1,7 @@
 // @ts-check
 
 /**
- * Progressive enhancement for Declarative Shadow DOM <reai-dropzone>.
+ * Progressive enhancement for Declarative Shadow DOM <r-dropzone>.
  * Styles and base <input type="file"> work before this module loads (zero FOUC).
  */
 class ReaiDropzone extends HTMLElement {
@@ -44,8 +44,8 @@ class ReaiDropzone extends HTMLElement {
   }
 }
 
-if (!customElements.get('reai-dropzone')) {
-  customElements.define('reai-dropzone', ReaiDropzone);
+if (!customElements.get('r-dropzone')) {
+  customElements.define('r-dropzone', ReaiDropzone);
 }
 
 const modernPlatform =
