@@ -12,7 +12,7 @@ Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`
 | --- | --- |
 | **Payments & POS** | [Vipps](/app/vipps/), [Klarna](/app/klarna/), [Stripe](/app/stripe/), [Zettle](/app/zettle/), [SumUp](/app/sumup/), [Dintero](/app/dintero/), [Nets Easy](/app/nets/), [PayPal](/app/paypal/), [POS Z-Report](/app/z-report/), [Front Systems](/app/front-systems/) |
 | **Ecommerce (Product + Sales Sync)** | [Mystore.no](/app/mystore/), [24Nettbutikk](/app/24nettbutikk/), [Magento](/app/magento/), [PrestaShop](/app/prestashop/), [Shopware 6](/app/shopware/), [Wix Stores](/app/wix/) |
-| **CRM, Time & Cards** | [HubSpot](/app/hubspot/), [Pipedrive](/app/pipedrive/), [Toggl Track](/app/toggl/), [Clockify](/app/clockify/), [Harvest](/app/harvest/), [Tidsbanken / SmartDok](/app/tidsbanken/), [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Booking & Clinic (Timma / Fresha / Aspit)](/app/timma/) |
+| **CRM, Time & Cards** | [HubSpot](/app/hubspot/), [Pipedrive](/app/pipedrive/), [RecMan](/app/recman/), [Toggl Track](/app/toggl/), [Clockify](/app/clockify/), [Harvest](/app/harvest/), [Tidsbanken / SmartDok](/app/tidsbanken/), [Pleo](/app/pleo/), [Revolut / Wise](/app/revolut/), [Booking & Clinic (Timma / Fresha / Aspit)](/app/timma/) |
 | **Real Estate, Import & BI** | [Hybel](/app/hybel/), [Fazile](/app/fazile/), [CSV Import](/app/import/), [BI & Excel Export](/app/export/), [UI Component Lab](/app/lab/) |
 
 ### Maintained native apps

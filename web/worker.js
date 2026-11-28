@@ -9,6 +9,7 @@ import { handleImport } from './worker/apps/import.js';
 import { handleLab } from './worker/apps/lab.js';
 import { handlePipedrive } from './worker/apps/pipedrive.js';
 import { handlePos } from './worker/apps/pos.js';
+import { handleRecMan } from './worker/apps/recman.js';
 import { handleReconcile } from './worker/apps/reconcile.js';
 import { handleStripe } from './worker/apps/stripe.js';
 import { handleTimeTracking } from './worker/apps/timetracking.js';
@@ -73,6 +74,9 @@ export default {
       }
       if (segment === 'fazile' || segment === 'timma') {
         return await handleBilling(request, env, segment);
+      }
+      if (segment === 'recman') {
+        return await handleRecMan(request, env);
       }
       if (segment === 'lab') {
         return await handleLab(request);
