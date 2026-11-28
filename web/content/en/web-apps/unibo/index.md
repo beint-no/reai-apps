@@ -6,7 +6,7 @@ summary: "Book monthly housing-association felleskostnader and boligforvaltning 
 industry: real-estate
 icon: icons/unibo.svg
 webAppUrl: /app/unibo/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/unibo.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Boligforvaltning, borettslag & sameie)"
   - "Direct integration with ReAI Public API (1580 / 7770 / 3100 felleskostnader review vouchers)"
@@ -22,7 +22,7 @@ Use **Borettslag & Sameie (Unibo / OBOS)** directly in your browser at `apps.rea
 | **Workflow** | Boligforvaltning, borettslag & sameie |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3100 felleskostnader review vouchers` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/unibo.js`) |
 
 ## Getting started
 

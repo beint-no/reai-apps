@@ -6,7 +6,7 @@ summary: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budgets 
 industry: operations
 icon: icons/budget.svg
 webAppUrl: /app/budget/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/budget.js
 highlights:
   - "Built for Norwegian bookkeeping rules (FP&A & annual company budgeting)"
   - "Direct integration with ReAI Public API (PUT /api/company-budgets/{year} & GET /api/company-budgets/{year})"
@@ -22,7 +22,7 @@ Use **12-Month NS 4102 Budget Importer** directly in your browser at `apps.reai.
 | **Workflow** | FP&A & annual company budgeting |
 | **ReAI API / NS 4102** | `PUT /api/company-budgets/{year} & GET /api/company-budgets/{year}` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/budget.js`) |
 
 ## Getting started
 

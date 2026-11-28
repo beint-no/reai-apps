@@ -6,7 +6,7 @@ summary: "Synkroniser nyansatte fra Huma HR (navn, e-post, startdato, stillingsp
 industry: operations
 icon: icons/huma.svg
 webAppUrl: /app/huma/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/huma.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Norwegian SMB HR & onboarding (HR)"
   - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/employees)"

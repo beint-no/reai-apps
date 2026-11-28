@@ -6,7 +6,7 @@ summary: "Book foreign digital invoices (Google Ads, Meta, OpenAI, AWS) with aut
 industry: operations
 icon: icons/ads-spend.svg
 webAppUrl: /app/ads-spend/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/ads-spend.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Reverse-charge foreign digital services (MVA 14))"
   - "Direct integration with ReAI Public API (7320/6995 + 2715/2705 reverse-charge VAT + 2400)"
@@ -22,7 +22,7 @@ Use **Google Ads, Meta Ads & Foreign SaaS VAT** directly in your browser at `app
 | **Workflow** | Reverse-charge foreign digital services (MVA 14) |
 | **ReAI API / NS 4102** | `7320/6995 + 2715/2705 reverse-charge VAT + 2400` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/ads-spend.js`) |
 
 ## Getting started
 

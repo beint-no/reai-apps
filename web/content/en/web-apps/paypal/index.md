@@ -6,7 +6,7 @@ summary: "Fetch PayPal Business payout withdrawals via REST Reporting API and ma
 industry: payments
 icon: icons/paypal.svg
 webAppUrl: /app/paypal/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/paypal.js
 highlights:
   - "Authenticates with PayPal REST OAuth client credentials on demand"
   - "Reads payout withdrawals and fees from PayPal Transaction Search API"

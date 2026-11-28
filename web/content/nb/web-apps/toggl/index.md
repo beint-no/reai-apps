@@ -6,7 +6,7 @@ summary: "Hent månedlige timeregistreringer fra Toggl Track og bokfør dem dire
 industry: operations
 icon: icons/toggl.svg
 webAppUrl: /app/toggl/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/toggl.js
 highlights:
   - "Henter timer direkte fra Toggl Track API v9 per måned"
   - "Kobler timene til valgt ansatt og prosjekt i ReAI"

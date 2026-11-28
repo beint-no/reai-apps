@@ -6,7 +6,7 @@ summary: "Fetch monthly Toggl Track time entries and post them straight into ReA
 industry: operations
 icon: icons/toggl.svg
 webAppUrl: /app/toggl/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/toggl.js
 highlights:
   - "Reads Toggl Track API v9 time entries by month"
   - "Maps worked hours cleanly to any ReAI employee and project"

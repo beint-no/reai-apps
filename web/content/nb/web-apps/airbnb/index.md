@@ -6,7 +6,7 @@ summary: "Bokfør utbetalinger fra Airbnb og Booking.com i ReAI med riktig split
 industry: real-estate
 icon: icons/airbnb.svg
 webAppUrl: /app/airbnb/
-sourcePath: web/worker/apps/property.js
+sourcePath: web/worker/apps/airbnb.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Short-term rental hosts & cabin operators (Korttidsutleie)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (3020 (12%), 3100 (0%), 7770)"

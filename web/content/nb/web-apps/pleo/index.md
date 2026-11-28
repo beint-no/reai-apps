@@ -6,7 +6,7 @@ summary: "Gjør CSV-eksporten fra Pleo om til balanserte kontrollbilag i ReAI me
 industry: operations
 icon: icons/pleo.svg
 webAppUrl: /app/pleo/
-sourcePath: web/worker/apps/cards.js
+sourcePath: web/worker/apps/pleo.js
 highlights:
   - "Leser Pleo sin regnskapseksport (CSV) med dato, brukersted, konto og beløp"
   - "Balanserer automatisk mot valgt mellomregningskonto for firmakort (2380)"

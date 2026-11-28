@@ -6,7 +6,7 @@ summary: Match betalte Dintero-oppgjør mot bank i ReAI og bokfør trukne måned
 industry: payments
 icon: icons/dintero.svg
 webAppUrl: /app/dintero/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/dintero.js
 highlights:
   - "Summerer trukne gebyrer i betalte Dintero-oppgjør i selskapets valuta"
   - "Matcher nettoutbetalinger mot bank i ReAI og eksporterer avstemmings-CSV"

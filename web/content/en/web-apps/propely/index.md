@@ -6,7 +6,7 @@ summary: "Book Propely property management rent rolls and felleskostnader into R
 industry: real-estate
 icon: icons/propely.svg
 webAppUrl: /app/propely/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/propely.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Commercial & residential property management)"
   - "Direct integration with ReAI Public API (1580 / 3000+2700 (frivillig MVA) / 3100 (unntatt))"
@@ -22,7 +22,7 @@ Use **Propely Commercial Property Accounting** directly in your browser at `apps
 | **Workflow** | Commercial & residential property management |
 | **ReAI API / NS 4102** | `1580 / 3000+2700 (frivillig MVA) / 3100 (unntatt)` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/propely.js`) |
 
 ## Getting started
 

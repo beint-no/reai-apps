@@ -6,7 +6,7 @@ summary: "Hent timeregistreringer fra Harvest API v2 og overfør dem direkte til
 industry: operations
 icon: icons/harvest.svg
 webAppUrl: /app/harvest/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/harvest.js
 highlights:
   - "Kobler rett mot Harvest API v2 med Personal Access Token og Account ID"
   - "Tar med prosjektnavn og kommentarer rett inn på timelisten i ReAI"

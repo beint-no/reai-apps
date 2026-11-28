@@ -6,7 +6,7 @@ summary: "Bokfør deltakeroppgjør fra Checkin i ReAI med riktig fordeling mello
 industry: operations
 icon: icons/checkin.svg
 webAppUrl: /app/checkin/
-sourcePath: web/worker/apps/membership.js
+sourcePath: web/worker/apps/checkin.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Courses, conferences & seminars (Kurs og konferanse)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3100 (0%), 3000 (25%), 7770)"

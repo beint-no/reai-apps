@@ -6,7 +6,7 @@ summary: "Import completed Opter TMS transport assignments and freight billing l
 industry: ecommerce-logistics
 icon: icons/opter.svg
 webAppUrl: /app/opter/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/opter.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Transport, couriers & distribution (Transport)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/orders)"

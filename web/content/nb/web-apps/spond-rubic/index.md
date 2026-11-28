@@ -6,7 +6,7 @@ summary: "Bokfør utbetalinger fra Spond Club og Rubic i ReAI med skille mellom 
 industry: operations
 icon: icons/spond-rubic.svg
 webAppUrl: /app/spond-rubic/
-sourcePath: web/worker/apps/membership.js
+sourcePath: web/worker/apps/spond-rubic.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Sports clubs & associations (Idrettslag og forening)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3100 (0%), 3000 (25%), 7770)"

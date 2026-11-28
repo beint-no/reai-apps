@@ -6,7 +6,7 @@ summary: "Bokfør leie og felleskostnader fra Propely bolig- og næringsforvaltn
 industry: real-estate
 icon: icons/propely.svg
 webAppUrl: /app/propely/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/propely.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Commercial & residential property management)"
   - "Direkte kobling mot ReAI sitt åpne API (1580 / 3000+2700 (frivillig MVA) / 3100 (unntatt))"
@@ -22,7 +22,7 @@ Bruk **Integrasjon for Propely eiendomsforvaltning** rett i nettleseren på `app
 | **Bruksområde** | Commercial & residential property management |
 | **ReAI API / NS 4102** | `1580 / 3000+2700 (frivillig MVA) / 3100 (unntatt)` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/norway-deep.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/propely.js`) |
 
 ## Kom i gang på 2 minutter
 

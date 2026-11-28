@@ -6,7 +6,7 @@ summary: "Bokfør AutoPASS/Fremtind bompassering (0 % MVA konto 7080) og EasyPar
 industry: operations
 icon: icons/autopass.svg
 webAppUrl: /app/autopass/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/autopass.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Norwegian fleet tolls & corporate parking)"
   - "Direkte kobling mot ReAI sitt åpne API (7080 (0% bom) + 7140/2710 (25% parkering) + 2400)"
@@ -22,7 +22,7 @@ Bruk **AutoPASS bompassering og EasyPark parkering** rett i nettleseren på `app
 | **Bruksområde** | Norwegian fleet tolls & corporate parking |
 | **ReAI API / NS 4102** | `7080 (0% bom) + 7140/2710 (25% parkering) + 2400` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/norway-deep.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/autopass.js`) |
 
 ## Kom i gang på 2 minutter
 

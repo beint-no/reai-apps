@@ -6,7 +6,7 @@ summary: "Book daily Fixit hair & beauty salon Z-reports into ReAI splitting 25%
 industry: payments
 icon: icons/fixit.svg
 webAppUrl: /app/fixit/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/fixit.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Hair salons & beauty studios (Frisør)"
   - "Direct mapping to NS 4102 / ReAI Public API (1580, 1900, 3000 (25%), 7770)"

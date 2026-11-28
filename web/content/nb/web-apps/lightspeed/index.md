@@ -6,7 +6,7 @@ summary: "Bokfør dagsoppgjør fra Lightspeed Restaurant (Gastrofix) i ReAI med 
 industry: payments
 icon: icons/lightspeed.svg
 webAppUrl: /app/lightspeed/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/lightspeed.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Full-service restaurants (Restaurantkjeder)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 (25%), 3010 (15%), 2930)"

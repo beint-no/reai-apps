@@ -6,7 +6,7 @@ summary: "Registrer og kontroller anleggsmidler og avskrivninger (konto 1200–1
 industry: operations
 icon: icons/assets.svg
 webAppUrl: /app/assets/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/assets.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Fixed asset register & depreciation)"
   - "Direkte kobling mot ReAI sitt åpne API (POST /api/assets & GET /api/assets)"
@@ -22,7 +22,7 @@ Bruk **Anleggsmidler og saldoavskrivning** rett i nettleseren på `apps.reai.no/
 | **Bruksområde** | Fixed asset register & depreciation |
 | **ReAI API / NS 4102** | `POST /api/assets & GET /api/assets` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/assets.js`) |
 
 ## Kom i gang på 2 minutter
 

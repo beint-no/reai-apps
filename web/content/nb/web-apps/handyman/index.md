@@ -6,7 +6,7 @@ summary: "Importer ferdige mobile serviceordrer og montørtimer fra GSGroup Hand
 industry: operations
 icon: icons/handyman.svg
 webAppUrl: /app/handyman/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/handyman.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Field service & technical installation (Servicebedrifter)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Orders)"

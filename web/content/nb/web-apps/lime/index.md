@@ -6,7 +6,7 @@ summary: "Synkroniser selskaper og vunne salgsmuligheter fra Lime CRM direkte ti
 industry: operations
 icon: icons/lime.svg
 webAppUrl: /app/lime/
-sourcePath: web/worker/apps/nordic-crm.js
+sourcePath: web/worker/apps/lime.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Nordic B2B sales & service (CRM)"
   - "Kobles rett mot NS 4102 og ReAI Public API (Customers + Draft Orders)"

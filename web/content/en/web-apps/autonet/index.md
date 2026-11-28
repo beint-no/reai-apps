@@ -6,7 +6,7 @@ summary: "Import completed Norwegian car workshop orders (parts, labor 25% VAT, 
 industry: operations
 icon: icons/autonet.svg
 webAppUrl: /app/autonet/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/autonet.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Car workshops & auto dealers (Bilverksted)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/orders)"

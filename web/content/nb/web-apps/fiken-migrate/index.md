@@ -6,7 +6,7 @@ summary: "Koble Fiken API-token eller CSV-eksport for å flytte kontakter, lever
 industry: operations
 icon: icons/fiken-migrate.svg
 webAppUrl: /app/fiken-migrate/
-sourcePath: web/worker/apps/switchers.js
+sourcePath: web/worker/apps/fiken-migrate.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Accounting migration (Fiken -> ReAI))"
   - "Direkte kobling mot ReAI sitt åpne API (Fiken API v2 -> POST /api/customers, /api/suppliers, /api/products)"
@@ -22,7 +22,7 @@ Bruk **Bytt fra Fiken til ReAI** rett i nettleseren på `apps.reai.no/app/fiken-
 | **Bruksområde** | Accounting migration (Fiken -> ReAI) |
 | **ReAI API / NS 4102** | `Fiken API v2 -> POST /api/customers, /api/suppliers, /api/products` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/switchers.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/fiken-migrate.js`) |
 
 ## Kom i gang på 2 minutter
 

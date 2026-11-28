@@ -6,7 +6,7 @@ summary: "Bokfør klinikkoppgjør fra PasientSky i ReAI med splitt på pasientbe
 industry: operations
 icon: icons/pasientsky.svg
 webAppUrl: /app/pasientsky/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/pasientsky.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Medical clinics & specialists (Klinikk og HELFO)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 1570 (HELFO), 3100)"

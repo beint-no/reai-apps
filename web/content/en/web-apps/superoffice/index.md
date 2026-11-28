@@ -6,7 +6,7 @@ summary: "Sync SuperOffice CRM companies to ReAI customers (Mod11 org.nr validat
 industry: operations
 icon: icons/superoffice.svg
 webAppUrl: /app/superoffice/
-sourcePath: web/worker/apps/nordic-crm.js
+sourcePath: web/worker/apps/superoffice.js
 highlights:
   - "Purpose-built for Norwegian accounting in Norwegian B2B sales teams (B2B-salg)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (Customers + Draft Orders)"

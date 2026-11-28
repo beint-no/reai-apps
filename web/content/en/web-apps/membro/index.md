@@ -6,7 +6,7 @@ summary: "Book Norwegian gym & fitness center payouts separating VAT-exempt trai
 industry: operations
 icon: icons/membro.svg
 webAppUrl: /app/membro/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/membro.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Gyms & fitness centers (Treningssenter)"
   - "Direct mapping to NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 1580)"

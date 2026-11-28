@@ -6,7 +6,7 @@ summary: "Import PCKasse daily Z-report and accounting CSV exports directly into
 industry: payments
 icon: icons/pckasse.svg
 webAppUrl: /app/pckasse/
-sourcePath: web/worker/apps/retail-pos.js
+sourcePath: web/worker/apps/pckasse.js
 highlights:
   - "Purpose-built for Norwegian accounting in Norwegian retail & specialty stores (Faghandel)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (1900, 1580, 3000, 2700)"

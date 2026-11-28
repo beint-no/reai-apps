@@ -6,7 +6,7 @@ summary: "Upload CSV hour exports from Tidsbanken, SmartDok or Busy and post val
 industry: operations
 icon: icons/tidsbanken.svg
 webAppUrl: /app/tidsbanken/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/tidsbanken.js
 highlights:
   - "Auto-detects Norwegian and English CSV headers (Dato/Date, Timer/Hours, Prosjekt)"
   - "Supports semicolon and comma-delimited exports with comma decimals (7,50)"

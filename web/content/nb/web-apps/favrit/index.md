@@ -6,7 +6,7 @@ summary: "Bokfør dagsoppgjør fra Favrit QR-bestilling og kasse i ReAI med auto
 industry: payments
 icon: icons/favrit.svg
 webAppUrl: /app/favrit/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/favrit.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Restaurants, bars & cafés (Servering)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 (25%), 3010 (15%), 2930 (Tips))"

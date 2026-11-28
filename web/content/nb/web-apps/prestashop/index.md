@@ -6,7 +6,7 @@ summary: "Hent varekatalog og betalte ordrer fra PrestaShop Webservice API og sy
 industry: ecommerce-logistics
 icon: icons/prestashop.svg
 webAppUrl: /app/prestashop/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/prestashop.js
 highlights:
   - "Krever ingen ekstra plugin i PrestaShop — bruker innebygd Webservice API"
   - "Matcher varenummer/referanse mot eksisterende varer i ReAI"

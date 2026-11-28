@@ -6,7 +6,7 @@ summary: "Importer godkjente skift og arbeidstimer fra Quinyx direkte inn i ReAI
 industry: operations
 icon: icons/quinyx.svg
 webAppUrl: /app/quinyx/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/quinyx.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Enterprise retail & hospitality WFM (Turnus)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/timesheets)"

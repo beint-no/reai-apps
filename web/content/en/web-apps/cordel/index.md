@@ -6,7 +6,7 @@ summary: "Import Cordel electrician, plumbing and HVAC work orders and logged ho
 industry: operations
 icon: icons/cordel.svg
 webAppUrl: /app/cordel/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/cordel.js
 highlights:
   - "Purpose-built for Norwegian accounting in Electricians, plumbers & contractors (Elektro / VVS)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Orders)"

@@ -6,7 +6,7 @@ summary: "Utsted gavekort, sjekk saldo og avstem utestående gavekortgjeld på k
 industry: payments
 icon: icons/gift-cards.svg
 webAppUrl: /app/gift-cards/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/gift-cards.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Retail, hospitality & salon gift cards)"
   - "Direkte kobling mot ReAI sitt åpne API (POST /api/gift-cards & GET /api/gift-cards)"
@@ -22,7 +22,7 @@ Bruk **Gavekort og gavekortgjeld (2900)** rett i nettleseren på `apps.reai.no/a
 | **Bruksområde** | Retail, hospitality & salon gift cards |
 | **ReAI API / NS 4102** | `POST /api/gift-cards & GET /api/gift-cards` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/gift-cards.js`) |
 
 ## Kom i gang på 2 minutter
 

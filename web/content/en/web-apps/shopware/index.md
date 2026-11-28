@@ -6,7 +6,7 @@ summary: "Authenticate with Shopware 6 Admin API to sync products by SKU and imp
 industry: ecommerce-logistics
 icon: icons/shopware.svg
 webAppUrl: /app/shopware/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/shopware.js
 highlights:
   - "Authenticates cleanly via Shopware 6 /api/oauth/token client credentials"
   - "Reads product catalog and paid orders via Shopware Search API"

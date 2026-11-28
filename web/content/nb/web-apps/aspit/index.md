@@ -6,7 +6,7 @@ summary: "Bokfør HELFO-oppgjør og pasientegenandeler fra Aspit og Physica i Re
 industry: operations
 icon: icons/aspit.svg
 webAppUrl: /app/aspit/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/aspit.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Physiotherapy, chiropractic & psychology clinics)"
   - "Direkte kobling mot ReAI sitt åpne API (1580 / 7770 / 3100 (0% health) / 3000+2700)"
@@ -22,7 +22,7 @@ Bruk **Integrasjon mellom Aspit / Physica og regnskap** rett i nettleseren på `
 | **Bruksområde** | Physiotherapy, chiropractic & psychology clinics |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3100 (0% health) / 3000+2700` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/norway-deep.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/aspit.js`) |
 
 ## Kom i gang på 2 minutter
 

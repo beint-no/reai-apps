@@ -6,7 +6,7 @@ summary: "Bokfør oppgjørsrapporter fra Hoopla og Deltager.no i ReAI med splitt
 industry: operations
 icon: icons/hoopla.svg
 webAppUrl: /app/hoopla/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/hoopla.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Concerts, festivals & races (Billettsalg)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 7770)"

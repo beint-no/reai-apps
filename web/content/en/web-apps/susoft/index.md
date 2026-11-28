@@ -6,7 +6,7 @@ summary: "Import Susoft POS Z-report and omnichannel accounting exports directly
 industry: payments
 icon: icons/susoft.svg
 webAppUrl: /app/susoft/
-sourcePath: web/worker/apps/retail-pos.js
+sourcePath: web/worker/apps/susoft.js
 highlights:
   - "Purpose-built for Norwegian accounting in Omnichannel retail & gift cards (Butikk)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (1900, 1580, 3000, 2900)"

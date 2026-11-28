@@ -6,7 +6,7 @@ summary: "Bokfør fakturaer fra Google Ads, Meta Ads, OpenAI og AWS med automati
 industry: operations
 icon: icons/ads-spend.svg
 webAppUrl: /app/ads-spend/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/ads-spend.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Reverse-charge foreign digital services (MVA 14))"
   - "Direkte kobling mot ReAI sitt åpne API (7320/6995 + 2715/2705 reverse-charge VAT + 2400)"
@@ -22,7 +22,7 @@ Bruk **Google Ads, Meta Ads og utenlandsk SaaS (MVA 14)** rett i nettleseren på
 | **Bruksområde** | Reverse-charge foreign digital services (MVA 14) |
 | **ReAI API / NS 4102** | `7320/6995 + 2715/2705 reverse-charge VAT + 2400` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/norway-deep.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/ads-spend.js`) |
 
 ## Kom i gang på 2 minutter
 

@@ -6,7 +6,7 @@ summary: "Import approved Tamigo retail and service shift hours directly into Re
 industry: operations
 icon: icons/tamigo.svg
 webAppUrl: /app/tamigo/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/tamigo.js
 highlights:
   - "Purpose-built for Norwegian accounting in Retail & service workforce management (Turnus)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"

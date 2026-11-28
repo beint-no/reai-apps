@@ -6,7 +6,7 @@ summary: "Bridge Milient (formerly Moment) architecture, engineering and consult
 industry: operations
 icon: icons/milient.svg
 webAppUrl: /app/milient/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/milient.js
 highlights:
   - "Purpose-built for Norwegian accounting in Architects, engineers & consultants (Prosjekt)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/timesheets)"

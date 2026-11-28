@@ -6,7 +6,7 @@ summary: "Flytt kunder, leverandører og produkter fra 24SevenOffice, Visma eAcc
 industry: operations
 icon: icons/24sevenoffice-migrate.svg
 webAppUrl: /app/24sevenoffice-migrate/
-sourcePath: web/worker/apps/switchers.js
+sourcePath: web/worker/apps/24sevenoffice-migrate.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Accounting migration (24SO / Visma / Conta))"
   - "Direkte kobling mot ReAI sitt åpne API (CSV -> POST /api/customers, /api/suppliers, /api/products)"
@@ -22,7 +22,7 @@ Bruk **Bytt fra 24SevenOffice, Visma eller Conta** rett i nettleseren på `apps.
 | **Bruksområde** | Accounting migration (24SO / Visma / Conta) |
 | **ReAI API / NS 4102** | `CSV -> POST /api/customers, /api/suppliers, /api/products` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/switchers.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/24sevenoffice-migrate.js`) |
 
 ## Kom i gang på 2 minutter
 

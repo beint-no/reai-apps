@@ -6,7 +6,7 @@ summary: "Import EDI shipping manifests and billable freight charges from Logist
 industry: ecommerce-logistics
 icon: icons/logistra.svg
 webAppUrl: /app/logistra/
-sourcePath: web/worker/apps/transport-auto.js
+sourcePath: web/worker/apps/logistra.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Ecommerce & wholesale shipping (EDI-frakt)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/orders)"

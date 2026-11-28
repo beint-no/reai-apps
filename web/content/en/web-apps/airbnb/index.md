@@ -6,7 +6,7 @@ summary: "Book Airbnb and Booking.com payouts in ReAI separating 12% short-term 
 industry: real-estate
 icon: icons/airbnb.svg
 webAppUrl: /app/airbnb/
-sourcePath: web/worker/apps/property.js
+sourcePath: web/worker/apps/airbnb.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Short-term rental hosts & cabin operators (Korttidsutleie)"
   - "Direct mapping to NS 4102 / ReAI Public API (3020 (12%), 3100 (0%), 7770)"

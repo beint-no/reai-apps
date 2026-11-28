@@ -6,7 +6,7 @@ summary: "Reconcile Spond Club and Rubic payouts into ReAI separating VAT-exempt
 industry: operations
 icon: icons/spond-rubic.svg
 webAppUrl: /app/spond-rubic/
-sourcePath: web/worker/apps/membership.js
+sourcePath: web/worker/apps/spond-rubic.js
 highlights:
   - "Purpose-built for Norwegian accounting in Sports clubs & associations (Idrettslag og forening)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3100 (0%), 3000 (25%), 7770)"

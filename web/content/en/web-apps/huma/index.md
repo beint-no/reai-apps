@@ -6,7 +6,7 @@ summary: "Sync Huma HR employee onboarding records (with Mod11 Norwegian bank ac
 industry: operations
 icon: icons/huma.svg
 webAppUrl: /app/huma/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/huma.js
 highlights:
   - "Purpose-built for Norwegian accounting in Norwegian SMB HR & onboarding (HR)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (POST /api/employees)"

@@ -6,7 +6,7 @@ summary: "Book therapist, psychologist and clinic settlements from EasyPractice 
 industry: operations
 icon: icons/easypractice.svg
 webAppUrl: /app/easypractice/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/easypractice.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Therapists & private clinics (Terapeuter)"
   - "Direct mapping to NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 1580)"

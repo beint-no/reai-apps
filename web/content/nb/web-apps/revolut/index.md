@@ -6,7 +6,7 @@ summary: "Leser CSV-utskrifter fra Revolut og Wise, skiller ut gebyrer på 7770 
 industry: operations
 icon: icons/revolut.svg
 webAppUrl: /app/revolut/
-sourcePath: web/worker/apps/cards.js
+sourcePath: web/worker/apps/revolut.js
 highlights:
   - "Støtter kontoutskrift i CSV fra både Revolut Business og Wise Business"
   - "Skiller automatisk ut kort- og valutagebyrer på konto 7770"

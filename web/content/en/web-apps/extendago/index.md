@@ -6,7 +6,7 @@ summary: "Import ExtendaGO cloud POS accounting exports directly into balanced R
 industry: payments
 icon: icons/extendago.svg
 webAppUrl: /app/extendago/
-sourcePath: web/worker/apps/retail-pos.js
+sourcePath: web/worker/apps/extendago.js
 highlights:
   - "Purpose-built for Norwegian accounting in Retail chains & mobile POS (Varehandel)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (1900, 1580, 3000, 2700)"

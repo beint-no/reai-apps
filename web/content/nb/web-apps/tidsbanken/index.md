@@ -6,7 +6,7 @@ summary: "Last opp CSV-eksport fra Tidsbanken, SmartDok eller Busy og overfør g
 industry: operations
 icon: icons/tidsbanken.svg
 webAppUrl: /app/tidsbanken/
-sourcePath: web/worker/apps/timetracking.js
+sourcePath: web/worker/apps/tidsbanken.js
 highlights:
   - "Gjenkjenner automatisk norske kolonnenavn (Dato, Timer, Prosjekt, Kommentar)"
   - "Støtter semikolon- og komma-separerte filer samt desimalkomma (7,50)"

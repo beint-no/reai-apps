@@ -6,7 +6,7 @@ summary: "Book PasientSky clinic settlements into ReAI separating patient paymen
 industry: operations
 icon: icons/pasientsky.svg
 webAppUrl: /app/pasientsky/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/pasientsky.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Medical clinics & specialists (Klinikk og HELFO)"
   - "Direct mapping to NS 4102 / ReAI Public API (1580, 1570 (HELFO), 3100)"

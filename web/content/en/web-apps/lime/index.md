@@ -6,7 +6,7 @@ summary: "Sync Lime CRM companies into ReAI customers and convert won deals dire
 industry: operations
 icon: icons/lime.svg
 webAppUrl: /app/lime/
-sourcePath: web/worker/apps/nordic-crm.js
+sourcePath: web/worker/apps/lime.js
 highlights:
   - "Purpose-built for Norwegian accounting in Nordic B2B sales & service (CRM)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (Customers + Draft Orders)"

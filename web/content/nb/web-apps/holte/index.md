@@ -6,7 +6,7 @@ summary: "Overfør prosjekttimer og a-konto fakturagrunnlag (NS 3420) fra HolteP
 industry: operations
 icon: icons/holte.svg
 webAppUrl: /app/holte/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/holte.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Contractors & builders (Entreprenører)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Orders)"

@@ -6,7 +6,7 @@ summary: "Convert any cash register Z-report (Amendo, Baemingo, Mystore POS, Kas
 industry: payments
 icon: icons/z-report.svg
 webAppUrl: /app/z-report/
-sourcePath: web/worker/apps/pos.js
+sourcePath: web/worker/apps/z-report.js
 highlights:
   - "Automatic Norwegian VAT split across 25% (3000), 15% food (3010), 12% (3020) and 0% (3100)"
   - "Balances Cash (1900), Card terminal (1580), Vipps (1580) and Gift cards (2900)"

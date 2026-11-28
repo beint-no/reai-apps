@@ -6,7 +6,7 @@ summary: "Synkroniser varekatalog på varenummer (SKU) og importer betalte Mysto
 industry: ecommerce-logistics
 icon: icons/mystore.svg
 webAppUrl: /app/mystore/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/mystore.js
 highlights:
   - "Kobler rett mot Mystore.no sitt offisielle JSON:API"
   - "Sammenligner SKU-er og oppretter manglende produkter i ReAI"

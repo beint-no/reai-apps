@@ -6,7 +6,7 @@ summary: "Importer dagsoppgjør fra Susoft kasse og nettbutikk rett inn i ReAI m
 industry: payments
 icon: icons/susoft.svg
 webAppUrl: /app/susoft/
-sourcePath: web/worker/apps/retail-pos.js
+sourcePath: web/worker/apps/susoft.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Omnichannel retail & gift cards (Butikk)"
   - "Kobles rett mot NS 4102 og ReAI Public API (1900, 1580, 3000, 2900)"

@@ -6,7 +6,7 @@ summary: "Book Paddle Merchant-of-Record and Chargebee SaaS payouts in ReAI sepa
 industry: payments
 icon: icons/paddle.svg
 webAppUrl: /app/paddle/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/paddle.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Norwegian SaaS & software exports (SaaS)"
   - "Direct mapping to NS 4102 / ReAI Public API (1580, 3100 (0% export), 7770)"

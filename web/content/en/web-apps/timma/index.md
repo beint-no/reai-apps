@@ -6,7 +6,7 @@ summary: "Import Timma salon and wellness settlement reports into ReAI with auto
 industry: operations
 icon: icons/timma.svg
 webAppUrl: /app/timma/
-sourcePath: web/worker/apps/billing.js
+sourcePath: web/worker/apps/timma.js
 highlights:
   - "Separates VAT-exempt healthcare treatments (3100) from 25% salon/product sales (3000 + 2700)"
   - "Books booking platform and card fees cleanly to account 7770"

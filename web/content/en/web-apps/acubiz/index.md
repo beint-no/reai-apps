@@ -6,7 +6,7 @@ summary: "Import travel and receipt expense batches from Acubiz, Visma Expense o
 industry: operations
 icon: icons/acubiz.svg
 webAppUrl: /app/acubiz/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/acubiz.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Corporate travel & expenses (Utlegg)"
   - "Direct mapping to NS 4102 / ReAI Public API (7140, 6800, 2915)"

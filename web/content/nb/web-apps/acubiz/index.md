@@ -6,7 +6,7 @@ summary: "Importer utlegg og reiseregninger fra Acubiz, Visma Expense eller Find
 industry: operations
 icon: icons/acubiz.svg
 webAppUrl: /app/acubiz/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/acubiz.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Corporate travel & expenses (Utlegg)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (7140, 6800, 2915)"

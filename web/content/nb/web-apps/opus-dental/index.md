@@ -6,7 +6,7 @@ summary: "Bokfør kassadagbok fra Opus Dental i ReAI med automatisk splitt på p
 industry: operations
 icon: icons/opus-dental.svg
 webAppUrl: /app/opus-dental/
-sourcePath: web/worker/apps/verticals.js
+sourcePath: web/worker/apps/opus-dental.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Dental clinics & HELFO (Tannklinikk)"
   - "Kobles rett mot NS 4102 og ReAI Public API (1580, 1570 (HELFO), 3100, 3000)"

@@ -6,7 +6,7 @@ summary: Match utbetalinger fra Vipps mot banktransaksjoner i ReAI og last ned f
 industry: payments
 icon: icons/vipps.svg
 webAppUrl: /app/vipps/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/vipps.js
 highlights:
   - "Henter planlagte utbetalinger fra Vipps Report API v2 per måned"
   - "Matcher utbetalingene mot uavstemte banktransaksjoner i ReAI (±8 dager)"

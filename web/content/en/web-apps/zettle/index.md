@@ -6,7 +6,7 @@ summary: Match Zettle Finance v2 liquid-account payouts against pending ReAI ban
 industry: payments
 icon: icons/zettle.svg
 webAppUrl: /app/zettle/
-sourcePath: web/worker/apps/reconcile.js
+sourcePath: web/worker/apps/zettle.js
 highlights:
   - "Reads Zettle Finance API v2 payouts using a READ:FINANCE key"
   - "Matches terminal payouts against ReAI bank transactions within an 8-day window"

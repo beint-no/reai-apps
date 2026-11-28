@@ -6,7 +6,7 @@ summary: "Cross-client portfolio control tower for Norwegian accounting firms us
 industry: operations
 icon: icons/accountant-hub.svg
 webAppUrl: /app/accountant-hub/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/accountant-hub.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Norwegian accounting firms (Regnskapsfører))"
   - "Direct integration with ReAI Public API (GET /api/accountant-clients)"
@@ -22,7 +22,7 @@ Use **Regnskapsfører Multi-Client Hub** directly in your browser at `apps.reai.
 | **Workflow** | Norwegian accounting firms (Regnskapsfører) |
 | **ReAI API / NS 4102** | `GET /api/accountant-clients` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/accountant-hub.js`) |
 
 ## Getting started
 

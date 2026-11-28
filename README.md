@@ -2,9 +2,9 @@
 
 Web and desktop apps that connect to the [ReAI API](https://app.reai.no/openapi/public/ui).
 
-**[apps.reai.no](https://apps.reai.no/)** — 100 free open-source web integrations run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
+**[apps.reai.no](https://apps.reai.no/)** — Free open-source web integrations run in modern browsers on `apps.reai.no/app/*`. Native apps support Mac (Apple Silicon, macOS 15+) and Windows (Windows 11 25H2+, x64 or ARM64).
 
-### Web apps (hosted on `apps.reai.no` — 100 live integrations + UI Lab)
+### Web apps (hosted on `apps.reai.no`)
 
 Server-rendered HTMX 4 apps running on a single Cloudflare Worker under `/app/*`, backed by encrypted `HttpOnly` session cookies and Declarative Shadow DOM `<r-*>` Web Components.
 

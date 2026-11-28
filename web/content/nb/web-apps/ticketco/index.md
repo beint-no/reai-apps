@@ -6,7 +6,7 @@ summary: "Bokfør oppgjørsrapporter fra TicketCo i ReAI med splitt mellom avgif
 industry: operations
 icon: icons/ticketco.svg
 webAppUrl: /app/ticketco/
-sourcePath: web/worker/apps/membership.js
+sourcePath: web/worker/apps/ticketco.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Festivals, venues & culture (Arrangement)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3100 (0%), 3000 (25%), 7770)"

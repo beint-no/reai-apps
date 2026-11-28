@@ -6,7 +6,7 @@ summary: "Se sanntids lagerbeholdning per SKU, varelagerverdi (1460) og utsalgsv
 industry: ecommerce-logistics
 icon: icons/stock-count.svg
 webAppUrl: /app/stock-count/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/stock-count.js
 highlights:
   - "Tilpasset norsk bokføringsskikk (Ecommerce & wholesale inventory (NS 4102 1460))"
   - "Direkte kobling mot ReAI sitt åpne API (GET /api/warehouses/inventory)"
@@ -22,7 +22,7 @@ Bruk **Varetelling og lagerverdi (1460)** rett i nettleseren på `apps.reai.no/a
 | **Bruksområde** | Ecommerce & wholesale inventory (NS 4102 1460) |
 | **ReAI API / NS 4102** | `GET /api/warehouses/inventory` |
 | **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/reai-power.js`) |
+| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/stock-count.js`) |
 
 ## Kom i gang på 2 minutter
 

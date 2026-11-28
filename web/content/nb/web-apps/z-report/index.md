@@ -6,7 +6,7 @@ summary: "Gjør Z-rapporten fra kassen (Amendo, Baemingo, Mystore POS m.fl.) om 
 industry: payments
 icon: icons/z-report.svg
 webAppUrl: /app/z-report/
-sourcePath: web/worker/apps/pos.js
+sourcePath: web/worker/apps/z-report.js
 highlights:
   - "Splitter automatisk brutto salg på 25 % (3000), 15 % mat (3010), 12 % (3020) og 0 % (3100)"
   - "Balanserer kontant (1900), bankterminal (1580), Vipps (1580) og gavekort (2900)"

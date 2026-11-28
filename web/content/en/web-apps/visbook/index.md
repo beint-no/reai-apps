@@ -6,7 +6,7 @@ summary: "Book VisBook daily/monthly PMS journals into ReAI with Norwegian 12% r
 industry: payments
 icon: icons/visbook.svg
 webAppUrl: /app/visbook/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/visbook.js
 highlights:
   - "Purpose-built for Norwegian accounting in Hotels, cabins & camping (Hotell og reiseliv)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3020 (12%), 3010 (15%), 3000 (25%))"

@@ -6,7 +6,7 @@ summary: "Overfør næringsleiekontrakter og felleskostnader fra Fenistra eller 
 industry: real-estate
 icon: icons/fenistra.svg
 webAppUrl: /app/fenistra/
-sourcePath: web/worker/apps/property.js
+sourcePath: web/worker/apps/fenistra.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Commercial real estate (Næringseiendom)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (POST /api/subscriptions)"

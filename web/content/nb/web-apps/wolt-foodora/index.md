@@ -6,7 +6,7 @@ summary: "Avstem og bokfør utbetalinger fra Wolt og Foodora i ReAI med riktig s
 industry: payments
 icon: icons/wolt-foodora.svg
 webAppUrl: /app/wolt-foodora/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/wolt-foodora.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Delivery restaurants & cafés (Takeaway)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3010 (15%), 7770 (Fee), 1580)"

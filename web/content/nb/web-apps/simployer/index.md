@@ -6,7 +6,7 @@ summary: "Importer godkjente reiseregninger, diett og utlegg fra Simployer rett 
 industry: operations
 icon: icons/simployer.svg
 webAppUrl: /app/simployer/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/simployer.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Norwegian HR & travel claims (Reiseregning)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (7140, 7150, 2915)"

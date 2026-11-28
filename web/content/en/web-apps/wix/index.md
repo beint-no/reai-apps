@@ -6,7 +6,7 @@ summary: "Sync Wix Stores products by SKU and import paid Wix eCommerce orders d
 industry: ecommerce-logistics
 icon: icons/wix.svg
 webAppUrl: /app/wix/
-sourcePath: web/worker/apps/ecommerce.js
+sourcePath: web/worker/apps/wix.js
 highlights:
   - "Connects to Wix Stores v1 and Wix eCommerce v1 REST APIs"
   - "Syncs missing catalog SKUs into ReAI automatically"

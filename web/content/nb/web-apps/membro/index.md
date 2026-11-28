@@ -6,7 +6,7 @@ summary: "Bokfør medlemsoppgjør for treningssenter i ReAI med riktig splitt me
 industry: operations
 icon: icons/membro.svg
 webAppUrl: /app/membro/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/membro.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Gyms & fitness centers (Treningssenter)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (3100 (0%), 3000 (25%), 1580)"

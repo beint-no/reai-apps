@@ -6,7 +6,7 @@ summary: "Search live Brønnøysundregistrene by name, NACE code or org form and
 industry: operations
 icon: icons/brreg-leads.svg
 webAppUrl: /app/brreg-leads/
-sourcePath: web/worker/apps/reai-power.js
+sourcePath: web/worker/apps/brreg-leads.js
 highlights:
   - "Built for Norwegian bookkeeping rules (B2B sales & prospecting (Enhetsregisteret))"
   - "Direct integration with ReAI Public API (Live data.brreg.no API -> POST /api/leads)"
@@ -22,7 +22,7 @@ Use **Brreg Company Search & Lead Importer** directly in your browser at `apps.r
 | **Workflow** | B2B sales & prospecting (Enhetsregisteret) |
 | **ReAI API / NS 4102** | `Live data.brreg.no API -> POST /api/leads` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/reai-power.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/brreg-leads.js`) |
 
 ## Getting started
 

@@ -6,7 +6,7 @@ summary: "Connect Salesforce REST API to scan Accounts and Closed-Won Opportunit
 industry: operations
 icon: icons/salesforce.svg
 webAppUrl: /app/salesforce/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/salesforce.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Enterprise B2B sales (CRM)"
   - "Direct mapping to NS 4102 / ReAI Public API (Salesforce REST API -> ReAI)"

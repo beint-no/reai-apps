@@ -6,7 +6,7 @@ summary: "Book Aspit and Physica clinic HELFO reimbursements and patient egenand
 industry: operations
 icon: icons/aspit.svg
 webAppUrl: /app/aspit/
-sourcePath: web/worker/apps/norway-deep.js
+sourcePath: web/worker/apps/aspit.js
 highlights:
   - "Built for Norwegian bookkeeping rules (Physiotherapy, chiropractic & psychology clinics)"
   - "Direct integration with ReAI Public API (1580 / 7770 / 3100 (0% health) / 3000+2700)"
@@ -22,7 +22,7 @@ Use **Aspit & Physica Clinic Accounting** directly in your browser at `apps.reai
 | **Workflow** | Physiotherapy, chiropractic & psychology clinics |
 | **ReAI API / NS 4102** | `1580 / 7770 / 3100 (0% health) / 3000+2700` |
 | **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/norway-deep.js`) |
+| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/aspit.js`) |
 
 ## Getting started
 

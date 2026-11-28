@@ -6,7 +6,7 @@ summary: "Stage Husleie.no residential rental contracts as recurring ReAI billin
 industry: real-estate
 icon: icons/husleie.svg
 webAppUrl: /app/husleie/
-sourcePath: web/worker/apps/property.js
+sourcePath: web/worker/apps/husleie.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Residential landlords (Boligutleie)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/subscriptions)"

@@ -6,7 +6,7 @@ summary: "Import approved billable consulting and agency project hours from Vism
 industry: operations
 icon: icons/severa.svg
 webAppUrl: /app/severa/
-sourcePath: web/worker/apps/hr-expense.js
+sourcePath: web/worker/apps/severa.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Consulting & professional services (Konsulent)"
   - "Direct mapping to NS 4102 / ReAI Public API (POST /api/timesheets)"

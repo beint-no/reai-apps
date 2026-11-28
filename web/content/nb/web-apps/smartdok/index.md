@@ -6,7 +6,7 @@ summary: "Importer godkjente timer, maskintimer og fakturagrunnlag fra SmartDok 
 industry: operations
 icon: icons/smartdok.svg
 webAppUrl: /app/smartdok/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/smartdok.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Construction & civil engineering (Bygg og anlegg)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 / Timesheets)"

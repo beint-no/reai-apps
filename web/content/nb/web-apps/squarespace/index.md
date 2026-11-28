@@ -6,7 +6,7 @@ summary: "Koble Squarespace Commerce eller BigCommerce til ReAI for produktsynk 
 industry: ecommerce-logistics
 icon: icons/squarespace.svg
 webAppUrl: /app/squarespace/
-sourcePath: web/worker/apps/migration-ecom.js
+sourcePath: web/worker/apps/squarespace.js
 highlights:
   - "Bygget for norske bokførings- og MVA-regler i Design & DTC online stores (Nettbutikk)"
   - "Direkte kobling mot NS 4102 / ReAI Public API (Commerce REST API -> ReAI)"

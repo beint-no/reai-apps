@@ -6,7 +6,7 @@ summary: "Book daily Hano settlements into ReAI cleanly separating 0% health tre
 industry: payments
 icon: icons/hano.svg
 webAppUrl: /app/hano/
-sourcePath: web/worker/apps/wellness-gym.js
+sourcePath: web/worker/apps/hano.js
 highlights:
   - "Tailored to Norwegian VAT & bookkeeping rules for Salons, spas & clinics (Salong og spa)"
   - "Direct mapping to NS 4102 / ReAI Public API (1580, 3100 (0%), 3000 (25%))"

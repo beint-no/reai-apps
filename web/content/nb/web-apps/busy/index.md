@@ -6,7 +6,7 @@ summary: "Importer førte prosjekttimer og kommentarer fra Busy rett inn i ReAI 
 industry: operations
 icon: icons/busy.svg
 webAppUrl: /app/busy/
-sourcePath: web/worker/apps/workforce.js
+sourcePath: web/worker/apps/busy.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Agencies & consultancies (Byrå og konsulent)"
   - "Kobles rett mot NS 4102 og ReAI Public API (POST /api/timesheets)"

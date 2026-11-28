@@ -6,7 +6,7 @@ summary: "Bridge HoltePortalen project hours and NS 3420 progress billing basis 
 industry: operations
 icon: icons/holte.svg
 webAppUrl: /app/holte/
-sourcePath: web/worker/apps/trades.js
+sourcePath: web/worker/apps/holte.js
 highlights:
   - "Purpose-built for Norwegian accounting in Contractors & builders (Entreprenører)"
   - "Maps cleanly to NS 4102 accounts & ReAI API (3000 / Orders)"

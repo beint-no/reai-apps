@@ -6,7 +6,7 @@ summary: "Bokfør dagsoppgjør fra ExtendaGO skybasert kasse direkte i ReAI som 
 industry: payments
 icon: icons/extendago.svg
 webAppUrl: /app/extendago/
-sourcePath: web/worker/apps/retail-pos.js
+sourcePath: web/worker/apps/extendago.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Retail chains & mobile POS (Varehandel)"
   - "Kobles rett mot NS 4102 og ReAI Public API (1900, 1580, 3000, 2700)"

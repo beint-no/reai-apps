@@ -6,7 +6,7 @@ summary: "Bokfør dagsoppgjør fra Munu kassesystem direkte i ReAI fordelt på 2
 industry: payments
 icon: icons/munu.svg
 webAppUrl: /app/munu/
-sourcePath: web/worker/apps/hospitality.js
+sourcePath: web/worker/apps/munu.js
 highlights:
   - "Tilpasset norsk bokføring og MVA-regler for Hospitality & nightlife (Restaurant og uteliv)"
   - "Kobles rett mot NS 4102 og ReAI Public API (3000 (25%), 3010 (15%), 1580)"

@@ -6,7 +6,7 @@ summary: "Turn Pleo monthly expense exports into balanced ReAI review vouchers w
 industry: operations
 icon: icons/pleo.svg
 webAppUrl: /app/pleo/
-sourcePath: web/worker/apps/cards.js
+sourcePath: web/worker/apps/pleo.js
 highlights:
   - "Parses Pleo accounting CSV exports (Date, Merchant, Account, Amount)"
   - "Balances every expense line against your configurable corporate card clearing account (2380)"
