@@ -1,6 +1,6 @@
 ---
 title: Dokumentasjon og integrasjonsguide
-seoTitle: ReAI Integrasjonsguide — Gratis regnskapsintegrasjoner for Norge
+seoTitle: ReAI Integrasjonsguide | Gratis regnskapsintegrasjoner for Norge
 description: Komplett oversikt over innebygde koblinger (inkl. Kravia inkasso) og gratis integrasjoner for betaling, nettbutikk, kasse, salong, klinikk, boligforvaltning og SAF-T.
 summary: Alt du trenger for å koble betalingsløsninger, nettbutikker, kasser, salonger, klinikker, boligforvaltning, HR, CRM og systembytte til ReAI helt uten tilleggsgebyr.
 eyebrow: DOKUMENTASJON OG GUIDER
@@ -8,7 +8,7 @@ eyebrow: DOKUMENTASJON OG GUIDER
 
 ## Innebygde integrasjoner vs. gratis apper på apps.reai.no
 
-I mange norske regnskapssystemer må bedrifter betale flere hundre kroner i måneden per integrasjon—eller kjøpe eksterne integrasjonsbroer. I ReAI er integrasjonene inkludert gratis i to ryddige lag:
+I mange norske regnskapssystemer må bedrifter betale flere hundre kroner i måneden per integrasjon, eller kjøpe eksterne integrasjonsbroer. I ReAI er integrasjonene inkludert gratis i to ryddige lag:
 
 | Kategori | Systemer | Slik fungerer det |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 ---
 title: "Integration & API documentation"
-seoTitle: ReAI Integration Docs — Free Norwegian Accounting Integrations
+seoTitle: ReAI Integration Docs | Free Norwegian Accounting Integrations
 description: Complete overview of ReAI's built-in connectors (including Kravia inkasso) and free web integrations across payments, ecommerce, POS, salons, clinics, property, HR & SAF-T.
 summary: Everything you need to connect payments, ecommerce stores, POS registers, trades, salons, clinics, property, CRM, HR and system switchers to ReAI at zero add-on cost.
 eyebrow: "DOCUMENTATION & GUIDES"
