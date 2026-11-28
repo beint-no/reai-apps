@@ -4,7 +4,6 @@ seoTitle: "Aksjonærregister og aksjeinvesteringer — Gratis open source for Re
 description: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 rett til ReAI aksjeinvesteringer (1350/1810)."
 summary: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 rett til ReAI aksjeinvesteringer (1350/1810)."
 industry: operations
-icon: icons/aksjonaer.svg
 webAppUrl: /app/aksjonaer/
 sourcePath: web/worker/apps/aksjonaer.js
 highlights:

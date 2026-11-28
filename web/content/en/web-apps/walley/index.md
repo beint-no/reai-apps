@@ -4,7 +4,6 @@ seoTitle: "Walley Settlement Reconciliation for ReAI"
 description: "Match Walley settlement payouts against ReAI bank transactions and download a reconciliation CSV. Free and open source."
 summary: "Fetch Walley settlements through the Reports API and match each payout to a pending ReAI bank transaction."
 industry: payments
-icon: icons/walley.svg
 webAppUrl: /app/walley/
 sourcePath: web/worker/apps/walley.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Duell og ReAI: dagsoppgjør til regnskap"
 description: "Bokfør dagsoppgjør fra Duell som bilag til kontroll i ReAI, med kontoene og MVA-satsene fra kontoplanen i Duell. Gratis og åpen kildekode."
 summary: "Hent dagsoppgjørene fra Duell for én dag og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
-icon: icons/duell.svg
 webAppUrl: /app/duell/
 sourcePath: web/worker/apps/duell.js
 highlights:

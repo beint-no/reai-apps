@@ -4,7 +4,6 @@ seoTitle: "Wix Stores regnskapsintegrasjon for ReAI — Gratis produkt- og salgs
 description: "Koble Wix Stores gratis til ReAI for synkronisering av produkter og betalte nettbutikkordrer uten ekstra integrasjonskostnad."
 summary: "Synkroniser varekatalog og betalte ordrer fra Wix Stores direkte til ReAI."
 industry: ecommerce-logistics
-icon: icons/wix.svg
 webAppUrl: /app/wix/
 sourcePath: web/worker/apps/wix.js
 highlights:

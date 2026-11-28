@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Fenistra og Propely eiendom — Gratis open source-in
 description: "Overfør næringsleiekontrakter og felleskostnader fra Fenistra eller Propely til repeterende fakturering i ReAI."
 summary: "Overfør næringsleiekontrakter og felleskostnader fra Fenistra eller Propely til repeterende fakturering i ReAI."
 industry: real-estate
-icon: icons/fenistra.svg
 webAppUrl: /app/fenistra/
 sourcePath: web/worker/apps/fenistra.js
 highlights:

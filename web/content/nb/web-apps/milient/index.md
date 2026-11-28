@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Milient (Moment) og regnskap — Gratis integrasjo
 description: "Overfør prosjekttimer fra Milient (tidligere Moment) for arkitekter, rådgivere og ingeniører rett til ReAI."
 summary: "Overfør prosjekttimer fra Milient (tidligere Moment) for arkitekter, rådgivere og ingeniører rett til ReAI."
 industry: operations
-icon: icons/milient.svg
 webAppUrl: /app/milient/
 sourcePath: web/worker/apps/milient.js
 highlights:

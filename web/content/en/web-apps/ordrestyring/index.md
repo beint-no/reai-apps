@@ -4,7 +4,6 @@ seoTitle: "Ordrestyring Hours and Materials to ReAI Timesheets and Orders"
 description: "Fetch uninvoiced Ordrestyring hours and materials, log the hours in ReAI Timesheets and stage each case as a draft ReAI order. Free and open source."
 summary: "Fetch Ordrestyring hours and case materials through the Ordrestyring GraphQL API into ReAI timesheets and draft orders."
 industry: operations
-icon: icons/ordrestyring.svg
 webAppUrl: /app/ordrestyring/
 sourcePath: web/worker/apps/ordrestyring.js
 highlights:

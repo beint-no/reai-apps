@@ -4,7 +4,6 @@ seoTitle: "Simployer Travel & Expense Accounting — Free Open-Source ReAI Integ
 description: "Import approved Simployer (Infotjenester) travel claims, per diem and employee expenses into balanced ReAI review vouchers."
 summary: "Import approved Simployer (Infotjenester) travel claims, per diem and employee expenses into balanced ReAI review vouchers."
 industry: operations
-icon: icons/simployer.svg
 webAppUrl: /app/simployer/
 sourcePath: web/worker/apps/simployer.js
 highlights:

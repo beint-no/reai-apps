@@ -4,7 +4,6 @@ seoTitle: "Hano Salon, Spa & Clinic Accounting — Free Open-Source ReAI Integra
 description: "Book daily Hano settlements into ReAI cleanly separating 0% health treatments (3100), 25% salon & product sales (3000) and fees (7770)."
 summary: "Book daily Hano settlements into ReAI cleanly separating 0% health treatments (3100), 25% salon & product sales (3000) and fees (7770)."
 industry: payments
-icon: icons/hano.svg
 webAppUrl: /app/hano/
 sourcePath: web/worker/apps/hano.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "VisBook Hotel & Camping PMS Accounting for ReAI — Free Open-Source 
 description: "Book VisBook daily/monthly PMS journals into ReAI with Norwegian 12% room VAT (3020), 15% food (3010) and 25% bar/services (3000)."
 summary: "Book VisBook daily/monthly PMS journals into ReAI with Norwegian 12% room VAT (3020), 15% food (3010) and 25% bar/services (3000)."
 industry: payments
-icon: icons/visbook.svg
 webAppUrl: /app/visbook/
 sourcePath: web/worker/apps/visbook.js
 highlights:

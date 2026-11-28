@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Checkin og regnskap — Gratis integrasjon for ReA
 description: "Bokfør deltakeroppgjør fra Checkin i ReAI med riktig fordeling mellom avgiftsfrie kurs (3100), 25 % konferanse/servering og gebyrer."
 summary: "Bokfør deltakeroppgjør fra Checkin i ReAI med riktig fordeling mellom avgiftsfrie kurs (3100), 25 % konferanse/servering og gebyrer."
 industry: operations
-icon: icons/checkin.svg
 webAppUrl: /app/checkin/
 sourcePath: web/worker/apps/checkin.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Timma salong og booking til ReAI regnskap — Gratis integrasjon"
 description: "Bokfør oppgjørsrapporter fra Timma frisør, skjønnhet og velvære i ReAI med riktig splitt på 25 % behandling/varesalg, 0 % helse og bookinggebyrer."
 summary: "Importer oppgjørsrapporter fra Timma salong og booking i ReAI med automatisk splitt på 25 % salg, 0 % helse og gebyrer."
 industry: operations
-icon: icons/timma.svg
 webAppUrl: /app/timma/
 sourcePath: web/worker/apps/timma.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "SuperOffice CRM & Accounting Integration for ReAI — Free Open-Sourc
 description: "Sync SuperOffice CRM companies to ReAI customers (Mod11 org.nr validated) and stage won sales as idempotent ReAI draft orders."
 summary: "Sync SuperOffice CRM companies to ReAI customers (Mod11 org.nr validated) and stage won sales as idempotent ReAI draft orders."
 industry: operations
-icon: icons/superoffice.svg
 webAppUrl: /app/superoffice/
 sourcePath: web/worker/apps/superoffice.js
 highlights:

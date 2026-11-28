@@ -4,7 +4,6 @@ seoTitle: HubSpot Accounting Integration for ReAI — Free CRM Customer Sync
 description: Sync HubSpot CRM companies directly into your ReAI customer register for free with duplicate detection and Norwegian organization number validation.
 summary: Scan HubSpot CRM companies, detect existing ReAI customers and create missing customers with one click.
 industry: operations
-icon: icons/hubspot.svg
 webAppUrl: /app/hubspot/
 sourcePath: web/worker/apps/hubspot.js
 highlights:

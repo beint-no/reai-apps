@@ -4,7 +4,6 @@ seoTitle: "Fixit Hair Salon POS & Accounting — Free Open-Source ReAI Integrati
 description: "Book daily Fixit hair & beauty salon Z-reports into ReAI splitting 25% treatments & retail products (3000), card/Vipps clearing (1580) and fees (7770)."
 summary: "Book daily Fixit hair & beauty salon Z-reports into ReAI splitting 25% treatments & retail products (3000), card/Vipps clearing (1580) and fees (7770)."
 industry: payments
-icon: icons/fixit.svg
 webAppUrl: /app/fixit/
 sourcePath: web/worker/apps/fixit.js
 highlights:

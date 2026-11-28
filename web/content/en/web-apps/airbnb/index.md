@@ -4,7 +4,6 @@ seoTitle: "Airbnb & Booking.com Host Accounting — Free Open-Source ReAI Integr
 description: "Book Airbnb and Booking.com payouts in ReAI separating 12% short-term accommodation VAT (3020), exempt long-term rent (3100) and OTA host fees (7770)."
 summary: "Book Airbnb and Booking.com payouts in ReAI separating 12% short-term accommodation VAT (3020), exempt long-term rent (3100) and OTA host fees (7770)."
 industry: real-estate
-icon: icons/airbnb.svg
 webAppUrl: /app/airbnb/
 sourcePath: web/worker/apps/airbnb.js
 highlights:

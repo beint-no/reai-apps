@@ -4,7 +4,6 @@ seoTitle: "12-måneders NS 4102 budsjettimport — Gratis open source for ReAI"
 description: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI og se kvartalssummer direkte."
 summary: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI og se kvartalssummer direkte."
 industry: operations
-icon: icons/budget.svg
 webAppUrl: /app/budget/
 sourcePath: web/worker/apps/budget.js
 highlights:

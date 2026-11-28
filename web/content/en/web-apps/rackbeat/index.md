@@ -4,7 +4,6 @@ seoTitle: "Rackbeat Products to ReAI Products"
 description: "Compare the Rackbeat product register with ReAI Products by SKU and create missing products with prices and barcode. Free and open source."
 summary: "Read Rackbeat products through the REST API and create the missing ones in ReAI Products."
 industry: ecommerce-logistics
-icon: icons/rackbeat.svg
 webAppUrl: /app/rackbeat/
 sourcePath: web/worker/apps/rackbeat.js
 highlights:

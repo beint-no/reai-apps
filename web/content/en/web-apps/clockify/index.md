@@ -4,7 +4,6 @@ seoTitle: "Clockify Timesheet Integration for ReAI — Free Hours Sync"
 description: "Sync monthly Clockify time entries straight into ReAI Timesheets for customer invoicing and project accounting. Free with ReAI."
 summary: "Fetch Clockify workspace time entries via API and import them into ReAI Timesheets by employee and project."
 industry: operations
-icon: icons/clockify.svg
 webAppUrl: /app/clockify/
 sourcePath: web/worker/apps/clockify.js
 highlights:

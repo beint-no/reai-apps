@@ -4,7 +4,6 @@ seoTitle: "Boligforvaltning: Borettslag og Sameie (Unibo / OBOS) — Gratis open
 description: "Bokfør månedlige felleskostnader og forvaltningsbilag for borettslag og sameie (Unibo / OBOS / USBL) i ReAI."
 summary: "Bokfør månedlige felleskostnader og forvaltningsbilag for borettslag og sameie (Unibo / OBOS / USBL) i ReAI."
 industry: real-estate
-icon: icons/unibo.svg
 webAppUrl: /app/unibo/
 sourcePath: web/worker/apps/unibo.js
 highlights:

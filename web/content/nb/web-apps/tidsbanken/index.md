@@ -4,7 +4,6 @@ seoTitle: "Tidsbanken & SmartDok timeimport til ReAI — Gratis integrasjon"
 description: "Importer godkjente vakter og prosjekttimer fra Tidsbanken, SmartDok eller Busy (CSV) direkte inn i ReAI Timelister."
 summary: "Last opp CSV-eksport fra Tidsbanken, SmartDok eller Busy og overfør godkjente timer direkte til ReAI."
 industry: operations
-icon: icons/tidsbanken.svg
 webAppUrl: /app/tidsbanken/
 sourcePath: web/worker/apps/tidsbanken.js
 highlights:

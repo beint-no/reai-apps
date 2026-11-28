@@ -4,7 +4,6 @@ seoTitle: "Export ReAI Accounting Data to Excel & Power BI — Free BI Tool"
 description: Export ReAI general ledger postings, customer invoices, supplier invoices, customers and products as Excel-ready UTF-8 CSV or structured BI JSON.
 summary: Extract clean ReAI postings, invoices, customers and products for Excel, Power BI and custom dashboards.
 industry: operations
-icon: icons/export.svg
 webAppUrl: /app/export/
 sourcePath: web/worker/apps/export.js
 highlights:

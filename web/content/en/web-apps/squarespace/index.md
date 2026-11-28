@@ -4,7 +4,6 @@ seoTitle: "Squarespace & BigCommerce Accounting Sync — Free Open-Source ReAI I
 description: "Connect Squarespace Commerce or BigCommerce REST APIs to scan products and sync online sales into ReAI."
 summary: "Connect Squarespace Commerce or BigCommerce REST APIs to scan products and sync online sales into ReAI."
 industry: ecommerce-logistics
-icon: icons/squarespace.svg
 webAppUrl: /app/squarespace/
 sourcePath: web/worker/apps/squarespace.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "SpeedyCraft Work Orders to ReAI Timesheets and Orders"
 description: "Fetch SpeedyCraft service hours and materials, log the hours in ReAI Timesheets and stage each work order as a draft ReAI order. Free and open source."
 summary: "Fetch SpeedyCraft work order hours and materials through the SpeedyCraft REST API into ReAI timesheets and draft orders."
 industry: operations
-icon: icons/speedycraft.svg
 webAppUrl: /app/speedycraft/
 sourcePath: web/worker/apps/speedycraft.js
 highlights:

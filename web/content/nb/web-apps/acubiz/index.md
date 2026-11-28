@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Acubiz, Visma Expense og Findity — Gratis open sour
 description: "Importer utlegg og reiseregninger fra Acubiz, Visma Expense eller Findity til balanserte kontrollbilag i ReAI."
 summary: "Importer utlegg og reiseregninger fra Acubiz, Visma Expense eller Findity til balanserte kontrollbilag i ReAI."
 industry: operations
-icon: icons/acubiz.svg
 webAppUrl: /app/acubiz/
 sourcePath: web/worker/apps/acubiz.js
 highlights:

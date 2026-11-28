@@ -4,7 +4,6 @@ seoTitle: "Two B2B BNPL & Checkout Settlement — Free Open-Source ReAI Integrat
 description: "Reconcile Two B2B buy-now-pay-later payouts in ReAI splitting settled B2B invoice principal (1579), Two fees (7770) and net bank payout (1580)."
 summary: "Reconcile Two B2B buy-now-pay-later payouts in ReAI splitting settled B2B invoice principal (1579), Two fees (7770) and net bank payout (1580)."
 industry: payments
-icon: icons/two.svg
 webAppUrl: /app/two/
 sourcePath: web/worker/apps/two.js
 highlights:

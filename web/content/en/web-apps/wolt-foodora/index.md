@@ -4,7 +4,6 @@ seoTitle: "Wolt & Foodora Delivery Accounting for ReAI — Free Open-Source Conn
 description: "Reconcile Wolt and Foodora payout statements in ReAI: separates 15% takeaway food sales (3010), delivery commissions (7770) and net payout (1580)."
 summary: "Reconcile Wolt and Foodora payout statements in ReAI: separates 15% takeaway food sales (3010), delivery commissions (7770) and net payout (1580)."
 industry: payments
-icon: icons/wolt-foodora.svg
 webAppUrl: /app/wolt-foodora/
 sourcePath: web/worker/apps/wolt-foodora.js
 highlights:

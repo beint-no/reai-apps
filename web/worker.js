@@ -269,10 +269,10 @@ export default {
     try {
       if (pathname.startsWith('/app/auth/')) return await handleAuth(request, env);
       if (pathname.startsWith('/app/shared/')) return withAppHeaders(await env.ASSETS.fetch(request));
-      if (pathname === '/app' || pathname === '/app/') return Response.redirect(new URL('/web-apps/', request.url), 302);
+      if (pathname === '/app' || pathname === '/app/') return Response.redirect(new URL('/en/web-apps/', request.url), 302);
 
       const segment = pathname.startsWith('/app/') ? (pathname.slice(5).split('/')[0] ?? '') : '';
-      if (RETIRED.has(segment)) return Response.redirect(new URL('/web-apps/', request.url), 301);
+      if (RETIRED.has(segment)) return Response.redirect(new URL('/en/web-apps/', request.url), 301);
       const handler = segment ? ROUTES[segment] : undefined;
       if (handler) return await handler(request, env);
 

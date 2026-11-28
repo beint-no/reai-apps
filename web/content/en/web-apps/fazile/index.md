@@ -4,7 +4,6 @@ seoTitle: "Fazile Property Management Integration for ReAI — Lease Subscriptio
 description: "Stage commercial property leases from Fazile as recurring ReAI billing subscriptions with VAT-exempt (code 6) or voluntary VAT (code 3) support."
 summary: "Import Fazile lease schedules into ReAI recurring billing subscriptions with automatic billing kept off until approved."
 industry: real-estate
-icon: icons/fazile.svg
 webAppUrl: /app/fazile/
 sourcePath: web/worker/apps/fazile.js
 highlights:

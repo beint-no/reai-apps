@@ -4,7 +4,6 @@ seoTitle: "Bytt fra Fiken til ReAI — Gratis open source for ReAI"
 description: "Koble Fiken API-token eller CSV-eksport for å flytte kontakter, leverandører og produkter rett til ReAI."
 summary: "Koble Fiken API-token eller CSV-eksport for å flytte kontakter, leverandører og produkter rett til ReAI."
 industry: operations
-icon: icons/fiken-migrate.svg
 webAppUrl: /app/fiken-migrate/
 sourcePath: web/worker/apps/fiken-migrate.js
 highlights:

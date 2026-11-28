@@ -4,7 +4,6 @@ seoTitle: ReAI Fraktapp — Direkte utskrift av fraktetiketter på Mac og Window
 description: Bestill frakt med Bring, PostNord og DHL direkte fra ReAI-ordrer og skriv ut etiketter rett til Zebra-skriver på Mac og Windows uten utskriftsdialog.
 summary: Bestill frakt på åpne ReAI-ordrer og skriv ut transportøretiketter rett på Zebra-skriver.
 industry: ecommerce-logistics
-icon: icons/shipping.svg
 appId: shipping
 sourcePath: apple/shipping
 highlights:

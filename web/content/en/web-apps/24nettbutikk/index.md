@@ -4,7 +4,6 @@ seoTitle: "24Nettbutikk Accounting Integration for ReAI — Free Product & Sales
 description: "Sync 24Nettbutikk products and paid online orders into ReAI for free. No middleware subscription required."
 summary: "Connect your 24Nettbutikk store to ReAI for SKU-matched product sync and idempotent sales import."
 industry: ecommerce-logistics
-icon: icons/24nettbutikk.svg
 webAppUrl: /app/24nettbutikk/
 sourcePath: web/worker/apps/24nettbutikk.js
 highlights:

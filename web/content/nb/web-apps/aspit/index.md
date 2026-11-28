@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Aspit / Physica og regnskap — Gratis open source
 description: "Bokfør HELFO-oppgjør og pasientegenandeler fra Aspit og Physica i ReAI (0 % helse 3100 vs 25 % salg 3000)."
 summary: "Bokfør HELFO-oppgjør og pasientegenandeler fra Aspit og Physica i ReAI (0 % helse 3100 vs 25 % salg 3000)."
 industry: operations
-icon: icons/aspit.svg
 webAppUrl: /app/aspit/
 sourcePath: web/worker/apps/aspit.js
 highlights:

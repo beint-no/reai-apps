@@ -4,7 +4,6 @@ seoTitle: "Aspit & Physica Clinic Accounting — Free Open-Source ReAI Integrati
 description: "Book Aspit and Physica clinic HELFO reimbursements and patient egenandel (0% healthcare 3100 vs 25% retail 3000)."
 summary: "Book Aspit and Physica clinic HELFO reimbursements and patient egenandel (0% healthcare 3100 vs 25% retail 3000)."
 industry: operations
-icon: icons/aspit.svg
 webAppUrl: /app/aspit/
 sourcePath: web/worker/apps/aspit.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Ledigtime og Bokadirekt — Gratis open source for Re
 description: "Bokfør oppgjørsrapporter fra Ledigtime og Bokadirekt i ReAI med riktig splitt på 25 % behandling, 0 % helse og gebyr."
 summary: "Bokfør oppgjørsrapporter fra Ledigtime og Bokadirekt i ReAI med riktig splitt på 25 % behandling, 0 % helse og gebyr."
 industry: operations
-icon: icons/ledigtime.svg
 webAppUrl: /app/ledigtime/
 sourcePath: web/worker/apps/ledigtime.js
 highlights:

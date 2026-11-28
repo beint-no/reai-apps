@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Minuba og regnskap — Gratis integrasjon for ReAI
 description: "Importer arbeidsordrer, materiell og timer fra Minuba rett inn i ReAI uten tredjeparts bro."
 summary: "Importer arbeidsordrer, materiell og timer fra Minuba rett inn i ReAI uten tredjeparts bro."
 industry: operations
-icon: icons/minuba.svg
 webAppUrl: /app/minuba/
 sourcePath: web/worker/apps/minuba.js
 highlights:

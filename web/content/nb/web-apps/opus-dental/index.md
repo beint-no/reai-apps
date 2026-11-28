@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Opus Dental og regnskap — Gratis integrasjon for
 description: "Bokfør kassadagbok fra Opus Dental i ReAI med automatisk splitt på pasientbetaling (1580), HELFO-refusjon (1570), 0 % tannbehandling (3100) og 25 % varesalg."
 summary: "Bokfør kassadagbok fra Opus Dental i ReAI med automatisk splitt på pasientbetaling (1580), HELFO-refusjon (1570), 0 % tannbehandling (3100) og 25 % varesalg."
 industry: operations
-icon: icons/opus-dental.svg
 webAppUrl: /app/opus-dental/
 sourcePath: web/worker/apps/opus-dental.js
 highlights:

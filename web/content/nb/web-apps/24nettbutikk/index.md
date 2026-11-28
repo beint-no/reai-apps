@@ -4,7 +4,6 @@ seoTitle: "24Nettbutikk regnskapsintegrasjon for ReAI — Gratis produkt- og sal
 description: "Koble 24Nettbutikk gratis til ReAI for synkronisering av produkter og betalte nettbutikkordrer uten ekstra månedskostnad."
 summary: "Synkroniser produkter på varenummer og importer betalte ordrer fra 24Nettbutikk direkte til ReAI."
 industry: ecommerce-logistics
-icon: icons/24nettbutikk.svg
 webAppUrl: /app/24nettbutikk/
 sourcePath: web/worker/apps/24nettbutikk.js
 highlights:
@@ -15,7 +14,7 @@ highlights:
 
 ## Produkt- og salgssynk for 24Nettbutikk
 
-Hold varekatalogen og nettbutikksalget oppdatert i ReAI uten betalt tilleggsmodul. Kombiner 24Nettbutikk-synken med gratis avstemming for [Vipps](/nb/web-apps/vipps/), [Klarna](/nb/web-apps/klarna/) og [Nets Easy](/nb/web-apps/nets/) for en helhetlig månedsavslutning.
+Hold varekatalogen og nettbutikksalget oppdatert i ReAI uten betalt tilleggsmodul. Kombiner 24Nettbutikk-synken med gratis avstemming for [Vipps](/web-apps/vipps/), [Klarna](/web-apps/klarna/) og [Nets Easy](/web-apps/nets/) for en helhetlig månedsavslutning.
 
 ## Slik kobler du 24Nettbutikk til ReAI
 

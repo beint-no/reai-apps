@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Squarespace og BigCommerce — Gratis open source-int
 description: "Koble Squarespace Commerce eller BigCommerce til ReAI for produktsynk og nettbutikkregnskap uten mellomvare."
 summary: "Koble Squarespace Commerce eller BigCommerce til ReAI for produktsynk og nettbutikkregnskap uten mellomvare."
 industry: ecommerce-logistics
-icon: icons/squarespace.svg
 webAppUrl: /app/squarespace/
 sourcePath: web/worker/apps/squarespace.js
 highlights:

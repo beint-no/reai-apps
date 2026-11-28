@@ -4,7 +4,6 @@ seoTitle: "Paddle & Chargebee SaaS Payout Accounting — Free Open-Source ReAI I
 description: "Book Paddle Merchant-of-Record and Chargebee SaaS payouts in ReAI separating 0% export SaaS revenue (3100), MoR fees (7770) and net payout (1580)."
 summary: "Book Paddle Merchant-of-Record and Chargebee SaaS payouts in ReAI separating 0% export SaaS revenue (3100), MoR fees (7770) and net payout (1580)."
 industry: payments
-icon: icons/paddle.svg
 webAppUrl: /app/paddle/
 sourcePath: web/worker/apps/paddle.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "ABAX Electronic Driving Log (Kjørebok) & Accounting — Free Open-So
 description: "Import business trips and road tolls from ABAX Triplog straight into ReAI Driving Log (/api/driving-log/trips) with automatic statutory mileage vouchers."
 summary: "Import business trips and road tolls from ABAX Triplog straight into ReAI Driving Log (/api/driving-log/trips) with automatic statutory mileage vouchers."
 industry: operations
-icon: icons/abax.svg
 webAppUrl: /app/abax/
 sourcePath: web/worker/apps/abax.js
 highlights:

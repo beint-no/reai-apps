@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom Vipps og regnskap — Gratis avstemming for ReAI
 description: Avstem Vipps-utbetalinger mot bank i ReAI helt gratis. Komplett guide til hvordan brutto salg, Vipps-gebyrer og netto utbetalinger bokføres riktig.
 summary: Match utbetalinger fra Vipps mot banktransaksjoner i ReAI og last ned ferdig avstemmingsrapport i CSV.
 industry: payments
-icon: icons/vipps.svg
 webAppUrl: /app/vipps/
 sourcePath: web/worker/apps/vipps.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Susoft Retail & Omnichannel POS Accounting for ReAI — Free Open-Sou
 description: "Import Susoft POS Z-report and omnichannel accounting exports directly into balanced ReAI vouchers."
 summary: "Import Susoft POS Z-report and omnichannel accounting exports directly into balanced ReAI vouchers."
 industry: payments
-icon: icons/susoft.svg
 webAppUrl: /app/susoft/
 sourcePath: web/worker/apps/susoft.js
 highlights:

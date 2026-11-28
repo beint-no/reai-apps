@@ -4,7 +4,6 @@ seoTitle: Zettle Accounting Integration for ReAI — POS Payout Reconciliation
 description: Compare Zettle by PayPal payouts against ReAI bank transactions for free. Guide to reconciling POS terminal deposits and fees in Norwegian accounting.
 summary: Match Zettle Finance v2 liquid-account payouts against pending ReAI bank transactions and export CSV.
 industry: payments
-icon: icons/zettle.svg
 webAppUrl: /app/zettle/
 sourcePath: web/worker/apps/zettle.js
 highlights:

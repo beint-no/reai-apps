@@ -4,7 +4,6 @@ seoTitle: "12-Month NS 4102 Budget Importer — Free Open-Source ReAI Integratio
 description: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budgets and inspect quarterly totals live."
 summary: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budgets and inspect quarterly totals live."
 industry: operations
-icon: icons/budget.svg
 webAppUrl: /app/budget/
 sourcePath: web/worker/apps/budget.js
 highlights:

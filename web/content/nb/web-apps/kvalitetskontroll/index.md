@@ -4,7 +4,6 @@ seoTitle: "Kvalitetskontroll (KS) timer til ReAI Timelister"
 description: "Hent godkjente timer fra Kvalitetskontroll og før dem som timelisterader i ReAI per ansatt og prosjekt. Gratis og åpen kildekode."
 summary: "Hent godkjente timer fra Kvalitetskontroll via KS API og før dem i ReAI Timelister."
 industry: operations
-icon: icons/kvalitetskontroll.svg
 webAppUrl: /app/kvalitetskontroll/
 sourcePath: web/worker/apps/kvalitetskontroll.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Quinyx og regnskap — Gratis open source-integras
 description: "Importer godkjente skift og arbeidstimer fra Quinyx direkte inn i ReAI Timelister."
 summary: "Importer godkjente skift og arbeidstimer fra Quinyx direkte inn i ReAI Timelister."
 industry: operations
-icon: icons/quinyx.svg
 webAppUrl: /app/quinyx/
 sourcePath: web/worker/apps/quinyx.js
 highlights:

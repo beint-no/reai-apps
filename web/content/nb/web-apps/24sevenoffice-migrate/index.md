@@ -4,7 +4,6 @@ seoTitle: "Bytt fra 24SevenOffice, Visma eller Conta — Gratis open source for 
 description: "Flytt kunder, leverandører og produkter fra 24SevenOffice, Visma eAccounting eller Conta til ReAI."
 summary: "Flytt kunder, leverandører og produkter fra 24SevenOffice, Visma eAccounting eller Conta til ReAI."
 industry: operations
-icon: icons/24sevenoffice-migrate.svg
 webAppUrl: /app/24sevenoffice-migrate/
 sourcePath: web/worker/apps/24sevenoffice-migrate.js
 highlights:

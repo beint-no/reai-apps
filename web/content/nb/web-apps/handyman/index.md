@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Handyman og regnskap — Gratis integrasjon for Re
 description: "Importer ferdige mobile serviceordrer og montørtimer fra GSGroup Handyman direkte til ReAI."
 summary: "Importer ferdige mobile serviceordrer og montørtimer fra GSGroup Handyman direkte til ReAI."
 industry: operations
-icon: icons/handyman.svg
 webAppUrl: /app/handyman/
 sourcePath: web/worker/apps/handyman.js
 highlights:

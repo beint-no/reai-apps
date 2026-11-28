@@ -1,7 +1,7 @@
 {{ define "main" }}
   {{ $webSection := site.GetPage "/web-apps/" }}
   {{ $desktopSection := site.GetPage "/desktop/" }}
-  {{ $industriesSection := site.GetPage "/industries/" }}
+  {{ $lang := site.Language.Code }}
   <section class="hero wrap">
     <div class="eyebrow"><span class="status-dot"></span>{{ T "home_eyebrow" }}</div>
     <h1>{{ .Title }}</h1>
@@ -9,7 +9,31 @@
     <div class="hero-actions">
       <a class="button primary" href="{{ site.Params.signupUrl }}">{{ T "try_reai_free" }} →</a>
       <a class="button secondary" href="#integrations">{{ T "home_cta_secondary" }}</a>
-      <a class="button secondary" href="/app/saft/">{{ T "home_cta_saft" }} →</a>
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="popular-heading">
+    <div class="section-head">
+      <h2 id="popular-heading">{{ T "popular_heading" }}</h2>
+      <p>{{ T "popular_intro" }}</p>
+    </div>
+    <div class="popular-grid">
+      {{ range site.Data.popular }}
+        <section class="popular-group">
+          <h3>{{ index . $lang }}</h3>
+          <ul>
+            {{ range .systems }}<li><a href="{{ (site.GetPage .page).RelPermalink }}">{{ .name }}</a></li>{{ end }}
+          </ul>
+        </section>
+      {{ end }}
+    </div>
+  </section>
+
+  <section class="switch-band wrap">
+    <p><strong>{{ T "switch_heading" }}</strong> {{ T "switch_body" }}</p>
+    <div class="switch-actions">
+      <a class="button primary" href="{{ site.Params.contactUrl }}">{{ T "switch_cta" }} →</a>
+      <a class="text-link" href="{{ site.Params.switchUrl }}">{{ T "switch_more" }} ↗</a>
     </div>
   </section>
 
@@ -26,21 +50,6 @@
 
   <section class="section wrap">
     <div class="section-head">
-      <h2>{{ T "home_industries_heading" }}</h2>
-      <p>{{ T "home_industries_intro" }}</p>
-    </div>
-    <div class="industry-grid">
-      {{ range $industriesSection.Pages }}
-        <a class="industry-card" href="{{ .RelPermalink }}">
-          <h3>{{ .Title }}</h3>
-          <p>{{ .Summary }}</p>
-        </a>
-      {{ end }}
-    </div>
-  </section>
-
-  <section class="section wrap">
-    <div class="section-head">
       <h2>{{ T "home_desktop_heading" }}</h2>
       <p>{{ T "home_desktop_intro" }}</p>
     </div>
@@ -52,7 +61,6 @@
   <section class="note-band wrap">
     <h2>{{ T "builtin_heading" }}</h2>
     <p>{{ T "builtin_body" }}</p>
-    <a class="button primary" href="{{ site.Params.signupUrl }}">{{ T "try_reai_free" }} →</a>
   </section>
 
   <section class="contribute wrap">

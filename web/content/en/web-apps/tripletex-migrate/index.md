@@ -4,7 +4,6 @@ seoTitle: "Switch from Tripletex to ReAI — Free Open-Source ReAI Integration"
 description: "Migrate customers, suppliers and products straight from Tripletex API v2 or CSV export into ReAI."
 summary: "Migrate customers, suppliers and products straight from Tripletex API v2 or CSV export into ReAI."
 industry: operations
-icon: icons/tripletex-migrate.svg
 webAppUrl: /app/tripletex-migrate/
 sourcePath: web/worker/apps/tripletex-migrate.js
 highlights:

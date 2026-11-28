@@ -4,7 +4,6 @@ seoTitle: "Make, Zapier & n8n Automations Hub — Free Open-Source ReAI Integrat
 description: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapier REST blueprints and live /api/me tester."
 summary: "Connect ReAI to 5,000+ apps with ready-to-paste n8n, Make and Zapier REST blueprints and live /api/me tester."
 industry: operations
-icon: icons/automations.svg
 webAppUrl: /app/automations/
 sourcePath: web/worker/apps/automations.js
 highlights:

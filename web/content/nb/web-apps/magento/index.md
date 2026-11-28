@@ -4,7 +4,6 @@ seoTitle: "Magento 2 / Adobe Commerce regnskapsintegrasjon for ReAI — Gratis"
 description: "Koble Magento 2 eller Adobe Commerce gratis til ReAI for synkronisering av produkter og betalte ordrer rett fra REST API-et."
 summary: "Synkroniser produkter på SKU og importer betalte ordrer fra Magento 2 / Adobe Commerce direkte til ReAI."
 industry: ecommerce-logistics
-icon: icons/magento.svg
 webAppUrl: /app/magento/
 sourcePath: web/worker/apps/magento.js
 highlights:

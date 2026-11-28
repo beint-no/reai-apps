@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Tamigo og regnskap — Gratis integrasjon for ReAI
 description: "Overfør godkjente skift og arbeidstimer fra Tamigo direkte inn i ReAI Timelister."
 summary: "Overfør godkjente skift og arbeidstimer fra Tamigo direkte inn i ReAI Timelister."
 industry: operations
-icon: icons/tamigo.svg
 webAppUrl: /app/tamigo/
 sourcePath: web/worker/apps/tamigo.js
 highlights:

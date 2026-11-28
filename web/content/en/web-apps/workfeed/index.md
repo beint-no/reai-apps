@@ -4,7 +4,6 @@ seoTitle: "Workfeed Shift Hours Integration for ReAI Timesheets"
 description: "Fetch worked Workfeed shifts and post the hours to ReAI Timesheets per employee as the basis for payroll and project billing."
 summary: "Read approved Workfeed shifts with your API key and post the hours to ReAI Timesheets."
 industry: operations
-icon: icons/workfeed.svg
 webAppUrl: /app/workfeed/
 sourcePath: web/worker/apps/workfeed.js
 highlights:

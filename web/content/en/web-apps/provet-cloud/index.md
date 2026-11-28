@@ -4,7 +4,6 @@ seoTitle: "Provet Cloud to ReAI | Free open source integration for vet clinics"
 description: "Fetch finalized Provet Cloud invoices for a period and create a balanced review voucher in ReAI with payments by type and sales by VAT rate."
 summary: "Book Provet Cloud invoices as one ReAI review voucher per period: clinic payments, open client balances and sales by VAT rate."
 industry: operations
-icon: icons/provet-cloud.svg
 webAppUrl: /app/provet-cloud/
 sourcePath: web/worker/apps/provet-cloud.js
 highlights:

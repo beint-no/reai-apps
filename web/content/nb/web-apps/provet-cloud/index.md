@@ -4,7 +4,6 @@ seoTitle: "Provet Cloud til ReAI | Gratis integrasjon for dyreklinikker"
 description: "Hent fakturaer fra Provet Cloud for en periode og lag et balansert bilag til kontroll i ReAI, med betalinger per type og salg per mva-sats."
 summary: "Bokfør fakturaene fra Provet Cloud som ett bilag til kontroll i ReAI per periode: betalinger på klinikken, åpne kundesaldoer og salg per mva-sats."
 industry: operations
-icon: icons/provet-cloud.svg
 webAppUrl: /app/provet-cloud/
 sourcePath: web/worker/apps/provet-cloud.js
 highlights:

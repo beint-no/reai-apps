@@ -4,7 +4,6 @@ seoTitle: "Revolut Business & Wise Accounting Integration for ReAI — Free CSV 
 description: "Import Revolut Business and Wise Business card statements into balanced ReAI review vouchers with automatic FX and card fee booking on 7770."
 summary: "Parse Revolut Business or Wise CSV statements, split FX/card fees onto 7770, and book a balanced ReAI review voucher."
 industry: operations
-icon: icons/revolut.svg
 webAppUrl: /app/revolut/
 sourcePath: web/worker/apps/revolut.js
 highlights:

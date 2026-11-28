@@ -4,7 +4,6 @@ seoTitle: "PrestaShop Accounting Integration for ReAI — Free Product & Sales S
 description: "Sync PrestaShop products and paid orders into ReAI using the built-in PrestaShop Webservice API. Zero integration fee."
 summary: "Fetch PrestaShop catalog items and paid orders via the Webservice API and sync them into ReAI."
 industry: ecommerce-logistics
-icon: icons/prestashop.svg
 webAppUrl: /app/prestashop/
 sourcePath: web/worker/apps/prestashop.js
 highlights:

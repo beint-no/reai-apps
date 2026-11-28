@@ -4,7 +4,6 @@ seoTitle: "Toggl Track Timesheet Integration for ReAI — Billable Hours & Proje
 description: "Import worked hours from Toggl Track API v9 directly into ReAI Timesheets for project invoicing and payroll. Included free with ReAI."
 summary: "Fetch monthly Toggl Track time entries and post them straight into ReAI Timesheets by employee and project."
 industry: operations
-icon: icons/toggl.svg
 webAppUrl: /app/toggl/
 sourcePath: web/worker/apps/toggl.js
 highlights:

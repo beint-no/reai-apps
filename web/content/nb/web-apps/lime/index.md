@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Lime CRM og regnskap — Gratis integrasjon for Re
 description: "Synkroniser selskaper og vunne salgsmuligheter fra Lime CRM direkte til kunder og ordreutkast i ReAI."
 summary: "Synkroniser selskaper og vunne salgsmuligheter fra Lime CRM direkte til kunder og ordreutkast i ReAI."
 industry: operations
-icon: icons/lime.svg
 webAppUrl: /app/lime/
 sourcePath: web/worker/apps/lime.js
 highlights:

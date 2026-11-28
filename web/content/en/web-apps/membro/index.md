@@ -4,7 +4,6 @@ seoTitle: "Membro & Xplor Fitness Center Accounting — Free Open-Source ReAI In
 description: "Book Norwegian gym & fitness center payouts separating VAT-exempt training memberships (3100, 0%) from 25% PT/merch sales (3000) and fees (7770)."
 summary: "Book Norwegian gym & fitness center payouts separating VAT-exempt training memberships (3100, 0%) from 25% PT/merch sales (3000) and fees (7770)."
 industry: operations
-icon: icons/membro.svg
 webAppUrl: /app/membro/
 sourcePath: web/worker/apps/membro.js
 highlights:

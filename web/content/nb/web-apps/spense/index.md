@@ -4,7 +4,6 @@ seoTitle: "Spense oppgjør til ReAI: utbetalinger, gebyrer og bankavstemming"
 description: "Les inn oppgjørsrapporten fra Spense, avstem hver utbetaling mot banken i ReAI og lag ett kontrollbilag for innbetalinger, gebyrer og utbetalinger. Gratis."
 summary: "Avstem utbetalinger fra Spense mot uavstemte banktransaksjoner i ReAI og før oppgjøret som kontrollbilag."
 industry: payments
-icon: icons/spense.svg
 webAppUrl: /app/spense/
 sourcePath: web/worker/apps/spense.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "PrestaShop regnskapsintegrasjon for ReAI — Gratis produkt- og salgs
 description: "Synkroniser produkter og betalte ordrer fra PrestaShop til ReAI via PrestaShop Webservice API — helt uten månedlige tilleggsgebyrer."
 summary: "Hent varekatalog og betalte ordrer fra PrestaShop Webservice API og synkroniser direkte til ReAI."
 industry: ecommerce-logistics
-icon: icons/prestashop.svg
 webAppUrl: /app/prestashop/
 sourcePath: web/worker/apps/prestashop.js
 highlights:

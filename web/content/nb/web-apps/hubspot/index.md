@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom HubSpot og regnskap — Gratis kundesynk til ReAI
 description: Synkroniser bedrifter fra HubSpot CRM rett inn i kunderegisteret i ReAI gratis, med duplikatsjekk og validering av norsk organisasjonsnummer.
 summary: Skann bedrifter i HubSpot, finn eksisterende kunder i ReAI og opprett manglende kunder med ett klikk.
 industry: operations
-icon: icons/hubspot.svg
 webAppUrl: /app/hubspot/
 sourcePath: web/worker/apps/hubspot.js
 highlights:

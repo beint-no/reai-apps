@@ -4,7 +4,6 @@ seoTitle: ReAI Timeregistrering — Stoppeklokke i menylinjen for ReAI
 description: Start og stopp fakturerbare timer fra menylinjen på Mac eller på Windows og lagre rett til prosjekter og timelister i ReAI.
 summary: Start en timer i menylinjen og lagre arbeidstid rett inn i timelistene i ReAI.
 industry: operations
-icon: icons/time-tracker.svg
 appId: time-tracker
 sourcePath: apple/time-tracker
 highlights:

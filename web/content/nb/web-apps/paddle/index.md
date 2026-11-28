@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Paddle og Chargebee til regnskap — Gratis open sour
 description: "Bokfør SaaS-utbetalinger fra Paddle (Merchant of Record) og Chargebee i ReAI med 0 % eksportomsetning (3100) og plattformgebyr (7770)."
 summary: "Bokfør SaaS-utbetalinger fra Paddle (Merchant of Record) og Chargebee i ReAI med 0 % eksportomsetning (3100) og plattformgebyr (7770)."
 industry: payments
-icon: icons/paddle.svg
 webAppUrl: /app/paddle/
 sourcePath: web/worker/apps/paddle.js
 highlights:

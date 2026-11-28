@@ -4,7 +4,6 @@ seoTitle: "Mews Cloud Hotel PMS & Accounting for ReAI — Free Open-Source Conne
 description: "Import Mews PMS hospitality settlements into ReAI supporting Norwegian 12% accommodation VAT, 15% food and 25% services."
 summary: "Import Mews PMS hospitality settlements into ReAI supporting Norwegian 12% accommodation VAT, 15% food and 25% services."
 industry: payments
-icon: icons/mews.svg
 webAppUrl: /app/mews/
 sourcePath: web/worker/apps/mews.js
 highlights:

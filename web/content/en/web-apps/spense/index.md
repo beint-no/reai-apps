@@ -4,7 +4,6 @@ seoTitle: "Spense Settlement Reconciliation for ReAI: Payouts, Fees and Bank"
 description: "Import the Spense settlement report, match each payout to the ReAI bank feed and create one review voucher for customer payments, withheld fees and payouts. Free."
 summary: "Match Spense payouts against pending ReAI bank transactions and book settlements as a review voucher."
 industry: payments
-icon: icons/spense.svg
 webAppUrl: /app/spense/
 sourcePath: web/worker/apps/spense.js
 highlights:

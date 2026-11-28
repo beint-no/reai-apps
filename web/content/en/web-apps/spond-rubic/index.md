@@ -4,7 +4,6 @@ seoTitle: "Spond Club & Rubic Membership Accounting for ReAI — Free Open-Sourc
 description: "Reconcile Spond Club and Rubic payouts into ReAI separating VAT-exempt membership/activity dues (3100) from 25% gear sales and fees."
 summary: "Reconcile Spond Club and Rubic payouts into ReAI separating VAT-exempt membership/activity dues (3100) from 25% gear sales and fees."
 industry: operations
-icon: icons/spond-rubic.svg
 webAppUrl: /app/spond-rubic/
 sourcePath: web/worker/apps/spond-rubic.js
 highlights:

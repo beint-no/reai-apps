@@ -4,7 +4,6 @@ seoTitle: "Aksjonærregister & Share Investments — Free Open-Source ReAI Integ
 description: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV) into ReAI Share Investments with fritaksmetoden support."
 summary: "Import Norwegian equity portfolios (Nordnet, VPS, DNB, RF-1086 CSV) into ReAI Share Investments with fritaksmetoden support."
 industry: operations
-icon: icons/aksjonaer.svg
 webAppUrl: /app/aksjonaer/
 sourcePath: web/worker/apps/aksjonaer.js
 highlights:

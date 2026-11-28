@@ -4,7 +4,6 @@ seoTitle: "EasyPractice & MakePlans Clinic Billing — Free Open-Source ReAI Int
 description: "Book therapist, psychologist and clinic settlements from EasyPractice or MakePlans into ReAI separating 0% exempt healthcare from 25% sessions."
 summary: "Book therapist, psychologist and clinic settlements from EasyPractice or MakePlans into ReAI separating 0% exempt healthcare from 25% sessions."
 industry: operations
-icon: icons/easypractice.svg
 webAppUrl: /app/easypractice/
 sourcePath: web/worker/apps/easypractice.js
 highlights:

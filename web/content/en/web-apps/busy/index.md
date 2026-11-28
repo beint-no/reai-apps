@@ -4,7 +4,6 @@ seoTitle: "Busy Time Tracking & Accounting Sync for ReAI — Free Open-Source Co
 description: "Import approved billable hours and project notes from Busy straight into ReAI Timesheets."
 summary: "Import approved billable hours and project notes from Busy straight into ReAI Timesheets."
 industry: operations
-icon: icons/busy.svg
 webAppUrl: /app/busy/
 sourcePath: web/worker/apps/busy.js
 highlights:

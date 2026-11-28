@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Simployer og regnskap — Gratis open source-integ
 description: "Importer godkjente reiseregninger, diett og utlegg fra Simployer rett inn i ReAI som balanserte kontrollbilag mot konto 2915."
 summary: "Importer godkjente reiseregninger, diett og utlegg fra Simployer rett inn i ReAI som balanserte kontrollbilag mot konto 2915."
 industry: operations
-icon: icons/simployer.svg
 webAppUrl: /app/simployer/
 sourcePath: web/worker/apps/simployer.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Fresha og regnskap — Gratis open source for ReAI
 description: "Bokfør oppgjør fra Fresha for frisør, barbershop og skjønnhet i ReAI med 25 % MVA (3000+2700) og gebyr (7770)."
 summary: "Bokfør oppgjør fra Fresha for frisør, barbershop og skjønnhet i ReAI med 25 % MVA (3000+2700) og gebyr (7770)."
 industry: operations
-icon: icons/fresha.svg
 webAppUrl: /app/fresha/
 sourcePath: web/worker/apps/fresha.js
 highlights:

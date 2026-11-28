@@ -4,7 +4,6 @@ seoTitle: "Shopware 6 regnskapsintegrasjon for ReAI — Gratis produkt- og salgs
 description: "Koble Shopware 6 direkte til ReAI med OAuth-integrasjon for synkronisering av produkter og betalte ordrer — helt gratis."
 summary: "Koble til Shopware 6 Admin API for å synkronisere produkter og importere betalte ordrer til ReAI."
 industry: ecommerce-logistics
-icon: icons/shopware.svg
 webAppUrl: /app/shopware/
 sourcePath: web/worker/apps/shopware.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: Integrasjon mellom Zettle og regnskap — Avstemming av kasseutbetalin
 description: Avstem utbetalinger fra Zettle (PayPal POS) mot bank i ReAI helt gratis. Slik holder du styr på kassesalg, kortgebyrer og bankinnskudd.
 summary: Match utbetalinger fra Zettle mot uavstemte banktransaksjoner i ReAI og last ned CSV-rapport.
 industry: payments
-icon: icons/zettle.svg
 webAppUrl: /app/zettle/
 sourcePath: web/worker/apps/zettle.js
 highlights:

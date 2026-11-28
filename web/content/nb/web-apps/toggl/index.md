@@ -4,7 +4,6 @@ seoTitle: "Toggl Track timeregistrering til ReAI — Gratis timesynk for fakture
 description: "Importer førte timer fra Toggl Track API v9 direkte til timelister og prosjekter i ReAI — klart for viderefakturering og lønn."
 summary: "Hent månedlige timeregistreringer fra Toggl Track og bokfør dem direkte inn i ReAI Timelister."
 industry: operations
-icon: icons/toggl.svg
 webAppUrl: /app/toggl/
 sourcePath: web/worker/apps/toggl.js
 highlights:

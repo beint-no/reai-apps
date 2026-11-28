@@ -4,7 +4,6 @@ seoTitle: "SmartDok & Accounting Integration for ReAI — Free Open-Source Conne
 description: "Import approved construction hours, machine logs and project billing from SmartDok into ReAI Timesheets and draft orders."
 summary: "Import approved construction hours, machine logs and project billing from SmartDok into ReAI Timesheets and draft orders."
 industry: operations
-icon: icons/smartdok.svg
 webAppUrl: /app/smartdok/
 sourcePath: web/worker/apps/smartdok.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Milient (Moment) & Accounting Sync for ReAI — Free Open-Source Conn
 description: "Bridge Milient (formerly Moment) architecture, engineering and consulting hours cleanly into ReAI Timesheets."
 summary: "Bridge Milient (formerly Moment) architecture, engineering and consulting hours cleanly into ReAI Timesheets."
 industry: operations
-icon: icons/milient.svg
 webAppUrl: /app/milient/
 sourcePath: web/worker/apps/milient.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "PayPal regnskapsintegrasjon for ReAI — Gratis utbetalingsavstemming
 description: "Avstem PayPal Business-utbetalinger mot bank i ReAI helt gratis. Slik bokfører du PayPal-salg, valutagebyrer og overføringer riktig i Norge."
 summary: "Hent utbetalinger fra PayPal Business via Reporting API og match dem automatisk mot banktransaksjoner i ReAI."
 industry: payments
-icon: icons/paypal.svg
 webAppUrl: /app/paypal/
 sourcePath: web/worker/apps/paypal.js
 highlights:

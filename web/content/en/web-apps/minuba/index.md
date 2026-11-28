@@ -4,7 +4,6 @@ seoTitle: "Minuba & Accounting Integration for ReAI — Free Open-Source Connect
 description: "Import Minuba work orders, materials and billable craftsman hours into ReAI draft orders and timesheets."
 summary: "Import Minuba work orders, materials and billable craftsman hours into ReAI draft orders and timesheets."
 industry: operations
-icon: icons/minuba.svg
 webAppUrl: /app/minuba/
 sourcePath: web/worker/apps/minuba.js
 highlights:

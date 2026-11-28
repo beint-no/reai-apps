@@ -4,7 +4,6 @@ seoTitle: "Ordrestyring timer og varer til ReAI Timelister og ordrer"
 description: "Hent ufakturerte timer og varer fra Ordrestyring, før timene i ReAI Timelister og legg hver sak klar som ordreutkast i ReAI. Gratis og åpen kildekode."
 summary: "Hent timer og varer på saker fra Ordrestyring GraphQL API til timelister og ordreutkast i ReAI."
 industry: operations
-icon: icons/ordrestyring.svg
 webAppUrl: /app/ordrestyring/
 sourcePath: web/worker/apps/ordrestyring.js
 highlights:

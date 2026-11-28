@@ -4,7 +4,6 @@ seoTitle: "Avstemming av Walley oppgjør mot bank i ReAI"
 description: "Avstem utbetalinger fra Walley mot banktransaksjoner i ReAI og last ned en CSV for avstemmingen. Gratis og åpen kildekode."
 summary: "Hent Walley oppgjør via Reports API og match hver utbetaling mot en uavstemt banktransaksjon i ReAI."
 industry: payments
-icon: icons/walley.svg
 webAppUrl: /app/walley/
 sourcePath: web/worker/apps/walley.js
 highlights:

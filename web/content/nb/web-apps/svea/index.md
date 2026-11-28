@@ -4,7 +4,6 @@ seoTitle: "Avstemming av Svea Checkout utbetalinger i ReAI"
 description: "Avstem daglige utbetalinger fra Svea Checkout mot banktransaksjoner i ReAI og last ned en CSV for avstemmingen. Gratis og åpen kildekode."
 summary: "Hent avstemmingsrapporter fra Svea for hver dag i måneden og match hver utbetaling mot en uavstemt banktransaksjon i ReAI."
 industry: payments
-icon: icons/svea.svg
 webAppUrl: /app/svea/
 sourcePath: web/worker/apps/svea.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Bytt til ReAI med SAF-T (Tripletex, Fiken, PowerOffice, Visma) — Gr
 description: "Last opp norsk SAF-T Financial XML fra Tripletex, Fiken, PowerOffice Go, Visma eller Conta — se saldobalanse, importer kunder og leverandører til ReAI, og last ned åpningssaldo i Excel."
 summary: "Last opp norsk SAF-T Financial XML fra Tripletex, Fiken, PowerOffice Go, Visma eller Conta — se saldobalanse, importer kunder og leverandører til ReAI, og last ned åpningssaldo i Excel."
 industry: operations
-icon: icons/saft.svg
 webAppUrl: /app/saft/
 sourcePath: web/worker/apps/saft.js
 highlights:

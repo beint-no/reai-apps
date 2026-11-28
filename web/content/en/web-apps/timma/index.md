@@ -4,7 +4,6 @@ seoTitle: "Timma Salon & Booking Accounting Integration for ReAI — Free"
 description: "Book Timma salon, hair, beauty and wellness settlements into ReAI with exact separation of 25% treatments/retail, 0% exempt healthcare and card/booking fees."
 summary: "Import Timma salon and wellness settlement reports into ReAI with automatic 25% retail/treatment vs 0% healthcare VAT split."
 industry: operations
-icon: icons/timma.svg
 webAppUrl: /app/timma/
 sourcePath: web/worker/apps/timma.js
 highlights:

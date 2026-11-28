@@ -4,7 +4,6 @@ seoTitle: "Kasse dagsoppgjør / Z-rapport i ReAI — Amendo, Baemingo, Mystore P
 description: "Bokfør daglige Z-rapporter fra kassasystem i ReAI med automatisk splitt på 25 %, 15 %, 12 % og 0 % MVA samt kontant, kort og Vipps."
 summary: "Gjør Z-rapporten fra kassen (Amendo, Baemingo, Mystore POS m.fl.) om til et balansert bilag i ReAI på sekunder."
 industry: payments
-icon: icons/z-report.svg
 webAppUrl: /app/z-report/
 sourcePath: web/worker/apps/z-report.js
 highlights:

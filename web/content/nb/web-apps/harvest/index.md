@@ -4,7 +4,6 @@ seoTitle: "Harvest timeregistrering til ReAI — Gratis prosjektsynk"
 description: "Importer prosjekttimer fra Harvest API v2 direkte inn i ReAI Timelister for norsk fakturering, EHF og lønn."
 summary: "Hent timeregistreringer fra Harvest API v2 og overfør dem direkte til ReAI Timelister."
 industry: operations
-icon: icons/harvest.svg
 webAppUrl: /app/harvest/
 sourcePath: web/worker/apps/harvest.js
 highlights:

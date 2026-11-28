@@ -4,7 +4,6 @@ seoTitle: "PasientSky Clinic & HELFO Accounting — Free Open-Source ReAI Integr
 description: "Book PasientSky clinic settlements into ReAI separating patient payments (1580), HELFO reimbursement claims (1570) and 0% medical revenue (3100)."
 summary: "Book PasientSky clinic settlements into ReAI separating patient payments (1580), HELFO reimbursement claims (1570) and 0% medical revenue (3100)."
 industry: operations
-icon: icons/pasientsky.svg
 webAppUrl: /app/pasientsky/
 sourcePath: web/worker/apps/pasientsky.js
 highlights:

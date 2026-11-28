@@ -4,7 +4,6 @@ seoTitle: "Make, Zapier og n8n integrasjonshub — Gratis open source for ReAI"
 description: "Koble ReAI til 5 000+ apper med ferdige maler for n8n, Make og Zapier samt sanntidstest av ReAI-API-et."
 summary: "Koble ReAI til 5 000+ apper med ferdige maler for n8n, Make og Zapier samt sanntidstest av ReAI-API-et."
 industry: operations
-icon: icons/automations.svg
 webAppUrl: /app/automations/
 sourcePath: web/worker/apps/automations.js
 highlights:

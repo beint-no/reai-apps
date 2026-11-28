@@ -4,7 +4,6 @@ seoTitle: "Pindena til ReAI | Gratis integrasjon for kurs og arrangementer"
 description: "Hent deltagerne på en aktivitet i Pindena og lag et balansert bilag til kontroll i ReAI for påmeldinger som er betalt med kort eller Vipps."
 summary: "Bokfør forhåndsbetalte påmeldinger fra Pindena per aktivitet som et bilag til kontroll i ReAI, med mva-behandlingen du velger."
 industry: operations
-icon: icons/pindena.svg
 webAppUrl: /app/pindena/
 sourcePath: web/worker/apps/pindena.js
 highlights:

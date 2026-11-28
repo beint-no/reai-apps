@@ -4,7 +4,6 @@ seoTitle: "Pindena to ReAI | Free open source integration for courses and events
 description: "Fetch the participants of a Pindena activity and create a balanced review voucher in ReAI for registrations prepaid by card or Vipps."
 summary: "Book prepaid Pindena registrations for an activity as a ReAI review voucher with the VAT treatment you choose."
 industry: operations
-icon: icons/pindena.svg
 webAppUrl: /app/pindena/
 sourcePath: web/worker/apps/pindena.js
 highlights:

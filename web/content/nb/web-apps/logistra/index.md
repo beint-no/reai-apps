@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Logistra Cargonizer og Shipmondo — Gratis open sour
 description: "Overfør fraktgrunnlag og EDI-sendinger fra Logistra Cargonizer eller Shipmondo direkte til ReAI."
 summary: "Overfør fraktgrunnlag og EDI-sendinger fra Logistra Cargonizer eller Shipmondo direkte til ReAI."
 industry: ecommerce-logistics
-icon: icons/logistra.svg
 webAppUrl: /app/logistra/
 sourcePath: web/worker/apps/logistra.js
 highlights:

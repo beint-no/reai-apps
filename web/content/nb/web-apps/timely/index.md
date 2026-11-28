@@ -4,7 +4,6 @@ seoTitle: "Timely timeregistrering til ReAI Timelister"
 description: "Hent registrerte timer fra Timely med din egen OAuth-app og før dem inn i ReAI Timelister per ansatt og prosjekt."
 summary: "Godkjenn din egen Timely-app, hent timer for en periode og før dem inn i ReAI Timelister."
 industry: operations
-icon: icons/timely.svg
 webAppUrl: /app/timely/
 sourcePath: web/worker/apps/timely.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Lime CRM & Accounting Integration for ReAI — Free Open-Source Conne
 description: "Sync Lime CRM companies into ReAI customers and convert won deals directly into draft ReAI orders."
 summary: "Sync Lime CRM companies into ReAI customers and convert won deals directly into draft ReAI orders."
 industry: operations
-icon: icons/lime.svg
 webAppUrl: /app/lime/
 sourcePath: web/worker/apps/lime.js
 highlights:

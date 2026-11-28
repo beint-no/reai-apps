@@ -4,7 +4,6 @@ seoTitle: "Viderefakturering av frakt fra Proteria Frakt i ReAI"
 description: "Importer fakturarapporten fra Proteria Frakt og lag ordreutkast i ReAI for viderefakturering av frakt per sending."
 summary: "Les inn Fakturarapport fra Proteria som CSV, velg kolonner og lag ordreutkast i ReAI som du kontrollerer selv."
 industry: ecommerce-logistics
-icon: icons/proteria.svg
 webAppUrl: /app/proteria/
 sourcePath: web/worker/apps/proteria.js
 highlights:

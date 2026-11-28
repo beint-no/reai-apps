@@ -4,7 +4,6 @@ seoTitle: "Integrasjon for Airbnb og Booking.com til regnskap — Gratis for ReA
 description: "Bokfør utbetalinger fra Airbnb og Booking.com i ReAI med riktig splitt på 12 % korttidsutleie (3020), 0 % langtidsleie og plattformgebyr."
 summary: "Bokfør utbetalinger fra Airbnb og Booking.com i ReAI med riktig splitt på 12 % korttidsutleie (3020), 0 % langtidsleie og plattformgebyr."
 industry: real-estate
-icon: icons/airbnb.svg
 webAppUrl: /app/airbnb/
 sourcePath: web/worker/apps/airbnb.js
 highlights:

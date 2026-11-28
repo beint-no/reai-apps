@@ -4,7 +4,6 @@ seoTitle: "Sitoo Z-rapporter til ReAI | Gratis integrasjon med åpen kildekode"
 description: "Hent dagens Z-rapporter fra Sitoo POS og lag et balansert bilag til kontroll i ReAI, med betalinger per betalingsmåte og salg per mva-sats."
 summary: "Gjør Z-rapportene fra Sitoo POS om til ett balansert bilag til kontroll i ReAI per dag, med utgående mva-koder."
 industry: operations
-icon: icons/sitoo.svg
 webAppUrl: /app/sitoo/
 sourcePath: web/worker/apps/sitoo.js
 highlights:

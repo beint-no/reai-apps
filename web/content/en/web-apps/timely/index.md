@@ -4,7 +4,6 @@ seoTitle: "Timely Time Tracking Integration for ReAI Timesheets"
 description: "Fetch logged Timely hours with your own Timely OAuth app and post them to ReAI Timesheets by employee and project."
 summary: "Authorize your own Timely app, fetch logged hours for a period and post them to ReAI Timesheets."
 industry: operations
-icon: icons/timely.svg
 webAppUrl: /app/timely/
 sourcePath: web/worker/apps/timely.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Favrit Restaurant POS & Accounting for ReAI — Free Open-Source Conn
 description: "Book daily Favrit QR-ordering and restaurant settlements into ReAI splitting 25% dine-in, 15% takeaway, tips (2930) and fees."
 summary: "Book daily Favrit QR-ordering and restaurant settlements into ReAI splitting 25% dine-in, 15% takeaway, tips (2930) and fees."
 industry: payments
-icon: icons/favrit.svg
 webAppUrl: /app/favrit/
 sourcePath: web/worker/apps/favrit.js
 highlights:

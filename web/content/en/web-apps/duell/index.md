@@ -4,7 +4,6 @@ seoTitle: "Duell POS Accounting Integration for ReAI: Daily Z-reports"
 description: "Book Duell Z-reports in ReAI as review vouchers, using the accounts and VAT rates from your Duell account plan. Free and open source."
 summary: "Fetch the Duell Z-reports for one day and create one balanced review voucher in ReAI."
 industry: payments
-icon: icons/duell.svg
 webAppUrl: /app/duell/
 sourcePath: web/worker/apps/duell.js
 highlights:

@@ -4,7 +4,6 @@ seoTitle: "Amendo POS Accounting Integration for ReAI: Daily Z-reports"
 description: "Book Amendo Z-reports in ReAI as review vouchers with sales per VAT rate and payments per method. Free and open source."
 summary: "Fetch the Amendo Z-reports for one day and create one balanced review voucher in ReAI."
 industry: payments
-icon: icons/amendo.svg
 webAppUrl: /app/amendo/
 sourcePath: web/worker/apps/amendo.js
 highlights:

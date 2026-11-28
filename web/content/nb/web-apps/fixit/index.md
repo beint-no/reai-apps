@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Fixit og regnskap — Gratis open source-integrasj
 description: "Bokfør dagsoppgjør fra Fixit frisør- og skjønnhetskasse direkte i ReAI med riktig 25 % MVA-splitt og kortavstemming."
 summary: "Bokfør dagsoppgjør fra Fixit frisør- og skjønnhetskasse direkte i ReAI med riktig 25 % MVA-splitt og kortavstemming."
 industry: payments
-icon: icons/fixit.svg
 webAppUrl: /app/fixit/
 sourcePath: web/worker/apps/fixit.js
 highlights:

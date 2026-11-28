@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Planday og regnskap — Gratis integrasjon for ReA
 description: "Importer godkjente vaktplaner og arbeidstimer fra Planday rett inn i ReAI Timelister for lønn og prosjektoppfølging."
 summary: "Importer godkjente vaktplaner og arbeidstimer fra Planday rett inn i ReAI Timelister for lønn og prosjektoppfølging."
 industry: operations
-icon: icons/planday.svg
 webAppUrl: /app/planday/
 sourcePath: web/worker/apps/planday.js
 highlights:

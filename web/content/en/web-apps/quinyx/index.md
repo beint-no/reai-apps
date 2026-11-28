@@ -4,7 +4,6 @@ seoTitle: "Quinyx Workforce & Shift Sync — Free Open-Source ReAI Integration"
 description: "Import approved Quinyx chain retail and hospitality shift hours directly into ReAI Timesheets."
 summary: "Import approved Quinyx chain retail and hospitality shift hours directly into ReAI Timesheets."
 industry: operations
-icon: icons/quinyx.svg
 webAppUrl: /app/quinyx/
 sourcePath: web/worker/apps/quinyx.js
 highlights:

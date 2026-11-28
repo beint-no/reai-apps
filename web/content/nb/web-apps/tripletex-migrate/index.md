@@ -4,7 +4,6 @@ seoTitle: "Bytt fra Tripletex til ReAI — Gratis open source for ReAI"
 description: "Flytt kunder, leverandører og produkter rett fra Tripletex API v2 eller CSV-eksport til ReAI."
 summary: "Flytt kunder, leverandører og produkter rett fra Tripletex API v2 eller CSV-eksport til ReAI."
 industry: operations
-icon: icons/tripletex-migrate.svg
 webAppUrl: /app/tripletex-migrate/
 sourcePath: web/worker/apps/tripletex-migrate.js
 highlights:

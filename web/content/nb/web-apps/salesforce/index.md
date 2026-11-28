@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Salesforce CRM og regnskap — Gratis open source-
 description: "Koble Salesforce CRM mot ReAI for kundesynkronisering og fakturagrunnlag uten kostbar mellomvare."
 summary: "Koble Salesforce CRM mot ReAI for kundesynkronisering og fakturagrunnlag uten kostbar mellomvare."
 industry: operations
-icon: icons/salesforce.svg
 webAppUrl: /app/salesforce/
 sourcePath: web/worker/apps/salesforce.js
 highlights:

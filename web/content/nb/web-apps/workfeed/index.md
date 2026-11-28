@@ -4,7 +4,6 @@ seoTitle: "Timer fra Workfeed til ReAI Timelister"
 description: "Hent gjennomførte vakter fra Workfeed og før timene inn i ReAI Timelister per ansatt som grunnlag for lønn og prosjektfakturering."
 summary: "Les godkjente vakter fra Workfeed med din API-nøkkel og før timene inn i ReAI Timelister."
 industry: operations
-icon: icons/workfeed.svg
 webAppUrl: /app/workfeed/
 sourcePath: web/worker/apps/workfeed.js
 highlights:

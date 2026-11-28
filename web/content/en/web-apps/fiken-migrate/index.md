@@ -4,7 +4,6 @@ seoTitle: "Switch from Fiken to ReAI — Free Open-Source ReAI Integration"
 description: "Connect your Fiken API token or CSV exports to migrate contacts, suppliers and products straight into ReAI."
 summary: "Connect your Fiken API token or CSV exports to migrate contacts, suppliers and products straight into ReAI."
 industry: operations
-icon: icons/fiken-migrate.svg
 webAppUrl: /app/fiken-migrate/
 sourcePath: web/worker/apps/fiken-migrate.js
 highlights:

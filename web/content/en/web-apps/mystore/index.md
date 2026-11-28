@@ -4,7 +4,6 @@ seoTitle: "Mystore.no Accounting Integration for ReAI — Free Product & Sales S
 description: "Sync Mystore.no products and paid orders directly into ReAI for free. Replace expensive third-party Mystore accounting connectors."
 summary: "Sync Mystore.no catalog products by SKU and import paid Mystore orders idempotently into ReAI."
 industry: ecommerce-logistics
-icon: icons/mystore.svg
 webAppUrl: /app/mystore/
 sourcePath: web/worker/apps/mystore.js
 highlights:

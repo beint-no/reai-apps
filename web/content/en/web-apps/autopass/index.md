@@ -4,7 +4,6 @@ seoTitle: "AutoPASS Tolls & EasyPark Expenses — Free Open-Source ReAI Integrat
 description: "Book Norwegian fleet road tolls (0% VAT account 7080) and EasyPark parking (25% VAT account 7140) into ReAI."
 summary: "Book Norwegian fleet road tolls (0% VAT account 7080) and EasyPark parking (25% VAT account 7140) into ReAI."
 industry: operations
-icon: icons/autopass.svg
 webAppUrl: /app/autopass/
 sourcePath: web/worker/apps/autopass.js
 highlights:

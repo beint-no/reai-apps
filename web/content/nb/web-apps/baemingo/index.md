@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom Baemingo og ReAI: dagsomsetning til regnskap"
 description: "Summer en driftsdag i Baemingo med ordrer, refusjoner og tips til ett bilag til kontroll i ReAI, fordelt på MVA-satser og betalingsmåter. Gratis og åpen kildekode."
 summary: "Hent én driftsdag fra Baemingo via det åpne API-et og lag ett balansert bilag til kontroll i ReAI."
 industry: payments
-icon: icons/baemingo.svg
 webAppUrl: /app/baemingo/
 sourcePath: web/worker/apps/baemingo.js
 highlights:

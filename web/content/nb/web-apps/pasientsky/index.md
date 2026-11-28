@@ -4,7 +4,6 @@ seoTitle: "Integrasjon mellom PasientSky og regnskap — Gratis open source-inte
 description: "Bokfør klinikkoppgjør fra PasientSky i ReAI med splitt på pasientbetaling (1580), HELFO-krav (1570) og 0 % helsetjenester (3100)."
 summary: "Bokfør klinikkoppgjør fra PasientSky i ReAI med splitt på pasientbetaling (1580), HELFO-krav (1570) og 0 % helsetjenester (3100)."
 industry: operations
-icon: icons/pasientsky.svg
 webAppUrl: /app/pasientsky/
 sourcePath: web/worker/apps/pasientsky.js
 highlights:

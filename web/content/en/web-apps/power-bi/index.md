@@ -4,7 +4,6 @@ seoTitle: "Power BI and Excel Feed for ReAI Accounting Data"
 description: "Generate Power Query scripts that load ReAI ledger postings, profit and loss, balances and invoices into Power BI or Excel with your own ReAI user API key."
 summary: "Copy ready Power Query M scripts for ReAI postings, P&L, balances and invoices into Power BI Desktop, the Power BI service or Excel."
 industry: operations
-icon: icons/power-bi.svg
 webAppUrl: /app/power-bi/
 sourcePath: web/worker/apps/power-bi.js
 highlights:

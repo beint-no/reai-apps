@@ -1,0 +1,238 @@
+[
+  {
+    "nb": "Kasse og betaling",
+    "en": "Payments and POS",
+    "systems": [
+      {
+        "name": "Vipps",
+        "page": "/web-apps/vipps/"
+      },
+      {
+        "name": "Zettle",
+        "page": "/web-apps/zettle/"
+      },
+      {
+        "name": "SumUp",
+        "page": "/web-apps/sumup/"
+      },
+      {
+        "name": "PCKasse",
+        "page": "/web-apps/pckasse/"
+      },
+      {
+        "name": "Klarna",
+        "page": "/web-apps/klarna/"
+      },
+      {
+        "name": "Stripe",
+        "page": "/web-apps/stripe/"
+      }
+    ]
+  },
+  {
+    "nb": "Restaurant og overnatting",
+    "en": "Restaurants and hotels",
+    "systems": [
+      {
+        "name": "Munu",
+        "page": "/web-apps/munu/"
+      },
+      {
+        "name": "Caspeco",
+        "page": "/web-apps/caspeco/"
+      },
+      {
+        "name": "Favrit",
+        "page": "/web-apps/favrit/"
+      },
+      {
+        "name": "Wolt / Foodora",
+        "page": "/web-apps/wolt-foodora/"
+      },
+      {
+        "name": "Quickorder",
+        "page": "/web-apps/quickorder/"
+      },
+      {
+        "name": "VisBook",
+        "page": "/web-apps/visbook/"
+      }
+    ]
+  },
+  {
+    "nb": "Nettbutikk og lager",
+    "en": "Ecommerce and warehouse",
+    "systems": [
+      {
+        "name": "Mystore",
+        "page": "/web-apps/mystore/"
+      },
+      {
+        "name": "24Nettbutikk",
+        "page": "/web-apps/24nettbutikk/"
+      },
+      {
+        "name": "Wix",
+        "page": "/web-apps/wix/"
+      },
+      {
+        "name": "Magento",
+        "page": "/web-apps/magento/"
+      },
+      {
+        "name": "Cargonizer",
+        "page": "/web-apps/logistra/"
+      },
+      {
+        "name": "Ongoing WMS",
+        "page": "/web-apps/ongoing-wms/"
+      }
+    ]
+  },
+  {
+    "nb": "Håndverk og bygg",
+    "en": "Trades and construction",
+    "systems": [
+      {
+        "name": "SmartDok",
+        "page": "/web-apps/smartdok/"
+      },
+      {
+        "name": "Cordel",
+        "page": "/web-apps/cordel/"
+      },
+      {
+        "name": "Holte",
+        "page": "/web-apps/holte/"
+      },
+      {
+        "name": "Fonn",
+        "page": "/web-apps/fonn/"
+      },
+      {
+        "name": "Kvalitetskontroll",
+        "page": "/web-apps/kvalitetskontroll/"
+      },
+      {
+        "name": "Svenn",
+        "page": "/web-apps/svenn/"
+      }
+    ]
+  },
+  {
+    "nb": "Timer, vakter og HR",
+    "en": "Hours, shifts and HR",
+    "systems": [
+      {
+        "name": "Tidsbanken",
+        "page": "/web-apps/tidsbanken/"
+      },
+      {
+        "name": "Planday",
+        "page": "/web-apps/planday/"
+      },
+      {
+        "name": "Quinyx",
+        "page": "/web-apps/quinyx/"
+      },
+      {
+        "name": "Simployer",
+        "page": "/web-apps/simployer/"
+      },
+      {
+        "name": "Huma",
+        "page": "/web-apps/huma/"
+      },
+      {
+        "name": "Toggl",
+        "page": "/web-apps/toggl/"
+      }
+    ]
+  },
+  {
+    "nb": "Helse og salong",
+    "en": "Health and salons",
+    "systems": [
+      {
+        "name": "Timma",
+        "page": "/web-apps/timma/"
+      },
+      {
+        "name": "Fresha",
+        "page": "/web-apps/fresha/"
+      },
+      {
+        "name": "Hano",
+        "page": "/web-apps/hano/"
+      },
+      {
+        "name": "PasientSky",
+        "page": "/web-apps/pasientsky/"
+      },
+      {
+        "name": "Opus Dental",
+        "page": "/web-apps/opus-dental/"
+      },
+      {
+        "name": "Aspit / Physica",
+        "page": "/web-apps/aspit/"
+      }
+    ]
+  },
+  {
+    "nb": "Eiendom og utleie",
+    "en": "Property and rentals",
+    "systems": [
+      {
+        "name": "Unibo",
+        "page": "/web-apps/unibo/"
+      },
+      {
+        "name": "Fazile",
+        "page": "/web-apps/fazile/"
+      },
+      {
+        "name": "Hybel",
+        "page": "/web-apps/hybel/"
+      },
+      {
+        "name": "Husleie.no",
+        "page": "/web-apps/husleie/"
+      },
+      {
+        "name": "Airbnb / Booking.com",
+        "page": "/web-apps/airbnb/"
+      },
+      {
+        "name": "Propely",
+        "page": "/web-apps/propely/"
+      }
+    ]
+  },
+  {
+    "nb": "Transport og bil",
+    "en": "Transport and vehicles",
+    "systems": [
+      {
+        "name": "ABAX",
+        "page": "/web-apps/abax/"
+      },
+      {
+        "name": "AutoPASS / EasyPark",
+        "page": "/web-apps/autopass/"
+      },
+      {
+        "name": "Opter",
+        "page": "/web-apps/opter/"
+      },
+      {
+        "name": "AutoNet",
+        "page": "/web-apps/autonet/"
+      },
+      {
+        "name": "Autogear",
+        "page": "/web-apps/autogear/"
+      }
+    ]
+  }
+]

@@ -4,7 +4,6 @@ seoTitle: "Revolut Business & Wise regnskapsintegrasjon for ReAI — Gratis impo
 description: "Importer kontoutskrifter fra Revolut Business og Wise til balanserte bilag i ReAI med automatisk utskilling av valutagebyrer på konto 7770."
 summary: "Leser CSV-utskrifter fra Revolut og Wise, skiller ut gebyrer på 7770 og oppretter balansert kontrollbilag i ReAI."
 industry: operations
-icon: icons/revolut.svg
 webAppUrl: /app/revolut/
 sourcePath: web/worker/apps/revolut.js
 highlights:

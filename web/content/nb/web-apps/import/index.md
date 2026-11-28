@@ -4,7 +4,6 @@ seoTitle: Importer kunder, leverandører og varer til ReAI — Gratis CSV-import
 description: Flytt varer, kunder og leverandører fra Tripletex, Fiken eller Excel til ReAI med CSV-import, norsk kolonnegjenkjenning og duplikatsjekk.
 summary: Tilordne CSV-kolonner, valider org.nr, hopp over duplikater og importer grunndata trygt til ReAI.
 industry: operations
-icon: icons/import.svg
 webAppUrl: /app/import/
 sourcePath: web/worker/apps/import.js
 highlights:

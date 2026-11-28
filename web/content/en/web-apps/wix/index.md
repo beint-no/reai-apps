@@ -4,7 +4,6 @@ seoTitle: "Wix Stores Accounting Integration for ReAI — Free Product & Sales S
 description: "Connect Wix Stores and Wix eCommerce to ReAI for free product sync and paid order import."
 summary: "Sync Wix Stores products by SKU and import paid Wix eCommerce orders directly into ReAI."
 industry: ecommerce-logistics
-icon: icons/wix.svg
 webAppUrl: /app/wix/
 sourcePath: web/worker/apps/wix.js
 highlights:

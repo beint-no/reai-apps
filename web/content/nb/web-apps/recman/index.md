@@ -4,7 +4,6 @@ seoTitle: "RecMan regnskapsintegrasjon for ReAI — Faktura, PDF, KID og lønn m
 description: "Koble RecMan gratis til ReAI. Importer fakturaer og kreditnotaer med original PDF og KID, og klargjør lønnsutkast med automatisk Kartverket-oppslag av arbeidsstedskommune (AGA-sone)."
 summary: "Bokfør utstedte RecMan-fakturaer og kreditnotaer med original PDF og KID, og klargjør lønnsutkast i ReAI med automatisk AGA-kommuneoppslag."
 industry: operations
-icon: icons/recman.svg
 webAppUrl: /app/recman/
 sourcePath: web/worker/apps/recman.js
 highlights:

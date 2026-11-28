@@ -401,6 +401,23 @@ endpoints:
   - /app/pindena/
   - /app/power-bi/
 languages:
+  - code: nb
+    locale: nb-NO
+    label: Norsk
+    menus:
+      main:
+        - name: Nettapper
+          pageRef: /web-apps/
+          weight: 1
+        - name: Mac og Windows
+          pageRef: /desktop/
+          weight: 2
+        - name: Bransjer
+          pageRef: /industries/
+          weight: 3
+        - name: Dokumentasjon
+          pageRef: /docs/
+          weight: 4
   - code: en
     locale: en-US
     label: English
@@ -418,30 +435,12 @@ languages:
         - name: Docs
           pageRef: /docs/
           weight: 4
-  - code: nb
-    locale: nb-NO
-    label: Norsk
-    menus:
-      main:
-        - name: Nettapper
-          pageRef: /web-apps/
-          weight: 1
-        - name: Mac & Windows
-          pageRef: /desktop/
-          weight: 2
-        - name: Bransjer
-          pageRef: /industries/
-          weight: 3
-        - name: Dokumentasjon
-          pageRef: /docs/
-          weight: 4
 pageParams:
   eyebrow: string
   industry: string
   appId: string
   windowsAppId: string
   webAppUrl: string
-  icon: string
   sourcePath: string
   windowsSourcePath: string
   highlights: list
@@ -450,5 +449,7 @@ params:
   apiDocsUrl: https://app.reai.no/openapi/public/ui
   reaiUrl: https://reai.no
   signupUrl: https://app.reai.no/auth/signup
+  contactUrl: https://reai.no/contact/
+  switchUrl: https://reai.no/bytt-regnskapssystem/
   suggestUrl: https://github.com/beint-no/reai-apps/issues/new?template=app-idea.yml
   issuesUrl: https://github.com/beint-no/reai-apps/issues
