@@ -20,6 +20,8 @@ const BASE_PATH = '/app/superoffice';
 const TITLE = 'SuperOffice Sold Sales to ReAI';
 const EYEBROW = 'CRM · ORDERS';
 const LEAD = 'Stage sold SuperOffice sales as ReAI orders for invoicing, with the company and its organization number as customer.';
+const PAGE_SIZE = 500;
+const MAX_PAGES = 10;
 const API_HINT = 'SuperOffice CRM Online accepts only OAuth access tokens from an app registered in the SuperOffice developer portal. A custom app needs the Development Tools licence or CRM Suite Core. Paste the web API URL and a current access token from that app.';
 /** @type {import('../../lib/api-http.js').ApiFieldSpec[]} */
 const API_FIELDS = [
@@ -53,7 +55,7 @@ function line(name, quantity, total, pct) {
  * Fetches sold SuperOffice sales (saleStatus 2) dated in a range.
  * Docs: https://docs.superoffice.com/en/api/authentication/online/index.md (Bearer access token from a registered app; basic
  * auth is not allowed online), https://docs.superoffice.com/en/api/reference/restful/rest/sale/get-all.md (GET /api/v1/Sale,
- * FindSale archive, ODataSlimResponse value[] and odata.nextLink), https://docs.superoffice.com/en/api/archive-providers/reference/findsale.md
+ * FindSale archive, $top/$skip paging, ODataSlimResponse value[]), https://docs.superoffice.com/en/api/archive-providers/reference/findsale.md
  * (columns saleId, heading, amount, currency, date, saleStatus, contact/name, contact/orgnr) and
  * https://docs.superoffice.com/en/database/tables/enums/salestatus.md (Sold = 2).
  * @param {Record<string, string>} creds
@@ -72,15 +74,17 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const query = new URLSearchParams({
     $select: 'saleId,heading,amount,currency,date,contact/name,contact/orgnr',
     $filter: `saleStatus equals 2 and date between ('${from}','${to}')`,
-    $orderBy: 'date',
-    $top: '500',
+    $orderBy: 'date,saleId',
+    $top: String(PAGE_SIZE),
   });
   /** @type {ShopOrder[]} */
   const orders = [];
-  let url = `${base}/v1/Sale?${query}`;
-  for (let page = 0; page < 5; page++) {
-    const data = await fetchJson(url, { headers }, BRAND, fetchImpl);
-    for (const r of /** @type {any[]} */ (Array.isArray(data?.value) ? data.value : [])) {
+  // Page with $top/$skip (documented); stop on a short page so no rows are skipped or repeated.
+  for (let page = 0; page < MAX_PAGES; page++) {
+    query.set('$skip', String(page * PAGE_SIZE));
+    const data = await fetchJson(`${base}/v1/Sale?${query}`, { headers }, BRAND, fetchImpl);
+    const rows = /** @type {any[]} */ (Array.isArray(data?.value) ? data.value : []);
+    for (const r of rows) {
       const id = String(r.saleId ?? r.PrimaryKey ?? '');
       const heading = String(r.heading ?? `Sale ${id}`).trim();
       const cur = String(r.currency ?? '').trim().toUpperCase();
@@ -88,7 +92,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         id,
         number: heading.slice(0, 80),
         date: isoDate(r.date),
-        currency: /^[A-Z]{3}$/.test(cur) ? cur : 'NOK',
+        currency: /^[A-Z]{3}$/.test(cur) ? cur : '',
         customerName: String(r['contact/name'] ?? '').trim(),
         customerEmail: '',
         orgnr: extractNorwegianOrg(String(r['contact/orgnr'] ?? '')),
@@ -96,13 +100,9 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         lines: [line(heading.slice(0, 200), 1, num(r.amount), null)].filter((l) => l.unitPrice !== 0),
       });
     }
-    const next = data?.['odata.nextLink'];
-    if (typeof next !== 'string' || !next) break;
-    const nextUrl = new URL(next, `${base}/`);
-    if (nextUrl.origin !== parsed.origin) break;
-    url = nextUrl.toString();
+    if (rows.length < PAGE_SIZE) return orders.filter((o) => o.id && o.customerName && o.lines.length > 0);
   }
-  return orders.filter((o) => o.id && o.customerName && o.lines.length > 0);
+  throw new HttpError(400, `More than ${MAX_PAGES * PAGE_SIZE} sold sales in this period. Choose a shorter date range.`);
 }
 
 /** @param {ShopOrder} o */
@@ -126,7 +126,7 @@ function renderOrders(orders, isSample) {
         <tbody>${orders.slice(0, 200).map((o, idx) => html`<tr id="${SLUG}-o-${idx}">
           <td class="mono">${o.number}</td><td class="mono">${o.date}</td><td>${o.customerName}${o.orgnr ? ` (${o.orgnr})` : ''}</td>
           <td>${o.lines.map((l) => html`<div>${l.quantity} x ${l.name} (${l.ratePct === null ? 'default VAT' : `${l.ratePct}% VAT`})</div>`)}</td>
-          <td class="num">${formatMinor(orderTotal(o))} ${o.currency}</td>
+          <td class="num">${formatMinor(orderTotal(o))} ${o.currency || 'no currency'}</td>
           <td>${isSample
             ? html`<span class="muted-note">Sample only</span>`
             : html`<form hx-post="${BASE_PATH}/stage" hx-target="#${SLUG}-o-${idx}" hx-swap="outerHTML">
@@ -157,10 +157,12 @@ function vatCodeFor(codes, pct) {
  * @param {import('../../lib/types.d.ts').Env} env @param {{ token: string, tenantId: number }} auth @param {ShopOrder} o
  */
 async function customerFor(env, auth, o) {
-  /** @param {Record<string, string>} query */
-  const find = async (query) => /** @type {{ items: Array<{ id: number, archived: boolean }> }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '5' } })).items.find((c) => !c.archived)?.id;
+  /** @param {Record<string, string>} query @param {string} [exactName] */
+  const find = async (query, exactName = '') => /** @type {{ items: Array<{ id: number, name: string, archived: boolean }> }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '50' } })).items
+    .find((c) => !c.archived && (!exactName || String(c.name ?? '').trim().toLowerCase() === exactName))?.id;
   const orgnr = extractNorwegianOrg(String(o.orgnr ?? ''));
-  const hit = (orgnr ? await find({ organizationNumber: orgnr }) : undefined) ?? (await find({ name: o.customerName }));
+  // The name filter is a keyword search, so only an exact (case-insensitive) name counts as the same customer.
+  const hit = (orgnr ? await find({ organizationNumber: orgnr }) : undefined) ?? (await find({ name: o.customerName }, o.customerName.trim().toLowerCase()));
   if (hit) return hit;
   const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/customers', { ...auth, method: 'POST', body: { name: o.customerName.slice(0, 200), organizationNumber: orgnr || null, privateContact: false } }));
   return created.id;
@@ -202,14 +204,16 @@ export async function handle(request, env) {
       const session = await readSession(env, request);
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
       const o = /** @type {ShopOrder} */ (JSON.parse(String(form.get('orderJson') ?? '{}')));
-      if (!o.id || !Array.isArray(o.lines) || o.lines.length === 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(o.date)) || !/^[A-Z]{3}$/.test(String(o.currency))) throw new HttpError(400, 'The deal is incomplete.');
+      if (!o.id || !Array.isArray(o.lines) || o.lines.length === 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(o.date))) throw new HttpError(400, 'The deal is incomplete.');
+      if (!/^[A-Z]{3}$/.test(String(o.currency))) throw new HttpError(400, 'Set an ISO currency code such as NOK on this sale in SuperOffice, then fetch again.');
       const auth = { token: session.accessToken, tenantId: session.tenantId };
       const externalReference = `superoffice-${o.id}`.slice(0, 100);
       const existing = /** @type {{ items: Array<{ id: number, number: string }> }} */ (await reaiRequest(env, '/api/orders', { ...auth, query: { externalReference } }));
       const dup = existing.items[0];
       const cells = html`<td class="mono">${o.number}</td><td class="mono">${o.date}</td><td>${o.customerName}</td><td></td><td class="num">${formatMinor(orderTotal(o))} ${o.currency}</td>`;
       if (dup) return htmlResponse(html`<tr>${cells}<td><a href="${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Already staged (${dup.number}) ↗</a></td></tr>`);
-      const codes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } }));
+      // SuperOffice sales carry no VAT rate, so lines use the ReAI default VAT code; VAT codes are loaded only when a line has a rate.
+      const codes = o.lines.some((l) => l.ratePct !== null) ? /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } })) : [];
       const customerId = await customerFor(env, auth, o);
       const created = /** @type {{ id: number, number: string }} */ (await reaiRequest(env, '/api/orders', {
         ...auth,

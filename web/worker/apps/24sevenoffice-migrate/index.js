@@ -7,24 +7,25 @@ import { reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 import { extractNorwegianOrg } from '../../lib/norway.js';
 
-/** @typedef {{ kind: 'customer' | 'supplier' | 'product', externalId: string, name: string, orgnr: string, email: string, price: number }} MigrateItem */
+/** @typedef {{ kind: 'customer' | 'supplier' | 'product', externalId: string, name: string, orgnr: string, email: string, price: number, privateContact?: boolean, invoiceEmail?: string, phone?: string, street?: string, postalCode?: string, city?: string, countryCode?: string, costPrice?: number, barcode?: string }} MigrateItem */
 
 const SLUG = '24sevenoffice-migrate';
 const BRAND = 'Finago Office';
 const BASE_PATH = `/app/${SLUG}`;
 const TITLE = 'Switch from Finago Office (24SevenOffice) to ReAI';
 const LEAD = 'Fetch customers, suppliers and products from the Finago Office API (formerly 24SevenOffice) and import them into ReAI with their numbers and organization numbers.';
-const API_HINT = 'Create an application in the Finago Office Developer admin panel with read access to customers and products, connect it under Administration → Integrations, and copy the client ID, client secret and organization ID. Ask the Finago Office API team to enable the Developer admin panel if the menu is missing.';
+const API_HINT = 'Create an application under Developer in Finago Office with read access to customers and products, connect it under Administration → Integrations, and copy the client ID and client secret. The organization ID is the Finago Client ID shown before @voucher.24sevenoffice.com under Administration → Settings → Retrieval. Request API access from Finago if the Developer menu is missing.';
 /** @type {import('../../lib/api-http.js').ApiFieldSpec[]} */
 const API_FIELDS = [
   { name: 'clientId', label: 'Client ID (Application ID)' },
   { name: 'clientSecret', label: 'Client secret', type: 'password' },
-  { name: 'organizationId', label: 'Organization ID' },
+  { name: 'organizationId', label: 'Organization ID (Finago Client ID)' },
 ];
 const AUTH_URL = 'https://login.24sevenoffice.com/oauth/token';
 const API = 'https://rest.api.24sevenoffice.com/v1';
 const PAGE_SIZE = 100;
 const MAX_ITEMS = 2000;
+const MAX_PAGES = 20;
 
 /** @type {MigrateItem[]} */
 const SAMPLE = [
@@ -35,12 +36,13 @@ const SAMPLE = [
 
 /**
  * Returns the rel="next" URL from an RFC 8288 Link header when it stays on the API host.
+ * The header lists first, previous and next links, so each entry is matched on its own.
  * @param {string | null} link
  */
 function nextLink(link) {
-  const m = /<([^>]+)>\s*;\s*rel="?next"?/i.exec(link ?? '');
-  if (!m || !m[1]) return '';
-  const url = new URL(m[1], API);
+  const entry = (link ?? '').split(',').map((part) => /<([^>]+)>\s*;(?:[^,]*;)?\s*rel="?next"?/i.exec(part)).find((m) => m && m[1]);
+  if (!entry || !entry[1]) return '';
+  const url = new URL(entry[1], API);
   return url.origin === new URL(API).origin ? url.toString() : '';
 }
 
@@ -52,7 +54,8 @@ function nextLink(link) {
  */
 async function getPage(url, headers, fetchImpl) {
   const res = await fetchImpl(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
-  if (!res.ok) throw new HttpError(400, `${BRAND} API ${res.status === 401 || res.status === 403 ? 'rejected the token. Check the scopes of the application' : `returned HTTP ${res.status}`}.`);
+  if (res.status === 429) throw new HttpError(429, `${BRAND} API rate limit reached. Wait a minute and fetch again.`);
+  if (!res.ok) throw new HttpError(400, `${BRAND} API ${res.status === 401 || res.status === 403 ? 'rejected the token. Give the application read access to customers and products and connect it again' : `returned HTTP ${res.status}`}.`);
   return { body: /** @type {unknown} */ (await res.json()), link: res.headers.get('link') };
 }
 
@@ -62,8 +65,9 @@ async function getPage(url, headers, fetchImpl) {
  * client_credentials with audience https://api.24sevenoffice.com, client_id, client_secret, login_organization),
  * https://rest-api.developer.24sevenoffice.com/doc/v1/operation/operation-getcustomers (GET /customers with limit and a Link
  * header for the next page; fields id, name, person, isCompany, isSupplier, organizationNumber, email.contact, email.billing) and
- * https://rest-api.developer.24sevenoffice.com/doc/v1/group/endpoint-products (GET /products with page and limit; id, number, name, salesPrice, status).
- * Suppliers are customers with isSupplier set.
+ * https://rest-api.developer.24sevenoffice.com/doc/v1/group/endpoint-products (GET /products with page, limit and a Link header;
+ * id, number, name, salesPrice, costPrice, ean, status). Suppliers are customers with isSupplier set. Customers and products are
+ * read in parallel (one token, at most 20 pages each).
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<MigrateItem[]>}
@@ -82,35 +86,62 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!token) throw new HttpError(400, 'Finago Office did not return an access token. Check the client ID, secret and organization ID.');
   const headers = { authorization: `Bearer ${token}`, accept: 'application/json' };
 
-  /** @type {any[]} */ const customers = [];
-  let url = `${API}/customers?${new URLSearchParams({ limit: String(PAGE_SIZE) })}`;
-  for (let i = 0; i < 20 && url && customers.length < MAX_ITEMS; i++) {
-    const page = await getPage(url, headers, fetchImpl);
-    const rows = Array.isArray(page.body) ? page.body : [];
-    customers.push(...rows);
-    const next = rows.length > 0 ? nextLink(page.link) : '';
-    url = next !== url ? next : '';
-  }
-  /** @type {any[]} */ const products = [];
-  for (let p = 1; p <= 20 && products.length < MAX_ITEMS; p++) {
-    const page = await getPage(`${API}/products?${new URLSearchParams({ page: String(p), limit: String(PAGE_SIZE) })}`, headers, fetchImpl);
-    const rows = Array.isArray(page.body) ? page.body : [];
-    products.push(...rows);
-    if (rows.length < PAGE_SIZE) break;
-  }
+  /**
+   * Follows the documented Link rel="next" header from a first page URL.
+   * @param {string} first
+   */
+  const readAll = async (first) => {
+    /** @type {any[]} */ const rows = [];
+    let url = first;
+    for (let i = 0; i < MAX_PAGES && url && rows.length < MAX_ITEMS; i++) {
+      const page = await getPage(url, headers, fetchImpl);
+      const batch = Array.isArray(page.body) ? page.body : [];
+      rows.push(...batch);
+      let next = batch.length > 0 ? nextLink(page.link) : '';
+      if (!next && batch.length >= PAGE_SIZE) {
+        const u = new URL(url);
+        const current = Number(u.searchParams.get('page') ?? '0');
+        if (current > 0) {
+          u.searchParams.set('page', String(current + 1));
+          next = u.toString();
+        }
+      }
+      url = next !== url ? next : '';
+    }
+    return rows;
+  };
+  const [customers, products] = await Promise.all([
+    readAll(`${API}/customers?${new URLSearchParams({ limit: String(PAGE_SIZE) })}`),
+    readAll(`${API}/products?${new URLSearchParams({ page: '1', limit: String(PAGE_SIZE) })}`),
+  ]);
 
   /** @type {MigrateItem[]} */
   const items = [];
   for (const c of customers) {
     const name = String(c.name ?? '').trim() || [c.person?.firstName, c.person?.lastName].filter(Boolean).join(' ').trim();
     if (!name) continue;
-    const base = { externalId: String(c.id ?? ''), name, orgnr: extractNorwegianOrg(String(c.organizationNumber ?? '')), email: String(c.email?.contact ?? c.email?.billing ?? '').trim(), price: 0 };
+    const addr = c.address?.postal?.street || c.address?.postal?.postalCode ? c.address.postal : (c.address?.visit ?? {});
+    const country = String(addr.countryCode ?? '').trim().toUpperCase();
+    const base = {
+      externalId: String(c.id ?? ''),
+      name,
+      orgnr: c.isCompany === false ? '' : extractNorwegianOrg(String(c.organizationNumber ?? '')),
+      email: String(c.email?.contact || c.email?.billing || '').trim(),
+      invoiceEmail: String(c.email?.billing ?? '').trim(),
+      phone: String(c.phone || c.mobilePhone || '').trim(),
+      street: String(addr.street ?? '').trim(),
+      postalCode: String(addr.postalCode ?? '').trim(),
+      city: String(addr.postalArea ?? '').trim(),
+      countryCode: /^[A-Z]{2}$/.test(country) ? country : 'NO',
+      privateContact: c.isCompany === false,
+      price: 0,
+    };
     items.push({ kind: 'customer', ...base });
     if (c.isSupplier === true) items.push({ kind: 'supplier', ...base });
   }
   for (const p of products) {
     if (/inactive|expired/i.test(String(p.status ?? '')) || !String(p.name ?? '').trim()) continue;
-    items.push({ kind: 'product', externalId: String(p.number ?? p.id ?? ''), name: String(p.name).trim(), orgnr: '', email: '', price: Math.max(0, num(p.salesPrice)) });
+    items.push({ kind: 'product', externalId: String(p.number || p.id || ''), name: String(p.name).trim(), orgnr: '', email: '', price: Math.max(0, num(p.salesPrice)), costPrice: Math.max(0, num(p.costPrice)), barcode: String(p.ean ?? '').trim() });
   }
   if (items.length === 0) throw new HttpError(400, 'Finago Office returned no customers, suppliers or products.');
   return items.slice(0, MAX_ITEMS);
@@ -166,13 +197,18 @@ async function importItem(env, session, it) {
     const found = /** @type {{ items?: Array<{ id: number, variants?: Array<{ sku?: string }> }> }} */ (await reaiRequest(env, '/api/products', { ...auth, query: { query: sku, pageSize: '20' } }));
     const hit = found.items?.find((p) => p.variants?.some((v) => v.sku === sku));
     if (hit) return `Already in ReAI #${hit.id}`;
-    const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { ...auth, method: 'POST', body: { title: it.name.slice(0, 120), variants: [{ sku, sellingPrice: Number(it.price.toFixed(2)) }] } }));
+    const variant = { sku, sellingPrice: Number(it.price.toFixed(2)), ...(it.costPrice ? { costPrice: Number(it.costPrice.toFixed(2)) } : {}), ...(it.barcode ? { barcode: it.barcode } : {}) };
+    const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', { ...auth, method: 'POST', body: { title: it.name.slice(0, 120), variants: [variant] } }));
     return `Imported #${created.id}`;
   }
   const path = it.kind === 'supplier' ? '/api/suppliers' : '/api/customers';
   if (it.orgnr) {
     const found = /** @type {{ items?: Array<{ id: number }> }} */ (await reaiRequest(env, path, { ...auth, query: { organizationNumber: it.orgnr, pageSize: '1' } }));
     const hit = found.items?.[0];
+    if (hit) return `Already in ReAI #${hit.id}`;
+  } else if (it.externalId) {
+    const found = /** @type {{ items?: Array<{ id: number, number?: string | null }> }} */ (await reaiRequest(env, path, { ...auth, query: { name: it.externalId, pageSize: '50' } }));
+    const hit = found.items?.find((c) => c.number === it.externalId);
     if (hit) return `Already in ReAI #${hit.id}`;
   }
   const created = /** @type {{ id: number }} */ (await reaiRequest(env, path, {
@@ -183,8 +219,13 @@ async function importItem(env, session, it) {
       ...(it.externalId ? { number: it.externalId.slice(0, 50) } : {}),
       ...(it.orgnr ? { organizationNumber: it.orgnr } : {}),
       ...(it.email ? { email: it.email } : {}),
-      countryCode: 'NO',
-      privateContact: false,
+      ...(it.kind === 'customer' && it.invoiceEmail ? { invoiceEmail: it.invoiceEmail } : {}),
+      ...(it.phone ? { phone: it.phone } : {}),
+      ...(it.street ? { addressPart1: it.street } : {}),
+      ...(it.postalCode ? { postalCode: it.postalCode } : {}),
+      ...(it.city ? { city: it.city } : {}),
+      countryCode: it.countryCode || 'NO',
+      privateContact: it.privateContact === true,
     },
   }));
   return `Imported #${created.id}`;

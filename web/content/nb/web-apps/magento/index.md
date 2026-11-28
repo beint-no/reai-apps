@@ -21,7 +21,7 @@ Integrasjonen leser produktkatalogen og ordre med status **processing** eller **
 | Produkt med SKU, navn og pris | Produkt med samme SKU, opprettet bare når du klikker **Create in ReAI** |
 | Ordre med totalbeløp | Ordre med én linje, beløp eksklusive MVA (totalbeløp minus MVA), ekstern referanse `magento-<id>` |
 
-Ordren kobles til en kunde i ReAI med samme e-post eller navn. Finnes ikke kunden, oppretter du den i ReAI først. Produktprisen hentes slik Magento lagrer den, så sjekk om butikken bruker priser med eller uten MVA.
+Ordren kobles til en kunde i ReAI med samme e-post eller navn. Finnes ikke kunden, oppretter du den i ReAI først. Produktprisen hentes slik Magento lagrer den, så sjekk om butikken bruker priser med eller uten MVA. Ordre med refusjon i Magento vises, men legges ikke inn, så de må du føre manuelt.
 
 ## Slik kommer du i gang
 

@@ -6,6 +6,7 @@ import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
 import { reaiAll, reaiRequest } from '../../lib/reai.js';
 import { formatMinor } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
+import { pairVoucherRows } from '../../lib/voucher-rows.js';
 
 /**
  * @typedef {{ id: string, reference: string, bookingReference: string, date: string, status: string, paymentStatus: string, paymentMethod: string, grossMinor: number, netMinor: number, isChangeOrder: boolean }} SharefoxOrder
@@ -266,16 +267,17 @@ export async function handle(request, env) {
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: `A voucher for ${from} to ${to} already exists. Nothing was created.` }));
 
       const codes = /** @type {ReaiVatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { token: session.accessToken, tenantId: session.tenantId }));
-      /** @type {Array<Record<string, unknown>>} */
+      /** @type {Array<{ accountNumber: string, postingDate: string, currencyCode: string, amount: number, vatCode: string, description: string }>} */
       const postings = [];
-      buckets.forEach((b, rowNumber) => {
-        const amount = Number((b.grossMinor / 100).toFixed(2));
+      // Sharefox orders carry no currency field; a shop sells in the company currency.
+      for (const b of buckets) {
+        const amount = b.grossMinor / 100;
         const description = `Sharefox rental sales ${b.rate}% VAT ${from} to ${to}`;
-        postings.push({ accountNumber: clearing, postingDate: to, currencyCode: company.currencyCode, amount, vatCode: '0', rowNumber, description });
-        postings.push({ accountNumber: revenue, postingDate: to, currencyCode: company.currencyCode, amount: -amount, vatCode: outputVatCode(codes, b.rate), rowNumber, description });
-      });
+        postings.push({ accountNumber: clearing, postingDate: to, currencyCode: company.currencyCode, amount, vatCode: '0', description });
+        postings.push({ accountNumber: revenue, postingDate: to, currencyCode: company.currencyCode, amount: -amount, vatCode: outputVatCode(codes, b.rate), description });
+      }
       const created = /** @type {{ id: number, number: string, webUrl: string }} */ (
-        await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: to, description: marker, reviewReason: 'Sharefox rental sales imported via apps.reai.no. Check against the Sharefox report.', postings } })
+        await reaiRequest(env, '/api/manual-vouchers', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { date: to, description: marker, reviewReason: 'Sharefox rental sales imported via apps.reai.no. Check against the Sharefox report.', postings: pairVoucherRows(postings) } })
       );
       return htmlResponse(reaiCallout({ tone: 'success', title: `Created review voucher ${created.number}`, body: html`<a href="${created.webUrl}" target="_blank" rel="noopener">Open voucher ${created.number} in ReAI</a>` }));
     }

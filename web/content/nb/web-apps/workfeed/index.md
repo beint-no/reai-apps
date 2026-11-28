@@ -23,6 +23,6 @@ Timeføringer er ikke bilag. De er grunnlag for lønn og prosjektfakturering i R
 1. Gå til **Innstillinger → Integrasjoner → Workfeed API** i Workfeed, lag en nøkkel og gi den et navn. Det åpne API-et krever Pro+.
 2. Klikk **Åpne integrasjon**, koble til selskapet ditt i ReAI og fyll inn nøkkelen, selskaps-ID i Workfeed og perioden.
 3. La **Approved shifts only** være huket av for lønn, og hent vaktene.
-4. Kontroller timene og før dem inn én og én eller alle matchede vakter samtidig.
+4. Kontroller timene og før dem inn én og én eller alle matchede vakter samlet. Mange vakter føres i puljer, og du klikker videre til neste pulje. Vakter som allerede er ført i ReAI, hoppes over.
 
 API-nøkler i Workfeed kan også endre data i Workfeed. Appen leser bare vakter, ansatte og avdelinger, og bruker nøkkelen til én forespørsel uten å lagre den. Slett nøkkelen i Workfeed når du ikke lenger trenger den.

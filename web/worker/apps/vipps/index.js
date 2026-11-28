@@ -40,140 +40,152 @@ const CFG = {
       "label": "Merchant Serial Number (MSN)",
       "placeholder": "123456"
     }
-  ],
-  "hasFees": false
+  ]
 };
+
+const API = 'https://api.vipps.no';
+/** Provider calls allowed per review (token + ledgers + one funds report per ledger date, plus extra pages). */
+const MAX_PROVIDER_CALLS = 45;
+/** Parallel per-date funds requests. */
+const CONCURRENCY = 6;
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
 
 /**
  * @param {string} url
  * @param {RequestInit} init
- * @param {string} errPrefix
+ * @param {{ calls: number }} budget
+ * @param {typeof fetch} fetchImpl
  */
-async function providerJson(url, init, errPrefix) {
-  const res = await fetch(url, {
-    ...init,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(25_000),
-  });
+async function providerJson(url, init, budget, fetchImpl) {
+  budget.calls += 1;
+  if (budget.calls > MAX_PROVIDER_CALLS) {
+    throw new HttpError(400, 'This month has too many Vipps report pages to review in one go. Contact Vipps MobilePay to raise the page size for the ledger, or use the settlement report in the business portal.');
+  }
+  const res = await fetchImpl(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
   if (res.status >= 300 && res.status < 400) {
-    throw new HttpError(502, `${errPrefix} returned an unexpected redirect.`);
+    throw new HttpError(502, 'Vipps returned an unexpected redirect.');
+  }
+  if (res.status === 429) {
+    throw new HttpError(400, 'Vipps MobilePay is rate limiting requests. Wait a minute and try again.');
   }
   const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  return { status: res.status, ok: res.ok, data };
 }
 
 /**
- * @param {Record<string, string>} fields
+ * Lists every date (YYYY-MM-DD) in [start, end) that is not after today in Europe/Oslo.
  * @param {string} start
  * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
+ * @param {number} [now]
  */
+export function ledgerDates(start, end, now = Date.now()) {
+  const today = OSLO_DAY.format(new Date(now));
+  const out = [];
+  for (let t = Date.parse(`${start}T00:00:00Z`); t < Date.parse(`${end}T00:00:00Z`); t += 86_400_000) {
+    const day = new Date(t).toISOString().slice(0, 10);
+    if (day > today) break;
+    out.push(day);
+  }
+  return out;
+}
 
 /**
+ * Fetches scheduled payouts from the Report API v2 for one month.
+ * Docs: https://developer.vippsmobilepay.com/docs/APIs/report-api/api-guide/fetching-report-data/
+ * Calls: POST /accesstoken/get, GET /settlement/v1/ledgers, then GET /report/v2/ledgers/{id}/funds/dates/{date}
+ * once per ledger date (there is no date-range parameter), following `cursor` while `hasMore`.
  * @param {Record<string, string>} fields
  * @param {string} start
  * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
+ * @param {typeof fetch} [fetchImpl]
+ * @param {number} [now]
+ * @returns {Promise<{ payouts: import('../../lib/reconcile.js').PayoutItem[], openDates: number, calls: number }>}
  */
-async function fetchVippsPayouts(fields, start, end) {
+export async function fetchVippsPayouts(fields, start, end, fetchImpl = fetch, now = Date.now()) {
+  const budget = { calls: 0 };
+  const msn = (fields.msn ?? '').trim();
   const baseHeaders = {
     accept: 'application/json',
     'vipps-system-name': 'reai-apps',
     'vipps-system-version': '1.0.0',
     'ocp-apim-subscription-key': fields.subscriptionKey ?? '',
-    'merchant-serial-number': fields.msn ?? '',
+    'merchant-serial-number': msn,
   };
   const tokRes = await providerJson(
-    'https://api.vipps.no/accesstoken/get',
-    {
-      method: 'POST',
-      headers: {
-        ...baseHeaders,
-        'content-type': 'application/json',
-        client_id: fields.clientId ?? '',
-        client_secret: fields.clientSecret ?? '',
-      },
-      body: '',
-    },
-    'Vipps',
+    `${API}/accesstoken/get`,
+    { method: 'POST', headers: { ...baseHeaders, 'content-type': 'application/json', client_id: fields.clientId ?? '', client_secret: fields.clientSecret ?? '' }, body: '' },
+    budget,
+    fetchImpl,
   );
   if (!tokRes.ok || !tokRes.data?.access_token) {
-    throw new HttpError(400, 'Vipps rejected these credentials or Report API access.');
+    throw new HttpError(400, 'Vipps MobilePay rejected the client ID, client secret, subscription key or MSN. Use the production keys for the sales unit.');
   }
-  const token = String(tokRes.data.access_token);
-  const authHeaders = { ...baseHeaders, authorization: `Bearer ${token}` };
+  const authHeaders = { ...baseHeaders, authorization: `Bearer ${String(tokRes.data.access_token)}` };
 
-  /** @type {Array<{ ledgerId: string, currency: string }>} */
+  /** @type {Array<{ ledgerId: string, currency: string, settlesForRecipientHandles?: string[] }>} */
   const ledgers = [];
   let cursor = '';
-  for (let page = 0; page < 20; page++) {
+  for (let page = 0; page < 5; page++) {
     const q = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-    const lRes = await providerJson(`https://api.vipps.no/settlement/v1/ledgers${q}`, { headers: authHeaders }, 'Vipps');
+    const lRes = await providerJson(`${API}/settlement/v1/ledgers${q}`, { headers: authHeaders }, budget, fetchImpl);
     if (!lRes.ok) {
-      throw new HttpError(400, `Vipps ledger lookup failed (HTTP ${lRes.status}).`);
+      throw new HttpError(400, lRes.status === 401 || lRes.status === 403 || lRes.status === 404
+        ? 'These keys have no Report API access. Vippsnummer sales units cannot use the Report API.'
+        : `Vipps ledger lookup failed (HTTP ${lRes.status}).`);
     }
-    const items = Array.isArray(lRes.data?.items) ? lRes.data.items : [];
-    ledgers.push(...items);
+    ledgers.push(...(Array.isArray(lRes.data?.items) ? lRes.data.items : []));
     cursor = typeof lRes.data?.cursor === 'string' ? lRes.data.cursor : '';
-    if (!cursor) {
-      break;
-    }
+    if (!cursor) break;
   }
-  if (ledgers.length === 0) {
-    throw new HttpError(400, 'No Vipps Report API ledgers are available for this sales unit.');
+  // Since February 2025 each ledger belongs to one sales unit; keep the one for this MSN when several are visible.
+  const forMsn = ledgers.filter((l) => (l.settlesForRecipientHandles ?? []).some((h) => String(h).split(':').pop() === msn));
+  const selected = forMsn.length > 0 ? forMsn : ledgers;
+  if (selected.length === 0) {
+    throw new HttpError(400, 'No Report API ledger is available for this sales unit.');
   }
 
+  const tasks = selected.flatMap((ledger) => ledgerDates(start, end, now).map((day) => ({ ledger, day })));
   /** @type {import('../../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
-  let cur = new Date(`${start}T00:00:00Z`);
-  const limit = new Date(`${end}T00:00:00Z`);
-  while (cur < limit) {
-    const day = cur.toISOString().slice(0, 10);
-    for (const ledger of ledgers) {
-      let c = '';
-      for (let p = 0; p < 50; p++) {
-        const q = c ? `?cursor=${encodeURIComponent(c)}` : '';
-        const r = await providerJson(
-          `https://api.vipps.no/report/v2/ledgers/${encodeURIComponent(ledger.ledgerId)}/funds/dates/${day}${q}`,
-          { headers: authHeaders },
-          'Vipps',
-        );
-        if (r.status === 404) {
-          break;
-        }
-        if (!r.ok) {
-          throw new HttpError(400, `Vipps report failed for ${day} (HTTP ${r.status}).`);
-        }
-        const items = Array.isArray(r.data?.items) ? r.data.items : [];
-        for (const row of items) {
-          if (row.entryType === 'payout-scheduled' && typeof row.amount === 'number' && row.amount < 0) {
-            payouts.push({
-              id: `${ledger.ledgerId}:${row.pspReference ?? `${row.ledgerDate}${row.amount}`}`,
-              date: String(row.ledgerDate).slice(0, 10),
-              amountMinor: -row.amount,
-              currency: String(row.currency),
-              reference: String(row.reference ?? row.pspReference ?? ''),
-              detail: `Ledger ${ledger.ledgerId} · scheduled payout`,
-            });
-          }
-        }
-        c = r.data?.hasMore && typeof r.data?.cursor === 'string' ? r.data.cursor : '';
-        if (!c) {
-          break;
+  let openDates = 0;
+  /** @param {{ ledger: { ledgerId: string }, day: string }} task */
+  const runTask = async ({ ledger, day }) => {
+    let c = '';
+    for (let p = 0; p < 20; p++) {
+      const q = c ? `?cursor=${encodeURIComponent(c)}` : '';
+      const r = await providerJson(`${API}/report/v2/ledgers/${encodeURIComponent(ledger.ledgerId)}/funds/dates/${day}${q}`, { headers: authHeaders }, budget, fetchImpl);
+      if (r.status === 404) throw new HttpError(400, `Vipps MobilePay denied access to ledger ${ledger.ledgerId}. Check the keys and that Report API access is granted in the business portal.`);
+      if (!r.ok) throw new HttpError(400, `Vipps report failed for ${day} (HTTP ${r.status}).`);
+      if (r.data?.tryLater) openDates += 1;
+      for (const row of Array.isArray(r.data?.items) ? r.data.items : []) {
+        // payout-scheduled lowers the ledger balance, so its amount is negative (minor units).
+        if (row.entryType === 'payout-scheduled' && Number.isInteger(row.amount) && row.amount < 0) {
+          payouts.push({
+            id: String(row.pspReference ?? `${ledger.ledgerId}:${row.ledgerDate}`),
+            date: String(row.ledgerDate ?? day).slice(0, 10),
+            amountMinor: -row.amount,
+            currency: String(row.currency ?? '').toUpperCase(),
+            reference: String(row.reference ?? row.pspReference ?? ''),
+            detail: `Ledger ${ledger.ledgerId} · payout ${String(row.pspReference ?? '')}`,
+          });
         }
       }
+      c = r.data?.hasMore && typeof r.data?.cursor === 'string' && r.data.cursor ? r.data.cursor : '';
+      if (!c) return;
     }
-    cur = new Date(cur.getTime() + 86_400_000);
-  }
-  return payouts;
+  };
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, async () => {
+    while (next < tasks.length) {
+      const task = tasks[next++];
+      if (task) await runTask(task);
+    }
+  }));
+  payouts.sort((a, b) => a.date.localeCompare(b.date));
+  return { payouts, openDates, calls: budget.calls };
 }
-
-/**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
- */
 
 /**
  * @returns {{ payouts: import('../../lib/reconcile.js').PayoutItem[], bankTx: import('../../lib/reconcile.js').BankTx[], month: string, currency: string }}
@@ -196,22 +208,15 @@ function sampleData() {
 }
 
 /**
- * @param {{ rows: import('../../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean, accountID?: string }} state
+ * @param {{ rows: import('../../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean }} state
  */
 function renderReviewResults(state) {
-  const { rows, month, currency, excluded, bankCount, isSample, accountID } = state;
+  const { rows, month, currency, excluded, bankCount, isSample } = state;
   const matched = rows.filter((r) => r.match !== null).length;
   const totalNet = rows.reduce((s, r) => s + r.payout.amountMinor, 0);
-  const totalFees = rows.reduce((s, r) => s + Math.abs(r.payout.feeMinor ?? 0), 0);
   const csvRows = [
-    CFG.hasFees
-      ? ['provider', 'reference', 'payout_date', 'net_payout', 'fee_field', 'currency', 'match_status', 'reai_bank_transaction_id', 'detail']
-      : ['provider', 'reference', 'payout_date', 'amount', 'currency', 'match_status', 'reai_bank_transaction_id', 'detail'],
-    ...rows.map((r) =>
-      CFG.hasFees
-        ? [CFG.brand, r.payout.reference, r.payout.date, (r.payout.amountMinor / 100).toFixed(2), ((r.payout.feeMinor ?? 0) / 100).toFixed(2), r.payout.currency, r.status, r.match ? String(r.match.id) : '', r.payout.detail]
-        : [CFG.brand, r.payout.reference, r.payout.date, (r.payout.amountMinor / 100).toFixed(2), r.payout.currency, r.status, r.match ? String(r.match.id) : '', r.payout.detail],
-    ),
+    ['provider', 'reference', 'payout_date', 'amount', 'currency', 'match_status', 'reai_bank_transaction_id', 'detail'],
+    ...rows.map((r) => [CFG.brand, r.payout.reference, r.payout.date, (r.payout.amountMinor / 100).toFixed(2), r.payout.currency, r.status, r.match ? String(r.match.id) : '', r.payout.detail]),
   ];
 
   return html`
@@ -225,21 +230,18 @@ function renderReviewResults(state) {
         <div class="metric-grid">
           ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${excluded} other-currency excluded` })}
           ${reaiMetric({ label: 'Net payout total', value: `${formatMinor(totalNet)} ${currency}`, detail: `${bankCount} pending ReAI bank rows` })}
-          ${CFG.hasFees
-            ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compare against Dintero report' })
-            : reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
+          ${reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
         </div>
 
         ${rows.length === 0
           ? reaiCallout({ tone: 'info', body: `No ${currency} payouts found for ${month}.` })
           : html`
             <div class="table-wrap"><table class="data-table">
-              <thead><tr><th>Date</th><th>Reference</th><th class="num">Net amount</th>${CFG.hasFees ? html`<th class="num">Fee</th>` : ''}<th>Bank match</th><th>ReAI Bank Tx</th><th>Details</th></tr></thead>
+              <thead><tr><th>Date</th><th>Reference</th><th class="num">Net amount</th><th>Bank match</th><th>ReAI Bank Tx</th><th>Details</th></tr></thead>
               <tbody>${rows.map(
                 (r) => html`<tr>
                   <td class="mono">${r.payout.date}</td><td class="mono">${r.payout.reference}</td>
                   <td class="num">${formatMinor(r.payout.amountMinor)} ${r.payout.currency}</td>
-                  ${CFG.hasFees ? html`<td class="num">${formatMinor(r.payout.feeMinor ?? 0)}</td>` : ''}
                   <td>${reaiBadge({ text: r.status, tone: r.match ? 'success' : 'warn' })}</td>
                   <td class="mono">${r.match ? `#${r.match.id} (${r.match.transactionDate})` : '—'}</td>
                   <td>${r.payout.detail}</td>
@@ -254,26 +256,6 @@ function renderReviewResults(state) {
           `}
       `,
     })}
-    ${CFG.hasFees && !isSample && totalFees > 0 && accountID
-      ? reaiCard({
-          eyebrow: 'OPTIONAL · BOOK WITHHELD FEES',
-          title: 'Create monthly fee voucher for review',
-          body: html`
-            <p class="muted-note">Only book if Dintero withheld these fees directly from payouts and has not separately invoiced them.</p>
-            <form class="stack" hx-post="/app/dintero/voucher" hx-target="#dintero-booking" hx-swap="innerHTML">
-              <input type="hidden" name="month" value="${month}"><input type="hidden" name="accountID" value="${accountID}"><input type="hidden" name="totalFeeMinor" value="${totalFees}">
-              <div class="inline-row">
-                <div class="field"><label for="dintero-expense">Fee expense account (e.g. 7770)</label><input id="dintero-expense" name="expenseAccount" type="text" pattern="[0-9]{4}" required placeholder="7770"></div>
-                <div class="field"><label for="dintero-clearing">Payout clearing account (asset/liability)</label><input id="dintero-clearing" name="clearingAccount" type="text" pattern="[0-9]{4}" required placeholder="1580"></div>
-              </div>
-              <label class="check-row"><input type="checkbox" name="c_deducted" required> I confirm ${formatMinor(totalFees)} ${currency} was withheld from payouts and not separately invoiced.</label>
-              <label class="check-row"><input type="checkbox" name="c_report" required> I verified this total against Dintero's official payout reports for ${month}.</label>
-              <div><button type="submit" class="button primary">Create review voucher (${formatMinor(totalFees)} ${currency})</button></div>
-            </form>
-            <div id="dintero-booking" class="stack-sm"></div>
-          `,
-        })
-      : ''}
   `;
 }
 
@@ -308,7 +290,7 @@ export async function handle(request, env) {
               <div class="mapping-grid">
                 ${CFG.fields.map((f) => html`<div class="field"><label for="f-${f.key}">${f.label}</label><input id="f-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}" autocomplete="off" required placeholder="${f.placeholder}"></div>`)}
                 <div class="field"><label for="reconcile-month">Payout month</label><input id="reconcile-month" name="month" type="text" pattern="[0-9]{4}-[0-9]{2}" value="${defaultMonth}" required placeholder="YYYY-MM"></div>
-                <div class="field"><label for="reconcile-bank">ReAI bank account${CFG.hasFees ? ' (optional)' : ''}</label><select id="reconcile-bank" name="bankId"><option value="0">${banks.length > 0 ? 'Select bank account…' : 'Connect to ReAI to load banks'}</option>${banks.map((b) => html`<option value="${b.id}">${b.displayName} (${b.ledgerAccountNumber} · ${b.currencyCode})</option>`)}</select></div>
+                <div class="field"><label for="reconcile-bank">ReAI bank account</label><select id="reconcile-bank" name="bankId"><option value="0">${banks.length > 0 ? 'Select bank account…' : 'Connect to ReAI to load banks'}</option>${banks.map((b) => html`<option value="${b.id}">${b.displayName} (${b.ledgerAccountNumber} · ${b.currencyCode})</option>`)}</select></div>
               </div>
               <div class="inline-row">
                 <button type="submit" class="button primary">Review ${CFG.brand} payouts</button>
@@ -355,13 +337,14 @@ export async function handle(request, env) {
         if (!val) throw new HttpError(400, `Enter ${f.label}.`);
         fields[f.key] = val;
       }
-      const [fetched, bankTx] = await Promise.all([
+      const [{ payouts: fetched, openDates }, bankTx] = await Promise.all([
         fetchVippsPayouts(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));
       const rows = matchPayouts(matching, bankTx);
-      return htmlResponse(renderReviewResults({ rows, month: bounds.month, currency: company.currencyCode, excluded: fetched.length - matching.length, bankCount: bankTx.length }));
+      const note = openDates > 0 ? reaiCallout({ tone: 'info', body: `${openDates === 1 ? 'One ledger date is' : 'Some ledger dates are'} still open in Vipps MobilePay, so a payout for that date may not be listed yet.` }) : '';
+      return htmlResponse(html`${note}${renderReviewResults({ rows, month: bounds.month, currency: company.currencyCode, excluded: fetched.length - matching.length, bankCount: bankTx.length })}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Review failed.';
       return htmlResponse(reaiCallout({ tone: 'danger', title: `Could not review ${CFG.brand}`, body: msg }));

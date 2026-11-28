@@ -2,29 +2,40 @@
 
 Route `/app/qliro/`. Docs pages: `web/content/{nb,en}/web-apps/qliro/index.md`.
 
+Read-only reconciliation: lists Qliro Checkout settlement batches (one per bank transfer) for a month, matches them to pending ReAI bank transactions and exports a CSV. Nothing is written to ReAI.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- Reference (Admin API v2 OpenAPI, embedded in the page): https://developers.qliro.com/docs/api
+- Settlement guide: https://developers.qliro.com/docs/qliro-checkout/settlements
+- Archived copy used for this check (developers.qliro.com returned Fastly 500 again on 2026-11-28): https://web.archive.org/web/20260122220505/https://developers.qliro.com/docs/api
+- Auth and production host reference implementation: https://github.com/krokedil/qliro-one-for-woocommerce/blob/HEAD/classes/requests/class-qliro-one-request.php
+- Changelog: none published.
 
-- https://developers.qliro.com/docs/qliro-checkout/settlements
-- https://developers.qliro.com/docs/api
-- https://github.com/getsno/qliro-api/blob/master/.junie/api-docs.json
-- https://github.com/krokedil/qliro-one-for-woocommerce/blob/HEAD/classes/requests/class-qliro-one-request.php
+API version: Admin API v2 (`info.version` v2, the only settlement version in the spec).
 
-- Mode: api
-- Auth: Merchant API key/secret issued by Qliro for the Qliro Checkout store (ask Qliro store support if missing). Only the secret is needed for GET: Authorization: 'Qliro ' + base64(SHA256(body + apiSecret)) with empty body.
-- Hosts in code: `developers.qliro.com`, `github.com`, `payments.qit.nu`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. (Qliro AB NUF). qliro.com live with merchant offering.
+Auth: the merchant API secret Qliro issues for the Qliro Checkout store (ask Qliro merchant support). Header `Authorization: Qliro base64(SHA-256(body + secret))`; GET has an empty body, so only the secret is needed.
+
+Endpoint: `GET https://payments.qit.nu/checkout/adminapi/v2/settlements/GetSettlementBatches?FromBatchDate=yyyy/mm/dd&ToBatchDate=yyyy/mm/dd&CurrencyCode=<ReAI company currency>`. Fields used: `SettlementBatches[].Id, BatchId, AcquirerName, BatchDate, CurrencyCode, TotalAmount, TotalFeeAmount`. `ToBatchDate` is capped at yesterday (today gives `PERIOD_NOT_SETTLED`).
+
+Paging and budget: the response is one unpaged list. Review action: 1 Qliro request plus 1 ReAI request (`/api/bank-reconciliations/{id}`). Page load: 1 ReAI request (`/api/company-banks`). No rate limit documented.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- none
+- `GET /api/company-banks` (bank selector)
+- `GET /api/bank-reconciliations/{bankAccountId}?month=&include=pending_transactions`
+
+## Mapping
+
+Each batch becomes one payout row: amount `TotalAmount` in minor units, fee `|TotalFeeAmount|`, reference `BatchId`, date `BatchDate`. Rows are matched to pending bank transactions with `matchPayouts` (`web/worker/lib/reconcile.js`).
 
 ## Caveats
 
-developers.qliro.com returned a Fastly 'unknown domain' 500 during research (2026-11-28) and the Internet Archive was offline, so the Admin API OpenAPI (GET /v2/settlements/GetSettlementBatches, FromBatchDate/ToBatchDate yyyy/mm/dd, SettlementBatches[].Id/BatchId/AcquirerName/BatchDate/CurrencyCode/TotalAmount/TotalFeeAmount) was read from the docs site's own Next.js page data mirrored in getsno/qliro-api/.junie/api-docs.json. Production host https://payments.qit.nu/checkout/adminapi and the auth hash come from two open-source Qliro clients (krokedil WooCommerce plugin, getsno/qliro-api), not from a live docs page; re-verify once developers.qliro.com is back. Whether TotalAmount is net of TotalFeeAmount is not stated; app treats TotalAmount as the transferred amount. Read-only reconcile + CSV.
+- developers.qliro.com was still down (Fastly 500) on 2026-11-28; the spec was re-read from the Internet Archive snapshot of 2026-01-22. The spec lists only the test server `pago.qit.nu`; the production host `payments.qit.nu` and the hash scheme come from Qliro's open-source clients.
+- Whether `TotalAmount` is net of `TotalFeeAmount` is not stated; the app treats `TotalAmount` as the transferred amount.
+- `CurrencyCode` filtering is done by Qliro; the app still drops other currencies locally as a guard.
 
 ## Rules
 

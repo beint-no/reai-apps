@@ -98,16 +98,32 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     }
   }
   if (posts.length === 0) throw new HttpError(400, `Flow Retail has no accounting postings for ${date}.`);
-  // When Flow Retail posts VAT on its own 27xx line, the revenue lines exclude VAT and are kept with VAT code 0.
-  // Otherwise revenue lines carry the sale including VAT and keep Flow Retail's VAT code, which ReAI splits.
-  const separateVat = posts.some((p) => p.account.startsWith('27'));
-  /** @type {Payment[]} */ const payments = [];
-  /** @type {SalesRate[]} */ const sales = [];
-  for (const p of posts) {
-    const taxable = !separateVat && p.signedMinor < 0 && p.vatCode !== '' && p.vatCode !== '0' && /^3/.test(p.account);
-    if (taxable) sales.push({ ratePct: 0, grossMinor: -p.signedMinor, account: p.account, label: p.text, vatCode: p.vatCode });
-    else payments.push({ label: p.text, amountMinor: p.signedMinor, account: p.account });
+  // Revenue lines (3xxx with a VAT code) are posted including VAT with that code, so ReAI separates the base
+  // and output VAT itself; ReAI reserves the 27xx VAT accounts. When Flow Retail reports VAT on its own 27xx
+  // lines, that VAT is added back to the revenue lines with the same VAT code (in proportion to their amounts).
+  const isRevenue = (/** @type {{ account: string, vatCode: string }} */ p) => /^3/.test(p.account) && p.vatCode !== '' && p.vatCode !== '0';
+  const vatPosts = posts.filter((p) => p.account.startsWith('27'));
+  const revenue = posts.filter(isRevenue);
+  /** @type {Map<string, number>} */ const grossByIndex = new Map(revenue.map((p, i) => [String(i), p.signedMinor]));
+  /** @type {Map<string, number>} */ const vatByCode = new Map();
+  const revenueCodes = [...new Set(revenue.map((p) => p.vatCode))];
+  for (const v of vatPosts) {
+    const code = v.vatCode && v.vatCode !== '0' ? v.vatCode : revenueCodes.length === 1 ? String(revenueCodes[0]) : '';
+    if (!code || !revenueCodes.includes(code)) throw new HttpError(400, `Flow Retail posts VAT on account ${v.account}${v.vatCode ? ` with VAT code ${v.vatCode}` : ''}, but no sales line has the same VAT code. Check the VAT mapping in the Flow Retail accounting configuration.`);
+    vatByCode.set(code, (vatByCode.get(code) ?? 0) + v.signedMinor);
   }
+  for (const [code, vatMinor] of vatByCode) {
+    const idx = revenue.map((p, i) => ({ p, i })).filter((x) => x.p.vatCode === code);
+    const base = idx.reduce((t, x) => t + x.p.signedMinor, 0);
+    let left = vatMinor;
+    idx.forEach((x, n) => {
+      const share = n === idx.length - 1 || base === 0 ? left : Math.round((vatMinor * x.p.signedMinor) / base);
+      left -= share;
+      grossByIndex.set(String(x.i), (grossByIndex.get(String(x.i)) ?? 0) + share);
+    });
+  }
+  /** @type {Payment[]} */ const payments = posts.filter((p) => !isRevenue(p) && !p.account.startsWith('27')).map((p) => ({ label: p.text, amountMinor: p.signedMinor, account: p.account }));
+  /** @type {SalesRate[]} */ const sales = revenue.map((p, i) => ({ ratePct: 0, grossMinor: -(grossByIndex.get(String(i)) ?? p.signedMinor), account: p.account, label: p.text, vatCode: p.vatCode }));
   const store = Array.isArray(report?.storeNames) && report.storeNames.length ? report.storeNames.join(', ') : String(report?.organizationName ?? organizationUid);
   return { date, ref: store.slice(0, 80), payments, sales, tipsMinor: 0 };
 }
@@ -242,6 +258,8 @@ export async function handle(request, env) {
       const session = await readSession(env, request);
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
       if (form.get('confirm') !== 'on') throw new HttpError(400, 'Confirm the verification checkbox first.');
+      const company = session.tenants.find((t) => t.id === session.tenantId);
+      if (company && company.currencyCode !== 'NOK') throw new HttpError(400, `${BRAND} reports carry no currency and are booked in NOK, but this ReAI company uses ${company.currencyCode}.`);
       const v = /** @type {Voucher} */ (JSON.parse(String(form.get('voucherJson') ?? '{}')));
       if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
       const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);

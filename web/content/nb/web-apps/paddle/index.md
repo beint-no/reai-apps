@@ -1,29 +1,37 @@
 ---
-title: "Integrasjon for Paddle og Chargebee til regnskap"
-seoTitle: "Integrasjon for Paddle og Chargebee til regnskap — Gratis open source-integrasjon for ReAI"
-description: "Bokfør SaaS-utbetalinger fra Paddle (Merchant of Record) og Chargebee i ReAI med 0 % eksportomsetning (3100) og plattformgebyr (7770)."
-summary: "Bokfør SaaS-utbetalinger fra Paddle (Merchant of Record) og Chargebee i ReAI med 0 % eksportomsetning (3100) og plattformgebyr (7770)."
+title: "Integrasjon mellom Paddle og regnskap"
+seoTitle: "Bokfør utbetalinger fra Paddle i ReAI"
+description: "Hent avstemmingsrapporten for én utbetaling fra Paddle og bokfør salg, gebyrer og innbetalingen i banken i ReAI. Gratis og åpen kildekode."
+summary: "Bokfør en utbetaling fra Paddle Billing i ReAI ut fra avstemmingsrapporten, kontrollert mot utbetalingsspesifikasjonen."
 industry: payments
 webAppUrl: /app/paddle/
 sourcePath: web/worker/apps/paddle/
 highlights:
-  - "Bygget for norske bokførings- og MVA-regler i Norwegian SaaS & software exports (SaaS)"
-  - "Direkte kobling mot NS 4102 / ReAI Public API (1580, 3100 (0% export), 7770)"
-  - "0 kr i integrasjonsgebyr — åpen kildekode (MIT) med innebygd testmodus"
+  - "Leser avstemmingsrapporten for utbetalinger via Paddle API"
+  - "Kontrollerer rapporten mot beløpet på utbetalingsspesifikasjonen"
+  - "Lager et kontrollbilag med salg eks. avgift, gebyrer og innbetalingen i banken"
 ---
 
-## Gratis integrasjon mellom Paddle og ReAI
+## Dette overføres til ReAI
 
-Koble **Paddle** rett til ReAI i nettleseren på `apps.reai.no/app/paddle/` uten dyre månedsgebyrer for eksterne integrasjonsbroer.
+Paddle er selger overfor kundene dine (merchant of record), krever inn avgiften og betaler resten til deg. Integrasjonen lager avstemmingsrapporten for én utbetaling i Paddle, summerer salg, refusjoner, tilbakeføringer, gebyrer, rabatter og overføringsgebyrer, og kontrollerer at summen er lik beløpet du fører inn fra utbetalingsspesifikasjonen.
 
-| Område | Detaljer |
-| --- | --- |
-| Bransje | Norwegian SaaS & software exports (SaaS) |
-| Kontoplan / API | `1580, 3100 (0% export), 7770` |
-| Trygghet | Forhåndsvisning før bokføring, duplikatsperre og kontrollbilag |
+Bilaget opprettes til kontroll i ReAI:
 
-## Kom i gang
+| Postering | Standardkonto | Mva-kode |
+| --- | --- | --- |
+| Beløp mottatt i banken | `1920` | `0` |
+| Salg eks. avgift, fratrukket refusjoner | `3100` | `52` (utførsel) |
+| Gebyrer fra Paddle fratrukket rabatter | `7770` | `0` |
 
-1. Klikk **Åpne integrasjon** over og koble til ReAI-selskapet ditt.
-2. Klikk **Load sample** for å teste hvordan bilaget eller synken ser ut umiddelbart.
-3. Last opp eksporten fra Paddle eller legg inn tall/API-nøkkel for å overføre direkte til ReAI.
+Er utbetalingen i en annen valuta enn selskapets, fører du inn beløpet som kom inn i banken. Alle linjer regnes om med den kursen. Referansen for utbetalingen står i bilagsteksten, så samme utbetaling bokføres ikke to ganger. Avklar mva-behandlingen med regnskapsføreren din.
+
+## Oppsett
+
+1. Gå til **Developer tools** og **Authentication** i Paddle og lag en API-nøkkel med lese- og skrivetilgang til rapporter.
+2. Åpne **Payouts** i Paddle og kopier referansen (remittance reference) og beløpet for utbetalingen.
+3. Klikk **Åpne integrasjon**, koble til ReAI og legg inn nøkkelen, referansen, beløpet og datoen på kontoutskriften.
+4. Klikk **Fetch from Paddle API**. Holder Paddle fortsatt på med rapporten, klikker du **Check again** etter et minutt.
+5. Kontroller forhåndsvisningen og klikk **Create review voucher in ReAI**. Legg ved utbetalingsspesifikasjonen i ReAI.
+
+API-nøkkelen brukes bare til denne forespørselen og lagres aldri.

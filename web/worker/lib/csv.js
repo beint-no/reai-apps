@@ -22,9 +22,11 @@ export function decodeCsvBytes(bytes) {
 /**
  * Parses a semicolon- or comma-separated CSV document.
  * @param {string} text
+ * @param {{ maxRows?: number }} [opts] Data rows allowed after the header (default 5,000).
  * @returns {CsvDocument}
  */
-export function parseCsv(text) {
+export function parseCsv(text, opts = {}) {
+  const maxRows = opts.maxRows ?? 5000;
   const normalized = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const firstLineEnd = normalized.indexOf('\n');
   const firstLine = firstLineEnd === -1 ? normalized : normalized.slice(0, firstLineEnd);
@@ -85,8 +87,8 @@ export function parseCsv(text) {
     }
   }
   const headers = result[0];
-  if (!headers || headers.length <= 1 || headers.length > 100 || result.length <= 1 || result.length > 5001) {
-    throw new HttpError(400, 'Choose a CSV with a header row and 1–5,000 journal lines.');
+  if (!headers || headers.length <= 1 || headers.length > 100 || result.length <= 1 || result.length > maxRows + 1) {
+    throw new HttpError(400, `Choose a CSV with a header row and between 1 and ${maxRows.toLocaleString('nb-NO')} rows.`);
   }
   const rows = result.slice(1);
   if (!rows.every((r) => r.length === headers.length)) {

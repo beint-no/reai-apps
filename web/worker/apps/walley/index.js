@@ -38,13 +38,20 @@ function shiftDays(isoDay, days) {
   return d.toISOString().slice(0, 10);
 }
 
+/** @param {string} iso @returns {string} Calendar day in Norwegian time, or '' when unparseable. */
+function osloDay(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Oslo' });
+}
+
 /**
  * Fetches Walley settlements paid out in one month through the Reports API.
  * Docs:
  * - https://dev.walleypay.com/docs/reports/authentication (OAuth2 client credentials, production scope)
  * - https://dev.walleypay.com/docs/reports/endpoints (https://api.walleypay.com)
- * - https://dev.walleypay.com/docs/reports/settlements-api/search (GET /reports/settlements, query/page/perPage)
- * @param {Record<string, string>} creds `clientId`, `clientSecret`, `month` (YYYY-MM)
+ * - https://dev.walleypay.com/docs/reports/settlements-api/search (GET /reports/settlements, query/page/perPage up to 1000)
+ * @param {Record<string, string>} creds `clientId`, `clientSecret`, `month` (YYYY-MM), `currency` (ISO code to filter on)
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<PayoutItem[]>}
  */
@@ -53,6 +60,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const clientSecret = (creds.clientSecret ?? '').trim();
   if (!clientId || !clientSecret) throw new HttpError(400, 'Enter the Walley client ID and secret.');
   const bounds = monthBounds((creds.month ?? '').trim());
+  const currency = (creds.currency ?? '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) throw new HttpError(400, 'Choose a ReAI company with a valid currency.');
 
   const tok = await fetchJson(
     `${WALLEY_API}/oauth2/v2.0/token`,
@@ -67,20 +76,20 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const accessToken = typeof tok?.access_token === 'string' ? tok.access_token : '';
   if (!accessToken) throw new HttpError(400, 'Walley did not return an access token.');
 
-  // Settlement periods start before the payout date; widen the search and filter on paidOutAt.
-  const query = `startDate:>=${shiftDays(bounds.start, -45)} AND endDate:<=${bounds.lastDay}`;
+  // Settlement periods start before the payout date; widen the search and filter on paidOutAt (Oslo day).
+  const query = `startDate:>=${shiftDays(bounds.start, -45)} AND endDate:<=${bounds.lastDay} AND currency:${currency}`;
   /** @type {PayoutItem[]} */
   const payouts = [];
-  for (let page = 1; page <= 20; page++) {
+  for (let page = 1; page <= 5; page++) {
     const data = await fetchJson(
-      `${WALLEY_API}/reports/settlements?query=${encodeURIComponent(query)}&page=${page}&perPage=100`,
+      `${WALLEY_API}/reports/settlements?query=${encodeURIComponent(query)}&page=${page}&perPage=1000`,
       { headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' } },
       BRAND,
       fetchImpl,
     );
     const rows = Array.isArray(data?.data) ? data.data : [];
     for (const s of rows) {
-      const paidOn = String(s?.paidOutAt ?? '').slice(0, 10);
+      const paidOn = osloDay(String(s?.paidOutAt ?? ''));
       if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(paidOn) || paidOn < bounds.start || paidOn > bounds.lastDay) continue;
       const amountMinor = Math.round(num(s.totalAmount) * 100);
       if (amountMinor <= 0) continue;
@@ -89,7 +98,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         id: `walley-${id}`,
         date: paidOn,
         amountMinor,
-        currency: String(s.currency ?? '').toUpperCase(),
+        currency: String(s.currency ?? currency).toUpperCase(),
         feeMinor: Math.round(Math.abs(num(s.compensations)) * 100),
         reference: String(s.reference ?? '').trim() || id,
         detail: `Store ${s.storeId ?? '?'} · ${String(s.startDate ?? '').slice(0, 10)} to ${String(s.endDate ?? '').slice(0, 10)} · captured ${num(s.captured).toFixed(2)}, refunded ${num(s.refunded).toFixed(2)}`,
@@ -119,10 +128,10 @@ function sampleData() {
 }
 
 /**
- * @param {{ rows: ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean }} state
+ * @param {{ rows: ReconcileRow[], month: string, currency: string, bankCount: number, isSample?: boolean }} state
  */
 function renderReview(state) {
-  const { rows, month, currency, excluded, bankCount } = state;
+  const { rows, month, currency, bankCount } = state;
   const matched = rows.filter((r) => r.match !== null).length;
   const totalNet = rows.reduce((s, r) => s + r.payout.amountMinor, 0);
   const totalFees = rows.reduce((s, r) => s + (r.payout.feeMinor ?? 0), 0);
@@ -138,7 +147,7 @@ function renderReview(state) {
       : reaiBadge({ text: `${matched}/${rows.length} matched`, tone: matched === rows.length && rows.length > 0 ? 'success' : 'warn' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${excluded} in other currencies excluded` })}
+        ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${currency} settlements only` })}
         ${reaiMetric({ label: 'Paid out', value: `${formatMinor(totalNet)} ${currency}`, detail: `${bankCount} pending ReAI bank rows` })}
         ${reaiMetric({ label: 'Walley fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compensations in the settlements' })}
       </div>
@@ -217,7 +226,7 @@ export async function handle(request, env) {
 
   if (pathname === `${BASE}/sample`) {
     const s = sampleData();
-    return htmlResponse(renderReview({ rows: matchPayouts(s.payouts, s.bankTx), month: s.month, currency: s.currency, excluded: 0, bankCount: s.bankTx.length, isSample: true }));
+    return htmlResponse(renderReview({ rows: matchPayouts(s.payouts, s.bankTx), month: s.month, currency: s.currency, bankCount: s.bankTx.length, isSample: true }));
   }
 
   if (pathname === `${BASE}/export`) {
@@ -237,11 +246,11 @@ export async function handle(request, env) {
       const bounds = monthBounds(month);
       const bankId = Number(form.get('bankId') ?? '0');
       const [fetched, bankTx] = await Promise.all([
-        fetchApi({ clientId: String(form.get('clientId') ?? ''), clientSecret: String(form.get('clientSecret') ?? ''), month }),
+        fetchApi({ clientId: String(form.get('clientId') ?? ''), clientSecret: String(form.get('clientSecret') ?? ''), month, currency: company.currencyCode }),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));
-      return htmlResponse(renderReview({ rows: matchPayouts(matching, bankTx), month: bounds.month, currency: company.currencyCode, excluded: fetched.length - matching.length, bankCount: bankTx.length }));
+      return htmlResponse(renderReview({ rows: matchPayouts(matching, bankTx), month: bounds.month, currency: company.currencyCode, bankCount: bankTx.length }));
     } catch (err) {
       return htmlResponse(reaiCallout({ tone: 'danger', title: `Could not review ${BRAND}`, body: err instanceof Error ? err.message : 'Review failed.' }));
     }

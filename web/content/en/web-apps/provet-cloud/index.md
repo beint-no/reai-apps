@@ -28,7 +28,7 @@ The app reads issued invoices with an invoice date in the period you choose (dra
 | Rows with 12% VAT, incl. VAT | `3020` | 33 |
 | Rows with 0% VAT | `3200` | 6 |
 
-ReAI splits each sales line into net revenue and output VAT from the VAT code. Credit notes reduce the same accounts. The voucher is flagged for review, is only created when invoice rows add up to the invoice totals, and the same period cannot be booked twice.
+ReAI splits each sales line into net revenue and output VAT from the VAT code. Credit notes reduce the same accounts. Pending and failed payments are left out. The voucher is flagged for review, is only created when invoice rows add up to the invoice totals, and the same period cannot be booked twice.
 
 ## Setup
 

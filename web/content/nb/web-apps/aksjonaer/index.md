@@ -1,30 +1,36 @@
 ---
-title: "Aksjonærregister og aksjeinvesteringer"
-seoTitle: "Aksjonærregister og aksjeinvesteringer — Gratis open source for ReAI"
-description: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 rett til ReAI aksjeinvesteringer (1350/1810)."
-summary: "Importer aksjeporteføljer fra Nordnet, VPS, DNB eller RF-1086 rett til ReAI aksjeinvesteringer (1350/1810)."
+title: "Aksjeinvesteringer fra CSV"
+seoTitle: "Aksjeinvesteringer fra CSV til ReAI | Gratis integrasjon med åpen kildekode"
+description: "Registrer aksjebeholdninger fra en porteføljefil i ReAI aksjeinvesteringer, koblet til verdipapirregisteret i ReAI med ISIN."
+summary: "Registrer aksjebeholdninger fra en porteføljefil i ReAI og se beholdningene som allerede ligger der."
 industry: operations
 webAppUrl: /app/aksjonaer/
 sourcePath: web/worker/apps/aksjonaer/
 highlights:
-  - "Tilpasset norsk bokføringsskikk (Holding companies & Norwegian equity portfolios)"
-  - "Direkte kobling mot ReAI sitt åpne API (POST /api/share-investments & GET /api/share-investments)"
-  - "Helt gratis i ReAI — åpen kildekode (MIT) med innebygd testmodus"
+  - "Kobler hver beholdning til verdipapirregisteret i ReAI med ISIN"
+  - "Hopper over beholdninger som allerede finnes i ReAI"
+  - "Fritaksmetoden settes bare når filen sier det"
 ---
 
-## Slik fungerer Aksjonærregister og aksjeinvesteringer med ReAI
+## Dette overføres til ReAI
 
-Bruk **Aksjonærregister og aksjeinvesteringer** rett i nettleseren på `apps.reai.no/app/aksjonaer/` uten ekstra månedlige koblingsgebyrer.
+Appen leser en CSV med én rad per beholdning og registrerer den i ReAI under aksjeinvesteringer:
 
-| Område | Detaljer |
+| Kolonne i filen | I ReAI |
 | --- | --- |
-| **Bruksområde** | Holding companies & Norwegian equity portfolios |
-| **ReAI API / NS 4102** | `POST /api/share-investments & GET /api/share-investments` |
-| **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/aksjonaer.js`) |
+| Navn (påkrevd) | Navn på beholdningen |
+| ISIN | Kobles til verdipapirregisteret i ReAI |
+| Type: børsnotert, unotert, fond, obligasjon eller annet | Instrumenttype, trengs når ISIN mangler i registeret |
+| Konto | Balansekonto, for eksempel `1350` eller `1810` |
+| Antall, kostpris og dato | Inngående beholdning |
+| Fritak: ja eller nei | Innenfor fritaksmetoden; tom betyr ikke vurdert |
 
-## Kom i gang på 2 minutter
+Beholdninger med samme ISIN, eller samme navn uten ISIN, som allerede finnes i ReAI blir ikke registrert på nytt. Appen lager ingen bilag.
 
-1. Åpne [apps.reai.no/app/aksjonaer/](/app/aksjonaer/) og klikk **Connect to ReAI**.
-2. Test først med **Load sample**, eller koble til eksport/API fra systemet ditt.
-3. Kontroller forhåndsvisningen og send direkte inn i ReAI.
+## Slik kommer du i gang
+
+1. Lag en CSV med kolonnene over. Tall kan ha komma eller punktum som desimaltegn.
+2. Åpne appen, klikk **Connect to ReAI** og velg selskap.
+3. Last opp filen, kontroller forhåndsvisningen og klikk **Register** for hver beholdning.
+
+Transaksjoner fra Nordnet importerer du i ReAI under aksjeinvesteringer. Kontroller fritaksmetoden for hver beholdning før salg eller utbytte.

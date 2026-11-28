@@ -14,7 +14,7 @@ highlights:
 
 ## Reconciling payouts against the bank
 
-Zettle by PayPal is now called PayPal Point of Sale. Card sales collect in the liquid account, card fees are deducted and the net amount is paid out to your bank account or PayPal account. The integration fetches one month of payouts and matches them against pending ReAI bank transactions by amount, date and reference. Nothing is booked.
+Zettle by PayPal is now called PayPal Point of Sale. Card sales collect in the liquid account, card fees are deducted and the net amount is paid out to your bank account or PayPal account. The integration fetches one month of payouts in Norwegian time and matches them against pending ReAI bank transactions by amount, date and reference. Payouts that failed and returned to the liquid account are left out. Nothing is booked.
 
 ## Setup
 

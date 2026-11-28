@@ -22,7 +22,8 @@ const BASE_PATH = '/app/fazile';
 const TITLE = 'Fazile Lease Billing';
 const LEAD = 'Read active lease contracts from the Fazile API and stage them as ReAI subscriptions, with automatic billing off until you have reviewed them.';
 const API = 'https://api.fazile.no/clients/v1';
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 500;
+const MAX_PAGES = 8;
 /** Contract line types that carry recurring rent or cost amounts. Discounts, exemptions and accruals are left to manual review. */
 const BILLABLE_TYPES = new Set(['RENT', 'COMMON_COSTS', 'MARKETING', 'PARKING', 'CUSTOM']);
 /** Fazile invoice frequencies (as in its invoice_frequency enum) to ReAI interval months. */
@@ -48,7 +49,9 @@ const SAMPLE = [
 ];
 
 /**
- * Reads every page of a Fazile list endpoint (PaginationParams skip/limit).
+ * Reads every page of a Fazile list endpoint (PaginationParams skip/limit, skip is a row offset).
+ * The OpenAPI documents no maximum limit, so skip advances by the rows actually returned and paging
+ * stops on an empty page or on a page shorter than an earlier one (safe if the server caps limit).
  * @param {string} path
  * @param {Record<string, string>} headers
  * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
@@ -56,14 +59,16 @@ const SAMPLE = [
  */
 async function fetchAll(path, headers, fetchImpl) {
   /** @type {any[]} */ const all = [];
-  for (let page = 0; page < 50; page++) {
-    const query = new URLSearchParams({ skip: String(page * PAGE_SIZE), limit: String(PAGE_SIZE) });
+  let longest = 0;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const query = new URLSearchParams({ skip: String(all.length), limit: String(PAGE_SIZE) });
     const batch = await fetchJson(`${API}${path}?${query}`, { headers }, BRAND, fetchImpl);
     if (!Array.isArray(batch)) throw new HttpError(502, `${BRAND} returned an unexpected response for ${path}.`);
     all.push(...batch);
-    if (batch.length < PAGE_SIZE) return all;
+    if (batch.length === 0 || batch.length < longest) return all;
+    longest = Math.max(longest, batch.length);
   }
-  throw new HttpError(502, `${BRAND} pagination exceeded the safety limit.`);
+  throw new HttpError(400, `${BRAND} returned more than ${MAX_PAGES * PAGE_SIZE} rows for ${path}. Limit the API key to fewer portfolios and fetch each part separately.`);
 }
 
 /**
@@ -89,7 +94,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     .map((c) => {
       const tenant = tenantsById.get(Number(c.main_tenant_id));
       /** @type {any[]} */ const rawLines = Array.isArray(c.contract_lines) ? c.contract_lines : [];
-      const current = rawLines.filter((l) => !l.end_date || isoDate(l.end_date) >= today);
+      // Lines in force on the reference day: today, or the contract start for contracts not yet started.
+      // Later price steps are separate lines with a future start_date and are left for manual review.
+      const contractStart = isoDate(c.contract_start_date, '');
+      const ref = contractStart > today ? contractStart : today;
+      const current = rawLines.filter((l) => (!l.end_date || isoDate(l.end_date) >= ref) && (!l.start_date || isoDate(l.start_date) <= ref));
       const billable = current.filter((l) => BILLABLE_TYPES.has(String(l.type ?? '')) && num(l.total_price) !== 0);
       const nextDates = billable.map((l) => isoDate(l.next_invoice_date, '')).filter(Boolean).sort();
       return {
@@ -100,7 +109,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         orgnr: String(tenant?.organization_number ?? '').replace(/\s+/g, ''),
         emails: Array.isArray(tenant?.emails) ? tenant.emails.map((/** @type {unknown} */ e) => String(e).trim().toLowerCase()).filter(Boolean) : [],
         startDate: nextDates[0] ?? today,
-        skipped: current.length - billable.length,
+        skipped: rawLines.filter((l) => !l.end_date || isoDate(l.end_date) >= ref).length - billable.length,
         lines: billable.map((l) => ({
           description: String(l.description || l.area_group_name || l.rent_type_name || 'Leie').trim().slice(0, 200),
           annualAmount: num(l.total_price),
@@ -140,7 +149,7 @@ function groupByInterval(lease, defaultMonths, codes, zeroCode) {
     const list = groups.get(months) ?? [];
     list.push({
       itemName: l.description,
-      unitPrice: Number(((l.annualAmount * months) / 12).toFixed(2)),
+      unitPrice: Math.round((l.annualAmount * months * 100) / 12) / 100,
       vatPercent: l.vatPercent,
       vatCode: codes.length ? invoiceVatCode(codes, l.vatPercent, zeroCode) : '',
     });
@@ -172,7 +181,7 @@ function renderPreview(state) {
       <div class="metric-grid">
         ${reaiMetric({ label: 'Subscriptions', value: String(state.staged.length), detail: 'One per contract and invoice interval' })}
         ${reaiMetric({ label: 'Matched tenants', value: `${matched} / ${state.staged.length}`, detail: 'By org.nr, email or exact name' })}
-        ${reaiMetric({ label: 'Lines left out', value: String(state.skipped), detail: 'Discounts, exemptions and accruals' })}
+        ${reaiMetric({ label: 'Lines left out', value: String(state.skipped), detail: 'Discounts, exemptions, accruals and later price steps' })}
       </div>
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Contract</th><th>Tenant</th><th>Lines (per invoice)</th><th>Every</th><th>Start</th><th>Action</th></tr></thead>
@@ -279,7 +288,14 @@ export async function handle(request, env) {
       if (!(customerId > 0) || !Object.values(FREQUENCY_MONTHS).includes(intervalMonths) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(s.startDate)) || !Array.isArray(s.lines) || s.lines.length === 0) {
         throw new HttpError(400, 'The staged contract is incomplete.');
       }
-      const codes = await loadVatCodes(env, session);
+      const [codes, existing] = await Promise.all([
+        loadVatCodes(env, session),
+        reaiRequest(env, '/api/subscriptions', { token: session.accessToken, tenantId: session.tenantId, query: { customerId: String(customerId), active: 'true', page: '1', pageSize: '200' } }),
+      ]);
+      const subTotal = s.lines.reduce((t, l) => t + Math.round(Number(l.unitPrice) * 100), 0);
+      const duplicate = (/** @type {{ items?: Array<{ id?: number | null, startDate: string, intervalMonths: number, amounts?: { discountedSubTotal?: number } }> }} */ (existing).items ?? [])
+        .find((x) => x.startDate === s.startDate && x.intervalMonths === intervalMonths && Math.round(Number(x.amounts?.discountedSubTotal ?? -1) * 100) === subTotal);
+      if (duplicate) throw new HttpError(409, `This customer already has an active subscription #${duplicate.id ?? ''} with the same start date, interval and amount.`);
       const created = /** @type {{ id?: number, webUrl?: string }} */ (
         await reaiRequest(env, '/api/subscriptions', {
           token: session.accessToken,

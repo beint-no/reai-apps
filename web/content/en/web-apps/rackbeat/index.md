@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads every Rackbeat product that is not barred and compares the product number with the SKUs in ReAI Products. For each missing product you can create a ReAI stock item with the Rackbeat name as title, the product number as SKU, and the sales price, cost price and barcode from Rackbeat. Products already in ReAI are left unchanged.
+The integration reads the sellable Rackbeat products that are not barred and compares the product number with the SKUs in ReAI Products. For each missing product you can create a ReAI stock item with the Rackbeat name as title, the product number as SKU, and the sales price, cost price and barcode from Rackbeat. Products already in ReAI are left unchanged.
 
 Rackbeat stock quantities are shown for reference only. No stock movements, vouchers or orders are created, and the revenue account and VAT code follow your ReAI product defaults.
 

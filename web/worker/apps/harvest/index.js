@@ -8,14 +8,14 @@ import { currentMonthIso, monthBounds } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 
 /**
- * @typedef {{ date: string, hours: number, description: string, externalProject: string }} TimeRow
+ * @typedef {{ id: string, date: string, hours: number, description: string, externalProject: string }} TimeRow
  * @typedef {{ id: number, name: string }} SimpleOption
  */
 
 const SAMPLE_ROWS = [
-  { date: '2026-10-12', hours: 7.5, externalProject: 'Byggprosjekt Nord', description: 'Montering og kontroll' },
-  { date: '2026-10-13', hours: 8.0, externalProject: 'Byggprosjekt Nord', description: 'Ferdigstillelse etasje 2' },
-  { date: '2026-10-14', hours: 4.25, externalProject: 'Serviceavtale', description: 'Feilsøking anlegg' },
+  { id: '636708723', date: '2026-10-12', hours: 7.5, externalProject: 'Byggprosjekt Nord', description: 'Montering og kontroll' },
+  { id: '636708724', date: '2026-10-13', hours: 8.0, externalProject: 'Byggprosjekt Nord', description: 'Ferdigstillelse etasje 2' },
+  { id: '636708725', date: '2026-10-14', hours: 4.25, externalProject: 'Serviceavtale', description: 'Feilsøking anlegg' },
 ];
 
 /**
@@ -23,7 +23,8 @@ const SAMPLE_ROWS = [
  * Docs: https://help.getharvest.com/api-v2/authentication-api/authentication/authentication/ (Bearer token,
  * Harvest-Account-Id and User-Agent headers) and
  * https://help.getharvest.com/api-v2/timesheets-api/timesheets/time-entries/ (GET /v2/time_entries with
- * from, to, user_id, is_running, page and per_page up to 2000; next_page in the response).
+ * from, to, user_id, is_running and per_page up to 2000; links.next followed as
+ * https://help.getharvest.com/api-v2/introduction/overview/pagination/ asks).
  * @param {Record<string, string>} creds `apiToken`, `accountId`, optional `userId`, `start` and `end` (exclusive), both YYYY-MM-DD
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<TimeRow[]>}
@@ -36,21 +37,25 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (userId && !/^[0-9]+$/.test(userId)) throw new HttpError(400, 'The Harvest user ID must be a number.');
   const lastDay = new Date(Date.parse(`${creds.end}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
   const headers = { authorization: `Bearer ${token}`, 'harvest-account-id': accountId, 'user-agent': 'ReAI Apps (apps.reai.no)', accept: 'application/json' };
+  const first = new URL('https://api.harvestapp.com/v2/time_entries');
+  first.searchParams.set('from', String(creds.start));
+  first.searchParams.set('to', lastDay);
+  first.searchParams.set('is_running', 'false');
+  if (userId) first.searchParams.set('user_id', userId);
+  first.searchParams.set('per_page', '2000');
   /** @type {any[]} */ const entries = [];
-  for (let page = 1; page <= 10; page++) {
-    const url = new URL('https://api.harvestapp.com/v2/time_entries');
-    url.searchParams.set('from', String(creds.start));
-    url.searchParams.set('to', lastDay);
-    url.searchParams.set('is_running', 'false');
-    if (userId) url.searchParams.set('user_id', userId);
-    url.searchParams.set('page', String(page));
-    url.searchParams.set('per_page', '2000');
-    const body = await fetchJson(url.toString(), { headers }, 'Harvest', fetchImpl);
+  /** @type {string | null} */ let next = first.toString();
+  // Harvest asks clients to follow links.next, which also covers cursor based pagination.
+  for (let page = 0; next; page++) {
+    if (page === 10) throw new HttpError(400, 'Harvest returned more than 20,000 time entries. Choose a Harvest user or a shorter period.');
+    const body = await fetchJson(next, { headers }, 'Harvest', fetchImpl);
     entries.push(...(Array.isArray(body?.time_entries) ? body.time_entries : []));
-    if (!body?.next_page) break;
+    const link = typeof body?.links?.next === 'string' ? new URL(body.links.next) : null;
+    next = link && link.hostname === 'api.harvestapp.com' ? link.toString() : null;
   }
   return entries
     .map((e) => ({
+      id: String(e.id ?? ''),
       date: String(e.spent_date ?? '').slice(0, 10),
       hours: Number(Number(e.hours ?? 0).toFixed(2)),
       description: String(e.notes ?? '').trim() || String(e.task?.name ?? '').trim() || 'Harvest entry',
@@ -82,7 +87,7 @@ function renderTimeTable(state) {
               : html`<form hx-post="/app/harvest/import" hx-target="#tm-row-${idx}" hx-swap="outerHTML">
                   <input type="hidden" name="employeeId" value="${state.employeeId}"><input type="hidden" name="projectId" value="${state.projectId}">
                   <input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}">
-                  <input type="hidden" name="comment" value="[Harvest] ${r.description}">
+                  <input type="hidden" name="comment" value="[Harvest ${r.id}] ${r.description}">
                   <button type="submit" class="button primary">Post to ReAI</button>
                 </form>`}</td>
           </tr>`,
@@ -174,6 +179,12 @@ export async function handle(request, env) {
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? '').trim().slice(0, 1000);
       if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
+      const marker = comment.match(/^\[Harvest [0-9]+\]/)?.[0] ?? '';
+      if (marker) {
+        const logged = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+        const dup = Array.isArray(logged) ? logged.find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker)) : undefined;
+        if (dup) return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'warn' })}</td></tr>`);
+      }
       const created = /** @type {{ id: number }} */ (
         await reaiRequest(env, '/api/timesheets', {
           token: session.accessToken, tenantId: session.tenantId, method: 'POST',

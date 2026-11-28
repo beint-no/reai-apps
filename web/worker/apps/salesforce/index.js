@@ -28,10 +28,11 @@ const API_FIELDS = [
   { name: 'clientSecret', label: 'Consumer secret', type: 'password' },
   { name: 'from', label: 'Close date from', type: 'date', defaultValue: '$MONTH_START' },
   { name: 'to', label: 'To', type: 'date', defaultValue: '$TODAY' },
-  { name: 'currency', label: 'Currency', defaultValue: 'NOK' },
+  { name: 'currency', label: 'Currency (single currency orgs)', defaultValue: 'NOK' },
   { name: 'orgField', label: 'Account field with org number (optional)', required: false, placeholder: 'Organisasjonsnummer__c' },
 ];
-const API_VERSION = 'v66.0';
+const API_VERSION = 'v68.0';
+const MAX_DEALS = 200;
 
 /** @type {ShopOrder[]} */
 const SAMPLE = [
@@ -50,7 +51,7 @@ const SAMPLE = [
  * @returns {OrderLine}
  */
 function line(name, quantity, total, pct) {
-  const q = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+  const q = quantity > 0 && Math.round(quantity * 100) === quantity * 100 ? quantity : 1;
   const unit = Math.round((total * 100) / q) / 100;
   if (Math.round(unit * q * 100) === Math.round(total * 100)) return { name, quantity: q, unitPrice: unit, ratePct: pct };
   return { name: `${quantity} x ${name}`, quantity: 1, unitPrice: Math.round(total * 100) / 100, ratePct: pct };
@@ -86,24 +87,46 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   }, BRAND, fetchImpl);
   if (typeof tok?.access_token !== 'string') throw new HttpError(400, 'Salesforce did not return an access token.');
   const instance = assertPublicHttpsUrl(typeof tok.instance_url === 'string' ? tok.instance_url : domain.origin);
+  if (!/\.salesforce\.com$/i.test(instance.hostname)) throw new HttpError(400, 'Salesforce returned an unexpected instance URL.');
   const headers = { authorization: `Bearer ${tok.access_token}`, accept: 'application/json' };
-  const soql = `SELECT Id, Name, Amount, CloseDate, Account.Name${orgField ? `, Account.${orgField}` : ''}, (SELECT Name, Quantity, TotalPrice FROM OpportunityLineItems) FROM Opportunity WHERE IsWon = true AND CloseDate >= ${from} AND CloseDate <= ${to} ORDER BY CloseDate LIMIT 500`;
+  /** @param {boolean} multiCurrency */
+  const soql = (multiCurrency) => `SELECT Id, Name, Amount, CloseDate${multiCurrency ? ', CurrencyIsoCode' : ''}, Account.Name${orgField ? `, Account.${orgField}` : ''}, (SELECT Product2.Name, Description, Quantity, TotalPrice FROM OpportunityLineItems) FROM Opportunity WHERE IsWon = true AND CloseDate >= ${from} AND CloseDate <= ${to} ORDER BY CloseDate LIMIT ${MAX_DEALS}`;
+  /** @param {boolean} multiCurrency */
+  const queryUrl = (multiCurrency) => `${instance.origin}/services/data/${API_VERSION}/query?${new URLSearchParams({ q: soql(multiCurrency) })}`;
+  // CurrencyIsoCode exists only in multi currency orgs; a single currency org answers INVALID_FIELD and is queried again without it.
+  let first = await fetchImpl(queryUrl(true), { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+  if (first.status === 400) {
+    const err = /** @type {any} */ (await first.json().catch(() => null));
+    const code = Array.isArray(err) ? String(err[0]?.errorCode ?? '') : '';
+    if (code !== 'INVALID_FIELD') throw new HttpError(400, `Salesforce rejected the query${code ? ` (${code})` : ''}${orgField ? `. Check that ${orgField} exists on Account and is visible to the run as user` : ''}.`);
+    first = await fetchImpl(queryUrl(false), { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+    if (first.status === 400 && orgField) throw new HttpError(400, `Salesforce rejected the query. Check that ${orgField} exists on Account and is visible to the run as user.`);
+  }
+  if (!first.ok) throw new HttpError(400, `${BRAND} API ${first.status === 401 || first.status === 403 ? 'rejected the API key/token' : `returned HTTP ${first.status}`}. Verify your credentials and permissions.`);
   /** @type {ShopOrder[]} */
   const orders = [];
-  let url = `${instance.origin}/services/data/${API_VERSION}/query?${new URLSearchParams({ q: soql })}`;
-  for (let page = 0; page < 5; page++) {
-    const data = await fetchJson(url, { headers }, BRAND, fetchImpl);
+  let seen = 0;
+  /** @type {any} */
+  let data = await first.json();
+  for (let page = 0; page < 10; page++) {
+    if (page > 0) {
+      if (data?.done !== false || typeof data?.nextRecordsUrl !== 'string' || !data.nextRecordsUrl.startsWith('/services/data/')) break;
+      data = await fetchJson(`${instance.origin}${data.nextRecordsUrl}`, { headers }, BRAND, fetchImpl);
+    }
     for (const r of /** @type {any[]} */ (Array.isArray(data?.records) ? data.records : [])) {
+      seen += 1;
+      if (r.OpportunityLineItems && r.OpportunityLineItems.done === false) throw new HttpError(400, `Opportunity "${r.Name}" has too many products to read in one query. Stage it in Salesforce or split it.`);
       /** @type {any[]} */ const items = Array.isArray(r.OpportunityLineItems?.records) ? r.OpportunityLineItems.records : [];
       /** @type {OrderLine[]} */
       const lines = items.length > 0
-        ? items.map((li) => line(String(li.Name ?? 'Product').slice(0, 200), num(li.Quantity), num(li.TotalPrice), null))
+        ? items.map((li) => line(String(li.Product2?.Name ?? li.Description ?? 'Product').slice(0, 200), num(li.Quantity), num(li.TotalPrice), null))
         : [line(String(r.Name ?? 'Opportunity').slice(0, 200), 1, num(r.Amount), null)];
+      const recordCurrency = String(r.CurrencyIsoCode ?? '').toUpperCase();
       orders.push({
         id: String(r.Id ?? ''),
         number: String(r.Name ?? r.Id ?? '').slice(0, 80),
         date: isoDate(r.CloseDate),
-        currency,
+        currency: /^[A-Z]{3}$/.test(recordCurrency) ? recordCurrency : currency,
         customerName: String(r.Account?.Name ?? '').trim(),
         customerEmail: '',
         orgnr: orgField ? extractNorwegianOrg(String(r.Account?.[orgField] ?? '')) : '',
@@ -111,9 +134,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         lines: lines.filter((l) => l.unitPrice !== 0),
       });
     }
-    if (data?.done !== false || typeof data?.nextRecordsUrl !== 'string' || !data.nextRecordsUrl.startsWith('/services/data/')) break;
-    url = `${instance.origin}${data.nextRecordsUrl}`;
   }
+  if (seen >= MAX_DEALS) throw new HttpError(400, `Salesforce has ${MAX_DEALS} or more won deals in this range. Narrow the close date range.`);
   return orders.filter((o) => o.id && o.customerName && o.lines.length > 0);
 }
 
@@ -170,7 +192,7 @@ function vatCodeFor(codes, pct) {
  */
 async function customerFor(env, auth, o) {
   /** @param {Record<string, string>} query */
-  const find = async (query) => /** @type {{ items: Array<{ id: number, archived: boolean }> }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '5' } })).items.find((c) => !c.archived)?.id;
+  const find = async (query) => /** @type {{ items: Array<{ id: number, name: string, archived: boolean }> }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '50' } })).items.find((c) => !c.archived && (query.name === undefined || c.name.trim().toLowerCase() === query.name.trim().toLowerCase()))?.id;
   const orgnr = extractNorwegianOrg(String(o.orgnr ?? ''));
   const hit = (orgnr ? await find({ organizationNumber: orgnr }) : undefined) ?? (await find({ name: o.customerName }));
   if (hit) return hit;

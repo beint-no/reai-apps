@@ -14,7 +14,7 @@ highlights:
 
 ## Dette overføres til ReAI
 
-Integrasjonen leser alle produkter i Rackbeat som ikke er sperret, og sammenligner varenummeret med SKU på produktene i ReAI. For hvert produkt som mangler, kan du opprette en lagervare i ReAI med navnet fra Rackbeat som tittel, varenummeret som SKU og salgspris, kostpris og strekkode fra Rackbeat. Produkter som allerede finnes i ReAI, endres ikke.
+Integrasjonen leser produktene i Rackbeat som er salgbare og ikke sperret, og sammenligner varenummeret med SKU på produktene i ReAI. For hvert produkt som mangler, kan du opprette en lagervare i ReAI med navnet fra Rackbeat som tittel, varenummeret som SKU og salgspris, kostpris og strekkode fra Rackbeat. Produkter som allerede finnes i ReAI, endres ikke.
 
 Lagerbeholdningen i Rackbeat vises bare som informasjon. Det opprettes ingen lagerbevegelser, bilag eller ordrer, og salgskonto og mva-kode følger standardoppsettet for produkter i ReAI.
 

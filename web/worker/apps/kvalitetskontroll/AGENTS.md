@@ -2,39 +2,58 @@
 
 Route `/app/kvalitetskontroll/`. Docs pages: `web/content/{nb,en}/web-apps/kvalitetskontroll/index.md`.
 
+Fetches approved hour registrations from Kvalitetskontroll (KS) and logs chosen rows as ReAI
+timesheet rows. Nothing is booked to the ledger.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- Reference (Scribe): https://api.kvalitetskontroll.no/docs/
+- OpenAPI 3.0.3 (`info.version` 1.0.0): https://api.kvalitetskontroll.no/docs/openapi.yaml
+- Postman: https://api.kvalitetskontroll.no/docs/collection.json
+- No changelog is published. The only versioned resource is `/v2/employees`; the plain `/employees`
+  list is still documented and is used because it returns `name` directly.
 
-- https://api.kvalitetskontroll.no/docs/
-- https://api.kvalitetskontroll.no/docs/openapi.yaml
-- https://api.kvalitetskontroll.no/docs/collection.json
-- https://www.tripletex.no/integrasjoner/kvalitetskontroll/
+Auth: the customer logs in at https://api.kvalitetskontroll.no/admin with their KS user and adds a
+Personal Access Token. Sent as `Authorization: Bearer <token>`; the token scopes the company. An
+invalid token gets a `302` to the JWKS page, mapped to a clear error.
 
-- Mode: api
-- Auth: Customer creates a Personal Access Token at https://api.kvalitetskontroll.no/admin (log in with the Kvalitetskontroll user); sent as Authorization: Bearer <token>. Token scopes the company; no tenant id.
-- Hosts in code: `api.kvalitetskontroll.no`
-- Vendor status: Legal entity Kvalitetskontroll AS (991557415) has slettedato 2024-12-16, apparently folded into the SmartCraft group (staff on kvalitetskontroll.no/om-oss use @smartcraft.com addresses; SmartCraft Norway AS 927150182 is active). kvalitetskontroll.no is live and still sells the quality system for construction.
+Vendor status: product and site live under the SmartCraft group (Kvalitetskontroll AS 991557415 was
+deleted 2024-12-16; SmartCraft Norway AS 927150182 active).
+
+## Endpoints
+
+- `GET /timetracking/registrations?from_date=<from>T00:00:00&to_date=<to>T23:59:59&is_approved=1&offset&limit=100`
+- `GET /employees?offset&limit=100` (`id`, `name`)
+- `GET /projects?offset&limit=100` (`id`, `project_no`, `name`), only when a registration has a project
+- `GET /timetracking/hourtypes?offset&limit=100` (`id`, `title`)
+
+Scribe documents the filters as a JSON body on GET; its own curl example sends them with `--get`, so
+query parameters are used. Registrations: `registration_date` is UTC midnight of the Oslo day and is
+converted to Europe/Oslo; rows outside the period, deleted or unapproved rows are dropped. `duration`
+is minutes after break, converted to hours with two decimals.
+
+## Paging, limits, budget
+
+The maximum `limit` is undocumented, so the offset advances by rows received and paging stops on an
+empty page or a page with no new ids (at most 50 pages). Docs show `x-ratelimit-limit: 600` per token;
+`429` gives a retry message. Fetch: registrations pages + 1, employees 2, projects 2, hour types 2
+(about 9 for a month with 100 to 200 rows), plus ReAI employees 1 and projects 1. Log hours: 2.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- `GET /api/employees`, `GET /api/projects?archived=false&hierarchy=all&page&pageSize=200` (mapping).
+- `GET /api/timesheets?employeeId&startDate&endDate` (duplicate check on the `[Kvalitetskontroll KS-<id>]`
+  comment prefix), then `POST /api/timesheets` (`employeeId`, `date`, `hours`, `projectId`, `comment`).
 
-- `/api/customers`
-- `/api/employees`
-- `/api/orders`
-- `/api/projects`
-- `/api/timesheets`
+## Mapping
+
+Employee by exact name, else the chosen fallback. Project by exact name ("project_no name" or name),
+else the chosen fallback project or none. Comment: `[Kvalitetskontroll KS-<id>] <hour type>: <comment>`.
 
 ## Caveats
 
-Hours only (timesheets); no order staging because KS documents no invoice basis list endpoint and no price on registrations. Uses GET /timetracking/registrations with from_date, to_date, is_approved=1, offset, limit sent as query parameters: Scribe documents these filters as a GET JSON body, so query string use is inferred (Laravel convention), untested live. The list response shape is undocumented (only the single registration and POST 201 example are); code accepts a bare array or {data: []}. duration is minutes after break (example: 08:00 to 12:37 minus 16 = 261). registration_date is UTC midnight of the Oslo day and is converted to Europe/Oslo. Employees, projects and hour types are fetched for names (bare arrays, offset/limit). Which KS role may create a token is undocumented. Customer name is not resolved (project contact needs per contact lookups), so the fallback customer is irrelevant here. KS is now part of SmartCraft (same group as ELinn). Timesheet rows have no duplicate guard.
-
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+- Hours only: KS documents no price on registrations, so no orders are staged.
+- The list response envelope is undocumented; a bare array or `{ data: [] }` is accepted.
+- Which KS role may create a token is undocumented.
 
 Last verified: 2026-11-28.

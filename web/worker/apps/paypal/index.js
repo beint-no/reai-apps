@@ -40,6 +40,19 @@ async function providerJson(url, init, fetchImpl) {
   return { status: res.status, ok: res.ok, data };
 }
 
+const OSLO_OFFSET = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Oslo', timeZoneName: 'longOffset' });
+
+/**
+ * Midnight in Norway for an ISO day as RFC 3339 with offset, e.g. 2026-10-01T00:00:00+02:00.
+ * @param {string} day
+ */
+export function osloStart(day) {
+  const noon = new Date(`${day}T12:00:00Z`);
+  const name = OSLO_OFFSET.formatToParts(noon).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+01:00';
+  const offset = name === 'GMT' ? '+00:00' : name.replace('GMT', '');
+  return `${day}T00:00:00${offset}`;
+}
+
 /** Bank withdrawal event codes (T04xx) except T0402, which moves money to Hyperwallet instead of a bank. */
 const WITHDRAWAL_RE = /^T04[0-9]{2}$/;
 
@@ -54,9 +67,10 @@ const WITHDRAWAL_RE = /^T04[0-9]{2}$/;
  * @param {string} start First day of the window (inclusive).
  * @param {string} end Day after the window (exclusive).
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
+ * @param {string} [currency] Optional ISO 4217 filter (transaction_currency).
  * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
  */
-export async function fetchApi(fields, start, end, fetchImpl = fetch) {
+export async function fetchApi(fields, start, end, fetchImpl = fetch, currency = '') {
   const clientId = (fields.clientId ?? '').trim();
   const clientSecret = (fields.clientSecret ?? '').trim();
   if (!clientId || !clientSecret) throw new HttpError(400, 'Enter the client ID and secret of your live PayPal REST app.');
@@ -65,23 +79,30 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
     headers: { authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`, 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
     body: 'grant_type=client_credentials',
   }, fetchImpl);
-  if (!tokRes.ok || typeof tokRes.data?.access_token !== 'string') throw new HttpError(400, 'PayPal rejected these REST app credentials.');
+  if (tokRes.status === 429) throw new HttpError(429, 'PayPal rate limit reached. Wait a minute and try again.');
+  if (!tokRes.ok || typeof tokRes.data?.access_token !== 'string') throw new HttpError(400, 'PayPal rejected these REST app credentials. Use the client ID and secret of a live app.');
   const headers = { authorization: `Bearer ${tokRes.data.access_token}`, accept: 'application/json' };
-  const endInclusive = new Date(Date.parse(`${end}T00:00:00Z`) - 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+  // The window is Norwegian calendar days; PayPal accepts RFC 3339 with an offset and allows at most 31 days.
+  const startDate = osloStart(start);
+  const endDate = osloStart(end);
   /** @type {import('../../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
   for (let page = 1; page <= 20; page++) {
     const url = new URL(`${API}/v1/reporting/transactions`);
-    url.searchParams.set('start_date', `${start}T00:00:00Z`);
-    url.searchParams.set('end_date', endInclusive);
+    url.searchParams.set('start_date', startDate);
+    url.searchParams.set('end_date', endDate);
+    url.searchParams.set('transaction_status', 'S');
+    if (currency) url.searchParams.set('transaction_currency', currency);
     url.searchParams.set('fields', 'transaction_info');
     url.searchParams.set('page_size', '500');
     url.searchParams.set('page', String(page));
     const r = await providerJson(url.toString(), { headers }, fetchImpl);
     if (!r.ok) {
-      throw new HttpError(400, r.status === 403
-        ? 'Turn on Transaction search for this live REST app in the PayPal Developer Dashboard.'
-        : `PayPal Transaction Search API returned HTTP ${r.status}.`);
+      throw new HttpError(r.status === 429 ? 429 : 400, r.status === 403
+        ? 'Turn on Transaction search for this live REST app in the PayPal Developer Dashboard. Access can take a few hours.'
+        : r.status === 429
+          ? 'PayPal rate limit reached. Wait a minute and try again.'
+          : `PayPal Transaction Search API returned HTTP ${r.status}.`);
     }
     /** @type {any[]} */ const details = Array.isArray(r.data?.transaction_details) ? r.data.transaction_details : [];
     for (const item of details) {
@@ -90,9 +111,11 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
       const amount = Number(info.transaction_amount?.value ?? '0');
       if (!WITHDRAWAL_RE.test(code) || code === 'T0402' || !Number.isFinite(amount) || amount >= 0) continue;
       if (info.transaction_status && info.transaction_status !== 'S') continue;
+      if (currency && String(info.transaction_amount?.currency_code ?? '').toUpperCase() !== currency) continue;
       const fee = Number(info.fee_amount?.value ?? '0');
       payouts.push({
         id: String(info.transaction_id ?? `${info.transaction_initiation_date}-${amount}`),
+        // Dates are in the PayPal account's time zone, so the date part is the account's calendar day.
         date: String(info.transaction_initiation_date ?? info.transaction_updated_date ?? '').slice(0, 10),
         amountMinor: Math.round(Math.abs(amount) * 100),
         currency: String(info.transaction_amount?.currency_code ?? 'NOK').toUpperCase(),
@@ -100,9 +123,9 @@ export async function fetchApi(fields, start, end, fetchImpl = fetch) {
         detail: `PayPal ${code} withdrawal${Number.isFinite(fee) && fee !== 0 ? ` · fee ${Math.abs(fee).toFixed(2)}` : ''}`,
       });
     }
-    if (page >= Number(r.data?.total_pages ?? 1)) break;
+    if (page >= Number(r.data?.total_pages ?? 1)) return payouts;
   }
-  return payouts;
+  throw new HttpError(400, 'PayPal returned too many pages for one month. Contact ReAI support.');
 }
 
 /**
@@ -153,7 +176,7 @@ function renderReviewResults(state) {
         : reaiBadge({ text: `${matched}/${rows.length} matched`, tone: matched === rows.length && rows.length > 0 ? 'success' : 'warn' }),
       body: html`
         <div class="metric-grid">
-          ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${excluded} other-currency excluded` })}
+          ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: excluded > 0 ? `${excluded} in other currencies left out` : `${currency} withdrawals only` })}
           ${reaiMetric({ label: 'Net payout total', value: `${formatMinor(totalNet)} ${currency}`, detail: `${bankCount} pending ReAI bank rows` })}
           ${CFG.hasFees
             ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compare against the PayPal activity report' })
@@ -266,7 +289,7 @@ export async function handle(request, env) {
         fields[f.key] = val;
       }
       const [fetched, bankTx] = await Promise.all([
-        fetchApi(fields, bounds.start, bounds.end),
+        fetchApi(fields, bounds.start, bounds.end, fetch, company.currencyCode),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));

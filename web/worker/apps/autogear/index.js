@@ -7,7 +7,7 @@ import { reaiRequest } from '../../lib/reai.js';
 import { formatMinor } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 
-/** @typedef {{ id: string, date: string, from: string, to: string, purpose: string, km: number, toll: number, driver: string, driverEmail: string, vehicle: string }} TripRow */
+/** @typedef {{ id: string, date: string, from: string, to: string, purpose: string, km: number, toll: number, tollNote?: string, driver: string, driverEmail: string, vehicle: string }} TripRow */
 /** @typedef {{ id: number, name: string, email?: string | null }} EmployeeRef */
 /** @typedef {{ id: number, name: string, registrationNumber?: string | null, archived?: boolean }} VehicleRef */
 
@@ -16,6 +16,7 @@ const BASE = '/app/autogear';
 const API = 'https://api.autogear.com';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 30;
+const DUP_PAGES = 5;
 const TITLE = 'Autogear Driving Log';
 const LEAD = 'Fetch confirmed business trips and road tolls from the Autogear API and record them in ReAI Driving Log (/api/driving-log/trips), one trip at a time after review.';
 
@@ -28,6 +29,19 @@ const SAMPLE_TRIPS = [
   { id: 'sample-2', date: '2026-10-09', from: 'Oslo', to: 'Ski Næringspark', purpose: 'Site inspection', km: 31.4, toll: 0, driver: 'Kari Nordmann', driverEmail: '', vehicle: 'EK 12345' },
   { id: 'sample-3', date: '2026-10-14', from: 'Oslo', to: 'Asker', purpose: 'Service visit', km: 24.7, toll: 38, driver: 'Ola Nordmann', driverEmail: '', vehicle: 'EL 67890' },
 ];
+
+/**
+ * Bookkeeping day of an Autogear timestamp: Europe/Oslo when it carries a zone, else its own date.
+ * @param {unknown} v
+ * @param {string} fallback
+ */
+function tripDay(v, fallback) {
+  const s = typeof v === 'string' ? v.trim() : '';
+  if (/(?:Z|[+-][0-9]{2}:?[0-9]{2})$/i.test(s) && !Number.isNaN(Date.parse(s))) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(s));
+  }
+  return isoDate(s, fallback);
+}
 
 /** @param {unknown} v */
 function str(v) {
@@ -48,14 +62,17 @@ export function mapTrip(t, fallbackDate) {
   const km = Number(num(t.distanceKm ?? t.distance).toFixed(1));
   if (km < 0.1) return null;
   const driverName = `${str(t.driver?.firstName)} ${str(t.driver?.lastName)}`.trim();
+  const currency = str(t.currencyName).toUpperCase();
+  const tollInNok = !currency || currency === 'NOK' || currency === 'KR';
   return {
     id: str(t.id),
-    date: isoDate(t.startDateTime ?? t.startDate ?? t.tripDate, fallbackDate),
+    date: tripDay(t.startDateTime ?? t.startDate ?? t.tripDate, fallbackDate),
     from: str(t.startAddress?.alias) || str(t.startAddress?.addressName) || 'Start',
     to: str(t.endAddress?.alias) || str(t.endAddress?.addressName) || 'Destination',
     purpose: str(t.description?.description) || (str(t.project?.name) ? `Project ${str(t.project?.name)}` : 'Business trip (Autogear)'),
     km,
-    toll: Number(Math.max(0, num(t.totalTollStationCost)).toFixed(2)),
+    toll: tollInNok ? Number(Math.max(0, num(t.totalTollStationCost)).toFixed(2)) : 0,
+    tollNote: tollInNok ? '' : `Tolls in ${currency} not included`,
     driver: driverName || str(t.driver?.email),
     driverEmail: str(t.driver?.email).toLowerCase(),
     vehicle: str(t.vehicle?.licensePlateNumber) || str(t.vehicle?.name),
@@ -103,7 +120,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   for (let page = 1; page <= MAX_PAGES; page++) {
     const url = new URL(`${API}/Trip`);
     url.searchParams.set('fromDate', from);
-    url.searchParams.set('toDate', to);
+    url.searchParams.set('toDate', `${to}T23:59:59`);
     url.searchParams.set('PageSize', String(PAGE_SIZE));
     url.searchParams.set('PageNumber', String(page));
     url.searchParams.set('sortOrder', 'false');
@@ -149,7 +166,7 @@ function renderTrips(state) {
           return html`<tr id="ag-t-${idx}">
             <td class="mono">${t.date}</td><td>${t.from} → ${t.to}</td><td>${t.purpose}</td>
             <td>${t.driver || '—'}<br><span class="muted-note">${t.vehicle || '—'}</span></td>
-            <td class="num">${t.km.toFixed(1)}</td><td class="num">${t.toll.toFixed(2)}</td>
+            <td class="num">${t.km.toFixed(1)}</td><td class="num">${t.toll.toFixed(2)}${t.tollNote ? html`<br><span class="muted-note">${t.tollNote}</span>` : ''}</td>
             <td>${isSample ? html`<span class="muted-note">Demo only</span>` : html`<form hx-post="${BASE}/book-trip" hx-target="#ag-t-${idx}" hx-swap="outerHTML">
               <input type="hidden" name="employeeId" value="${employeeId}"><input type="hidden" name="vehicleId" value="${vehicleId}">
               <input type="hidden" name="date" value="${t.date}"><input type="hidden" name="from" value="${t.from}"><input type="hidden" name="to" value="${t.to}">
@@ -183,6 +200,28 @@ async function loadRefs(env, session) {
     employees: Array.isArray(e) ? /** @type {EmployeeRef[]} */ (e) : [],
     vehicles: Array.isArray(v) ? /** @type {VehicleRef[]} */ (v).filter((x) => !x.archived) : [],
   };
+}
+
+/**
+ * Finds an existing ReAI driving log trip with the same date, route and distance. The list has no
+ * date filter but is sorted by trip date descending, so paging stops at the first older trip.
+ * @param {import('../../lib/types.d.ts').Env} env
+ * @param {import('../../lib/types.d.ts').SessionData} session
+ * @param {{ tripDate: string, fromLocation: string, toLocation: string, kilometers: number }} trip
+ * @returns {Promise<{ id: number, webUrl?: string } | null>}
+ */
+async function findExistingTrip(env, session, trip) {
+  for (let page = 1; page <= DUP_PAGES; page++) {
+    const res = /** @type {{ items: Array<{ id: number, tripDate: string, fromLocation: string, toLocation: string, kilometers: number, webUrl?: string }>, hasNext: boolean }} */ (
+      await reaiRequest(env, '/api/driving-log/trips', { token: session.accessToken, tenantId: session.tenantId, query: { page: String(page), pageSize: '200' } })
+    );
+    const items = Array.isArray(res.items) ? res.items : [];
+    const hit = items.find((x) => String(x.tripDate).slice(0, 10) === trip.tripDate && Math.round(Number(x.kilometers) * 10) === Math.round(trip.kilometers * 10) && x.fromLocation === trip.fromLocation && x.toLocation === trip.toLocation);
+    if (hit) return hit;
+    const oldest = items.length ? String(items[items.length - 1]?.tripDate ?? '').slice(0, 10) : '';
+    if (!res.hasNext || (oldest && oldest < trip.tripDate)) return null;
+  }
+  return null;
 }
 
 /**
@@ -255,6 +294,8 @@ export async function handle(request, env) {
       const kilometers = Number(form.get('km') ?? '0');
       const roadTollAmount = Number(form.get('toll') ?? '0');
       if (!(kilometers > 0)) throw new HttpError(400, 'Trip distance must be positive.');
+      const dup = await findExistingTrip(env, session, { tripDate, fromLocation, toLocation, kilometers });
+      if (dup) return htmlResponse(html`<tr><td class="mono">${tripDate}</td><td>${fromLocation} → ${toLocation}</td><td>${purpose}</td><td>—</td><td class="num">${kilometers.toFixed(1)}</td><td class="num">${roadTollAmount.toFixed(2)}</td><td>${dup.webUrl ? html`<a href="${dup.webUrl}" target="_blank" rel="noopener">Already recorded #${dup.id} ↗</a>` : reaiBadge({ text: `Already recorded #${dup.id}`, tone: 'warn' })}</td></tr>`);
       const created = /** @type {{ id?: number, webUrl?: string, bookedAmount?: number }} */ (await reaiRequest(env, '/api/driving-log/trips', {
         token: session.accessToken,
         tenantId: session.tenantId,

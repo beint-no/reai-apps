@@ -2,30 +2,42 @@
 
 Route `/app/rackbeat/`. Docs pages: `web/content/{nb,en}/web-apps/rackbeat/index.md`.
 
+Compares sellable Rackbeat products with ReAI Products by SKU and creates missing ones on click (title, SKU, sales price, cost price, barcode). Stock quantity is shown only.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- Index: https://developer.rackbeat.com/llms.txt
+- Auth: https://developer.rackbeat.com/reference/authentication-1
+- List products: https://developer.rackbeat.com/reference/getproducts
+- Pagination: https://developer.rackbeat.com/reference/pagination
+- Errors and rate limits: https://developer.rackbeat.com/reference/errors
+- Field selection: https://developer.rackbeat.com/reference/customizable-requests
+- Changelog: none published.
 
-- https://developer.rackbeat.com/reference/authentication-1
-- https://developer.rackbeat.com/reference/getproducts
-- https://developer.rackbeat.com/reference/pagination
-- https://developer.rackbeat.com/reference/customizable-requests
-- https://developer.rackbeat.com/llms.txt
+API version: the only REST API (`https://app.rackbeat.com/api`, spec version 1.0.0, unversioned paths).
 
-- Mode: api
-- Auth: Customer creates a personal API key in Rackbeat under Company settings > API (shown once, optional scopes). Authorization: Bearer <key>.
-- Hosts in code: `app.rackbeat.com`, `developer.rackbeat.com`
-- Vendor status: Danish company, no Norwegian register entry. rackbeat.com live and sells inventory management; its footer CVR 29403473 resolves to Visma e-conomic A/S (active, not bankrupt, per cvrapi.dk).
+Auth: personal API key from Rackbeat Company settings → API, header `Authorization: Bearer <key>`.
+
+Endpoint: `GET /products?fields=number,name,barcode,sales_price,cost_price,stock_quantity,is_barred&is_barred=false&is_sellable=true&page=N&limit=100`. Response `products[]` with `total, pages, limit, page` (HTTP 206).
+
+Paging and budget: page/limit, loop follows `pages`, capped at 30 pages of 100 (largest limit not documented; default 20). Scan action: 1 Rackbeat request per 100 products (at most 30) plus ReAI product pages of 200; the UI warns when Rackbeat reports more products than were scanned. Create click: 2 ReAI requests (SKU search, create). Rate limit 480 requests per minute per account (`429`).
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/products`
+- `GET /api/products` (all, and `?query=<sku>` re-check before create)
+- `POST /api/products` (`title, stockItem: true, variants: [{ sku, sellingPrice, costPrice, barcode? }]`)
+
+## Mapping
+
+Rackbeat `number` → SKU (case-insensitive match against all variant SKUs), `name` → title, `sales_price` → `sellingPrice`, `cost_price` → `costPrice` (rounded to two decimals), `barcode` → `barcode`. ReAI inventory is not set, to avoid stock movements.
 
 ## Caveats
 
-GET https://app.rackbeat.com/api/products?fields=number,name,barcode,sales_price,cost_price,stock_quantity,is_barred&is_barred=false&page=N&limit=100 (pagination returns HTTP 206 with products/total/pages/limit/page; max limit not documented, loop follows `pages`, cap 50 pages). Modeled on ongoing-wms/shopware product sync: creates missing ReAI products by SKU on click, with a re-check by SKU before create. Stock quantity shown only; ReAI inventory is deliberately not set to avoid creating stock movements.
+- Rackbeat prices are in the Rackbeat company's base currency, which the API does not expose (`/self` has no currency); the app assumes it matches the ReAI company currency.
+- Rackbeat sales prices are excluding VAT; the ReAI contract does not say whether `sellingPrice` includes VAT.
+- The spec types prices as integer in examples; real values are decimals and are parsed as numbers.
 
 ## Rules
 

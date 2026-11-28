@@ -52,18 +52,13 @@ async function providerJson(url, init, errPrefix) {
 }
 
 /**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
- */
-
-/**
  * Fetches SumUp payouts for a merchant code and date range.
+ * Docs: https://developer.sumup.com/api/payouts/list (GET /v1.0/merchants/{merchant_code}/payouts, start_date and end_date
+ * inclusive, limit up to 9999, one request without paging).
  * @param {Record<string, string>} fields
  * @param {string} start
  * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
+ * @returns {Promise<{ payouts: import('../../lib/reconcile.js').PayoutItem[], deductions: number }>}
  */
 async function fetchSumUpPayouts(fields, start, end) {
   const merchantCode = (fields.merchantCode ?? '').trim();
@@ -76,11 +71,17 @@ async function fetchSumUpPayouts(fields, start, end) {
   url.searchParams.set('start_date', start);
   url.searchParams.set('end_date', lastDay);
   url.searchParams.set('format', 'json');
+  // The default limit is not documented; ask for the documented maximum so a busy month is not cut short.
+  url.searchParams.set('limit', '9999');
+  url.searchParams.set('order', 'asc');
   const r = await providerJson(
     url.toString(),
     { headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' } },
     'SumUp',
   );
+  if (r.status === 429) {
+    throw new HttpError(429, 'SumUp rate limit reached. Wait a minute and try again.');
+  }
   if (!r.ok) {
     throw new HttpError(
       400,
@@ -90,9 +91,17 @@ async function fetchSumUpPayouts(fields, start, end) {
     );
   }
   const items = Array.isArray(r.data) ? r.data : [];
+  if (items.length >= 9999) {
+    throw new HttpError(400, 'SumUp returned the maximum number of rows for this month. Contact ReAI support.');
+  }
   /** @type {import('../../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
+  let deductions = 0;
   for (const row of items) {
+    if (row.type !== 'PAYOUT' && row.status === 'SUCCESSFUL') {
+      deductions += 1;
+      continue;
+    }
     if (row.type !== 'PAYOUT' || row.status !== 'SUCCESSFUL' || typeof row.amount !== 'number') {
       continue;
     }
@@ -103,19 +112,11 @@ async function fetchSumUpPayouts(fields, start, end) {
       amountMinor: Math.round(row.amount * 100),
       currency: String(row.currency ?? 'NOK').toUpperCase(),
       reference: String(row.reference ?? row.transaction_code ?? ''),
-      detail: `SumUp payout · fee ${feeMajor.toFixed(2)} ${String(row.currency ?? '').toUpperCase()}`,
+      detail: `SumUp payout · fee ${feeMajor.toFixed(2)} ${String(row.currency ?? '').toUpperCase()}${row.transaction_code ? ` · ${row.transaction_code}` : ''}`,
     });
   }
-  return payouts;
+  return { payouts, deductions };
 }
-
-/**
- * Fetches Nets Easy / Nexi Checkout Reporting API payouts for the date window.
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
- */
 
 /**
  * @returns {{ payouts: import('../../lib/reconcile.js').PayoutItem[], bankTx: import('../../lib/reconcile.js').BankTx[], month: string, currency: string }}
@@ -138,10 +139,10 @@ function sampleData() {
 }
 
 /**
- * @param {{ rows: import('../../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean, accountID?: string }} state
+ * @param {{ rows: import('../../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, deductions?: number, isSample?: boolean, accountID?: string }} state
  */
 function renderReviewResults(state) {
-  const { rows, month, currency, excluded, bankCount, isSample, accountID } = state;
+  const { rows, month, currency, excluded, bankCount, deductions = 0, isSample, accountID } = state;
   const matched = rows.filter((r) => r.match !== null).length;
   const totalNet = rows.reduce((s, r) => s + r.payout.amountMinor, 0);
   const totalFees = rows.reduce((s, r) => s + Math.abs(r.payout.feeMinor ?? 0), 0);
@@ -172,6 +173,7 @@ function renderReviewResults(state) {
             : reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
         </div>
 
+        ${deductions > 0 ? reaiCallout({ tone: 'info', body: `SumUp also listed ${deductions} deduction rows (refunds, chargebacks or balance deductions). They are not matched here; check them in the SumUp payout report.` }) : ''}
         ${rows.length === 0
           ? reaiCallout({ tone: 'info', body: `No ${currency} payouts found for ${month}.` })
           : html`
@@ -301,9 +303,9 @@ export async function handle(request, env) {
         fetchSumUpPayouts(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
-      const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));
+      const matching = fetched.payouts.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));
       const rows = matchPayouts(matching, bankTx);
-      return htmlResponse(renderReviewResults({ rows, month: bounds.month, currency: company.currencyCode, excluded: fetched.length - matching.length, bankCount: bankTx.length }));
+      return htmlResponse(renderReviewResults({ rows, month: bounds.month, currency: company.currencyCode, excluded: fetched.payouts.length - matching.length, bankCount: bankTx.length, deductions: fetched.deductions }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Review failed.';
       return htmlResponse(reaiCallout({ tone: 'danger', title: `Could not review ${CFG.brand}`, body: msg }));

@@ -16,7 +16,7 @@ highlights:
 
 Integrasjonen henter vaktene fra timearket i Tamigo for alle avdelinger i valgt periode, høyst 93 dager om gangen. Vakter uten arbeidede timer tas ikke med. Du kan begrense til én ansatt med navn eller ansatt-ID i Tamigo. Hver linje viser dato, ansatt, avdeling, vakttid og antall timer.
 
-Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
+Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger. For å føre timene må du begrense hentingen til én ansatt i Tamigo. En vakt som allerede er ført med samme dag, timer og kommentar, hoppes over.
 
 ## Slik kommer du i gang
 

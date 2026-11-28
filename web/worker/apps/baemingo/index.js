@@ -10,9 +10,9 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 
 /** @typedef {{ label: string, amountMinor: number, account?: string }} Payment */
 /** @typedef {{ ratePct: number, grossMinor: number, account?: string, label?: string, vatCode?: string }} SalesRate */
-/** @typedef {{ date: string, ref: string, payments: Payment[], sales: SalesRate[], tipsMinor: number }} Settlement */
+/** @typedef {{ date: string, ref: string, currency: string, payments: Payment[], sales: SalesRate[], tipsMinor: number }} Settlement */
 /** @typedef {{ account: string, description: string, signedMinor: number, ratePct: number | null, vatMinor: number, vatCode?: string }} VoucherLine */
-/** @typedef {{ date: string, ref: string, lines: VoucherLine[], debitMinor: number, creditMinor: number }} Voucher */
+/** @typedef {{ date: string, ref: string, currency: string, lines: VoucherLine[], debitMinor: number, creditMinor: number }} Voucher */
 
 /** @type {Record<string, string>} */
 const REVENUE_ACCOUNTS = { 25: '3000', 15: '3010', 12: '3020' };
@@ -31,15 +31,17 @@ function addTo(totals, key, amountMinor) {
  * Turns keyed totals into a settlement.
  * @param {string} date
  * @param {string} ref
+ * @param {string} currency
  * @param {Map<string, number>} payments
  * @param {Map<string, number>} salesByRate
  * @param {number} tipsMinor
  * @returns {Settlement}
  */
-function toSettlement(date, ref, payments, salesByRate, tipsMinor) {
+function toSettlement(date, ref, currency, payments, salesByRate, tipsMinor) {
   return {
     date,
     ref,
+    currency,
     payments: [...payments].filter(([, a]) => a !== 0).map(([label, amountMinor]) => ({ label, amountMinor })),
     sales: [...salesByRate].filter(([, a]) => a !== 0).map(([rate, grossMinor]) => ({ ratePct: Number(rate), grossMinor })).sort((a, b) => b.ratePct - a.ratePct),
     tipsMinor,
@@ -64,6 +66,7 @@ const API = 'https://public-api.baemingo.se';
 const SAMPLE = {
   date: '2026-10-24',
   ref: 'Bar Eksempel',
+  currency: 'NOK',
   payments: [
     { label: 'CARD', amountMinor: 3864000 },
     { label: 'CASH', amountMinor: 210000 },
@@ -97,10 +100,36 @@ function addOrderSales(salesByRate, orderRates, restMinor) {
 }
 
 /**
+ * Splits a refunded amount over VAT rates in proportion to the refunded item amounts. The item
+ * amount unit is not stated for REFUND entries, so only the ratio is used (largest remainder).
+ * @param {Map<string, number>} weights
+ * @param {number} totalMinor
+ * @returns {Map<string, number>}
+ */
+function allocateByRate(weights, totalMinor) {
+  /** @type {Map<string, number>} */ const out = new Map();
+  const entries = [...weights].filter(([, w]) => w > 0);
+  const sum = entries.reduce((t, [, w]) => t + w, 0);
+  if (sum <= 0 || totalMinor === 0) return out;
+  const sign = totalMinor < 0 ? -1 : 1;
+  const abs = Math.abs(totalMinor);
+  const parts = entries.map(([rate, w]) => ({ rate, exact: (abs * w) / sum, base: Math.floor((abs * w) / sum) }));
+  let left = abs - parts.reduce((t, x) => t + x.base, 0);
+  for (const x of [...parts].sort((a, b) => (b.exact - b.base) - (a.exact - a.base))) {
+    if (left <= 0) break;
+    x.base += 1;
+    left -= 1;
+  }
+  for (const x of parts) if (x.base !== 0) out.set(x.rate, sign * x.base);
+  return out;
+}
+
+/**
  * Fetches one Baemingo business day (04:00 UTC to 04:00 UTC) and totals it.
  * Docs: https://docs.baemingo.se/ (x-api-key header, key from admin.baemingo.com/integrations/api),
  * https://docs.baemingo.se/skills/baemingo-openapi/resources/orders.md (GET /orders?date=YYYY-MM-DD,
- * not paginated, amounts in øre including VAT, entries of type ORDER, REFUND and TIP_REFUND) and
+ * not paginated, integer amounts in the smallest currency unit including VAT, ORDER data.currency,
+ * entries of type ORDER, REFUND and TIP_REFUND) and
  * https://docs.baemingo.se/skills/baemingo-openapi/resources/me.md (GET /me).
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
@@ -116,12 +145,14 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {any[]} */ const entries = Array.isArray(data?.orders) ? data.orders : [];
   /** @type {Map<string, number>} */ const payments = new Map();
   /** @type {Map<string, number>} */ const salesByRate = new Map();
+  /** @type {Set<string>} */ const currencies = new Set();
   let tipsMinor = 0;
   let count = 0;
   for (const entry of entries) {
     const d = entry?.data ?? {};
     if (entry?.type === 'ORDER') {
       count++;
+      if (typeof d.currency === 'string' && d.currency.trim()) currencies.add(d.currency.trim().toUpperCase());
       const tip = Math.round(num(d.intTip));
       /** @type {Map<string, number>} */ const rates = new Map();
       for (const item of Array.isArray(d.items) ? d.items : []) addTo(rates, String(num(item.vatRate)), Math.round(num(item.intAmountAfterDiscount)));
@@ -144,8 +175,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
       addOrderSales(salesByRate, rates, settled - tip - itemTotal);
     } else if (entry?.type === 'REFUND') {
       count++;
-      /** @type {Map<string, number>} */ const rates = new Map();
-      for (const item of Array.isArray(d.items) ? d.items : []) addTo(rates, String(num(item.vatRate)), -Math.round(num(item.amount) - num(item.discount)));
+      /** @type {Map<string, number>} */ const weights = new Map();
+      for (const item of Array.isArray(d.items) ? d.items : []) addTo(weights, String(num(item.vatRate)), Math.max(0, num(item.amount) - num(item.discount)));
       /** @type {any[]} */ const refunds = Array.isArray(d.payments) ? d.payments : [];
       let settled = 0;
       for (const p of refunds) {
@@ -157,6 +188,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         settled = -Math.round(num(d.amountAfterDiscounts));
         addTo(payments, String(d.paymentMethod || 'UNKNOWN'), settled);
       }
+      const rates = allocateByRate(weights, settled);
       const itemTotal = [...rates.values()].reduce((t, a) => t + a, 0);
       addOrderSales(salesByRate, rates, settled - itemTotal);
     } else if (entry?.type === 'TIP_REFUND') {
@@ -168,8 +200,9 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     }
   }
   if (count === 0) throw new HttpError(400, `Baemingo has no orders or refunds on ${date}.`);
+  if (currencies.size > 1) throw new HttpError(400, `Baemingo returned orders in several currencies (${[...currencies].join(', ')}) on ${date}. Book them by hand.`);
   const venue = String(me?.venueName ?? me?.name ?? 'venue').trim();
-  return toSettlement(date, venue, payments, salesByRate, tipsMinor);
+  return toSettlement(date, venue, [...currencies][0] ?? '', payments, salesByRate, tipsMinor);
 }
 
 /** @param {string} label */
@@ -205,7 +238,7 @@ function buildVoucher(s) {
   if (s.tipsMinor !== 0) lines.push({ account: '2930', description: `${pfx} · Staff tips payable`, signedMinor: -s.tipsMinor, ratePct: null, vatMinor: 0 });
   const debitMinor = lines.filter((l) => l.signedMinor > 0).reduce((t, l) => t + l.signedMinor, 0);
   const creditMinor = lines.filter((l) => l.signedMinor < 0).reduce((t, l) => t - l.signedMinor, 0);
-  return { date: s.date, ref: s.ref, lines, debitMinor, creditMinor };
+  return { date: s.date, ref: s.ref, currency: s.currency, lines, debitMinor, creditMinor };
 }
 
 /** @param {Voucher} v @param {boolean} isSample */
@@ -216,12 +249,12 @@ function renderPreview(v, isSample) {
   return reaiCard({
     eyebrow: `${BRAND.toUpperCase()} → REAI REVIEW VOUCHER`,
     title: `${v.ref} · ${v.date}`,
-    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} NOK`, tone: 'danger' }),
+    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} ${v.currency}`, tone: 'danger' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Payments (debit)', value: `${formatMinor(v.debitMinor)} NOK` })}
-        ${reaiMetric({ label: 'Sales incl. VAT + tips (credit)', value: `${formatMinor(v.creditMinor)} NOK` })}
-        ${reaiMetric({ label: 'Output VAT (split by ReAI)', value: `${formatMinor(vatTotal)} NOK` })}
+        ${reaiMetric({ label: 'Payments (debit)', value: `${formatMinor(v.debitMinor)} ${v.currency}` })}
+        ${reaiMetric({ label: 'Sales incl. VAT + tips (credit)', value: `${formatMinor(v.creditMinor)} ${v.currency}` })}
+        ${reaiMetric({ label: 'Output VAT (split by ReAI)', value: `${formatMinor(vatTotal)} ${v.currency}` })}
       </div>
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Account</th><th>Posting</th><th>VAT</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
@@ -306,9 +339,12 @@ export async function handle(request, env) {
       if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
       const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);
       if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
+      const company = session.tenants.find((t) => t.id === session.tenantId);
+      const currency = String(v.currency ?? '').toUpperCase();
+      if (!company || currency !== company.currencyCode) throw new HttpError(400, `The ${BRAND} day is in ${currency || 'an unknown currency'}, but the ReAI company uses ${company?.currencyCode ?? 'another currency'}.`);
       const marker = `${BRAND} ${String(v.ref).slice(0, 80)} ${v.date}`;
       const auth = { token: session.accessToken, tenantId: session.tenantId };
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, voucherType: 'manual' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
       const vatCodes = /** @type {Array<{ code: string, rate: number, vatType: string, amountBasis: string, reverseCharge: boolean }>} */ (await reaiRequest(env, '/api/vat-codes', auth));
@@ -322,7 +358,7 @@ export async function handle(request, env) {
           postings: pairVoucherRows(v.lines.map((l) => ({
             accountNumber: String(l.account),
             postingDate: v.date,
-            currencyCode: 'NOK',
+            currencyCode: currency,
             amount: Number((Math.round(Number(l.signedMinor)) / 100).toFixed(2)),
             vatCode: l.vatCode ? knownOutputVatCode(vatCodes, String(l.vatCode)) : l.ratePct === null ? '0' : outputVatCode(vatCodes, Number(l.ratePct)),
             description: String(l.description).slice(0, 200),

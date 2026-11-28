@@ -14,7 +14,7 @@ highlights:
 
 ## Overfør timer fra EG HoltePortalen til ReAI
 
-Holte er nå en del av EG, og løsningen heter EG HoltePortalen. Integrasjonen henter timeregistreringer på prosjekter for en periode og viser prosjekt, bruker og kommentar. Du velger ansatt og eventuelt prosjekt i ReAI og fører timene én og én.
+Holte er nå en del av EG, og løsningen heter EG HoltePortalen. Integrasjonen henter timeregistreringer på prosjekter for en periode og viser prosjekt, bruker og kommentar. Du velger ansatt og eventuelt prosjekt i ReAI og fører timene én og én. Føringer som allerede er sendt til ReAI, blir gjenkjent og ikke ført på nytt.
 
 ## Slik setter du opp HoltePortalen mot ReAI
 

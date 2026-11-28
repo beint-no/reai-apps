@@ -18,7 +18,7 @@ const CFG = {
   "brand": "PrestaShop",
   "title": "PrestaShop Product & Sales Sync",
   "lead": "Create PrestaShop products in ReAI and stage the latest valid PrestaShop orders as ReAI draft orders through the PrestaShop Webservice.",
-  "hint": "In the PrestaShop back office, open Advanced Parameters \u2192 Webservice, enable the webservice and add a key with GET access to products, orders and customers.",
+  "hint": "In the PrestaShop back office, open Advanced Parameters \u2192 Webservice, enable the webservice and add a key with GET access to products, orders, customers and currencies.",
   "fields": [
     {
       "key": "storeUrl",
@@ -66,7 +66,8 @@ function assertPublicHttpsBase(raw) {
  * Docs: https://devdocs.prestashop-project.org/9/webservice/ (Basic auth with the key as username, output_format=JSON),
  * https://devdocs.prestashop-project.org/9/webservice/tutorials/advanced-use/additional-list-parameters/ (display, filter, sort, limit),
  * https://devdocs.prestashop-project.org/9/webservice/resources/products/, .../resources/orders/ (valid, id_customer,
- * total_paid_tax_excl) and .../resources/customers/.
+ * id_currency, total_paid_tax_excl), .../resources/customers/ and .../resources/currencies/ (iso_code).
+ * Subrequests: products, orders and currencies in parallel, then one customers call (4 in total).
  * @param {Record<string, string>} fields
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<{ products: StoreProduct[], orders: StoreOrder[], storeLabel: string }>}
@@ -78,10 +79,13 @@ export async function fetchApi(fields, fetchImpl = fetch) {
   const headers = { authorization: `Basic ${btoa(`${key}:`)}`, accept: 'application/json' };
   /** @param {string} resource @param {Record<string, string>} q */
   const get = (resource, q) => fetchJson(`${base}/api/${resource}?${new URLSearchParams({ output_format: 'JSON', ...q })}`, { headers }, 'PrestaShop', fetchImpl);
-  const [pBody, oBody] = await Promise.all([
+  const [pBody, oBody, curBody] = await Promise.all([
     get('products', { display: '[id,reference,name,price]', sort: '[id_DESC]', limit: '100' }),
-    get('orders', { display: '[id,reference,id_customer,date_add,total_paid_tax_excl,valid]', 'filter[valid]': '[1]', sort: '[id_DESC]', limit: '50' }),
+    get('orders', { display: '[id,reference,id_customer,id_currency,date_add,total_paid_tax_excl,valid]', 'filter[valid]': '[1]', sort: '[id_DESC]', limit: '50' }),
+    get('currencies', { display: '[id,iso_code]' }),
   ]);
+  /** @type {Map<string, string>} */ const isoById = new Map();
+  for (const c of Array.isArray(curBody?.currencies) ? curBody.currencies : []) isoById.set(String(c.id), String(c.iso_code ?? '').trim().toUpperCase());
   /** @type {any[]} */ const rawOrders = Array.isArray(oBody?.orders) ? oBody.orders : [];
   const customerIds = [...new Set(rawOrders.map((o) => String(o.id_customer ?? '')).filter((id) => /^[0-9]+$/.test(id) && id !== '0'))];
   /** @type {Map<string, any>} */ const customers = new Map();
@@ -96,12 +100,14 @@ export async function fetchApi(fields, fetchImpl = fetch) {
       sku: String(p.reference || `PS-${p.id}`).trim(),
       title: text(p.name) || `Product ${p.id}`,
       priceExVat: Number(p.price ?? 0),
-      currency: 'NOK',
+      currency: '',
       stockItem: true,
     })),
     orders: rawOrders.map((o) => {
       const c = customers.get(String(o.id_customer));
       const person = c ? `${String(c.firstname ?? '').trim()} ${String(c.lastname ?? '').trim()}`.trim() : '';
+      const currency = isoById.get(String(o.id_currency)) ?? '';
+      if (!/^[A-Z]{3}$/.test(currency)) throw new HttpError(400, `PrestaShop order ${o.reference || o.id} has no currency ISO code. Give the key GET access to currencies.`);
       return {
         id: String(o.id),
         number: String(o.reference || o.id),
@@ -109,7 +115,7 @@ export async function fetchApi(fields, fetchImpl = fetch) {
         customerName: String(c?.company ?? '').trim() || person || `PrestaShop customer ${o.id_customer}`,
         customerEmail: String(c?.email ?? '').trim().toLowerCase(),
         totalExVat: Number(o.total_paid_tax_excl ?? 0),
-        currency: 'NOK',
+        currency,
         status: 'valid',
       };
     }),
@@ -131,9 +137,9 @@ function renderStoreSync(state) {
       title: 'Products',
       badge: reaiBadge({ text: `${newProds} new`, tone: newProds > 0 ? 'accent' : 'success' }),
       body: html`<div class="table-wrap"><table class="data-table">
-        <thead><tr><th>SKU</th><th>Product</th><th class="num">Price ex. VAT</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Product</th><th class="num">Price ex. VAT (shop default currency)</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${state.products.slice(0, 80).map(({ p, exists }, idx) => html`<tr id="ec-p-${idx}">
-          <td class="mono">${p.sku || '—'}</td><td><strong>${p.title}</strong></td><td class="num">${formatMinor(Math.round(p.priceExVat * 100))} ${p.currency}</td>
+          <td class="mono">${p.sku || '—'}</td><td><strong>${p.title}</strong></td><td class="num">${formatMinor(Math.round(p.priceExVat * 100))} ${p.currency || ''}</td>
           <td>${exists ? reaiBadge({ text: 'In ReAI', tone: 'neutral' }) : reaiBadge({ text: 'New SKU', tone: 'success' })}</td>
           <td>${exists || state.isSample
             ? html`<span class="muted-note">${state.isSample && !exists ? 'Demo only' : 'Synced'}</span>`
@@ -154,7 +160,7 @@ function renderStoreSync(state) {
           <td>${state.isSample || !customerId
             ? html`<span class="muted-note">${state.isSample ? 'Demo only' : 'No matching ReAI customer'}</span>`
             : html`<form hx-post="/app/prestashop/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
-                <input type="hidden" name="orderId" value="${o.id}"><input type="hidden" name="number" value="${o.number}"><input type="hidden" name="date" value="${o.date}"><input type="hidden" name="total" value="${o.totalExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${customerId}">
+                <input type="hidden" name="orderId" value="${o.id}"><input type="hidden" name="number" value="${o.number}"><input type="hidden" name="date" value="${o.date}"><input type="hidden" name="total" value="${o.totalExVat.toFixed(2)}"><input type="hidden" name="currency" value="${o.currency}"><input type="hidden" name="customerId" value="${customerId}">
                 <button type="submit" class="button primary">Stage order</button>
               </form>`}</td>
         </tr>`)}</tbody>
@@ -262,6 +268,8 @@ export async function handle(request, env) {
       const date = String(form.get('date') ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
       const total = Number(form.get('total') ?? '0');
       const customerId = Number(form.get('customerId') ?? '0');
+      const currencyCode = String(form.get('currency') ?? '').trim().toUpperCase();
+      if (!/^[0-9]+$/.test(orderId) || customerId <= 0 || !/^[A-Z]{3}$/.test(currencyCode)) throw new HttpError(400, 'Scan PrestaShop again: the order id, customer or currency is missing.');
       const externalReference = `prestashop-${orderId}`.slice(0, 100);
       const existing = /** @type {{ items: Array<{ id: number | null }> }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, query: { externalReference, pageSize: '1' } }));
       const dupId = existing.items[0]?.id;
@@ -270,7 +278,7 @@ export async function handle(request, env) {
         token: session.accessToken,
         tenantId: session.tenantId,
         method: 'POST',
-        body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
+        body: { customerId, currencyCode, daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${CFG.brand} order ${number}`, orderLines: [{ itemName: `${CFG.brand} order ${number}`, quantity: 1, unitPrice: Number(total.toFixed(2)) }] },
       }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
       return htmlResponse(html`<tr><td class="mono">${number}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td class="num">${formatMinor(Math.round(total * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);

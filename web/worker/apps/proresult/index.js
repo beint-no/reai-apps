@@ -20,7 +20,7 @@ const LEAD = 'Import a Proresult hour report, log the hours as ReAI timesheet ro
 /** @type {TradeRow[]} */
 const SAMPLE_ROWS = [
   {
-    "ref": "PR-2026-11-03-1",
+    "ref": "PR-2026-11-03-olanordmann-1",
     "date": "2026-11-03",
     "customerName": "Sunnfjord Eigedom AS",
     "project": "1187 Nybygg lager Førde",
@@ -30,7 +30,7 @@ const SAMPLE_ROWS = [
     "amountExVat": 0
   },
   {
-    "ref": "PR-2026-11-03-2",
+    "ref": "PR-2026-11-03-karinordmann-1",
     "date": "2026-11-03",
     "customerName": "Sunnfjord Eigedom AS",
     "project": "1187 Nybygg lager Førde",
@@ -103,9 +103,11 @@ export function parseExport(csvText) {
   const cell = (r, i) => (i >= 0 ? String(r[i] ?? '').trim() : '');
   /** @type {TradeRow[]} */
   const rows = [];
-  /** @type {Map<string, TradeRow>} */
+  /** @type {Map<string, { minor: number, row: TradeRow }>} */
   const orders = new Map();
-  doc.rows.forEach((r, idx) => {
+  /** Stable per employee and day, so the same row gets the same reference in any report period. @type {Map<string, number>} */
+  const perDay = new Map();
+  doc.rows.forEach((r) => {
     const date = reportDay(cell(r, iDate));
     const hours = Number(noNum(cell(r, iHours)).toFixed(2));
     if (!date || hours <= 0 || hours > 24) return;
@@ -113,29 +115,33 @@ export function parseExport(csvText) {
     const project = [projectNo, cell(r, iProject)].filter(Boolean).join(' ') || '—';
     const customerName = cell(r, iCustomer) || '—';
     const type = cell(r, iType);
+    const employeeName = cell(r, iEmployee) || '—';
+    const dayKey = `${date}-${employeeName.toLowerCase().replace(/[^a-z0-9æøå]+/g, '').slice(0, 20) || 'x'}`;
+    const nth = (perDay.get(dayKey) ?? 0) + 1;
+    perDay.set(dayKey, nth);
     rows.push({
-      ref: `PR-${date}-${idx + 1}`,
+      ref: `PR-${dayKey}-${nth}`,
       date,
       customerName,
       project,
-      employeeName: cell(r, iEmployee) || '—',
+      employeeName,
       description: [type, cell(r, iComment)].filter(Boolean).join(': ') || `${BRAND} hours`,
       hours,
       amountExVat: 0,
     });
     const billed = /^(ja|yes|x|1|true)$/i.test(cell(r, iBilled));
-    const amount = hours * noNum(cell(r, iPrice));
-    if (billed || amount <= 0) return;
+    const amountMinor = Math.round(hours * noNum(cell(r, iPrice)) * 100);
+    if (billed || amountMinor <= 0) return;
     const ref = `${projectNo || cell(r, iProject) || 'uten-prosjekt'}-${date.slice(0, 7)}`;
     const existing = orders.get(ref);
     if (existing) {
-      existing.amountExVat = Number((existing.amountExVat + amount).toFixed(2));
-      if (date > existing.date) existing.date = date;
+      existing.minor += amountMinor;
+      if (date > existing.row.date) existing.row.date = date;
     } else {
-      orders.set(ref, { ref, date, customerName, project, employeeName: '—', description: `Hours ${date.slice(0, 7)}: ${project}`, hours: 0, amountExVat: Number(amount.toFixed(2)) });
+      orders.set(ref, { minor: amountMinor, row: { ref, date, customerName, project, employeeName: '—', description: `Hours ${date.slice(0, 7)}: ${project}`, hours: 0, amountExVat: 0 } });
     }
   });
-  rows.push(...orders.values());
+  for (const { minor, row } of orders.values()) rows.push({ ...row, amountExVat: minor / 100 });
   if (rows.length === 0) throw new HttpError(400, 'No rows with a valid Dato and hours were found.');
   return rows;
 }
@@ -288,6 +294,10 @@ export async function handle(request, env) {
       const employeeId = Number(form.get('employeeId') ?? '0');
       const comment = String(form.get('description') ?? BRAND).slice(0, 1000);
       if (employeeId <= 0 || hours < 0.01 || hours > 24) throw new HttpError(400, 'A ReAI employee and 0.01 to 24 hours are required.');
+      const marker = comment.slice(0, comment.indexOf(']') + 1);
+      const sameDay = /** @type {Array<{ id: number, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { ...auth, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+      const dup = marker ? (Array.isArray(sameDay) ? sameDay : []).find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker)) : undefined;
+      if (dup) return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Already logged #${dup.id}`, tone: 'neutral' })}</td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { ...auth, method: 'POST', body: { employeeId, date, hours, ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">—</td><td class="mono">${date}</td><td>${comment}</td><td>—</td><td class="num">${hours.toFixed(2)}</td><td class="num">—</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }

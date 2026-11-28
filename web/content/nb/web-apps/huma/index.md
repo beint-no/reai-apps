@@ -14,11 +14,11 @@ highlights:
 
 ## Overfør ansatte fra Huma til ReAI
 
-Integrasjonen henter aktive ansatte fra Huma med navn, e-post, startdato, stillingsprosent og norsk bankkonto. Ansatte som allerede finnes i ReAI vises som koblet, og du oppretter resten én og én. Integrasjonen sender ingen invitasjoner og leverer ingen A-melding.
+Integrasjonen henter aktive ansatte fra Huma med navn, e-post, telefon, adresse, startdato, stillingsprosent og norsk bankkonto. Ansatte som allerede finnes i ReAI vises som koblet, og du oppretter resten én og én. Integrasjonen sender ingen invitasjoner og leverer ingen A-melding.
 
 ## Slik setter du opp Huma mot ReAI
 
 1. I Huma går du til **Systeminnstillinger → Open API** og klikker **Legg til API-nøkkel**. Kopier klient-ID og klienthemmelighet. Hemmeligheten vises bare én gang.
-2. Gi API-nøkkelen en rolle som kan lese ansatte, stillinger og bankkonto. En ny nøkkel har ingen tilgang før den får en rolle.
+2. Gi API-nøkkelen en rolle som kan lese ansatte, stillinger, adresse og bankkonto. En ny nøkkel har ingen tilgang før den får en rolle.
 3. Klikk **Åpne integrasjon**, koble til ReAI og lim inn klient-ID og klienthemmelighet.
-4. Kontroller listen og klikk **Create in ReAI** for hver ansatt som skal opprettes.
+4. Kontroller listen og klikk **Create in ReAI** for hver ansatt som skal opprettes. I store selskaper hentes detaljene i puljer. Hent på nytt når du har opprettet de som vises, eller bruk **Skip new employees** for å gå videre.

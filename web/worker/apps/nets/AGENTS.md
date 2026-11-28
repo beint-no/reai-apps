@@ -1,34 +1,58 @@
-# Nexi Checkout Reconcile
+# Nexi Checkout Payout Reconcile
 
 Route `/app/nets/`. Docs pages: `web/content/{nb,en}/web-apps/nets/index.md`.
 
-## Vendor API
+Reads Nexi Checkout (formerly Nets Easy) payouts for one month and matches them against pending
+ReAI bank transactions. Read only: nothing is booked. Result downloads as CSV.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developer.nexigroup.com/nexi-checkout/en-EU/api/reporting-v1/
-- https://developer.nexigroup.com/nexi-checkout/en-EU/api/
+- Reporting API reference: https://developer.nexigroup.com/nexi-checkout/en-EU/api/reporting-v1/
+- Environments and auth: https://developer.nexigroup.com/nexi-checkout/en-EU/api/
+- Keys: https://developer.nexigroup.com/nexi-checkout/en-EU/docs/access-your-integration-keys/
+- Changelog: https://developer.nexigroup.com/nexi-checkout/en-EU/change-log/
 
-- Mode: rename
-- Calls: Brand Nexi Checkout (formerly Nets Easy). Exported fetchApi(fields, start, end, fetchImpl) calls GET {api|test.api}.dibspayment.eu/report/v1/payouts with fromDate, toDate, zero-based pageNumber, pageSize=100, merchantNumber only when entered; reads documented id, reference, date, currency, amount, fees, chargedAmount, refundedAmount (minor units) and pages on numberOfPayouts. Fees column shown; Dintero card removed. No ReAI writes (only existing shared reconcile helpers). Docs NB/EN rewritten with portal path Company → Integration.
-- Hosts in code: `api.dibspayment.eu`, `developer.nexigroup.com`, `test.api.dibspayment.eu`
-- Vendor status: Nets Easy is sold today as Nexi Checkout; developer.nexigroup.com/nexi-checkout documents the live Reporting API (HTTP 200). Brreg: NETS DENMARK A/S not bankrupt, not dissolving, no deletion date.
+## API version
+
+Reporting API v1 (`/report/v1/...`), the only version. No sunset announced; the 2026 changelog
+has no Reporting API entries. Deprecated fields `feeVATpercent` and `vatAmount` are not read.
+
+## Auth
+
+The merchant copies the live secret key from the Nexi Checkout portal (Company > Integration).
+Sent as `Authorization: <secret key>` with no scheme. Keys starting with `test-` go to
+`https://test.api.dibspayment.eu`, all others to `https://api.dibspayment.eu`.
+`merchantNumber` is only for partner keys and is sent only when entered.
+
+## Endpoints
+
+- `GET /report/v1/payouts?fromDate&toDate&currency&pageNumber&pageSize=100[&merchantNumber]`:
+  full dates, zero based `pageNumber`, documented default page size 100 (no maximum stated).
+  `currency` is the ReAI company currency (documented server-side filter).
+  Reads `id`, `reference`, `date`, `currency`, `amount`, `fees`, `feeTaxAmount`, `chargedAmount`,
+  `refundedAmount` (all minor units).
+- Paging stops on a short page or when `numberOfPayouts` is reached; more than 20 pages (2000
+  payouts) throws instead of truncating.
+
+## Budget and limits
+
+One review: 1 Nexi call for a normal month (one per 100 payouts) plus 1 ReAI call. The page
+load makes 1 ReAI call for banks. No rate limits documented; `429` gives a wait message.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- `GET /api/company-banks` (via `loadActiveBanks`)
+- `GET /api/bank-reconciliations/{bankId}?month&include=pending_transactions`
 
-- none
+## Accounting mapping
+
+None booked. `amount` is the net payout to the bank; `fees` is what Nexi withheld. The docs page
+shows typical accounts (1580 clearing, 7770 fees, 1920 bank) for the user's own posting.
 
 ## Caveats
 
-Live base address taken from the Checkout API environments section (api.dibspayment.eu); the reporting page itself only shows the test host. Portal menu path Company → Integration comes from integration guides, not a page I could fetch (access-your-integration-keys returned 404). Slug stays 'nets'; coordinator may want a nexi-checkout alias. Not covered by web/test/provider-api.test.mjs.
+- Keys are accepted with or without the type prefix; a test key without `test-` would go to the
+  live host and be rejected.
+- Not tested against a live key.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

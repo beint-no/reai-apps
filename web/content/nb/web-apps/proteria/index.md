@@ -14,7 +14,7 @@ highlights:
 
 ## Dette overføres til ReAI
 
-Hver linje i fakturarapporten fra Proteria Frakt blir en fraktlinje som du kan legge inn som ordreutkast i ReAI. Ordrelinjen får fraktbeløpet uten mva, sendingsnummeret og teksten for transportør eller produkt. Mottakere matches mot kunder i ReAI på navn, ellers velger du en standardkunde.
+Hver sending i fakturarapporten fra Proteria Frakt blir en fraktlinje som du kan legge inn som ordreutkast i ReAI. Flere rader med samme sendingsnummer legges sammen, og ordren får sendingsnummeret som ekstern referanse, så samme sending legges ikke inn to ganger. Ordrelinjen får fraktbeløpet uten mva, sendingsnummeret og teksten for transportør eller produkt. Mottakere matches mot kunder i ReAI på navn, ellers velger du en standardkunde.
 
 Ingenting faktureres eller bokføres automatisk. Hver ordre er et utkast til du kontrollerer og fakturerer den i ReAI, med vanlig salgskonto og mva-kode for frakt.
 
@@ -27,5 +27,5 @@ API-et til Proteria Frakt (CloudConnect) brukes til å bestille sendinger, etike
 1. Logg inn på Proteria sin rapportløsning på **reportingweb.proteria.com**, velg **Lag Rapport** og deretter **Fakturarapport** (den forenklede varianten har én linje per sending).
 2. Last ned rapporten som CSV.
 3. Klikk **Åpne integrasjon**, koble til selskapet ditt i ReAI og last opp filen.
-4. Velg hvilke kolonner som inneholder beløp uten mva, dato, sendingsnummer, mottaker og produkt.
+4. Velg hvilke kolonner som inneholder beløp uten mva, dato og sendingsnummer, og eventuelt mottaker og produkt.
 5. Kontroller fraktlinjene og klikk **Stage order** på dem du vil viderefakturere.

@@ -2,37 +2,47 @@
 
 Route `/app/dintero/`. Docs pages: `web/content/{nb,en}/web-apps/dintero/index.md`.
 
-## Vendor API
+Purpose: list paid Dintero settlements for a month, match net payouts against pending ReAI bank transactions and optionally book the withheld fees as one review voucher.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://docs.dintero.com/api-reference/settlements/aid_settlements_list.md
-- https://docs.dintero.com/api-reference/authenticate/aid_auths_oauth_token_post.md
-- https://docs.dintero.com/docs/checkout/checkout-client.md
-- https://docs.dintero.com/docs/checkout/payout-reports-introduction.md
+- Settlements reference: https://docs.dintero.com/api-reference/settlements/aid_settlements_list.md
+- Auth: https://docs.dintero.com/api-reference/authenticate/aid_auths_oauth_token_post.md, https://docs.dintero.com/docs/checkout/checkout-client.md
+- Payout reports: https://docs.dintero.com/docs/checkout/payout-reports-introduction.md
+- Changelog: none published for the settlements API; the reference index is https://docs.dintero.com/llms.txt (no deprecation found, 2026-11-28)
 
-- Mode: fix
-- Calls: Same documented Dintero calls, now exported as fetchApi(fields, start, end, fetchImpl) with doc URLs above it. The fee voucher uses pairVoucherRows so debit and credit share one rowNumber; vatCode 0 kept on both (balance account and VAT-exempt payment fee, flagged for review). Docs pages gained setup steps (Backoffice Settings, API clients, Create new API client) and lost the em dash in seoTitle.
-- Hosts in code: `api.dintero.com`, `docs.dintero.com`
-- Vendor status: Brreg: Dintero AS active, last accounts 2025; dintero.com and docs.dintero.com live with current settlements API.
+## API version and auth
 
-## ReAI API
+- `https://api.dintero.com/v1`, the current and only version.
+- Key: Dintero Backoffice, Settings → API clients → Create new API client; the client needs one of `read:settlements`, `read:reports` or `read:billing`.
+- `POST /v1/accounts/{aid}/auth/token` with `Authorization: Basic base64(client_id:client_secret)` and `{ grant_type: client_credentials, audience: https://api.dintero.com/v1/accounts/{aid} }`, then `Authorization: Bearer <access_token>`. One token per action.
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+## Endpoints and paging
 
-- `/api/chart-of-accounts/accounts`
-- `/api/manual-vouchers`
-- `/api/vouchers`
+- `GET /v1/accounts/{aid}/settlements?limit=1000&created_at.gte=<month start - 1 day>&created_at.lte=<month end + 1 day>` (`created_at.*` filter `settled_at`). Each settlement is kept by its Europe/Oslo `settled_at` day and `payment_status` `paid`; one payout per `amounts[]` entry.
+- Paging: `starting_after_id` + `starting_after_date` from `last_evaluated_key` until it is absent; repeated ids abort; at most ten pages, then an error.
+- Rate limits: none published; `429` with `Retry-After` is reported to the user with the wait.
+
+## Subrequest budget
+
+- Review: 1 token + settlement pages (usually 1) + 1 ReAI pending bank transactions = 3 typical.
+- Fee voucher: 4 (vouchers on the last day, two account checks, POST).
+
+## ReAI endpoints
+
+- `GET /api/company-banks` (page load), `GET /api/bank-reconciliations/{bankId}?month=&include=pending_transactions`
+- `GET /api/vouchers?startDate=<last day>&endDate=<last day>&voucherType=manual` for the duplicate marker
+- `GET /api/chart-of-accounts/accounts?accountNumberPrefix=`
+- `POST /api/manual-vouchers`
+
+## Accounting mapping
+
+- Payouts in the ReAI company currency only; others are counted as excluded. Match: same currency and amount within eight days, reference or unique candidate.
+- Fee voucher on the month's last day: debit fee expense account, credit payout clearing account, VAT code `0` on both (payment fees are VAT exempt; the contract asks for `0` on non-VAT rows), paired with `pairVoucherRows`, flagged for review. Marker `Dintero withheld fees <aid> <month>`. Test accounts (`T…`) cannot book.
 
 ## Caveats
 
-The settlements schema does not state the unit of amounts; the module treats them as minor units like the rest of the Dintero API. The Backoffice client must be granted a settlements/reports scope (read:settlements, read:reports or read:billing); a plain checkout client may lack it.
+- The settlements schema does not state the amount unit; minor units are assumed as in the rest of the Dintero API.
+- No live verification (no credentials).
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

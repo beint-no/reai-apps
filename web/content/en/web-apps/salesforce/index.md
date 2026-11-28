@@ -31,7 +31,7 @@ Salesforce has no standard field for the Norwegian organization number. If your 
 2. Turn on **Enable Client Credentials Flow** in the OAuth settings and choose a **Run As** user who can read opportunities and accounts.
 3. Copy the **Consumer Key** and **Consumer Secret**, and find your My Domain URL under **Setup → My Domain**.
 4. Click **Open integration**, connect ReAI and choose the company.
-5. Enter the URL, the keys, the period and the currency, and fetch the opportunities.
+5. Enter the URL, the keys and the period, and fetch the opportunities. Multi currency orgs use the currency of each opportunity; otherwise enter your org currency.
 6. Check the lines and stage the orders you want to invoice.
 
 The keys are used only for that request and are never stored.

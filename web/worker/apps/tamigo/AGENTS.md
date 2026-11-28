@@ -2,30 +2,64 @@
 
 Route `/app/tamigo/`. Docs pages: `web/content/{nb,en}/web-apps/tamigo/index.md`.
 
-## Vendor API
+Fetches worked shifts from the Tamigo timesheet and posts them one by one to ReAI Timesheets for one chosen
+ReAI employee and project.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://tamigono.freshdesk.com/support/solutions/articles/5000867116-api-dok-pr-01-04-2024-full-versjon
-- https://tamigono.freshdesk.com/support/solutions/articles/5000793304-application-services-
-- https://tamigono.freshdesk.com/support/solutions/folders/5000296483
+Tamigo publishes its API as PDFs attached to help centre articles:
 
-- Mode: fix
-- Calls: POST https://api.tamigo.com/login/application {Name, Key} → SessionToken; GET /attendance/CheckInOutOverview/?startDate&endDate&departmentId=all with header x-tamigo-token; maps Date (/Date(ms+zzzz)/ to local date), ActualShiftHours, EmployeeName, WageSystemKey (filter), DepartmentName, ActualShiftText · ActualShiftComment; skips zero-hour rows; POST /api/timesheets. CSV removed.
-- Hosts in code: `api.tamigo.com`, `tamigono.freshdesk.com`
-- Vendor status: Brønnøysund: Tamigo Norge AS active; tamigo.com and tamigo.com/no live (© 2026); API docs updated 26 Nov 2024 on tamigono.freshdesk.com.
+- Reference ("API Dok. pr. 01.04.2024 - full versjon", Application Services PDF, section Attendance Services
+  c) Get Check-in/Check-out Overview):
+  https://tamigono.freshdesk.com/support/solutions/articles/5000867116-api-dok-pr-01-04-2024-full-versjon
+- Auth (Application Services, Introduction and Application Login):
+  https://tamigono.freshdesk.com/support/solutions/articles/5000793304-application-services-
+- Changelog: no changelog; the API folder lists dated articles (newest: Departments endpoint 2025-11-28,
+  Driftskonto 2026-02-27, neither changes the endpoints used):
+  https://tamigono.freshdesk.com/support/solutions/folders/5000296483
 
-## ReAI API
+## API version
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Unversioned REST on `https://api.tamigo.com`; the 01.04.2024 document calls itself the latest at all times.
+No sunset announced.
 
-- `/api/employees`
-- `/api/projects`
-- `/api/timesheets`
+## Auth
+
+Administrator creates an application key under Configuration → Web Services (API). The customer enters the
+application name and key. `POST /login/application` with `{ Name, Key }` returns `SessionToken`, sent as
+header `x-tamigo-token`. One login per fetch. Never stored.
+
+## Endpoints
+
+`GET /attendance/CheckInOutOverview/?startDate=yyyy-MM-dd&endDate=yyyy-MM-dd&departmentId=all`. Returns
+a plain array, no paging. Fields used: `Date` (`/Date(ms+zzzz)/`, read as the local calendar date),
+`ActualShiftHours`, `EmployeeName`, `WageSystemKey`, `DepartmentName`, `ActualShiftText`,
+`ActualShiftComment`. Employee filter (name substring or `WageSystemKey`) is applied locally because the
+endpoint has no employee parameter.
+
+## Budget
+
+- Fetch: 2 subrequests (login + overview). Range guard 93 days (docs state no maximum).
+- Post one shift: `GET /api/timesheets?employeeId&startDate&endDate` (same day) + `POST /api/timesheets`. 2.
+- Page load: `GET /api/employees` + `GET /api/projects?archived=false` (1 per 200 projects).
+- No rate limit documented; no retry logic.
+
+## ReAI endpoints
+
+`GET /api/employees`, `GET /api/projects`, `GET /api/timesheets`, `POST /api/timesheets`.
+
+## Mapping
+
+- One timesheet entry per shift: date, `ActualShiftHours` rounded to 2 decimals (0.01 to 24), comment
+  `[Tamigo] <department> · <shift text> · <comment>`, chosen project.
+- Rows from several Tamigo employees cannot be posted (all would land on one ReAI employee); the customer
+  must filter to one employee.
+- Duplicate check: an entry for the same employee, date, hours and comment is reported as already logged.
 
 ## Caveats
 
-Docs are PDFs attached to the article (Application Services, section Attendance Services c) Get Check-in/Check-out Overview). Docs do not state a max range; our guard is 93 days. web/test/provider-api.test.mjs (shared) still calls the old fetchApi credential names and response shapes for this slug and will fail until it is updated or dropped.
+- Not tested against a live tenant. `ActualShiftHours` is assumed to exclude breaks, as in the Timesheet.
+- Shifts with zero actual hours (planned only) are skipped.
 
 ## Rules
 
@@ -34,4 +68,4 @@ Docs are PDFs attached to the article (Application Services, section Attendance 
 - Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
 - Update this file when the API version, endpoints or caveats change.
 
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

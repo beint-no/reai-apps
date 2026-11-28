@@ -222,7 +222,7 @@ export async function handle(request, env) {
       await assertVatCodes(env, session, v.lines);
       const marker = `${BRAND} activity ${v.activityId} prepaid`;
       const around = (/** @type {number} */ days) => new Date(Date.parse(`${v.date}T00:00:00Z`) + days * 86400_000).toISOString().slice(0, 10);
-      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: around(-120), endDate: around(120), includeReversed: 'true' } }));
+      const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: around(-120), endDate: around(120), voucherType: 'manual', includeReversed: 'true' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
       const created = /** @type {{ id: number, number: string, webUrl?: string }} */ (await reaiRequest(env, '/api/manual-vouchers', {

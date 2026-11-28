@@ -14,7 +14,7 @@ highlights:
 
 ## What it does
 
-The integration fetches every successful SumUp payout for one month and matches it against pending ReAI bank transactions by amount, date and reference. You get a CSV report as documentation. Nothing is booked.
+The integration fetches every successful SumUp payout for one month and matches it against pending ReAI bank transactions by amount, date and reference. Deductions for refunds and chargebacks are shown as a separate note. You get a CSV report as documentation. Nothing is booked.
 
 SumUp deducts the card fee before paying out. Gross sales, the card fee (`7770`, VAT code `0`) and the net bank deposit are posted separately.
 

@@ -21,12 +21,12 @@ Integrasjonen leser produktene og de nyeste gyldige ordrene i PrestaShop, sammen
 | Produkt med referanse og pris | Produkt med varenummer og salgspris |
 | Gyldig ordre | Ordreutkast med én linje for ordresummen eksklusive MVA og ekstern referanse `prestashop-<id>` |
 
-Kontroller MVA-kode og valuta på ordreutkastet før du fakturerer.
+Ordreutkastet får samme valuta som ordren i PrestaShop. Kontroller MVA-koden før du fakturerer.
 
 ## Slik kommer du i gang
 
 1. I administrasjonen i PrestaShop går du til **Advanced Parameters → Webservice** og slår på Webservice.
-2. Legg til en nøkkel med `GET`-tilgang til `products`, `orders` og `customers`, og kopier den.
+2. Legg til en nøkkel med `GET`-tilgang til `products`, `orders`, `customers` og `currencies`, og kopier den.
 3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
 4. Legg inn adressen til nettbutikken og nøkkelen, og klikk **Scan PrestaShop**.
 5. Opprett nye produkter og klikk **Stage order** på ordrene du vil fakturere.

@@ -14,9 +14,9 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads attested SmartDok hours within the chosen period, at most 93 days at a time. Hours already exported to payroll are included. Additions, allowances and machine hours are left out. You can limit it to one employee by name or employee number. Hours are net hours after breaks when SmartDok provides them.
+The integration reads attested SmartDok hours within the chosen period, at most 93 days at a time. Hours already exported to payroll are included. Absence, additions, allowances and machine hours are left out. You can limit it to one employee by name or employee number. Hours are net hours after breaks when SmartDok provides them.
 
-You post lines one by one to ReAI Timesheets for the employee and project you choose.
+You post lines one by one to ReAI Timesheets for the employee and project you choose. A line that is already posted is not posted again.
 
 ## Setup
 

@@ -16,7 +16,7 @@ highlights:
 
 The integration reads hours that are not invoiced in Ordrestyring, with start time in the chosen period, and case materials and other expenses added in the same period.
 
-* **Hours** become ReAI timesheet rows with hour type, description and case. Employees are matched to ReAI employees by name, with a fallback employee you choose. Rejected hours are skipped.
+* **Hours** become ReAI timesheet rows with hour type, description and case. Employees are matched to ReAI employees by name, with a fallback employee you choose. Rejected hours are skipped, and an hour already logged in ReAI is not logged again.
 * **Invoice basis** becomes one draft ReAI order per case: the sales price of the hours plus the totals of materials and other expenses, ex. VAT. Lines that are already in an Ordrestyring invoice draft are left out. The order carries the case number as external reference, so staging the same case twice opens the existing draft instead of creating a new one.
 
 Nothing is invoiced or booked automatically. You review and invoice each draft order in ReAI, where the sales account and VAT code are set.

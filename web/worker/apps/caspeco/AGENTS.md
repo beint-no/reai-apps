@@ -2,31 +2,73 @@
 
 Route `/app/caspeco/`. Docs pages: `web/content/{nb,en}/web-apps/caspeco/index.md`.
 
-## Vendor API
+Purpose: total one Caspeco business day of sales lines into one balanced ReAI review voucher, sales by
+VAT rate, payments by payment type and tips payable.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developers.caspeco.se/v1/guides/sales-export-api/overview/
-- https://developers.caspeco.se/v1/guides/sales-export-api/data-specification/
-- https://developers.caspeco.se/v1/api/analytics/operations/exportapi_sales/
-- https://developers.caspeco.se/
+- Export API overview (auth, URL, limits, business day): https://developers.caspeco.se/v1/guides/sales-export-api/overview/
+- Data specification (fields): https://developers.caspeco.se/v1/guides/sales-export-api/data-specification/
+- Reference: https://developers.caspeco.se/v1/api/analytics/operations/exportapi_sales/
+- Portal and current APIs: https://developers.caspeco.se/
+- No public changelog.
 
-- Mode: api
-- Auth: Classic Sales Export API: Caspeco support issues an AuthKey and the customer's system name (overview: token 'provided to you by Caspeco or through the shared customer'). Sent as AuthKey header to GET https://salesapi.caspeco.net/api/sales/{system}/{YYYY-MM-DD}; 100 requests per day per token.
-- Hosts in code: `developers.caspeco.se`, `salesapi.caspeco.net`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. (Caspeco Norge AS). caspeco.com live, sells POS, staff, booking and analytics.
+## API version
+
+Classic Sales Export API (`https://salesapi.caspeco.net/api/sales`). Caspeco lists it under Classic
+APIs: "still supported for existing integrations, but we recommend using the latest APIs for new
+projects". The newer Analytics API (OAuth client credentials at id.caspeco.se, sales with receipt
+payment amounts) needs a Caspeco partner application and integration that Caspeco sets up, so a
+customer cannot get a key for it. Switch when ReAI becomes a Caspeco partner or the classic API gets
+a sunset date.
+
+## Auth
+
+Caspeco support issues an AuthKey and the customer's system name. Header `AuthKey: <key>`.
+
+## Endpoints
+
+- `GET /api/sales/{system}/{YYYY-MM-DD}`, JSON array of sales lines for the business day 06:00:00
+  to 05:59:59 the next day. No paging.
+
+## Budget and limits
+
+Fetch: 1 request. Book: `GET /api/vouchers` (1 page per 200 vouchers that day) + `GET /api/vat-codes`
++ `POST /api/manual-vouchers`. Caspeco allows 100 requests per day per AuthKey; `429` is reported
+without retry.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /api/vouchers?startDate&endDate&includeReversed=true`: duplicate check on description prefix
+  `Caspeco <system> <date>`.
+- `GET /api/vat-codes`: output VAT code per rate (`vat_inclusive`, not reverse charge).
+- `POST /api/manual-vouchers` with `reviewReason`, postings built by `pairVoucherRows`.
+
+## Mapping
+
+Fields are read case-insensitively; rows with `EmptyGroup` true are skipped.
+
+| Source | Account |
+| --- | --- |
+| `SalesExVat + SalesVat` per line, rate from `SalesVat / SalesExVat` snapped to 25, 15, 12 or 0 | credit `3000`, `3010`, `3020`, `3100`, ReAI output VAT code |
+| same gross per line grouped by `Payment`; labels starting `cash`/`kontant` | debit `1900` |
+| other payment types | debit `1580` |
+| `TicketTip` once per `RecieptId` (`ReceiptId` accepted) | debit on that receipt's payment type, credit `2930` |
+
+Sum of `DiscountExVat + DiscountVat` is shown as a warning for comparison, not posted. Currency is
+NOK (the export has no currency field).
 
 ## Caveats
 
-The current Caspeco API (OAuth client credentials at id.caspeco.se, Analytics sales v2 with ReceiptPayments amounts) is partner-only: Caspeco reviews a partner application and creates the integration, so it was not used. The classic Export API response schema is only '{}' in the reference; field names (SalesExVat, SalesVat, Payment, TicketTip, RecieptId) come from the data specification and are read case-insensitively. VAT rate is derived from SalesVat/SalesExVat (snapped to 25/15/12/0). Payment is 'an internal Caspeco representation' with no amount, so sales are grouped by each line's payment type (split-tender receipts are approximated); not documented whether SalesExVat is after discount or whether returns are negative. Payment labels starting with 'cash'/'kontant' go to 1900. No live verification. Caspeco also owns Trivec.
+- Not verified against a live account.
+- Payment amounts are not in the export (`Payment` is an internal code), so payments mirror sales and
+  split tender receipts follow the line's type. The voucher always balances; compare with the
+  Caspeco day report.
+- Not documented whether `SalesExVat` is net of discounts or whether returns are negative lines.
+- Swedish Caspeco systems report SEK; only NOK companies should use this.
+- Caspeco also owns Trivec.
 
 ## Rules
 

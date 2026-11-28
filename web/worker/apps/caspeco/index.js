@@ -1,6 +1,6 @@
 // @ts-check
 import { pairVoucherRows } from '../../lib/voucher-rows.js';
-import { fetchJson, isoDate, num, renderApiFetchCard } from '../../lib/api-http.js';
+import { assertPublicHttpsUrl, isoDate, num, renderApiFetchCard } from '../../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
@@ -10,9 +10,9 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 
 /** @typedef {{ label: string, amountMinor: number, account?: string }} Payment */
 /** @typedef {{ ratePct: number, grossMinor: number, account?: string, label?: string, vatCode?: string }} SalesRate */
-/** @typedef {{ date: string, ref: string, payments: Payment[], sales: SalesRate[], tipsMinor: number }} Settlement */
+/** @typedef {{ date: string, ref: string, payments: Payment[], sales: SalesRate[], tipsMinor: number, discountMinor?: number, lineCount?: number }} Settlement */
 /** @typedef {{ account: string, description: string, signedMinor: number, ratePct: number | null, vatMinor: number, vatCode?: string }} VoucherLine */
-/** @typedef {{ date: string, ref: string, lines: VoucherLine[], debitMinor: number, creditMinor: number }} Voucher */
+/** @typedef {{ date: string, ref: string, lines: VoucherLine[], debitMinor: number, creditMinor: number, discountMinor?: number }} Voucher */
 
 /** @type {Record<string, string>} */
 const REVENUE_ACCOUNTS = { 25: '3000', 15: '3010', 12: '3020' };
@@ -120,13 +120,22 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const authKey = (creds.authKey ?? '').trim();
   const system = (creds.system ?? '').trim();
   if (!authKey || !/^[A-Za-z0-9_.-]{1,100}$/.test(system)) throw new HttpError(400, 'Enter the Caspeco AuthKey and system name.');
-  const data = await fetchJson(`${API}/${encodeURIComponent(system)}/${date}`, { headers: { AuthKey: authKey, accept: 'application/json' } }, BRAND, fetchImpl);
-  /** @type {Array<Record<string, unknown>>} */ const rows = Array.isArray(data) ? data : [];
+  const url = `${API}/${encodeURIComponent(system)}/${date}`;
+  assertPublicHttpsUrl(url);
+  const res = await fetchImpl(url, { headers: { AuthKey: authKey, accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+  if (res.status === 429) throw new HttpError(429, 'Caspeco allows 100 Export API requests per day for each AuthKey. Try again tomorrow.');
+  if (res.status === 401 || res.status === 403) throw new HttpError(400, 'Caspeco rejected the AuthKey. Check the key and the system name with Caspeco support.');
+  if (res.status === 404) throw new HttpError(400, `Caspeco returned HTTP 404 for system ${system}. Check the system name with Caspeco support.`);
+  if (!res.ok) throw new HttpError(400, `Caspeco Export API returned HTTP ${res.status}.`);
+  const data = await res.json();
+  /** @type {Array<Record<string, unknown>>} */ const rows = (Array.isArray(data) ? data : []).filter((r) => r && typeof r === 'object' && field(r, 'EmptyGroup') !== true);
   if (rows.length === 0) throw new HttpError(400, `Caspeco returned no sales lines for ${date}.`);
   /** @type {Map<string, number>} */ const payments = new Map();
   /** @type {Map<string, number>} */ const salesByRate = new Map();
   /** @type {Map<string, { tip: number, payment: string }>} */ const receipts = new Map();
+  let discountMinor = 0;
   for (const row of rows) {
+    discountMinor += minor(field(row, 'DiscountExVat')) + minor(field(row, 'DiscountVat'));
     const exMinor = minor(field(row, 'SalesExVat'));
     const vatMinor = minor(field(row, 'SalesVat'));
     const gross = exMinor + vatMinor;
@@ -142,7 +151,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     tipsMinor += tip;
     addTo(payments, payment, tip);
   }
-  return toSettlement(date, system, payments, salesByRate, tipsMinor);
+  return { ...toSettlement(date, system, payments, salesByRate, tipsMinor), discountMinor: Math.abs(discountMinor) };
 }
 
 /** @param {string} label */
@@ -178,7 +187,7 @@ function buildVoucher(s) {
   if (s.tipsMinor !== 0) lines.push({ account: '2930', description: `${pfx} · Staff tips payable`, signedMinor: -s.tipsMinor, ratePct: null, vatMinor: 0 });
   const debitMinor = lines.filter((l) => l.signedMinor > 0).reduce((t, l) => t + l.signedMinor, 0);
   const creditMinor = lines.filter((l) => l.signedMinor < 0).reduce((t, l) => t - l.signedMinor, 0);
-  return { date: s.date, ref: s.ref, lines, debitMinor, creditMinor };
+  return { date: s.date, ref: s.ref, lines, debitMinor, creditMinor, ...(s.discountMinor ? { discountMinor: s.discountMinor } : {}) };
 }
 
 /** @param {Voucher} v @param {boolean} isSample */
@@ -200,6 +209,7 @@ function renderPreview(v, isSample) {
         <thead><tr><th>Account</th><th>Posting</th><th>VAT</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
         <tbody>${v.lines.map((l) => html`<tr><td class="mono">${l.account}</td><td>${l.description}</td><td>${l.vatCode ? `Code ${l.vatCode}` : l.ratePct === null ? 'None' : `${l.ratePct}% (${formatMinor(-l.vatMinor)})`}</td><td class="num">${l.signedMinor > 0 ? formatMinor(l.signedMinor) : ''}</td><td class="num">${l.signedMinor < 0 ? formatMinor(-l.signedMinor) : ''}</td></tr>`)}</tbody>
       </table></div>
+      ${v.discountMinor ? reaiCallout({ tone: 'warn', body: `Caspeco reports ${formatMinor(v.discountMinor)} NOK in discounts including VAT. Sales are taken as already net of discounts; check the totals against the Caspeco day report.` }) : ''}
       <p class="muted-note">Sales lines are posted including VAT with the matching ReAI output VAT code, so ReAI separates the taxable base and VAT. Card, Vipps and other terminal payments go to clearing account 1580 for later bank matching.</p>
       ${balanced && !isSample
         ? html`<form class="stack-sm confirm-box" hx-post="${BASE_PATH}/book" hx-target="#${SLUG}-book" hx-swap="innerHTML">

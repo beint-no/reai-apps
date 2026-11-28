@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads every ticket transaction in the chosen period, optionally for one event, and sums them per VAT rate. Refunds are subtracted. The voucher is dated the last day of the period. Nothing is booked until you check the preview and create the review voucher.
+The integration reads every ticket transaction in the chosen period, optionally for one event, and sums them per VAT rate. Refunds are subtracted. Days follow Norwegian time, and the voucher is dated the last day of the period. Accounts with many transactions fetch one event at a time. Nothing is booked until you check the preview and create the review voucher.
 
 | Line | Account in ReAI |
 | --- | --- |

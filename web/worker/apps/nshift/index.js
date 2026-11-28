@@ -1,5 +1,5 @@
 // @ts-check
-import { fetchJson, isoDate, num } from '../../lib/api-http.js';
+import { fetchJson, num } from '../../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
@@ -9,7 +9,7 @@ import { appShell, reaiBadge, reaiCallout, reaiCard } from '../../lib/ui.js';
 
 /**
  * @typedef {{ ref: string, date: string, customerName: string, orderNo: string, description: string, amountExVat: number }} FreightRow
- * @typedef {{ orders: FreightRow[], nextFetchId: string, fetched: number }} FetchResult
+ * @typedef {{ orders: FreightRow[], nextFetchId: string, fetched: number, more: boolean, namesPartial: boolean }} FetchResult
  * @typedef {{ id: number, name: string }} SimpleItem
  */
 
@@ -17,8 +17,23 @@ const BRAND = 'nShift Delivery';
 const TITLE = 'nShift Delivery Freight Rebilling';
 const LEAD = 'Fetch stored freight prices for shipments printed in nShift Delivery and stage them as ReAI draft customer orders for rebilling freight.';
 const API = 'https://api.unifaun.com/rs-extapi/v1';
-const MAX_PRICE_CALLS = 50;
-const MAX_HISTORY_PAGES = 40;
+// Subrequest budget per fetch: 1 token + up to 10 price batches (100 each) + up to 25 history pages (50 each) + ReAI customers.
+const MAX_PRICE_CALLS = 10;
+const MAX_HISTORY_PAGES = 25;
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Converts an nShift timestamp (for example 2015-06-02T14:05:56.342+0000) to the Europe/Oslo calendar day.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function osloDay(value) {
+  const raw = String(value ?? '').trim();
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(raw)) return '';
+  if (raw.length <= 10) return raw.slice(0, 10);
+  const ms = Date.parse(raw.replace(/([+-][0-9]{2})([0-9]{2})$/, '$1:$2'));
+  return Number.isNaN(ms) ? raw.slice(0, 10) : OSLO_DAY.format(new Date(ms));
+}
 
 /** @param {string} day @param {number} offset */
 function addDays(day, offset) {
@@ -51,29 +66,47 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {any[]} */
   const prices = [];
   let fetchId = startFetchId;
+  let more = false;
   for (let call = 0; call < MAX_PRICE_CALLS; call++) {
+    // An empty body means no additional surcharges (documented body: { percent, amount }).
     const res = await fetchJson(`${API}/prices/history?fetchId=${encodeURIComponent(fetchId)}`, { method: 'POST', headers, body: '{}' }, BRAND, fetchImpl);
-    if (Array.isArray(res?.priceHistoryList)) prices.push(...res.priceHistoryList);
+    const list = Array.isArray(res?.priceHistoryList) ? res.priceHistoryList : [];
+    if (call === 0 && list.length === 0 && Number(res?.minDelay ?? 0) > 1000) {
+      throw new HttpError(429, `nShift Delivery asks to wait ${Math.ceil(Number(res.minDelay) / 1000)} seconds before the next price fetch.`);
+    }
+    prices.push(...list);
     if (res?.fetchId !== undefined && res?.fetchId !== null) fetchId = String(res.fetchId);
-    if (res?.done !== false) break;
+    more = res?.done === false;
+    if (!more) break;
   }
 
-  const shipDate = (/** @type {any} */ p) => isoDate(p.shipDate ?? p.shipdate ?? p.printDate ?? p.printdate, '');
+  // shipDate/printDate per PriceHistory.jsonschema; the RAML example uses lower-case shipdate/printdate.
+  const shipDate = (/** @type {any} */ p) => osloDay(p.shipDate ?? p.shipdate ?? p.printDate ?? p.printdate);
   const dated = prices.map((p) => ({ p, date: shipDate(p) })).filter((x) => x.date);
   /** @type {Map<string, string>} */
   const receiverByShipment = new Map();
+  /** @type {Map<string, string>} */
+  const receiverByOrder = new Map();
+  let namesPartial = false;
   if (dated.length > 0) {
     const days = dated.map((x) => x.date).sort();
-    const dateFrom = `${days[0]}T00:00:00+00:00`;
+    // Oslo days are at most two hours ahead of UTC, so one extra day on each side covers the window.
+    const dateFrom = `${addDays(days[0] ?? '', -1)}T00:00:00+00:00`;
     const dateTo = `${addDays(days.at(-1) ?? days[0] ?? '', 1)}T00:00:00+00:00`;
     try {
-      // The documented example response starts at page 0.
+      // The documented example response starts at page 0; 50 shipments per page.
+      let done = false;
       for (let page = 0; page < MAX_HISTORY_PAGES; page++) {
         const res = await fetchJson(`${API}/shipments-history?page=${page}&dateType=ship&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`, { headers }, BRAND, fetchImpl);
         const list = Array.isArray(res?.shipments) ? res.shipments : [];
-        for (const s of list) if (s?.shipmentNo && s?.rcvName) receiverByShipment.set(String(s.shipmentNo), String(s.rcvName));
-        if (list.length === 0 || page + 1 >= Number(res?.totalPages ?? 0)) break;
+        for (const s of list) {
+          if (!s?.rcvName) continue;
+          if (s.shipmentNo) receiverByShipment.set(String(s.shipmentNo), String(s.rcvName));
+          if (s.orderNo) receiverByOrder.set(String(s.orderNo), String(s.rcvName));
+        }
+        if (list.length === 0 || page + 1 >= Number(res?.totalPages ?? 0)) { done = true; break; }
       }
+      namesPartial = !done;
     } catch {
       // Shipment History needs its own licence; receiver names are optional.
     }
@@ -90,14 +123,14 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     const row = {
       ref: shipmentNo || String(p.orderNo ?? ''),
       date,
-      customerName: receiverByShipment.get(shipmentNo) ?? '',
+      customerName: receiverByShipment.get(shipmentNo) ?? receiverByOrder.get(String(p.orderNo ?? '').trim()) ?? '',
       orderNo: String(p.orderNo ?? '').trim(),
       description: `Freight ${service || 'shipment'}${parcels > 0 ? `, ${parcels} ${parcels === 1 ? 'parcel' : 'parcels'}` : ''}${shipmentNo ? `, shipment ${shipmentNo}` : ''}`.slice(0, 255),
       amountExVat: amount,
     };
     if (row.ref && row.amountExVat > 0) byRef.set(row.ref, row);
   }
-  return { orders: [...byRef.values()], nextFetchId: fetchId, fetched: prices.length };
+  return { orders: [...byRef.values()], nextFetchId: fetchId, fetched: prices.length, more, namesPartial };
 }
 
 const SAMPLE = /** @type {FetchResult} */ ({
@@ -107,13 +140,18 @@ const SAMPLE = /** @type {FetchResult} */ ({
   ],
   nextFetchId: '123456',
   fetched: 2,
+  more: false,
+  namesPartial: false,
 });
 
-/** @param {Array<{ row: FreightRow, customerId: number | null }>} rows @param {number} defaultCust @param {string} nextFetchId @param {boolean} isSample */
-function renderOrders(rows, defaultCust, nextFetchId, isSample) {
+/** @param {Array<{ row: FreightRow, customerId: number | null }>} rows @param {number} defaultCust @param {FetchResult} result @param {boolean} isSample @param {string} currency */
+function renderOrders(rows, defaultCust, result, isSample, currency) {
+  const { nextFetchId } = result;
   const total = rows.reduce((s, r) => s + r.row.amountExVat, 0);
   return html`
     ${reaiCallout({ tone: 'info', title: `Next fetchId: ${nextFetchId}`, body: 'Save this value and enter it next time to get only prices stored after this fetch. nShift advises at most one new fetch every five minutes.' })}
+    ${result.more ? reaiCallout({ tone: 'warn', body: 'More stored prices are waiting. Stage these, then fetch again with the fetchId above to get the next batch.' }) : ''}
+    ${result.namesPartial ? reaiCallout({ tone: 'warn', body: 'Shipment History had more pages than one fetch reads, so some receiver names are missing. Pick the customer for those lines.' }) : ''}
     ${reaiCard({
       eyebrow: 'NSHIFT DELIVERY → REAI DRAFT ORDERS',
       title: `${rows.length} shipments (${formatMinor(Math.round(total * 100))} ex. VAT)`,
@@ -129,7 +167,7 @@ function renderOrders(rows, defaultCust, nextFetchId, isSample) {
               : html`<form hx-post="/app/nshift/create-order" hx-target="#nsh-o-${idx}" hx-swap="outerHTML"><input type="hidden" name="ref" value="${row.ref}"><input type="hidden" name="orderNo" value="${row.orderNo}"><input type="hidden" name="date" value="${row.date}"><input type="hidden" name="description" value="${row.description}"><input type="hidden" name="amount" value="${row.amountExVat.toFixed(2)}"><input type="hidden" name="customerId" value="${cid}"><button type="submit" class="button primary">Stage order</button></form>`}</td></tr>`;
           })}</tbody>
         </table></div>
-        <p class="muted-note">nShift prices follow your carrier agreement and have no currency field; orders are staged in NOK. Check amounts against the carrier invoice.</p>`,
+        <p class="muted-note">nShift prices follow your carrier agreement and have no currency field; orders are staged in ${currency}, the company currency. Check amounts against the carrier invoice.</p>`,
     })}
   `;
 }
@@ -179,7 +217,7 @@ export async function handle(request, env) {
   if (request.method !== 'POST') return errorResponse('Method not allowed.', 405);
   const originError = requireSameOrigin(request);
   if (originError) return originError;
-  if (pathname === `${basePath}/sample`) return htmlResponse(renderOrders(SAMPLE.orders.map((row) => ({ row, customerId: 1 })), 1, SAMPLE.nextFetchId, true));
+  if (pathname === `${basePath}/sample`) return htmlResponse(renderOrders(SAMPLE.orders.map((row) => ({ row, customerId: 1 })), 1, SAMPLE, true, 'NOK'));
   try {
     const form = await request.formData();
     const session = await readSession(env, request);
@@ -192,7 +230,8 @@ export async function handle(request, env) {
         try { custs = /** @type {SimpleItem[]} */ (await reaiAll(env, '/api/customers', { token: session.accessToken, tenantId: session.tenantId, query: { archived: 'false' } })); } catch { custs = []; }
       }
       const byName = new Map(custs.map((c) => [c.name.trim().toLowerCase(), c.id]));
-      return htmlResponse(renderOrders(result.orders.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null })), Number(creds.defaultCustomerId ?? '0'), result.nextFetchId, false));
+      const currency = session?.tenants.find((t) => t.id === session.tenantId)?.currencyCode ?? 'NOK';
+      return htmlResponse(renderOrders(result.orders.map((row) => ({ row, customerId: byName.get(row.customerName.trim().toLowerCase()) ?? null })), Number(creds.defaultCustomerId ?? '0'), result, false, currency));
     }
     if (pathname === `${basePath}/create-order`) {
       if (!session || session.tenantId <= 0) throw new HttpError(401, 'Connect to ReAI and choose a company above first.');
@@ -203,7 +242,16 @@ export async function handle(request, env) {
       const amount = Number(form.get('amount') ?? '0');
       const customerId = Number(form.get('customerId') ?? '0');
       if (!ref || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(amount > 0) || customerId <= 0) throw new HttpError(400, 'Shipment, date, amount and customer are required.');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `nshift-${ref}`.slice(0, 100), comment: `${BRAND} shipment ${ref}${orderNo ? ` (order ${orderNo})` : ''}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
+      const currencyCode = session.tenants.find((t) => t.id === session.tenantId)?.currencyCode ?? 'NOK';
+      const externalReference = `nshift-${ref}`.slice(0, 100);
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const existing = /** @type {{ items: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/orders', { ...auth, query: { externalReference, page: '1', pageSize: '1' } }));
+      const dup = existing.items?.[0];
+      if (dup) {
+        const dupUrl = `${reaiOrigin(env)}/order/${dup.id}?tenantId=${session.tenantId}`;
+        return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>Already staged</td><td>${description}</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${dupUrl}" target="_blank" rel="noopener">Order #${dup.id} ↗</a></td></tr>`);
+      }
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { ...auth, method: 'POST', body: { customerId, currencyCode, daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${BRAND} shipment ${ref}${orderNo ? ` (order ${orderNo})` : ''}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
       return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td>${description}</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
     }

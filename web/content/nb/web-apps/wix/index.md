@@ -14,12 +14,13 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter betalte ordrer (betalingsstatus *Paid*) opprettet i valgt periode. Hver ordre vises med varelinjer og frakt, med beløp uten MVA. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
+Integrasjonen henter betalte og delvis refunderte ordrer opprettet i valgt periode, regnet i norske kalenderdager. Testordrer og arkiverte ordrer tas ikke med. Hver ordre vises med varelinjer, frakt og tilleggsgebyrer, med beløp uten MVA etter rabatt. Når du klikker **Stage in ReAI**, blir ordren en ordre i ReAI som du kontrollerer før fakturering.
 
 | Fra Wix | I ReAI |
 | --- | --- |
 | Varelinje | Ordrelinje med antall, pris uten MVA og MVA-kode for satsen Wix beregnet |
 | Frakt | Egen ordrelinje med fraktens MVA-sats |
+| Tilleggsgebyr | Egen ordrelinje med gebyrets MVA-sats |
 | Kjøper | Kunde som finnes på e-post eller navn, ellers en ny kunde |
 | Ordre-ID | Ekstern referanse, slik at samme ordre ikke legges inn to ganger |
 
@@ -30,5 +31,7 @@ Integrasjonen henter betalte ordrer (betalingsstatus *Paid*) opprettet i valgt p
 3. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
 4. Lim inn site ID og API-nøkkel, velg periode og hent ordrene.
 5. Kontroller linjene og legg inn ordrene du vil fakturere eller bokføre i ReAI.
+
+Delvis refunderte ordrer merkes og legges inn med hele salget. Før refusjonen som kreditnota i ReAI.
 
 API-nøkkelen brukes bare til denne forespørselen og lagres aldri.

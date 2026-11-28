@@ -2,38 +2,31 @@
 
 Route `/app/proteria/`. Docs pages: `web/content/{nb,en}/web-apps/proteria/index.md`.
 
-## Vendor API
+Reads the Proteria Frakt invoice report (Fakturarapport) and stages freight per shipment as ReAI draft customer orders for rebilling.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://proteria.atlassian.net/wiki/spaces/PFWS/pages/3888119809/CloudConnect+API
-- https://cloudconnect.proteria.com/swagger.json
-- https://proteria.no/api/
-- https://proteria.no/hjelpesenter/hvordan-hente-ut-fakturaspesifikasjoner/
-- https://proteria.atlassian.net/wiki/spaces/PFWS/pages/790233140
-- https://proteria.no/hjelpesenter/slik-finner-du-api-nokkelen-din-til-proteria-frakt/
+- CloudConnect API: https://proteria.atlassian.net/wiki/spaces/PFWS/pages/3888119809/CloudConnect+API and https://cloudconnect.proteria.com/swagger.json (OpenAPI "Proteria CloudConnect APIs" 2.0.0)
+- API key: https://proteria.no/hjelpesenter/slik-finner-du-api-nokkelen-din-til-proteria-frakt/
+- Invoice report: https://proteria.no/hjelpesenter/hvordan-hente-ut-fakturaspesifikasjoner/ and https://proteria.atlassian.net/wiki/spaces/PFWS/pages/790233140
 
-- Mode: csv
-- Auth: No API read access needed. Customer downloads Fakturarapport as CSV from reportingweb.proteria.com (Lag Rapport -> Fakturarapport). (CloudConnect API key exists under Proteria Web -> your name -> Din Proteria API nokkel, Authorization: Bearer, but the API is write only.)
-- Hosts in code: `cloudconnect.proteria.com`, `proteria.atlassian.net`, `proteria.no`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. proteria.no live, sells freight agreements and shipping software.
+API version: none used. CloudConnect 2.0.0 (re-checked 2026-11-28) has label, order (imported customer orders with goods values), pick up point, print, shipment creation, shipping method and template endpoints. None lists shipments or freight costs, so the documented Fakturarapport CSV is the input.
+
+Input: reportingweb.proteria.com → Lag Rapport → Fakturarapport, downloaded as CSV (semicolon, UTF-8). Documented column names include ProTeriaInvoiceNr, SenderName, SenderCountry, SenderPostalCode, DiscountPercent and AmountWithoutVAT; the full list is not published, so the user maps columns after upload (AmountWithoutVAT preselected). Amount, date and shipment number are required. Dates accept YYYY-MM-DD and DD.MM.YYYY. At most 1000 rows and 2 MB.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/customers`
-- `/api/orders`
+- `GET /api/customers?archived=false` (fallback list and name match)
+- `GET /api/orders?externalReference=proteria-<shipment>&pageSize=1` (duplicate check), `POST /api/orders` (customerId, currencyCode NOK, daysUntilDue 14, issueDate/orderDate, externalReference, comment, one line with the freight ex. VAT)
 
-## Caveats
+Subrequests: preview = 0; map = customer pages (200 per page); stage order = 2.
 
-CSV mode because CloudConnect (the Proteria Frakt API) only creates shipments, orders, labels and print jobs; no endpoint lists shipments or freight costs (only a per-shipment TrackingStatus webhook for API-created shipments). The Fakturarapport column list is not published (documented names: ProTeriaInvoiceNr, SenderName, SenderCountry, SenderPostalCode, DiscountPercent, AmountWithoutVAT), so the app has a column mapping step after upload with AmountWithoutVAT preselected; dates accept YYYY-MM-DD and DD.MM.YYYY. Creates draft customer orders (logistra pattern) in NOK, one click per row. No partner email on proteria.no; partner programme is a form at https://proteria.no/partnerprogram/.
+## Mapping and caveats
 
-## Rules
+- Rows with the same shipment number are summed in øre into one freight line, so surcharge rows are not lost and a shipment is staged once. Lines that sum to zero or less are skipped.
+- Receiver is matched to a ReAI customer by name, else the chosen fallback customer.
+- Amounts are assumed NOK and excluding VAT; the freight VAT code and sales account are set in ReAI before invoicing.
 
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

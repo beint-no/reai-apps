@@ -30,6 +30,6 @@ Each trip you record becomes a ReAI driving log trip with date, route, purpose, 
 2. The account owner or administrator then creates the API key under **API clients** and accepts the API terms. Note the **Client ID** and **Client Secret**.
 3. Create a dedicated integration user in Autogear with access to the vehicles you want to import.
 4. Click **Open integration**, connect ReAI, enter the integration user, password, Client ID and Client Secret, choose dates and fetch.
-5. Review the trips and click **Record trip** on each one you want in ReAI. Credentials are used only for that request and are never stored.
+5. Review the trips and click **Record trip** on each one you want in ReAI. A trip already in the driving log with the same date, route and kilometres is not recorded again. Credentials are used only for that request and are never stored.
 
 Do not also send the same trips from Autogear to another payroll or expense system, or the allowance is paid twice.

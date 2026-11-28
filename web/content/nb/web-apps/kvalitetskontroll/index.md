@@ -14,14 +14,14 @@ highlights:
 
 ## Dette overføres til ReAI
 
-Godkjente timeregistreringer i Kvalitetskontroll blir timelisterader i ReAI. Hver rad tar med dato, timer etter pause, timetype og kommentar. Ansatte kobles til ansatte i ReAI på navn, og du velger en ansatt som brukes når navnet ikke finnes. Radene kan knyttes til ett prosjekt i ReAI.
+Godkjente timeregistreringer i Kvalitetskontroll blir timelisterader i ReAI. Hver rad tar med dato, timer etter pause, timetype og kommentar. Ansatte og prosjekter kobles til ReAI på navn, og du velger en ansatt og et prosjekt som brukes når navnet ikke finnes. En rad som allerede er ført i ReAI, føres ikke på nytt.
 
 Ingenting bokføres i hovedboken. Timene havner i ReAI Timelister, der du godkjenner og fakturerer dem fra prosjektet som vanlig. Registreringer som ikke er godkjent i Kvalitetskontroll, tas ikke med.
 
 ## Oppsett
 
 1. Logg inn på **api.kvalitetskontroll.no/admin** med brukeren din i Kvalitetskontroll og legg til et nytt **Personal Access Token**.
-2. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt prosjekt.
+2. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt prosjekt som brukes når navnet ikke finnes.
 3. Lim inn tokenet, velg periode og klikk **Fetch from Kvalitetskontroll API**.
 4. Kontroller radene og klikk **Log hours** på dem du vil ha inn i ReAI.
 

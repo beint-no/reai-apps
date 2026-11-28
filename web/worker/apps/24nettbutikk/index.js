@@ -3,7 +3,7 @@ import { fetchJson, num, pickList } from '../../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
-import { reaiAll, reaiOrigin, reaiRequest } from '../../lib/reai.js';
+import { reaiOrigin, reaiRequest } from '../../lib/reai.js';
 import { currentMonthIso, formatMinor, monthBounds } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 
@@ -21,9 +21,11 @@ const BRAND = '24Nettbutikk';
 const BASE_PATH = '/app/24nettbutikk';
 const TITLE = '24Nettbutikk Product & Order Sync';
 const LEAD = 'Fetch products and paid orders for one month from the 24Nettbutikk API, create missing products in ReAI and stage paid orders as ReAI orders with the VAT rates from the shop.';
-const PAGE = 100;
-const MAX_PAGES = 10;
-const MAX_CUSTOMERS = 40;
+const PAGE = 250;
+const MAX_PRODUCT_PAGES = 6;
+const MAX_ORDER_PAGES = 6;
+const MAX_CUSTOMERS = 20;
+const CUSTOMER_CONCURRENCY = 5;
 
 /**
  * Validates that a user-supplied store base URL is public HTTPS (prevents SSRF).
@@ -63,31 +65,56 @@ function customerName(c) {
 }
 
 /**
- * Reads every page of one 24Nettbutikk collection with offset paging (limit/offset/since as URI segments).
+ * Reads every page of one 24Nettbutikk collection (limit/offset[/since] as URI segments).
+ * The offset advances by the rows actually returned and paging stops when the response has no
+ * `paging.next` link, so a server-side cap on `limit` cannot skip rows.
  * @param {string} base
  * @param {string} model
  * @param {number | null} since
+ * @param {number} maxPages
  * @param {Record<string, string>} headers
  * @param {import('../../lib/api-http.js').FetchLike} fetchImpl
  * @returns {Promise<any[]>}
  */
-async function listAll(base, model, since, headers, fetchImpl) {
+async function listAll(base, model, since, maxPages, headers, fetchImpl) {
   /** @type {any[]} */
   const all = [];
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const url = `${base}/api/v1/${model}/${PAGE}/${page * PAGE}${since === null ? '' : `/${since}`}`;
-    const rows = pickList(await fetchJson(url, { headers }, BRAND, fetchImpl), ['data']);
+  let offset = 0;
+  for (let page = 0; page < maxPages; page++) {
+    const url = `${base}/api/v1/${model}/${PAGE}/${offset}${since === null ? '' : `/${since}`}`;
+    const body = await fetchJson(url, { headers }, BRAND, fetchImpl);
+    const rows = pickList(body, ['data']);
     all.push(...rows);
-    if (rows.length < PAGE) break;
+    offset += rows.length;
+    if (rows.length === 0 || !body?.paging?.next) return all;
   }
-  return all;
+  throw new HttpError(400, model === 'orders'
+    ? `24Nettbutikk has more than ${maxPages * PAGE} orders changed since the start of the month. Choose a more recent month.`
+    : `24Nettbutikk has more than ${maxPages * PAGE} products, more than one scan can read.`);
+}
+
+/**
+ * Runs async work over items with at most `limit` calls in flight.
+ * @template T
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T) => Promise<void>} work
+ */
+async function eachLimited(items, limit, work) {
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const item = /** @type {T} */ (items[next++]);
+      await work(item);
+    }
+  }));
 }
 
 /**
  * Fetches products and the month's paid orders from the 24Nettbutikk webshop API.
  * Docs (published by Sincos Software AS, the company behind 24Nettbutikk):
  * https://github.com/SincosSoftware/webshop_api/wiki/API-Documentation (Basic auth with token:x-oauth-basic,
- * limit/offset/since URI segments, { data } envelope),
+ * limit/offset/since URI segments, { data, paging: { next } } envelope, since/until filter modified_on),
  * https://github.com/SincosSoftware/webshop_api/wiki/products (GET /api/v1/products),
  * https://github.com/SincosSoftware/webshop_api/wiki/orders (GET /api/v1/orders, order and order line resources),
  * https://github.com/SincosSoftware/webshop_api/wiki/customers (GET /api/v1/customers/<customer_id>).
@@ -105,8 +132,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const since = Math.floor(Date.parse(`${bounds.start}T00:00:00Z`) / 1000) - 86_400;
 
   const [rawProducts, rawOrders] = await Promise.all([
-    listAll(base, 'products', null, headers, fetchImpl),
-    listAll(base, 'orders', since, headers, fetchImpl),
+    listAll(base, 'products', null, MAX_PRODUCT_PAGES, headers, fetchImpl),
+    listAll(base, 'orders', since, MAX_ORDER_PAGES, headers, fetchImpl),
   ]);
 
   /** @type {StoreProduct[]} */
@@ -128,11 +155,11 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const ids = [...new Set(paid.map((o) => String(o.customer_id ?? '')).filter((id) => /^[0-9]+$/.test(id) && id !== '0'))].slice(0, MAX_CUSTOMERS);
   /** @type {Map<string, any>} */
   const customers = new Map();
-  await Promise.all(ids.map(async (id) => {
+  await eachLimited(ids, CUSTOMER_CONCURRENCY, async (id) => {
     const body = await fetchJson(`${base}/api/v1/customers/${id}`, { headers }, BRAND, fetchImpl);
     const c = pickList(body, ['data'])[0];
     if (c) customers.set(id, c);
-  }));
+  });
 
   /** @type {StoreOrder[]} */
   const orders = paid.map((o) => {
@@ -153,7 +180,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     let note = '';
     if (restMinor > 0) lines.push({ name: String(o.shipping_method_text ?? '').trim() || 'Shipping and charges', quantity: 1, netMinor: restMinor, vatRate: num(o.vat) });
     if (restMinor < 0 || (Array.isArray(o.used_gift_cards) && o.used_gift_cards.length > 0)) note = 'Paid partly with a gift card. Book it in ReAI by hand.';
-    if (!c) note = note || 'Customer details were not loaded.';
+    if (!c) note = note || 'Customer details were not loaded (lookup limit per scan). Stage it by hand in ReAI.';
     return {
       orderNo: String(o.order_no ?? ''),
       date: String(o.order_date).slice(0, 10),
@@ -182,7 +209,44 @@ function invoiceVatCode(codes, rate) {
   return match.code;
 }
 
-/** @param {{ products: Array<{ p: StoreProduct, exists: boolean }>, orders: Array<{ o: StoreOrder, customerId: number | null }>, storeLabel: string, month: string, isSample?: boolean }} state */
+/**
+ * Finds the one ReAI customer for a shop customer: exact organisation number first, then exact
+ * primary email (both server-side filters on GET /api/customers).
+ * @param {import('../../lib/types.d.ts').Env} env
+ * @param {{ token: string, tenantId: number }} auth
+ * @param {StoreOrder} o
+ * @returns {Promise<number>}
+ */
+async function findReaiCustomer(env, auth, o) {
+  /** @type {Array<Record<string, string>>} */
+  const filters = [];
+  if (/^[0-9]{9}$/.test(o.organisationNo)) filters.push({ organizationNumber: o.organisationNo });
+  if (o.customerEmail) filters.push({ email: o.customerEmail });
+  for (const query of filters) {
+    const page = /** @type {{ items: ReAICustomer[] }} */ (await reaiRequest(env, '/api/customers', { ...auth, query: { ...query, pageSize: '2' } }));
+    if (page.items.length === 1 && page.items[0]) return page.items[0].id;
+    if (page.items.length > 1) throw new HttpError(409, `Several ReAI customers match ${Object.values(query)[0]}. Merge or archive the duplicates in ReAI first.`);
+  }
+  const who = [o.organisationNo && `organisation number ${o.organisationNo}`, o.customerEmail && `email ${o.customerEmail}`].filter(Boolean).join(' or ');
+  throw new HttpError(400, who ? `No ReAI customer has ${who}. Create ${o.customerName} in ReAI first.` : `${o.customerName} has no organisation number or email in 24Nettbutikk, so no ReAI customer can be matched.`);
+}
+
+/**
+ * Reads ReAI product SKUs (at most five pages); the create action re-checks each SKU server side.
+ * @param {import('../../lib/types.d.ts').Env} env
+ * @param {{ token: string, tenantId: number }} auth
+ */
+async function reaiSkus(env, auth) {
+  const skus = new Set();
+  for (let page = 1; page <= 5; page++) {
+    const res = /** @type {{ items: ReAIProduct[], hasNext: boolean }} */ (await reaiRequest(env, '/api/products', { ...auth, query: { page: String(page), pageSize: '200' } }));
+    for (const p of res.items) for (const v of p.variants ?? []) if (v.sku) skus.add(v.sku.trim().toLowerCase());
+    if (!res.hasNext) break;
+  }
+  return skus;
+}
+
+/** @param {{ products: Array<{ p: StoreProduct, exists: boolean }>, orders: Array<{ o: StoreOrder }>, storeLabel: string, month: string, isSample?: boolean }} state */
 function renderStoreSync(state) {
   const newProds = state.products.filter((x) => !x.exists).length;
   return html`
@@ -213,9 +277,10 @@ function renderStoreSync(state) {
     ${reaiCard({
       eyebrow: `${BRAND.toUpperCase()} ORDERS → REAI ORDERS`,
       title: 'Paid orders',
-      body: html`<div class="table-wrap"><table class="data-table">
+      body: html`<p class="muted-note">The ReAI customer is matched by organisation number or email when you stage an order.</p>
+      <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Lines</th><th class="num">Total incl. VAT</th><th>Action</th></tr></thead>
-        <tbody>${state.orders.slice(0, 200).map(({ o, customerId }, idx) => html`<tr id="ec-o-${idx}">
+        <tbody>${state.orders.slice(0, 200).map(({ o }, idx) => html`<tr id="ec-o-${idx}">
           <td class="mono">${o.orderNo}</td><td class="mono">${o.date}</td><td><strong>${o.customerName}</strong>${o.customerEmail ? html`<br><span class="muted-note">${o.customerEmail}</span>` : ''}</td>
           <td>${o.lines.map((l) => html`<div>${l.quantity} × ${l.name} (${formatMinor(l.netMinor)} + ${l.vatRate}%)</div>`)}</td>
           <td class="num">${formatMinor(o.grossMinor)} ${o.currency}</td>
@@ -223,10 +288,8 @@ function renderStoreSync(state) {
             ? html`<span class="muted-note">Demo only</span>`
             : o.note
               ? html`<span class="muted-note">${o.note}</span>`
-              : !customerId
-                ? html`<span class="muted-note">No matching ReAI customer</span>`
-                : html`<form hx-post="${BASE_PATH}/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
-                    <input type="hidden" name="orderJson" value="${JSON.stringify(o)}"><input type="hidden" name="customerId" value="${customerId}">
+              : html`<form hx-post="${BASE_PATH}/sync-order" hx-target="#ec-o-${idx}" hx-swap="outerHTML">
+                    <input type="hidden" name="orderJson" value="${JSON.stringify(o)}">
                     <button type="submit" class="button primary">Stage order</button>
                   </form>`}</td>
         </tr>`)}</tbody>
@@ -291,7 +354,6 @@ export async function handle(request, env) {
       ],
       orders: [{
         o: { orderNo: '5001', date: '2026-10-20', customerId: '77', customerName: 'Nordisk Handel AS', customerEmail: 'post+24nb@aiak.no', organisationNo: '', currency: 'NOK', grossMinor: 198800, lines: [{ name: 'Ullgenser', quantity: 1, netMinor: 95920, vatRate: 25 }, { name: 'Termoflaske', quantity: 1, netMinor: 39920, vatRate: 25 }, { name: 'Bring Pakke til hentested', quantity: 1, netMinor: 23200, vatRate: 25 }], note: '' },
-        customerId: 1,
       }],
     }));
   }
@@ -306,34 +368,25 @@ export async function handle(request, env) {
       /** @type {Record<string, string>} */
       const creds = {};
       for (const [k, v] of form.entries()) creds[k] = String(v);
-      const [store, pRaw, cRaw] = await Promise.all([
-        fetchApi(creds),
-        reaiAll(env, '/api/products', auth),
-        reaiAll(env, '/api/customers', auth),
-      ]);
-      const skus = new Set();
-      for (const p of /** @type {ReAIProduct[]} */ (pRaw)) {
-        for (const v of p.variants ?? []) if (v.sku) skus.add(v.sku.trim().toLowerCase());
-      }
-      const custs = /** @type {ReAICustomer[]} */ (cRaw);
-      /** @param {StoreOrder} o */
-      const matchCustomer = (o) => {
-        const email = o.customerEmail.toLowerCase();
-        return custs.find((c) => (o.organisationNo && c.organizationNumber === o.organisationNo)
-          || (email && ((c.email ?? '').toLowerCase() === email || (c.invoiceEmail ?? '').toLowerCase() === email)))?.id ?? null;
-      };
+      const [store, skus] = await Promise.all([fetchApi(creds), reaiSkus(env, auth)]);
       return htmlResponse(renderStoreSync({
         storeLabel: store.storeLabel,
         month: store.month,
         products: store.products.map((p) => ({ p, exists: skus.has(p.sku.trim().toLowerCase()) })),
-        orders: store.orders.map((o) => ({ o, customerId: matchCustomer(o) })),
+        orders: store.orders.map((o) => ({ o })),
       }));
     }
 
     if (pathname === `${BASE_PATH}/sync-product`) {
       const p = /** @type {StoreProduct} */ (JSON.parse(String(form.get('productJson') ?? '{}')));
       if (!p.sku || !p.title) throw new HttpError(400, 'The product has no SKU or name.');
-      const codes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } }));
+      const [found, codes] = await Promise.all([
+        /** @type {Promise<{ items: ReAIProduct[] }>} */ (reaiRequest(env, '/api/products', { ...auth, query: { query: p.sku.slice(0, 255), pageSize: '50' } })),
+        /** @type {Promise<VatCode[]>} */ (reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } })),
+      ]);
+      const sku = p.sku.trim().toLowerCase();
+      const existing = found.items.find((x) => (x.variants ?? []).some((v) => (v.sku ?? '').trim().toLowerCase() === sku));
+      if (existing) return htmlResponse(html`<tr><td class="mono">${p.sku}</td><td><strong>${p.title}</strong></td><td class="num">${formatMinor(Math.round(Number(p.price) * 100))}</td><td>${p.vatRate}%</td><td>${reaiBadge({ text: `In ReAI #${existing.id}`, tone: 'neutral' })}</td><td><span class="muted-note">Synced</span></td></tr>`);
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/products', {
         ...auth,
         method: 'POST',
@@ -344,11 +397,13 @@ export async function handle(request, env) {
 
     if (pathname === `${BASE_PATH}/sync-order`) {
       const o = /** @type {StoreOrder} */ (JSON.parse(String(form.get('orderJson') ?? '{}')));
-      const customerId = Number(form.get('customerId') ?? '0');
-      if (!o.orderNo || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(o.date)) || !Array.isArray(o.lines) || o.lines.length === 0 || customerId <= 0) throw new HttpError(400, 'The order is incomplete.');
+      if (!o.orderNo || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(o.date)) || !Array.isArray(o.lines) || o.lines.length === 0) throw new HttpError(400, 'The order is incomplete.');
       const company = session.tenants.find((t) => t.id === session.tenantId);
       if (company && o.currency !== company.currencyCode) throw new HttpError(400, `The order is in ${o.currency}, but the ReAI company uses ${company.currencyCode}.`);
-      const codes = /** @type {VatCode[]} */ (await reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } }));
+      const [customerId, codes] = await Promise.all([
+        findReaiCustomer(env, auth, o),
+        /** @type {Promise<VatCode[]>} */ (reaiRequest(env, '/api/vat-codes', { ...auth, query: { usage: 'customer_invoice' } })),
+      ]);
       const created = /** @type {{ id: number, number?: string }} */ (await reaiRequest(env, '/api/orders', {
         ...auth,
         method: 'POST',

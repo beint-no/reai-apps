@@ -2,31 +2,74 @@
 
 Route `/app/amendo/`. Docs pages: `web/content/{nb,en}/web-apps/amendo/index.md`.
 
-## Vendor API
+Purpose: total the Amendo Z-reports (dagsoppgjør) signed on one day into one balanced ReAI review
+voucher, sales by VAT rate and payments by payment type.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://api.tellix.no/api/doc
-- https://jsapi.apiary.io/apis/tellixprotouch.apib
-- https://amendo.no/om-oss/
-- https://amendo.no/integrasjoner/
+- Reference and auth (Tellix ProTouch web API, which the Amendo back office runs on): https://api.tellix.no/api/doc
+- ProTouch blueprint: https://jsapi.apiary.io/apis/tellixprotouch.apib
+- Vendor and API access: https://amendo.no/om-oss/ ("åpent API på forespørsel"), https://amendo.no/integrasjoner/
+- No public changelog. The reference lists `v3` as the only `{version}` value.
 
-- Mode: api
-- Auth: Amendo issues API username, password and API key on request to existing customers (amendo.no/om-oss: 'åpent API på forespørsel'). POST https://api.tellix.no/web/v3/getaccesstoken (form: username, password, apikey) returns a 6-hour token sent as the raw Authorization header (no Bearer).
-- Hosts in code: `api.tellix.no`, `jsapi.apiary.io`
-- Vendor status: Brreg (2026-11-28): not konkurs, not under avvikling or tvangsavvikling, no slettedato. amendo.no live (Copyright AMENDO GROUP AS), sells Amendo POS on Tellix ProTouch.
+## API version
+
+`https://api.tellix.no/web/v3`, the only documented version.
+
+## Auth
+
+Amendo support issues an API username, password and API key to existing customers on request. One
+`POST /web/v3/getaccesstoken` (form `username`, `password`, `apikey`) per action returns
+`{ token }` (valid 6 hours), sent as the raw `Authorization` header (no `Bearer`). Requests also
+send `Source: ReAI Apps`.
+
+## Endpoints
+
+- `GET /web/v3/zreport/list?offset&limit=100`. `limit` is required; no date filter and no documented
+  sort order or max limit. Response `{ status, data[], totalCount }`.
+
+Paging: the module detects the sort order from the first page (`signDate` of first vs last row).
+Newest first: page forward and stop once a page's oldest day is before the chosen day. Oldest first:
+if the first page already passes the day stop, else walk back from the last page (`totalCount`)
+and stop once a page's oldest day is before the chosen day. Unknown order: scan forward. Max 20
+pages; if the day is not reached, the error asks for a more recent date.
+
+## Budget
+
+Fetch: 1 token + 1 to 20 list pages (typically 2 to 4). Book: `GET /api/vouchers` (1 page per 200
+vouchers that day) + `GET /api/vat-codes` + `POST /api/manual-vouchers`. No rate limit is documented.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /api/vouchers?startDate&endDate&includeReversed=true`: duplicate check on description prefix
+  `Amendo Z <numbers> <date>`.
+- `GET /api/vat-codes`: output VAT code per rate (`vat_inclusive`, not reverse charge).
+- `POST /api/manual-vouchers` with `reviewReason`, postings built by `pairVoucherRows`.
+
+## Mapping
+
+Reports with `signDate` (fallback `cashSettlementDate`, `YYYY/MM/DD`) equal to the day and
+`IsZReport` not false, deduplicated by `cashSettlementId`.
+
+| Source | Account |
+| --- | --- |
+| `paymentMethodTurnover[].amount` with `paymentType` starting `Kontant`/`cash` | debit `1900` |
+| other payment types (card, Vipps, Faktura) | debit `1580` |
+| `vatTurnover[].turnoverInclVat` less `returnVatTurnover[]` per `vatRatePercent` | credit `3000` (25), `3010` (15), `3020` (12), `3100` other, ReAI output VAT code |
+| non VAT lines | VAT code `0` |
+
+Currency is NOK (the Z-report has no currency field; receipts in the same API report `NOK`).
 
 ## Caveats
 
-Amendo's back office runs on the Tellix ProTouch platform; the API host api.tellix.no is not named on any Amendo page (found via bo.tellix.no). GET /zreport/list has only offset/limit (no date filter), so up to 20 pages of 100 are scanned and matched on signDate/cashSettlementDate ('YYYY/MM/DD'). Uses data[].vatTurnover[].turnoverInclVat (sales), returnVatTurnover (subtracted) and paymentMethodTurnover[] (paymentType, amount); 'Kontant' goes to 1900, other types including Faktura to 1580. Gift cards, credit notes and totalRoundOff are not mapped, so such days show a difference and cannot be booked. Sends the blueprint's Source header ('ReAI Apps'). Error 104 'WebShop Integration module is disabled' suggests a module may need enabling. No live verification. support@amendo.no is the fallback.
+- Not verified against a live account.
+- `issuedGiftCards`, `issuedCreditNotes`, `prefillVouchersValue` and `totalRoundOff` are not mapped; a
+  day with these shows a difference and cannot be booked.
+- Gift card redemptions arrive as a payment type and go to `1580`.
+- Error 104 "WebShop Integration module is disabled" suggests a module must be enabled by Amendo.
+- `api.tellix.no` is not named on Amendo's site (found via `bo.tellix.no`).
 
 ## Rules
 

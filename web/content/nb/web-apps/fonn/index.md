@@ -23,7 +23,7 @@ Ingenting bokføres i hovedboken. Timene havner i ReAI Timelister, der du godkje
 1. Registrer deg på **Fonn API developer portal** (api-developer.fonn.io) med samme e-post som Fonn-brukeren din, åpne **Profile** og legg til et abonnement. Fonn aktiverer det, og **abonnementsnøkkelen** vises deretter under **Profile**.
 2. Som organisasjonsadministrator i Fonn klikker du **ORGANIZATION** øverst til høyre, åpner **Integrations → API**, velger brukeren tokenet skal gjelde for og klikker **Generate token**.
 3. Klikk **Åpne integrasjon**, koble til ReAI og velg ansatt og eventuelt prosjekt.
-4. Fyll inn abonnementsnøkkel og tilgangstoken. La organisasjons-ID stå tom for å finne den automatisk, og fyll inn prosjektnummer hvis organisasjonen har mange prosjekter. Velg en periode på inntil 62 dager og klikk **Fetch from Fonn API**.
-5. Kontroller radene og klikk **Log hours** på dem du vil ha inn i ReAI.
+4. Fyll inn abonnementsnøkkel og tilgangstoken. La organisasjons-ID stå tom for å finne den automatisk, og fyll inn prosjektnummer eller velg en kortere periode hvis organisasjonen har mange prosjekter. Velg en periode på inntil 62 dager og klikk **Fetch from Fonn API**.
+5. Kontroller radene og klikk **Log hours** på dem du vil ha inn i ReAI. Et timekort som allerede er ført, føres ikke på nytt.
 
 Nøklene brukes bare til denne forespørselen og lagres aldri.

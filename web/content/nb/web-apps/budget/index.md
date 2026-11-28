@@ -1,30 +1,26 @@
 ---
-title: "12-måneders NS 4102 budsjettimport"
-seoTitle: "12-måneders NS 4102 budsjettimport — Gratis open source for ReAI"
-description: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI og se kvartalssummer direkte."
-summary: "Last opp 12-måneders NS 4102-budsjett fra Excel/CSV rett til ReAI og se kvartalssummer direkte."
+title: "Budsjettimport fra CSV"
+seoTitle: "Budsjett fra CSV til ReAI | Gratis integrasjon med åpen kildekode"
+description: "Last opp månedsbudsjett per resultatkonto fra Excel eller CSV til ReAI, og se det lagrede budsjettet per kvartal."
+summary: "Last opp månedsbudsjett per resultatkonto til ReAI og se det lagrede budsjettet per kvartal."
 industry: operations
 webAppUrl: /app/budget/
 sourcePath: web/worker/apps/budget/
 highlights:
-  - "Tilpasset norsk bokføringsskikk (FP&A & annual company budgeting)"
-  - "Direkte kobling mot ReAI sitt åpne API (PUT /api/company-budgets/{year} & GET /api/company-budgets/{year})"
-  - "Helt gratis i ReAI — åpen kildekode (MIT) med innebygd testmodus"
+  - "Ett budsjettår lagres samlet i ReAI"
+  - "Godtar norske tallformater"
+  - "Viser det lagrede budsjettet per kvartal"
 ---
 
-## Slik fungerer 12-måneders NS 4102 budsjettimport med ReAI
+## Dette overføres til ReAI
 
-Bruk **12-måneders NS 4102 budsjettimport** rett i nettleseren på `apps.reai.no/app/budget/` uten ekstra månedlige koblingsgebyrer.
+Filen har kontonummer i første kolonne og ett beløp per måned fra januar til desember. Bare resultatkontoer (3000 til 8999) er med. Inntekter og kostnader føres som positive beløp, reduksjoner som negative.
 
-| Område | Detaljer |
-| --- | --- |
-| **Bruksområde** | FP&A & annual company budgeting |
-| **ReAI API / NS 4102** | `PUT /api/company-budgets/{year} & GET /api/company-budgets/{year}` |
-| **Innlogging** | Nettlesergodkjenning i ReAI med kryptert `HttpOnly`-økt |
-| **Lisens og pris** | Gratis med ReAI · MIT åpen kildekode (`web/worker/apps/budget.js`) |
+Appen erstatter hele budsjettåret i ReAI. Kontoer som ikke står i filen, får null i budsjett. Hvis noen har endret budsjettet i ReAI mens du lastet opp, avvises opplastingen og du kan prøve igjen.
 
-## Kom i gang på 2 minutter
+## Slik kommer du i gang
 
-1. Åpne [apps.reai.no/app/budget/](/app/budget/) og klikk **Connect to ReAI**.
-2. Test først med **Load sample**, eller koble til eksport/API fra systemet ditt.
-3. Kontroller forhåndsvisningen og send direkte inn i ReAI.
+1. Lagre budsjettet fra Excel som CSV med en overskriftsrad.
+2. Åpne appen, klikk **Connect to ReAI** og velg selskap.
+3. Velg år, last opp filen og klikk **Replace budget in ReAI**.
+4. Klikk **Load live ReAI budget** for å kontrollere resultatet.

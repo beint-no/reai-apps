@@ -14,12 +14,12 @@ highlights:
 
 ## What moves into ReAI
 
-The integration fetches active customers, suppliers and products from PowerOffice Go and lists everything before anything is sent to ReAI. You import each row with one click. When the organization number or product number already exists in ReAI, no new record is created.
+The integration fetches active customers, suppliers and products from PowerOffice Go and lists everything before anything is sent to ReAI. You import each row with one click. When the organization number, name or product number already exists in ReAI, no new record is created. Private persons are created as private contacts.
 
 | From PowerOffice Go | In ReAI |
 | --- | --- |
-| Customer | Customer with the same number, organization number and email |
-| Supplier | Supplier with the same number, organization number and email |
+| Customer | Customer with the same number, organization number, email, phone and address |
+| Supplier | Supplier with the same number, organization number, email, phone and address |
 | Product | Product with the product number as SKU and the price excluding VAT |
 
 Products get the default VAT code and revenue account in ReAI, so check them after the import. Book the opening balance from the SAF-T file in the [SAF-T tool](/app/saft/).

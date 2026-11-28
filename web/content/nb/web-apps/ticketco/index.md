@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter alle billettransaksjoner i valgt periode, eventuelt for ett arrangement, og summerer dem per MVA-sats. Refusjoner trekkes fra. Bilaget dateres siste dag i perioden. Ingenting bokføres før du har kontrollert forhåndsvisningen og opprettet bilaget.
+Integrasjonen henter alle billettransaksjoner i valgt periode, eventuelt for ett arrangement, og summerer dem per MVA-sats. Refusjoner trekkes fra. Dagen regnes etter norsk tid, og bilaget dateres siste dag i perioden. Har kontoen mange transaksjoner, henter du ett arrangement om gangen. Ingenting bokføres før du har kontrollert forhåndsvisningen og opprettet bilaget.
 
 | Linje | Konto i ReAI |
 | --- | --- |

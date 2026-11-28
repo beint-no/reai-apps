@@ -103,6 +103,9 @@ export async function fetchApi(creds, fetchImpl = fetch) {
 /** @param {HoursRow[]} rows @param {number} empId @param {number} projId @param {boolean} isSample */
 function renderHours(rows, empId, projId, isSample) {
   const total = rows.reduce((s, r) => s + r.hours, 0);
+  // Every row posts to the one ReAI employee chosen above, so rows from several Tamigo employees are not postable.
+  const people = new Set(rows.map((r) => r.person));
+  const blocked = isSample ? 'Sample only' : people.size > 1 ? 'Filter to one Tamigo employee' : empId <= 0 ? 'Choose a ReAI employee above' : '';
   return reaiCard({
     eyebrow: `${BRAND.toUpperCase()} → REAI TIMESHEETS`,
     title: `${rows.length} entries (${total.toFixed(2)} h)`,
@@ -112,10 +115,11 @@ function renderHours(rows, empId, projId, isSample) {
         ${reaiMetric({ label: 'Total hours', value: `${total.toFixed(2)} h` })}
         ${reaiMetric({ label: 'ReAI employee', value: empId > 0 ? `#${empId}` : 'Not chosen', detail: projId > 0 ? `Project #${projId}` : 'No project' })}
       </div>
+      ${!isSample && people.size > 1 ? reaiCallout({ tone: 'info', body: 'These shifts belong to several Tamigo employees. Enter one employee name or ID and fetch again to post them to the chosen ReAI employee.' }) : ''}
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Date</th><th>User</th><th>Project</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
-        <tbody>${rows.map((r, idx) => html`<tr id="${SLUG}-h-${idx}"><td class="mono">${r.date}</td><td>${r.person}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0
-          ? html`<span class="muted-note">${isSample ? 'Sample only' : 'Choose a ReAI employee above'}</span>`
+        <tbody>${rows.map((r, idx) => html`<tr id="${SLUG}-h-${idx}"><td class="mono">${r.date}</td><td>${r.person}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${blocked
+          ? html`<span class="muted-note">${blocked}</span>`
           : html`<form hx-post="${BASE_PATH}/import" hx-target="#${SLUG}-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[${BRAND}] ${r.project} · ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
       </table></div>`,
   });
@@ -181,8 +185,14 @@ export async function handle(request, env) {
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? BRAND).trim().slice(0, 1000);
       if (!(employeeId > 0) || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(hours >= 0.01 && hours <= 24)) throw new HttpError(400, 'A ReAI employee, a date and 0.01 to 24 hours are required.');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
-      return htmlResponse(html`<tr><td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const cells = html`<td class="mono">${date}</td><td>—</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td>`;
+      // Skip a shift that is already logged for this employee and day with the same hours and comment.
+      const sameDay = /** @type {Array<{ id: number | null, hours: number, comment: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { ...auth, query: { employeeId: String(employeeId), startDate: date, endDate: date } }));
+      const dup = (Array.isArray(sameDay) ? sameDay : []).find((t) => Math.round(Number(t.hours) * 100) === Math.round(hours * 100) && String(t.comment ?? '').trim() === comment);
+      if (dup) return htmlResponse(html`<tr>${cells}<td>${reaiBadge({ text: `Already logged #${dup.id ?? ''}`, tone: 'neutral' })}</td></tr>`);
+      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { ...auth, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
+      return htmlResponse(html`<tr>${cells}<td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

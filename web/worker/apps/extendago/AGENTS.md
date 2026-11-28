@@ -2,36 +2,43 @@
 
 Route `/app/extendago/`. Docs pages: `web/content/{nb,en}/web-apps/extendago/index.md`.
 
-## Vendor API
+## Purpose
 
-Current documentation (read before changing any provider call):
+Books the daily GBAT10 accounting file that ExtendaGO (formerly Wallmob) delivers to SFTP as one balanced ReAI review voucher.
 
-- https://www.extendago.com/wp-content/uploads/sites/3/2023/05/gbat10-mapping.pdf
-- https://www.extendago.com/wp-content/uploads/sites/3/2025/01/extendago-x-sharespine-accounting-integration-guide.pdf
-- https://www.extendago.com/faq/which-checkout-scales-are-compatible-with-extendago/
+## Vendor docs
 
-- Mode: csv
-- Calls: Upload of the documented GBAT10 file that ExtendaGO delivers nightly to SFTP (Settings → Integrations → Accounting). parseGbat10 reads columns 1, 2, 6, 7, 8, 20, 24; sign taken from tender lines; revenue posted VAT inclusive with the VAT code from the file validated against GET /api/vat-codes; pairVoucherRows; duplicate check. API fetch removed.
-- Hosts in code: `www.extendago.com`
-- Vendor status: Brreg: no flags. extendago.com live with current self-help guides (2026 uploads).
+- GBAT10 mapping (format reference): https://www.extendago.com/wp-content/uploads/sites/3/2023/05/gbat10-mapping.pdf
+- Accounting SFTP setup (2025 guide, SIE4 variant via Sharespine): https://www.extendago.com/wp-content/uploads/sites/3/2025/01/extendago-x-sharespine-accounting-integration-guide.pdf
+- No public changelog.
+
+## API
+
+- None used. The GO POS API has no public documentation (given on request after a plan review via extendago@extendaretail.com), so customers cannot self-serve a key. The documented export is used instead.
+- File: semicolon separated, 30 columns. Read here: 0 `GBAT10`, 1 report number, 2 date `YYYYMMDD`, 6 account, 7 VAT code (0 for tenders), 8 amount with `.` decimals, 20 description, 24 department. Tenders are negative, revenue incl. VAT positive, deviations a revenue line of either sign. The sign is taken from the tender lines, so a file with the opposite convention books the same way.
+- One report date per file; one file per day.
+
+## Subrequest budget
+
+- Preview: 0 (local parse).
+- Book: `GET /api/vouchers`, `GET /api/vat-codes`, `POST /api/manual-vouchers` = 3.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /api/vouchers?startDate&endDate&includeReversed=true` duplicate check on `ExtendaGO report N YYYY-MM-DD`.
+- `GET /api/vat-codes` to validate that each file VAT code is a non reverse charge, VAT inclusive ReAI code that is not input VAT.
+- `POST /api/manual-vouchers` with `pairVoucherRows` postings.
+
+## Accounting mapping
+
+- Accounts and VAT codes come from the ExtendaGO accounting settings (customer sets ReAI accounts and output VAT codes such as 3, 31, 33 there). Tenders debit, revenue credit VAT inclusive, VAT code 0 rows posted with code `0`.
+- GBAT10 has no currency column; postings use the company's accounting currency.
+- Department numbers are shown in descriptions only (ReAI needs department ids).
 
 ## Caveats
 
-The GO POS API exists but its documentation is only given on request via extendago@extendaretail.com after a plan review, so it was not used. The mapping PDF says tenders are negative and revenue positive; the parser detects the sign from tender lines in case files use the opposite convention. The customer must configure ReAI output VAT codes (for example 3, 31, 33) in ExtendaGO. fetchApi export removed, so web/test/provider-api.test.mjs now fails at import ('does not provide an export named fetchApi'); the coordinator must drop that import and its assertions. Module still imports decodeCsvBytes from ./hybel-journal.js.
+- The mapping PDF dates from 2021 (Wallmob). ExtendaGO's newer accounting guide shows an SIE4 SFTP variant; only GBAT10 is parsed.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

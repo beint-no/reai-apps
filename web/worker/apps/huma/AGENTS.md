@@ -1,35 +1,50 @@
-# Huma HR
+# Huma Employee Sync
 
 Route `/app/huma/`. Docs pages: `web/content/{nb,en}/web-apps/huma/index.md`.
 
-## Vendor API
+Reads active Huma users and creates the missing ones as ReAI employees (name, email, phone, home address, start date, Norwegian bank account). Sends no invites and no A-melding.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://humahr.com/knowledge/open-api
-- https://openapi.humahr.com/redoc/index.html
-- https://openapi.humahr.com/v3/api-docs
+- Setup and auth: https://humahr.com/knowledge/open-api
+- Reference: https://openapi.humahr.com/redoc/index.html
+- Spec: https://openapi.humahr.com/v3/api-docs (Huma API 1.96.0 on 2026-11-28)
+- Changelog: none published; compare the spec `info.version`.
 
-- Mode: fix
-- Calls: POST https://openapi.humahr.com/auth/oauth/token (client_credentials with client_id/client_secret), GET /users?limit=50&offset&isActive=true ({items}), GET /users/{id} (givenName.value, familyName.value, email.value, employmentStartDate.value or firstDayOfWork.value, employmentPercentage.value, bankAccount.value national NO number, MOD11 checked). Matches GET /api/employees by email or name; creates via POST /api/employees (name, email, dateOfEmployment, accountNumber, bankCountryCode verified). CSV removed; max 100 active users per run.
-- Hosts in code: `humahr.com`, `openapi.humahr.com`
-- Vendor status: Brreg: HUMA AS active; humahr.com live; Open API documented at humahr.com/knowledge/open-api with spec at openapi.humahr.com/v3/api-docs.
+## API version
 
-## ReAI API
+Huma Open API, unversioned paths on `https://openapi.humahr.com` (spec 1.96.0). Uses `currentPositions` for start date and percentage because the top-level `employmentStartDate`, `firstDayOfWork` and `employmentPercentage` are deprecated in the spec; those remain only as fallbacks.
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+## Auth
 
-- `/api/employees`
+Admin creates an API key under System settings → Open API (client ID + secret, secret shown once) and gives it a role that can read employees, positions, addresses and bank accounts. A new key has no access. `POST /auth/oauth/token` (form, `grant_type=client_credentials`), then `Authorization: Bearer <access_token>`. One token exchange per action; nothing stored.
+
+## Endpoints
+
+- `POST /auth/oauth/token`
+- `GET /users?limit=50&offset=&isActive=true&orderDirection=ASC` (limit max 50; returns `{ items, total }` with givenName, familyName, email, phone, type)
+- `GET /users/{id}` only for users not yet in ReAI: `currentPositions[].contractStartDate|percentage`, `homeAddress.value`, `phone.value`, `bankAccount.value` (`type: national`, `country`, `number`)
+
+## Paging, limits, budget
+
+- No rate limit documented. List stops on a short page or when `total` is reached; capped at 20 pages (1,000 users).
+- Details for at most 25 new users per run, 5 in parallel. A "Skip new employees" field loads the next batch.
+- Fetch: 1 ReAI + 1 token + ceil(users / 50) list + ≤ 25 detail subrequests (62 users, none in ReAI: 29). Import: 1 ReAI duplicate check + 1 POST.
+
+## ReAI endpoints
+
+Contract: https://app.reai.no/openapi/public.
+
+- `GET /api/employees` (array of `{ id, name, email }`) for matching by email, then name, on fetch and again before create
+- `POST /api/employees` (`name` ≤ 75, `email`, `phone` ≤ 30, `dateOfEmployment`, `accountNumber` + `bankCountryCode: NO`, `addressPart1`/`postalCode`/`city`/`countryCode`)
+
+## Mapping
+
+Start date = earliest current position contract start; percentage = sum of current positions (display only; ReAI needs `employmentLines`, which are not sent). Only national NO bank accounts that pass MOD11 are sent. Users of type other than `user` (service users) are skipped.
 
 ## Caveats
 
-The key needs a role with read access to employees and bank account; new keys have no access until given a role. The help page shows the demo token URL; the spec's server is https://openapi.humahr.com with tokenUrl /auth/oauth/token. Position percentage is shown but not sent to ReAI (ReAI needs employmentLines). Shared test expects fetchHuma({apiToken}) and will fail.
+- ReAI may require email or national identity number for an active employee; Huma users without email will get the ReAI error.
+- Home address country is passed only when it is a two-letter code.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

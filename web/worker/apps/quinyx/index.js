@@ -6,7 +6,7 @@ import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
 import { reaiAll, reaiRequest } from '../../lib/reai.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard } from '../../lib/ui.js';
 
-/** @typedef {{ date: string, hours: number, project: string, comment: string }} HoursRow */
+/** @typedef {{ date: string, hours: number, project: string, comment: string, shiftId: string }} HoursRow */
 /** @typedef {{ id: number, name: string }} SimpleOpt */
 
 const BRAND = 'Quinyx';
@@ -16,8 +16,8 @@ const API_HINT = 'An account manager creates Version 3 credentials in Quinyx und
 
 /** @type {HoursRow[]} */
 const SAMPLE_ROWS = [
-  { date: '2026-10-14', hours: 7.5, project: 'Group 42', comment: 'Morning shift' },
-  { date: '2026-10-15', hours: 8, project: 'Group 42', comment: 'Evening shift' },
+  { date: '2026-10-14', hours: 7.5, project: 'Group 42', comment: 'Morning shift', shiftId: '123456789' },
+  { date: '2026-10-15', hours: 8, project: 'Group 42', comment: 'Evening shift', shiftId: '123456790' },
 ];
 
 /**
@@ -27,6 +27,8 @@ const SAMPLE_ROWS = [
  * pageToken; spec https://developer.quinyx.com/_bundle/api/v3/specs/quinyx-public-api-v3.yaml) and
  * https://quinyx.helpdocs.io/l/en/article/msqoict4gl-integration-credentials-intro (credentials in Account settings).
  * Hours are end minus begin minus breaks; free days, deleted shifts and shifts that do not count as worked hours are skipped.
+ * Filters are UTC (the Prefer header only changes response times), so the window is widened to cover Oslo midnight and
+ * each shift is dated by its Europe/Oslo begin. One token request plus one request per 100 shifts.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<HoursRow[]>}
@@ -43,6 +45,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!/^[a-zA-Z0-9._-]{1,64}$/.test(rawEmployee)) throw new HttpError(400, 'Enter the Quinyx badge number of the employee.');
   const employee = `badgeNumber:${rawEmployee}`;
   if (from > to) throw new HttpError(400, 'The from date must be on or before the to date.');
+  const dayBefore = new Date(Date.parse(from) - 86_400_000).toISOString().slice(0, 10);
   const api = `https://api.${region}.quinyx.com`;
   const login = await fetchJson(`${api}/oauth/v3/token`, {
     method: 'POST',
@@ -56,7 +59,7 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   /** @type {any[]} */ const shifts = [];
   let pageToken = '';
   for (let page = 0; page < 50; page++) {
-    const query = new URLSearchParams({ employeeIdIn: employee, beginGte: `${from}T00:00:00Z`, beginLte: `${to}T23:59:59Z`, deleted: 'false', pageSize: '100', ...(pageToken ? { pageToken } : {}) });
+    const query = new URLSearchParams({ employeeIdIn: employee, beginGte: `${dayBefore}T22:00:00Z`, beginLte: `${to}T23:59:59Z`, deleted: 'false', pageSize: '100', ...(pageToken ? { pageToken } : {}) });
     const res = await fetchJson(`${api}/schedule/v3/shifts?${query}`, { headers }, BRAND, fetchImpl);
     if (Array.isArray(res?.data)) shifts.push(...res.data);
     pageToken = typeof res?.pagination?.nextPageToken === 'string' ? res.pagination.nextPageToken : '';
@@ -75,7 +78,8 @@ export async function fetchApi(creds, fetchImpl = fetch) {
         date: isoDate(sh.begin, from),
         hours: Number((worked / 60).toFixed(2)),
         project: sh.groupId ? `Group ${sh.groupId}` : '—',
-        comment: String(sh.comment ?? '').trim() || `${BRAND} shift ${sh.id}`,
+        comment: String(sh.comment ?? '').trim() || 'Shift',
+        shiftId: String(sh.id ?? ''),
       };
     })
     .filter((x) => x.hours >= 0.01 && x.hours <= 24 && x.date >= from && x.date <= to)
@@ -83,6 +87,9 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (rows.length === 0) throw new HttpError(400, `${BRAND} has no shifts for ${rawEmployee} from ${from} to ${to}.`);
   return rows;
 }
+
+/** @param {string} shiftId */
+const shiftMarker = (shiftId) => (shiftId ? `[${BRAND} shift ${shiftId}]` : `[${BRAND}]`);
 
 /** @param {HoursRow[]} rows @param {number} empId @param {number} projId @param {boolean} isSample */
 function renderHours(rows, empId, projId, isSample) {
@@ -92,7 +99,7 @@ function renderHours(rows, empId, projId, isSample) {
     badge: isSample ? reaiBadge({ text: 'Synthetic sample', tone: 'accent' }) : reaiBadge({ text: 'Ready', tone: 'success' }),
     body: html`<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Project / Unit</th><th>Comment</th><th class="num">Hours</th><th>Action</th></tr></thead>
-      <tbody>${rows.map((r, idx) => html`<tr id="wf-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/quinyx/import" hx-target="#wf-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="[${BRAND}] ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
+      <tbody>${rows.map((r, idx) => html`<tr id="wf-h-${idx}"><td class="mono">${r.date}</td><td>${r.project}</td><td>${r.comment}</td><td class="num">${r.hours.toFixed(2)}</td><td>${isSample || empId <= 0 ? html`<span class="muted-note">${isSample ? 'Demo only' : 'Select employee above'}</span>` : html`<form hx-post="/app/quinyx/import" hx-target="#wf-h-${idx}" hx-swap="outerHTML"><input type="hidden" name="employeeId" value="${empId}"><input type="hidden" name="projectId" value="${projId}"><input type="hidden" name="date" value="${r.date}"><input type="hidden" name="hours" value="${r.hours.toFixed(2)}"><input type="hidden" name="comment" value="${shiftMarker(r.shiftId)} ${r.comment}"><button type="submit" class="button primary">Post to ReAI</button></form>`}</td></tr>`)}</tbody>
     </table></div>`,
   });
 }
@@ -169,6 +176,12 @@ export async function handle(request, env) {
       const hours = Number(form.get('hours') ?? '0');
       const comment = String(form.get('comment') ?? BRAND).slice(0, 1000);
       if (employeeId <= 0 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || hours < 0.01 || hours > 24) throw new HttpError(400, 'Valid employee, date and hours (0.01 to 24) are required.');
+      const marker = /^\[Quinyx shift [0-9A-Za-z._-]+\]/.exec(comment)?.[0];
+      if (marker) {
+        const existing = /** @type {Array<{ id: number | null, comment?: string | null }>} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, query: { startDate: date, endDate: date, employeeId: String(employeeId) } }));
+        const dup = existing.find((t) => typeof t.comment === 'string' && t.comment.startsWith(marker));
+        if (dup) return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Already logged #${dup.id ?? ''}`, tone: 'warn' })}</td></tr>`);
+      }
       const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/timesheets', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { employeeId, date, hours: Number(hours.toFixed(2)), ...(projectId > 0 ? { projectId } : {}), comment } }));
       return htmlResponse(html`<tr><td class="mono">${date}</td><td>${projectId > 0 ? `Project #${projectId}` : '—'}</td><td>${comment}</td><td class="num">${hours.toFixed(2)}</td><td>${reaiBadge({ text: `Logged #${created.id}`, tone: 'success' })}</td></tr>`);
     }

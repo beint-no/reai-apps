@@ -1,17 +1,21 @@
 ---
-title: "BI, Excel & Accounting Data Export"
-seoTitle: "Export ReAI Accounting Data to Excel & Power BI — Free BI Tool"
-description: Export ReAI general ledger postings, customer invoices, supplier invoices, customers and products as Excel-ready UTF-8 CSV or structured BI JSON.
-summary: Extract clean ReAI postings, invoices, customers and products for Excel, Power BI and custom dashboards.
+title: "Export to Excel and Power BI"
+seoTitle: "Export ReAI accounting data to Excel and Power BI | Free tool"
+description: "Export postings, customer invoices, supplier invoices, customers and products from ReAI as Excel CSV or JSON for Power BI."
+summary: "Extract ReAI postings, invoices, customers and products for Excel, Power BI and your own analysis."
 industry: operations
 webAppUrl: /app/export/
 sourcePath: web/worker/apps/export/
 highlights:
-  - "Exports 5 live datasets: postings, customer invoices, supplier invoices, customers and products"
-  - "Excel-ready UTF-8 BOM semicolon CSV (preserves Norwegian characters æ, ø, å cleanly)"
-  - "Clean JSON export ready for Power BI, Google Sheets, DuckDB or Python notebooks"
+  - "Postings, customer invoices, supplier invoices, customers and products"
+  - "Semicolon CSV with UTF-8 BOM, so Excel shows æ, ø and å correctly"
+  - "JSON ready for Power BI, Google Sheets or your own reports"
 ---
 
-## Built for analysts, CFOs and accountants
+## How it works
 
-Standard accounting reports answer standard questions—but board reporting, cohort analysis and multi-period cash-flow models belong in Excel, Power BI or Python. This tool pulls live paginated data directly from ReAI's Public API and outputs clean flat tables with formula-injection protection and instant browser preview.
+Choose a dataset and a month. The preview shows the first rows and how many there are. The download reads every row directly from ReAI.
+
+Postings have the amount in company currency and in transaction currency in separate columns. Invoices include paid and outstanding amounts. Customers include both active and archived ones.
+
+One download has an upper limit on rows. If a month is too large, the preview tells you.

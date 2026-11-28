@@ -22,7 +22,7 @@ Flow Retail aggregates each day's sales into debit and credit postings with acco
 | Sales | The revenue accounts mapped in Flow Retail |
 | Rounding, cashback and receivables | The accounts Flow Retail sends |
 
-When the report has no separate VAT line, sales are posted including VAT with the VAT code from Flow Retail, and ReAI splits taxable base and output VAT. When Flow Retail posts VAT on its own `27xx` line, the postings are kept as they are. Booking stays blocked unless debit equals credit.
+Sales are posted including VAT with the VAT code from Flow Retail, and ReAI splits taxable base and output VAT. When Flow Retail posts VAT on its own `27xx` line, that VAT is added back to the sales with the same VAT code. Booking stays blocked unless debit equals credit.
 
 ## Setup
 

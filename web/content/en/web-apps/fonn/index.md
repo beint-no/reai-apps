@@ -23,7 +23,7 @@ Nothing is booked to the ledger. Hours land in ReAI Timesheets, where you approv
 1. Register on the **Fonn API developer portal** (api-developer.fonn.io) with the same email as your Fonn user, open **Profile** and add a subscription. Fonn activates it, and the **subscription key** then appears under **Profile**.
 2. As organization administrator in Fonn, click **ORGANIZATION** in the upper right corner, open **Integrations → API**, choose the user the token acts for and click **Generate token**.
 3. Click **Open integration**, connect your ReAI company and choose a fallback employee and an optional project.
-4. Enter the subscription key and access token. Leave the organization ID empty to detect it, and enter a project number when the organization has many projects. Choose a period of up to 62 days and click **Fetch from Fonn API**.
-5. Review the rows and click **Log hours** on the ones you want in ReAI.
+4. Enter the subscription key and access token. Leave the organization ID empty to detect it, and enter a project number or choose a shorter period when the organization has many projects. Choose a period of up to 62 days and click **Fetch from Fonn API**.
+5. Review the rows and click **Log hours** on the ones you want in ReAI. A time card that is already logged is not logged again.
 
 The keys are used only for that request and are never stored.

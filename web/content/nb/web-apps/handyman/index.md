@@ -14,7 +14,7 @@ highlights:
 
 ## Overfør serviceordrer fra Handyman til ReAI
 
-Handyman fra GSGroup har et REST API som kjører på kundens egen Handyman-server. Integrasjonen henter ordrer som er fullført i perioden, summerer timer fra lønnsarter med enhet timer, og regner ordreverdien ut fra kundepris på arbeid og materiell eller fra fastprisen. Du kan legge ordren inn som ordre i ReAI og føre timene på en ansatt.
+Handyman fra GSGroup har et REST API som kjører på kundens egen Handyman-server. Integrasjonen henter ordrer som er fullført i perioden, summerer timer fra lønnsarter med enhet timer, og regner ordreverdien ut fra kundepris på arbeid og materiell eller fra fastprisen. Du kan legge ordren inn som ordre i ReAI og føre timene på en ansatt. Ordrer og timer som allerede er sendt til ReAI, blir gjenkjent og ikke opprettet på nytt. Har Handyman mange fullførte ordrer i perioden, velger du en kortere periode.
 
 ## Slik setter du opp Handyman mot ReAI
 

@@ -15,8 +15,14 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
  * @typedef {{ from: string, to: string, invoices: number, lines: ProvetLine[] }} ProvetVoucher
  * @typedef {{ id?: number, status?: unknown, invoice_number?: string | null, invoice_date?: string, total_with_vat?: unknown }} ProvetInvoice
  * @typedef {{ invoice?: string, vat_percentage?: unknown, sum_total?: unknown }} ProvetInvoiceRow
- * @typedef {{ invoice?: string, payment_type?: unknown, paid?: unknown }} ProvetPayment
+ * @typedef {{ invoice?: string, payment_type?: unknown, paid?: unknown, status?: unknown }} ProvetPayment
+ * @typedef {{ token: string, fetchImpl: import('../../lib/api-http.js').FetchLike, left: number }} ProvetReader
  */
+
+/** Provet subrequest budget per fetch (token excluded), well under the Workers cap of 50. */
+const MAX_PROVET_PAGES = 45;
+/** Invoices per page, and IDs per invoice__in list (the billing guide recommends up to 200). */
+const INVOICE_PAGE = 200;
 
 const BRAND = 'Provet Cloud';
 const BASE_PATH = '/app/provet-cloud';
@@ -33,7 +39,7 @@ const VAT_MAP = /** @type {Record<number, { code: string, account: string, label
 
 /**
  * Provet payment_type codes (GET /invoicepayment/ description) that settle at the clinic.
- * Other types (bank payment, cheque, consolidated invoice, financing, credit invoice, other) stay in 1570.
+ * Other types (bank payment, cheque, consolidated invoice, financing, other, credit invoice, insurance claim) stay in 1570.
  */
 const PAYMENT_ACCOUNTS = /** @type {Record<string, { account: string, label: string }>} */ ({
   '0': { account: '1580', label: 'Card payments' },
@@ -72,6 +78,10 @@ export function buildVoucher(invoices, rows, payments, from, to) {
   const grossMinor = invoices.reduce((s, i) => s + minor(i.total_with_vat), 0);
   let settledMinor = 0;
   for (const p of payments) {
+    // Status 1 pending and 4 failed brought in no money. Cancelled payments (2) stay in, because Provet
+    // reverses them with a separate negative payment record, so the pair nets to zero.
+    const status = Number(p.status);
+    if (status === 1 || status === 4) continue;
     const target = PAYMENT_ACCOUNTS[String(p.payment_type ?? '')];
     if (!target) continue;
     const amount = minor(p.paid);
@@ -89,21 +99,35 @@ export function buildVoucher(invoices, rows, payments, from, to) {
 }
 
 /**
- * Reads every page of a Provet list endpoint by following `next` (same host only), with a page cap.
- * @param {string} firstUrl @param {string} token @param {import('../../lib/api-http.js').FetchLike} fetchImpl
+ * Reads one Provet list page, counting it against the shared page budget.
+ * @param {string} url @param {ProvetReader} reader @param {string} host
+ * @returns {Promise<{ results: any[], next: string | null }>}
+ */
+async function readPage(url, reader, host) {
+  if (new URL(url).host !== host) throw new HttpError(502, `${BRAND} pagination left the Provet host.`);
+  if (reader.left <= 0) throw new HttpError(400, `${BRAND} has more invoices in this period than one request can read. Choose a shorter period.`);
+  reader.left -= 1;
+  const res = await reader.fetchImpl(url, { headers: { authorization: `Bearer ${reader.token}`, accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+  if (res.status === 429) throw new HttpError(429, `${BRAND} rate limit reached. Wait ${res.headers.get('retry-after') ?? '60'} seconds and try again.`);
+  if (!res.ok) throw new HttpError(400, `${BRAND} API ${res.status === 401 || res.status === 403 ? 'rejected the token. Check that the integration user has the Financial: Invoices permission' : `returned HTTP ${res.status}`}.`);
+  const data = await res.json();
+  return { results: Array.isArray(data?.results) ? data.results : [], next: typeof data?.next === 'string' && data.next ? data.next : null };
+}
+
+/**
+ * Reads every page of a Provet list endpoint by following `next` until it is null (same host only).
+ * @param {string} firstUrl @param {ProvetReader} reader
  * @returns {Promise<any[]>}
  */
-async function readAll(firstUrl, token, fetchImpl) {
+async function readAll(firstUrl, reader) {
   const host = new URL(firstUrl).host;
   /** @type {any[]} */ const all = [];
   /** @type {string | null} */ let url = firstUrl;
-  for (let page = 0; url && page < 20; page++) {
-    if (new URL(url).host !== host) throw new HttpError(502, `${BRAND} pagination left the Provet host.`);
-    const data = await fetchJson(url, { headers: { authorization: `Bearer ${token}`, accept: 'application/json' } }, BRAND, fetchImpl);
-    all.push(...(Array.isArray(data?.results) ? data.results : []));
-    url = typeof data?.next === 'string' && data.next ? data.next : null;
+  while (url) {
+    const page = await readPage(url, reader, host);
+    all.push(...page.results);
+    url = page.next;
   }
-  if (url) throw new HttpError(400, `${BRAND} returned more than the supported number of pages. Choose a shorter period.`);
   return all;
 }
 
@@ -145,16 +169,29 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   const token = typeof tokenRes?.access_token === 'string' ? tokenRes.access_token : '';
   if (!token) throw new HttpError(400, `${BRAND} did not return an access token.`);
   const api = `${root}/api/0.1`;
-  const allInvoices = /** @type {ProvetInvoice[]} */ (await readAll(`${api}/invoice/?invoice_date__gte=${from}&invoice_date__lt=${nextDay(to)}&page_size=200`, token, fetchImpl));
-  const invoices = allInvoices.filter((i) => { const s = Number(i.status); return s !== 0 && s !== 99 && !!i.invoice_number && typeof i.id === 'number'; });
-  if (invoices.length === 0) throw new HttpError(400, `${BRAND} returned no finalized invoices from ${from} to ${to}.`);
+  const host = new URL(api).host;
+  /** @type {ProvetReader} */ const reader = { token, fetchImpl, left: MAX_PROVET_PAGES };
+  /** @type {ProvetInvoice[]} */ const invoices = [];
   /** @type {ProvetInvoiceRow[]} */ const rows = [];
   /** @type {ProvetPayment[]} */ const payments = [];
-  for (let i = 0; i < invoices.length; i += 100) {
-    const ids = invoices.slice(i, i + 100).map((x) => x.id).join(',');
-    rows.push(...await readAll(`${api}/invoicerow/?invoice__in=${ids}&page_size=1000`, token, fetchImpl));
-    payments.push(...await readAll(`${api}/invoicepayment/?invoice__in=${ids}&page_size=1000`, token, fetchImpl));
+  // One invoice page at a time, then the rows and payments of that page's invoices in two parallel
+  // invoice__in lists, as the billing guide's ERP sync pattern recommends.
+  /** @type {string | null} */ let url = `${api}/invoice/?invoice_date__gte=${from}&invoice_date__lt=${nextDay(to)}&page_size=${INVOICE_PAGE}`;
+  while (url) {
+    const page = await readPage(url, reader, host);
+    url = page.next;
+    const issued = /** @type {ProvetInvoice[]} */ (page.results).filter((i) => { const s = Number(i.status); return s !== 0 && s !== 99 && !!i.invoice_number && typeof i.id === 'number'; });
+    if (issued.length === 0) continue;
+    invoices.push(...issued);
+    const ids = issued.map((x) => x.id).join(',');
+    const [r, p] = await Promise.all([
+      readAll(`${api}/invoicerow/?invoice__in=${ids}&page_size=1000`, reader),
+      readAll(`${api}/invoicepayment/?invoice__in=${ids}&page_size=1000`, reader),
+    ]);
+    rows.push(...r);
+    payments.push(...p);
   }
+  if (invoices.length === 0) throw new HttpError(400, `${BRAND} returned no finalized invoices from ${from} to ${to}.`);
   return buildVoucher(invoices, rows, payments, from, to);
 }
 

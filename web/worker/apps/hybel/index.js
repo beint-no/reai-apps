@@ -3,6 +3,7 @@ import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
 import { reaiAll, reaiOrigin, reaiRequest } from '../../lib/reai.js';
+import { pairVoucherRows } from '../../lib/voucher-rows.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiDropzone, reaiMetric } from '../../lib/ui.js';
 import {
   SAMPLE_HYBEL_CSV,
@@ -28,10 +29,13 @@ function monthEnd(month) {
 }
 
 /**
+ * Builds ReAI postings: each Hybel source entry (date + reference) is paired on its own with
+ * `pairVoucherRows`, so voucher rows never mix two Hybel entries. All lines use VAT code 0, which the
+ * ReAI contract prescribes for non-VAT postings (residential rent is outside VAT).
  * @param {import('./journal.js').ParsedEntry[]} entries
  * @param {Record<string, number>} bankAccounts
  */
-function buildReaiPostings(entries, bankAccounts) {
+export function buildReaiPostings(entries, bankAccounts) {
   /** @type {Map<string, import('./journal.js').ParsedEntry[]>} */
   const groups = new Map();
   for (const entry of entries) {
@@ -43,66 +47,43 @@ function buildReaiPostings(entries, bankAccounts) {
       groups.set(key, [entry]);
     }
   }
-  const sortedKeys = [...groups.keys()].sort();
   /** @type {Array<Record<string, unknown>>} */
   const postings = [];
-  let rowNumber = 0;
-
-  for (const key of sortedKeys) {
+  let rowOffset = 0;
+  for (const key of [...groups.keys()].sort()) {
     const rows = groups.get(key) ?? [];
-    const debits = rows.filter((r) => r.minor > 0);
-    const credits = rows.filter((r) => r.minor < 0);
-    let d = 0;
-    let c = 0;
-    let debitLeft = debits[0]?.minor ?? 0;
-    let creditLeft = -(credits[0]?.minor ?? 0);
-
-    while (d < debits.length && c < credits.length) {
-      const debitRow = debits[d];
-      const creditRow = credits[c];
-      if (!debitRow || !creditRow) {
-        break;
-      }
-      const amountMinor = Math.min(debitLeft, creditLeft);
-      const uniqueDesc = [...new Set([debitRow.description, creditRow.description].filter(Boolean))].sort();
-      const firstRef = rows[0]?.reference ?? '';
-      const desc = `Hybel ${firstRef}: ${uniqueDesc.join(' / ')}`.slice(0, 1000);
-
-      for (const [entry, signedMinor] of [
-        /** @type {const} */ ([debitRow, amountMinor]),
-        /** @type {const} */ ([creditRow, -amountMinor]),
-      ]) {
-        /** @type {Record<string, unknown>} */
-        const posting = {
-          accountNumber: entry.account,
-          postingDate: entry.date,
-          currencyCode: 'NOK',
-          amount: Number((signedMinor / 100).toFixed(2)),
-          vatCode: '0',
-          rowNumber,
-          description: desc,
-        };
-        const bankId = bankAccounts[entry.account];
-        if (bankId !== undefined) {
-          posting.companyBankId = bankId;
-        }
-        postings.push(posting);
-      }
-      rowNumber += 1;
-      debitLeft -= amountMinor;
-      creditLeft -= amountMinor;
-      if (debitLeft === 0) {
-        d += 1;
-        debitLeft = debits[d]?.minor ?? 0;
-      }
-      if (creditLeft === 0) {
-        c += 1;
-        creditLeft = -(credits[c]?.minor ?? 0);
-      }
+    const ref = rows[0]?.reference ?? '';
+    const paired = pairVoucherRows(rows.map((entry) => ({
+      accountNumber: entry.account,
+      postingDate: entry.date,
+      currencyCode: 'NOK',
+      amount: entry.minor / 100,
+      vatCode: '0',
+      description: entry.description,
+      ...(bankAccounts[entry.account] !== undefined ? { companyBankId: bankAccounts[entry.account] } : {}),
+    })));
+    /** @type {Map<number, string[]>} */
+    const descByRow = new Map();
+    for (const p of paired) {
+      const list = descByRow.get(p.rowNumber) ?? [];
+      for (const part of p.description.split(' / ')) if (part && !list.includes(part)) list.push(part);
+      descByRow.set(p.rowNumber, list);
     }
+    for (const p of paired) {
+      postings.push({
+        ...p,
+        amount: Number(p.amount.toFixed(2)),
+        rowNumber: rowOffset + p.rowNumber,
+        description: `Hybel ${ref}: ${(descByRow.get(p.rowNumber) ?? []).sort().join(' / ')}`.slice(0, 1000),
+      });
+    }
+    rowOffset += paired.length / 2;
   }
   return postings;
 }
+
+/** Up to this many account prefixes per chart-of-accounts lookup (limit is capped at 100 accounts). */
+const ACCOUNT_PREFIX_BATCH = 20;
 
 /**
  * @param {import('../../lib/types.d.ts').Env} env
@@ -132,15 +113,19 @@ async function validateAgainstReai(env, session, input) {
   }
 
   const uniqueAccounts = [...new Set(journal.entries.map((e) => e.account))].sort();
+  /** @type {string[][]} */
+  const prefixBatches = [];
+  for (let i = 0; i < uniqueAccounts.length; i += ACCOUNT_PREFIX_BATCH) prefixBatches.push(uniqueAccounts.slice(i, i + ACCOUNT_PREFIX_BATCH));
   const [accountBatches, availableBanks] = await Promise.all([
     Promise.all(
-      uniqueAccounts.map((accountNumber) =>
-        reaiRequest(env, '/api/chart-of-accounts/accounts', {
+      prefixBatches.map((batch) => {
+        const qs = new URLSearchParams(batch.map((n) => ['accountNumberPrefix', n]));
+        qs.set('limit', '100');
+        return reaiRequest(env, `/api/chart-of-accounts/accounts?${qs}`, {
           token: session.accessToken,
           tenantId: company.id,
-          query: { accountNumberPrefix: accountNumber, limit: '100' },
-        }),
-      ),
+        });
+      }),
     ),
     reaiRequest(env, '/api/company-banks', {
       token: session.accessToken,
@@ -149,6 +134,16 @@ async function validateAgainstReai(env, session, input) {
   ]);
 
   const accounts = /** @type {import('../../lib/types.d.ts').LedgerAccount[]} */ (accountBatches.flat());
+  // A batch that hit the 100-account cap may have cut off some prefixes; look those up one by one.
+  const capped = prefixBatches.filter((_, i) => (/** @type {unknown[]} */ (accountBatches[i])).length >= 100).flat()
+    .filter((n) => !accounts.some((a) => a.accountNumber === n));
+  for (const n of capped) {
+    accounts.push(...(/** @type {import('../../lib/types.d.ts').LedgerAccount[]} */ (await reaiRequest(env, '/api/chart-of-accounts/accounts', {
+      token: session.accessToken,
+      tenantId: company.id,
+      query: { accountNumberPrefix: n, limit: '100' },
+    }))));
+  }
   const banks = /** @type {import('../../lib/types.d.ts').CompanyBank[]} */ (availableBanks);
   /** @type {Record<string, number>} */
   const bankAccounts = {};

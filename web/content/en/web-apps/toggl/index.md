@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads your own Toggl Track time entries that start in the chosen month. Running entries are left out. You post lines one by one to ReAI Timesheets for the employee and project you choose.
+The integration reads your own Toggl Track time entries that start in the chosen month. Running entries are left out, and days follow Norwegian time. You post lines one by one to ReAI Timesheets for the employee and project you choose. A line that already exists in ReAI with the same date, hours and comment is not posted again.
 
 ## Setup
 

@@ -1,32 +1,49 @@
-# Harvest Sync
+# Harvest
 
 Route `/app/harvest/`. Docs pages: `web/content/{nb,en}/web-apps/harvest/index.md`.
 
-## Vendor API
+Fetches finished Harvest time entries for a month and posts them one by one to ReAI Timesheets.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://help.getharvest.com/api-v2/timesheets-api/timesheets/time-entries/
-- https://help.getharvest.com/api-v2/authentication-api/authentication/authentication/
+- Time entries reference: https://help.getharvest.com/api-v2/timesheets-api/timesheets/time-entries/
+- Authentication: https://help.getharvest.com/api-v2/authentication-api/authentication/authentication/
+- Pagination: https://help.getharvest.com/api-v2/introduction/overview/pagination/
+- General (rate limits, User-Agent): https://help.getharvest.com/api-v2/introduction/overview/general/
+- Docs index (no public changelog page): https://help.getharvest.com/api-v2/
 
-- Mode: fix
-- Calls: GET https://api.harvestapp.com/v2/time_entries with from, to (inclusive last day), is_running=false, optional user_id, page/per_page=2000 following next_page; Bearer + Harvest-Account-Id + User-Agent; project and user name shown; entries outside 0.01 to 24 h skipped. Exported fetchApi for testing; optional user ID field added.
-- Hosts in code: `api.harvestapp.com`, `help.getharvest.com`
-- Vendor status: help.getharvest.com API v2 docs live and current; product sold.
+## API version
+
+Harvest API v2, the current version (v1 is legacy).
+
+## Auth
+
+Personal Access Token from https://id.getharvest.com/developers as `Authorization: Bearer <token>`, plus `Harvest-Account-Id` and a `User-Agent` with app name and link (required, else 400).
+
+## Endpoints
+
+- `GET https://api.harvestapp.com/v2/time_entries?from&to&is_running=false[&user_id]&per_page=2000`, then each `links.next` URL (documented way to page; covers cursor pagination, where `next_page` is null). Next links to other hosts are ignored.
+
+Fields used: `id`, `spent_date`, `hours`, `notes`, `task.name`, `project.name`, `user.name`.
+
+## Paging, limits, budget
+
+`per_page` 2000 (documented maximum), at most 10 pages. Rate limit 100 requests per 15 seconds (429 with `Retry-After`); one preview stays far below it. Preview: 1 subrequest per 2000 entries. Post one entry: 2 ReAI subrequests.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/employees`
-- `/api/projects`
-- `/api/timesheets`
+- Page load: `GET /api/employees`, `GET /api/projects`
+- `GET /api/timesheets?employeeId&startDate&endDate` (duplicate check on comment prefix `[Harvest <entry id>]`), then `POST /api/timesheets` (`employeeId`, `date`, `hours`, optional `projectId`, `comment`)
 
-## Rules
+## Mapping
 
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+`spent_date` is the timesheet date; `hours` (not `rounded_hours`) rounded to 2 decimals. Entries outside 0.01 to 24 hours are skipped.
+
+## Caveats
+
+- Without a Harvest user ID, entries for every user the token can see go to the one chosen ReAI employee.
+- Billable rates and invoicing state are not used.
 
 Last verified: 2026-11-28.

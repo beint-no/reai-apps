@@ -14,12 +14,13 @@ highlights:
 
 ## What moves into ReAI
 
-The integration fetches paid orders (payment status *Paid*) created in the chosen period. Each order is shown with its item and shipping lines, excluding VAT. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
+The integration fetches paid and partly refunded orders created in the chosen period, counted in Norwegian calendar days. Test orders and archived orders are left out. Each order is shown with its item, shipping and additional fee lines, excluding VAT and after discounts. Click **Stage in ReAI** to create a ReAI order that you review before invoicing.
 
 | From Wix | In ReAI |
 | --- | --- |
 | Item line | Order line with quantity, price excluding VAT and the VAT code for the rate Wix charged |
 | Shipping | Separate order line with the shipping VAT rate |
+| Additional fee | Separate order line with the fee VAT rate |
 | Buyer | Customer matched by email or name, or a new customer |
 | Order ID | External reference, so the same order is not staged twice |
 
@@ -30,5 +31,7 @@ The integration fetches paid orders (payment status *Paid*) created in the chose
 3. Click **Open integration**, connect ReAI and choose the company.
 4. Paste the site ID and API key, choose the period and fetch the orders.
 5. Check the lines and stage the orders you want to invoice or book in ReAI.
+
+Partly refunded orders are flagged and staged at the full sale. Book the refund as a credit note in ReAI.
 
 The API key is used only for that request and is never stored.

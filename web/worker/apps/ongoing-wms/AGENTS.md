@@ -1,36 +1,61 @@
-# Ongoing WMS
+# Ongoing WMS Warehouse Sync
 
 Route `/app/ongoing-wms/`. Docs pages: `web/content/{nb,en}/web-apps/ongoing-wms/index.md`.
 
-## Vendor API
+Reads the goods owner's articles from Ongoing WMS (a 3PL warehouse system) and creates missing
+article numbers as ReAI stock products. Stock levels in ReAI are not changed.
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developer.ongoingwarehouse.com/REST/v1/index.html
-- https://developer.ongoingwarehouse.com/REST/v1/openapi.json
-- https://developer.ongoingwarehouse.com/authentication
-- https://docs.ongoingwarehouse.com/manuals/api-access
+- Goods Owner REST API reference: https://developer.ongoingwarehouse.com/REST/v1/index.html
+- OpenAPI file: https://developer.ongoingwarehouse.com/REST/v1/openapi.json (UTF-8 BOM)
+- Authentication: https://developer.ongoingwarehouse.com/authentication
+- Scopes: https://developer.ongoingwarehouse.com/goods-owner-scopes
+- Pagination: https://developer.ongoingwarehouse.com/paginating-responses
+- Rate limits: https://developer.ongoingwarehouse.com/rate-limits
+- API user setup for the warehouse: https://docs.ongoingwarehouse.com/manuals/api-access
 
-- Mode: fix
-- Calls: Exported fetchApi(creds, fetchImpl) builds https://api.ongoingsystems.se/{warehouse}/api/v1/articles from a validated warehouse name, pages with articleSystemIdFrom + maxArticlesToGet=200, supports Basic or OAuth 2.0 client credentials (POST https://login.ongoingwms.com/connect/token, scope goodsowner:articles:read), reads documented articleNumber, articleName, isActive, customerPrice, purchasePrice, barCodeInfo.barCode, inventoryInfo.numberOfItems. Creates ReAI products via POST /api/products {title, stockItem, variants[{sku, sellingPrice, costPrice, barcode}]} (verified against ProductReq/ProductVariantReq); SKU diff via GET /api/products (paginated). Docs NB/EN rewritten with Administration → API for goods owners.
-- Hosts in code: `api.ongoingsystems.se`, `developer.ongoingwarehouse.com`, `docs.ongoingwarehouse.com`, `login.ongoingwms.com`
-- Vendor status: ongoingwarehouse.com live (200); Goods Owner REST API OpenAPI file at developer.ongoingwarehouse.com/REST/v1/openapi.json actively versioned (version=58), docs built 2026.
+## API version
+
+Goods Owner REST API v1 (`https://api.ongoingsystems.se/{warehouse}/api/v1/`), the current and
+only REST version. No sunset announced. Demo systems (`wms1.ongoingsystems.se`) are not supported.
+
+## Auth
+
+The warehouse creates a goods owner API user under Administration > API for goods owners and
+gives the customer the goods owner ID. OAuth 2.0 (recommended): one
+`POST https://login.ongoingwms.com/connect/token` per scan with form fields `grant_type=client_credentials`,
+`client_id`, `client_secret`, `scope=goodsowner:articles:read`, then `Authorization: Bearer`.
+Basic: `Authorization: Basic base64(user:password)` on each call.
+
+## Endpoints
+
+- `GET /api/v1/articles?goodsOwnerId&articleSystemIdFrom&maxArticlesToGet=1000`: documented
+  pagination takes the highest `articleSystemId` plus one until a short or empty page (guide uses
+  1000 per page). Reads `articleNumber`, `articleName`, `isActive`, `customerPrice`,
+  `purchasePrice`, `barCodeInfo.barCode`, `inventoryInfo.numberOfItems`; inactive articles skipped.
+
+## Budget and limits
+
+Scan: 1 token (OAuth only) + 1 Ongoing call per 1000 articles (max 10, then an error) + ReAI
+products at 200 per page. Create: 2 ReAI calls. Limits are per method and client; `429` carries
+`Retry-After` in seconds, which the error message shows. No retry loop.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- `GET /api/products` (all pages, SKU diff)
+- `GET /api/products?query=<sku>` (duplicate check before create, exact variant SKU match)
+- `POST /api/products` `{ title, stockItem: true, variants: [{ sku, sellingPrice, costPrice?, barcode? }] }`
 
-- `/api/products`
+## Accounting mapping
+
+Products only; no vouchers. Revenue account and VAT code use ReAI defaults.
 
 ## Caveats
 
-Swedish company, not in Brønnøysund. Demo systems use wms1.ongoingsystems.se and are not supported. customerPrice semantics (incl./excl. VAT) not stated by Ongoing; sellingPrice is passed through as is.
+- Ongoing does not state whether `customerPrice` includes VAT; it is passed through as
+  `sellingPrice` unchanged. Currency is not converted.
+- Swedish vendor, not in Brønnøysund.
+- Not tested against a live API user.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

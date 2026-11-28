@@ -16,11 +16,11 @@ highlights:
 
 nShift Delivery stores a freight price for each printed shipment, based on your carrier agreement. This app reads those prices and lets you stage each shipment as a draft customer order in ReAI with one line for the freight amount excluding VAT. When your licence includes Shipment History, receiver names are added and matched to ReAI customers by name; otherwise you pick a fallback customer.
 
-Nothing is invoiced or posted automatically. Orders stay drafts until you review them in ReAI, where your normal sales account and VAT code for freight apply. nShift does not return a currency for prices, so orders are staged in NOK.
+Nothing is invoiced or posted automatically. Orders stay drafts until you review them in ReAI, where your normal sales account and VAT code for freight apply. nShift does not return a currency for prices, so orders are staged in the company currency in ReAI. A shipment that is already an order is not staged again.
 
 ## How the price feed works
 
-The nShift price history is a feed. Each fetch returns the prices stored after the `fetchId` you send, and a new `fetchId` for next time. Start with `-1`, then save the value the app shows after each fetch. nShift asks integrations to keep new fetches to about one every five minutes.
+The nShift price history is a feed. Each fetch returns the prices stored after the `fetchId` you send, and a new `fetchId` for next time. Start with `-1`, then save the value the app shows after each fetch. nShift asks integrations to keep new fetches to about one every five minutes. When more prices are waiting than one fetch reads, the app says so and you fetch the rest with the new `fetchId`.
 
 ## Setup
 

@@ -1,5 +1,5 @@
 // @ts-check
-import { fetchJson, isoDate, num, renderApiFetchCard } from '../../lib/api-http.js';
+import { isoDate, num, renderApiFetchCard } from '../../lib/api-http.js';
 import { readSession, renderConnectPanel } from '../../lib/auth.js';
 import { html, htmlResponse } from '../../lib/html.js';
 import { HttpError, errorResponse, requireSameOrigin } from '../../lib/http.js';
@@ -9,7 +9,7 @@ import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../li
 
 /**
  * @typedef {{ name: string, quantity: number, unitPrice: number, ratePct: number | null }} OrderLine
- * @typedef {{ id: string, number: string, date: string, currency: string, customerName: string, customerEmail: string, company: boolean, lines: OrderLine[] }} ShopOrder
+ * @typedef {{ id: string, number: string, date: string, currency: string, customerName: string, customerEmail: string, company: boolean, lines: OrderLine[], refunded?: number }} ShopOrder
  * @typedef {{ code: string, rate: number, vatType: string }} VatCode
  */
 
@@ -28,6 +28,29 @@ const API_FIELDS = [
 ];
 const API = 'https://api.squarespace.com/1.0/commerce/orders';
 const KNOWN_RATES = [25, 15, 12, 0];
+const PAGE_LIMIT = 20;
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/**
+ * Converts a Squarespace UTC timestamp to the Europe/Oslo bookkeeping day.
+ * @param {unknown} iso
+ */
+function osloDay(iso) {
+  const t = Date.parse(String(iso ?? ''));
+  return Number.isNaN(t) ? isoDate(iso) : OSLO_DAY.format(t);
+}
+
+/**
+ * GET with the documented headers; 429 starts a one-minute cool-down at Squarespace, so it is reported, not retried.
+ * @param {string} url @param {Record<string, string>} headers @param {import('../../lib/api-http.js').FetchLike} fetchImpl
+ */
+async function squarespaceGet(url, headers, fetchImpl) {
+  const res = await fetchImpl(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
+  if (res.status === 401 || res.status === 403) throw new HttpError(400, 'Squarespace rejected the API key. Generate a key with the Orders permission.');
+  if (res.status === 429) throw new HttpError(429, 'Squarespace rate limit reached. Wait one minute and try again.');
+  if (!res.ok) throw new HttpError(400, `Squarespace returned HTTP ${res.status}.`);
+  return /** @type {any} */ (await res.json());
+}
 
 /** @type {ShopOrder[]} */
 const SAMPLE = [
@@ -77,21 +100,23 @@ function mapOrder(o) {
   return {
     id: String(o.id ?? ''),
     number: String(o.orderNumber ?? o.id ?? ''),
-    date: isoDate(o.createdOn),
+    date: osloDay(o.createdOn),
     currency: String(o.grandTotal?.currency ?? 'NOK').toUpperCase(),
     customerName: `${b.firstName ?? ''} ${b.lastName ?? ''}`.trim() || String(o.customerEmail ?? 'Squarespace customer'),
     customerEmail: String(o.customerEmail ?? ''),
     company: false,
     lines: lines.filter((l) => l.unitPrice !== 0),
+    refunded: num(o.refundedTotal?.value),
   };
 }
 
 /**
- * Fetches Squarespace Commerce orders created in a date range.
+ * Fetches Squarespace Commerce orders created in a date range (Europe/Oslo days).
  * Docs: https://developers.squarespace.com/commerce-apis/authentication-and-permissions (Bearer API key, User-Agent header)
  * and https://developers.squarespace.com/commerce-apis/retrieve-all-orders (GET /1.0/commerce/orders with modifiedAfter and
- * modifiedBefore, or cursor alone; result[], pagination.nextPageCursor; createdOn, lineItems[].unitPricePaid, shippingTotal,
- * discountTotal, taxTotal, priceTaxInterpretation, fulfillmentStatus).
+ * modifiedBefore, or cursor alone; 50 per page sorted by modifiedOn; result[], pagination.hasNextPage/nextPageCursor).
+ * There is no created filter, so the window is every order modified since the start day; an order created in range was
+ * necessarily modified after it. Test orders, canceled orders and fully refunded orders are left out.
  * @param {Record<string, string>} creds
  * @param {import('../../lib/api-http.js').FetchLike} [fetchImpl]
  * @returns {Promise<ShopOrder[]>}
@@ -101,15 +126,21 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!apiKey) throw new HttpError(400, 'Enter the Squarespace API key.');
   const from = isoDate(creds.from);
   const to = isoDate(creds.to);
+  if (to < from) throw new HttpError(400, 'The end date is before the start date.');
   const headers = { authorization: `Bearer ${apiKey}`, 'user-agent': 'ReAI apps.reai.no order import', accept: 'application/json' };
+  // Oslo midnight is at most two hours before UTC midnight; orders are then filtered by their Oslo creation day.
+  const modifiedAfter = new Date(Date.parse(`${from}T00:00:00Z`) - 2 * 3_600_000).toISOString();
   /** @type {ShopOrder[]} */
   const orders = [];
-  let url = `${API}?${new URLSearchParams({ modifiedAfter: `${from}T00:00:00Z`, modifiedBefore: new Date().toISOString() })}`;
-  for (let page = 0; page < 20; page++) {
-    const data = await fetchJson(url, { headers }, BRAND, fetchImpl);
+  let url = `${API}?${new URLSearchParams({ modifiedAfter, modifiedBefore: new Date().toISOString() })}`;
+  for (let page = 0; ; page++) {
+    if (page === PAGE_LIMIT) throw new HttpError(400, 'Squarespace has too many orders changed since the start date for one request. Choose a later start date.');
+    const data = await squarespaceGet(url, headers, fetchImpl);
     for (const o of /** @type {any[]} */ (Array.isArray(data?.result) ? data.result : [])) {
-      if (String(o.fulfillmentStatus ?? '').toUpperCase() === 'CANCELED') continue;
+      if (o.testmode === true || String(o.fulfillmentStatus ?? '').toUpperCase() === 'CANCELED') continue;
       const mapped = mapOrder(o);
+      const grand = num(o.grandTotal?.value);
+      if (grand > 0 && (mapped.refunded ?? 0) >= grand) continue;
       if (mapped.date >= from && mapped.date <= to && mapped.id && mapped.lines.length > 0) orders.push(mapped);
     }
     const next = data?.pagination?.nextPageCursor;
@@ -139,7 +170,7 @@ function renderOrders(orders, isSample) {
         <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Lines</th><th class="num">Excl. VAT</th><th>Action</th></tr></thead>
         <tbody>${orders.slice(0, 200).map((o, idx) => html`<tr id="${SLUG}-o-${idx}">
           <td class="mono">${o.number}</td><td class="mono">${o.date}</td><td>${o.customerName}</td>
-          <td>${o.lines.map((l) => html`<div>${l.quantity} x ${l.name} (${l.ratePct === null ? 'default VAT' : `${l.ratePct}% VAT`})</div>`)}</td>
+          <td>${o.lines.map((l) => html`<div>${l.quantity} x ${l.name} (${l.ratePct === null ? 'default VAT' : `${l.ratePct}% VAT`})</div>`)}${o.refunded ? reaiBadge({ text: `Partly refunded ${o.refunded.toFixed(2)} ${o.currency}: credit it in ReAI`, tone: 'warn' }) : ''}</td>
           <td class="num">${formatMinor(orderTotal(o))} ${o.currency}</td>
           <td>${isSample
             ? html`<span class="muted-note">Sample only</span>`
@@ -149,7 +180,7 @@ function renderOrders(orders, isSample) {
               </form>`}</td>
         </tr>`)}</tbody>
       </table></div>
-      <p class="muted-note">Each order becomes a ReAI order for review before invoicing. The customer is matched by email or name, or created as a new customer. Orders already staged are skipped by their Squarespace order id.</p>
+      <p class="muted-note">Each order becomes a ReAI order for review before invoicing. The customer is matched by email or name, or created as a new customer. Orders already staged are skipped by their Squarespace order id. Test, canceled and fully refunded orders are left out.</p>
     `,
   });
 }

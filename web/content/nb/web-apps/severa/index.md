@@ -14,7 +14,7 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter timene fra Severa (tidligere Visma Severa) med dato i valgt periode, høyst 93 dager om gangen. Du kan begrense til én Severa-bruker. Hver linje viser dato, bruker, prosjekt med fase, kommentar og antall timer. Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger.
+Integrasjonen henter timene fra Severa (tidligere Visma Severa) med dato i valgt periode, høyst 93 dager om gangen. Du kan begrense til én Severa-bruker. Hver linje viser dato, bruker, prosjekt med fase, kommentar og antall timer. Du fører linjene enkeltvis til ReAI Timelister på ansatten og prosjektet du velger. En linje som allerede er ført, hoppes over.
 
 ## Slik kommer du i gang
 

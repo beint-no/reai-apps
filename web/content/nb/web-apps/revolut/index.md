@@ -1,8 +1,8 @@
 ---
 title: "Integrasjon mellom Revolut Business og regnskap"
 seoTitle: "Integrasjon mellom Revolut Business og ReAI: kortkjøp til regnskap"
-description: "Hent kortkjøp og gebyrer fra Revolut Business API og lag ett bilag til kontroll i ReAI mot bankkontoen for Revolut. Gratis og åpen kildekode."
-summary: "Hent fullførte kortkjøp i NOK fra Revolut Business for en periode og lag ett balansert bilag til kontroll i ReAI."
+description: "Hent kortkjøp, refusjoner og gebyrer fra Revolut Business API og lag ett bilag til kontroll i ReAI mot bankkontoen for Revolut. Gratis og åpen kildekode."
+summary: "Hent fullførte kortkjøp og refusjoner i NOK fra Revolut Business for en periode og lag ett balansert bilag til kontroll i ReAI."
 industry: operations
 webAppUrl: /app/revolut/
 sourcePath: web/worker/apps/revolut/
@@ -14,11 +14,12 @@ highlights:
 
 ## Dette kommer over i ReAI
 
-Integrasjonen henter fullførte kortkjøp og gebyrer i NOK for perioden du velger. Hvert kjøp føres på kostnadskontoen du oppgir, og hvert gebyr på `7770`. Motposten er kontoen for Revolut-kontoen i ReAI, for eksempel `1925`.
+Integrasjonen henter fullførte kortkjøp, refusjoner av kortkjøp og gebyrer i NOK for perioden du velger. Hvert kjøp føres på kostnadskontoen du oppgir, hver refusjon krediteres samme konto, og hvert gebyr føres på `7770`. Transaksjonene dateres etter dagen kjøpet ble gjort, norsk tid, slik at to perioder etter hverandre aldri overlapper. Motposten er kontoen for Revolut-kontoen i ReAI, for eksempel `1925`.
 
 | Linje | Konto i ReAI |
 | --- | --- |
 | Kortkjøp | Kostnadskontoen du velger, for eksempel `6800` |
+| Refusjon av kortkjøp | Kredit på kostnadskontoen du velger |
 | Gebyr fra Revolut | `7770` |
 | Motpost | Kontoen for Revolut-kontoen, for eksempel `1925` |
 

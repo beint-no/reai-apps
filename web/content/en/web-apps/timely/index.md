@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-Logged hours from Timely become ReAI timesheet entries with date, hours, employee, project and a comment that holds the Timely project and note. People are matched to ReAI employees by email or name, and projects by name. Draft and deleted entries are skipped.
+Logged hours from Timely become ReAI timesheet entries with date, hours, employee, project and a comment that holds the Timely project and note. People are matched to ReAI employees by email or name, and projects by name. Draft and deleted entries are skipped. Entries already in ReAI are not posted again, and large periods are posted in several rounds.
 
 Timesheet entries are not postings. They feed project invoicing and the payroll basis in ReAI, where you approve them as usual.
 

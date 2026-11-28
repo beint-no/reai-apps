@@ -1,40 +1,66 @@
-# Fazile Property Billing
+# Fazile Lease Billing
 
 Route `/app/fazile/`. Docs pages: `web/content/{nb,en}/web-apps/fazile/index.md`.
 
-## Vendor API
+## Purpose
 
-Current documentation (read before changing any provider call):
+Reads active lease contracts and tenants from the Fazile customer API and stages one ReAI subscription per contract and invoice interval, with automatic billing off.
 
-- https://fazile.net/integrasjon-og-api/
-- https://api.fazile.no/clients/swagger-ui/index.html
-- https://api.fazile.no/clients/v3/api-docs
-- https://hjelp.fazile.net/docs/oppretting-av-api-nokkel-for-tredjepartsapplikasjoner/
-- https://hjelp.fazile.net/docs/endring-av-arsleie-og-justering-av-basispriser/
-- https://hjelp.fazile.net/docs/fakturaer-knyttet-til-kontrakter/
+## Vendor docs
 
-- Mode: fix
-- Calls: fetchApi reads GET https://api.fazile.no/clients/v1/contracts and /v1/tenants (skip/limit pagination, `token` header), keeps ACTIVE contracts and current RENT/COMMON_COSTS/MARKETING/PARKING/CUSTOM lines, converts annual total_price to the amount per invoice using the line frequency (fallback interval chosen by the user), matches tenants by org.nr, email or name, and stages one ReAI subscription per contract and interval (POST /api/subscriptions, automatic billing off). VAT codes come from GET /api/vat-codes?usage=customer_invoice: output_vat with the line's tax_vat_percent, and a user chosen 0% code for lines without VAT; codes are rechecked on stage. Discount, exemption and accrual lines are counted and left out. CSV path removed.
-- Hosts in code: `api.fazile.no`, `fazile.net`, `hjelp.fazile.net`
-- Vendor status: Brreg: active, 14 employees, no bankruptcy or liquidation flags. fazile.net live (customer day 15.10.2026), help centre updated 2026-10-30, used by Reitan Eiendom with Xledger.
+- Reference (Swagger UI): https://api.fazile.no/clients/swagger-ui/index.html
+- OpenAPI JSON: https://api.fazile.no/clients/v3/api-docs
+- API overview: https://fazile.net/integrasjon-og-api/
+- Key creation: https://hjelp.fazile.net/docs/oppretting-av-api-nokkel-for-tredjepartsapplikasjoner/
+- Annual prices: https://hjelp.fazile.net/docs/endring-av-arsleie-og-justering-av-basispriser/
+- No public changelog or deprecation page exists; the OpenAPI is the only versioned source.
 
-## ReAI API
+## API version and auth
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+- Client API `v1` (OpenAPI info version v0.0.1); it is the only version published. Base `https://api.fazile.no/clients/v1`.
+- Key: Fazile → Firmaprofil → API Nøkler → Opprett API-nøkkel (whole account or chosen portfolios, read access only, shown once). Fazile bills key activation per agreement.
+- Header `token: <key>` (security scheme `token`, in header).
 
-- `/api/customers`
-- `/api/subscriptions`
-- `/api/vat-codes`
+## Endpoints used
+
+- `GET /v1/contracts?skip&limit`: default returns only active contracts (`notOnlyActiveContracts` left unset); `contract_lines` are embedded, so no per contract calls.
+- `GET /v1/tenants?skip&limit`: org.nr and emails for matching.
+- Both run in parallel.
+
+## Paging, limits, subrequest budget
+
+- `skip` is a row offset. No maximum `limit` and no rate limit are documented, so the module asks for 500, advances `skip` by rows returned and stops on an empty page or a page shorter than an earlier one (correct even if the server caps `limit`). Max 8 pages per list, then a clear error asking to narrow the key to fewer portfolios.
+- Fetch action: 2 to 16 Fazile calls + `GET /api/vat-codes` + `GET /api/customers` (paged by `reaiAll`, 200 per page). Typical portfolio: 6.
+- Stage action: `GET /api/vat-codes` + `GET /api/subscriptions?customerId&active=true` (duplicate check) + `POST /api/subscriptions` = 3.
+
+## ReAI endpoints
+
+- `GET /api/vat-codes?usage=customer_invoice`
+- `GET /api/customers?archived=false`
+- `GET /api/subscriptions?customerId&active=true&pageSize=200`
+- `POST /api/subscriptions` (`SubscriptionWriteReq`: `billingTiming=in_advance`, `periodAlignment=start_date`, `outputMode=create_order`, `automaticBillingGeneration=false`, `currencyCode=NOK`)
+
+## Accounting mapping
+
+- Line types RENT, COMMON_COSTS, MARKETING, PARKING, CUSTOM are billed; DISCOUNT, RENT_EXEMPTION, ACCRUAL, TENANT_IMPROVEMENT_VAT, ACTUAL_VAT are counted and left out.
+- Lines in force on the reference day (today, or contract start when later): `start_date <= ref` and `end_date` empty or `>= ref`. Later price steps are left out.
+- `total_price` is the annual amount; per invoice amount = annual × interval months / 12, rounded to øre. Interval from `frequency` (MONTHLY 1, EVERY_TWO_MONTHS 2, QUARTERLY 3, EVERY_FOUR_MONTHS 4, BI_YEARLY 6, YEARLY 12), else the user's default.
+- VAT: `tax_vat_percent` > 0 maps to the ReAI `output_vat` code with that rate (not reverse charge); 0 % lines use the user chosen 0 % code. Codes are rechecked on stage.
+- Start date: earliest `next_invoice_date` of the billed lines, else today.
+- Customer match: org.nr, then invoice or contact email, then exact name.
+- Duplicate check: an active subscription for the customer with the same start date, interval and subtotal blocks the POST (409).
 
 ## Caveats
 
-The OpenAPI types ContractLineResponse.frequency as a free string; the module assumes the same values as the documented invoice_frequency enum (MONTHLY, QUARTERLY, YEARLY...) and otherwise uses the chosen default interval. total_price is treated as the current annual amount per Fazile's help pages (prices are årsleie). Not tested against a live Fazile key. Fazile charges for API key activation. Fazile normally sends invoice basis to the ERP itself, which the UI and docs mention.
+- `frequency` is typed as a free string; values are assumed to follow the invoice frequency enum.
+- Fazile has no currency field; amounts are taken as NOK.
+- Fazile normally sends invoice basis to the landlord's ERP itself; the UI says so.
+- Not tested against a live key; tests use the OpenAPI schemas.
 
 ## Rules
 
 - Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
 - Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
 - Update this file when the API version, endpoints or caveats change.
 
 Last verified: 2026-11-28.

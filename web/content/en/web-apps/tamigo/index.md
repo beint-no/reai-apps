@@ -16,7 +16,7 @@ highlights:
 
 The integration reads the shifts in the Tamigo timesheet for all departments within the chosen period, at most 93 days at a time. Shifts without worked hours are left out. You can limit it to one employee by name or Tamigo employee ID. Each line shows date, employee, department, shift time and hours.
 
-You post lines one by one to ReAI Timesheets for the employee and project you choose.
+You post lines one by one to ReAI Timesheets for the employee and project you choose. To post, limit the fetch to one Tamigo employee. A shift already logged for the same day, hours and comment is skipped.
 
 ## Setup
 

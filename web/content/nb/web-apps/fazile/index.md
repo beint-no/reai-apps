@@ -14,7 +14,7 @@ highlights:
 
 ## Leiefakturering fra Fazile i ReAI
 
-Fazile lagrer leie, felleskostnader og markedsføringsbidrag som årsbeløp på kontraktslinjene. Integrasjonen henter de aktive kontraktene, deler årsbeløpet på faktureringsfrekvensen og lager ett abonnement i ReAI per kontrakt og frekvens. Linjer med MVA får ReAI sin utgående MVA-kode med samme sats, og linjer uten MVA får koden du velger. Rabatter, leiefritak og periodiseringer tas ikke med og må legges inn i ReAI ved behov.
+Fazile lagrer leie, felleskostnader og markedsføringsbidrag som årsbeløp på kontraktslinjene. Integrasjonen henter de aktive kontraktene, deler årsbeløpet på faktureringsfrekvensen og lager ett abonnement i ReAI per kontrakt og frekvens. Linjer med MVA får ReAI sin utgående MVA-kode med samme sats, og linjer uten MVA får koden du velger. Rabatter, leiefritak, periodiseringer og senere prisendringer tas ikke med og må legges inn i ReAI ved behov.
 
 Fazile sender vanligvis fakturagrunnlaget til økonomisystemet selv. Bruk integrasjonen for kontrakter som skal faktureres fra ReAI.
 

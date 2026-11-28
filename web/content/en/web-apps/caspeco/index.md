@@ -23,7 +23,7 @@ Caspeco returns every sales line in the business day, from 06:00 on the chosen d
 | Sales including VAT at 25 %, 15 % and 12 % | `3000`, `3010` and `3020` with the ReAI output VAT code |
 | Staff tips | `2930` |
 
-Caspeco gives one payment type per sales line, so a receipt split between several payment types is grouped under the type on its lines. Compare the payment totals with the Caspeco day report before you book.
+Caspeco gives one payment type per sales line, so a receipt split between several payment types is grouped under the type on its lines. Discounts reported by Caspeco are shown in the preview. Compare payments and sales with the Caspeco day report before you book.
 
 ## Setup
 

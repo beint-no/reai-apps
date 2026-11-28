@@ -14,7 +14,7 @@ highlights:
 
 ## Dette overføres til ReAI
 
-Appen leser aktive arbeidsforhold og tilhørende brukerprofiler i 4human HRM. Tidligere og ledige stillinger hoppes over. For hver ansatt velger du **Create in ReAI**, som oppretter den ansatte og et arbeidsforhold med startdato og stillingsprosent. E-post, telefon, adresse, fødselsnummer og et MOD11-kontrollert norsk kontonummer tas med når 4human har dem.
+Appen leser aktive arbeidsforhold og tilhørende brukerprofiler i 4human HRM. Tidligere og ledige stillinger hoppes over. Profilene leses for 25 ansatte om gangen, sortert på navn, og **Next 25 employees** henter de neste. For hver ansatt velger du **Create in ReAI**, som oppretter den ansatte og et arbeidsforhold med startdato og stillingsprosent. E-post, telefon, adresse, fødselsnummer og et MOD11-kontrollert norsk kontonummer tas med når 4human har dem.
 
 Når en ansatt opprettes i ReAI, lages det ingen bruker, ingen invitasjon, ingen a-melding og ingen lønnskjøring. Kontroller skattekort, lønn og arbeidsforhold i ReAI før første lønnskjøring. Ansatte som allerede finnes i ReAI med samme e-post eller navn vises, men opprettes ikke på nytt.
 

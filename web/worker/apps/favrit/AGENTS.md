@@ -2,39 +2,52 @@
 
 Route `/app/favrit/`. Docs pages: `web/content/{nb,en}/web-apps/favrit/index.md`.
 
-## Vendor API
+## Purpose
 
-Current documentation (read before changing any provider call):
+Books one Europe/Oslo day of Favrit orderlines for one location as a balanced ReAI review voucher: sales per account reference and VAT rate, refunds, tips.
 
-- https://support.favrit.com/getting-started-1
-- https://support.favrit.com/authentication
-- https://support.favrit.com/important-urls-and-models
-- https://support.favrit.com/user-location-api-documentation
-- https://support.favrit.com/accounting-api-documentation
-- https://support.favrit.com/orderline-api-documentation
+## Vendor docs
 
-- Mode: fix
-- Calls: POST https://accounting-api-auth.favrit.com/oauth2/token (Basic ClientId:SecretId, client_credentials, scope prod/accounting [+ prod/user]); GET https://favrit.com/ws/accounting-api-service/v1/api/user/locations when no location id; GET .../v1/api/accounting/locations/{id}/settlements filtered by creationDate; GET .../settlements/{sid}/reports?type=json. Sales per accountReference and vatPercent (fraction) from sumWithVat, delivery fee 3000 at 25 %, tips 2930, totalPaymentFee 7770, payout clearing 1580. ReAI output VAT codes from GET /api/vat-codes, pairVoucherRows, duplicate check. API only; manual form removed. Does not call the PUT that marks settlements complete.
-- Hosts in code: `accounting-api-auth.favrit.com`, `favrit.com`, `support.favrit.com`
-- Vendor status: Brreg: no flags, 24 employees. support.favrit.com developer docs updated August 2026.
+- Getting started (client app): https://support.favrit.com/getting-started-1
+- Authentication: https://support.favrit.com/authentication
+- Base URLs and scopes: https://support.favrit.com/important-urls-and-models
+- Orderline API (in use): https://support.favrit.com/orderline-api-documentation
+- Accounting API (deprecated, not used): https://support.favrit.com/accounting-api-documentation
+- No changelog; columns are tagged by the version that added them (v4, v5, v6).
+
+## API
+
+- Version: Orderline API `v6` (latest, adds discount columns). Migrated from the settlement based Accounting API, which Favrit marks "will be deprecated in the near future" and points to the Orderline API.
+- Auth: Favrit admin → Company Settings → Integration → Developer → Integrate to Favrit, scope `prod/transaction` → ClientId and SecretId. `POST https://accounting-api-auth.favrit.com/oauth2/token`, `Authorization: Basic base64(ClientId:SecretId)`, form `grant_type=client_credentials&scope=prod/transaction`. One token per action.
+- Endpoint: `GET https://favrit.com/ws/accounting-api-service/api/orderlines/v6[/{locationId}]?from-date&to-date` (UTC, `yyyy-MM-ddTHH:mm:ss`). Without a location id the all locations path is used, and the user is asked for an id when lines span more than one location.
+- Response: `text/csv`, semicolon separated with header; parsed by column name. Lines are kept when `order_line_created_utc` is in the Oslo day (`[start, end)`), de-duplicated by line id, status and counter line id.
+- Ranges over 24 hours return nothing, so the 25 hour day at the end of summer time takes two requests.
+- No paging and no rate limit documented; `429` with `Retry-After` is shown to the user.
+
+## Subrequest budget
+
+- Preview: token + 1 orderline request (2 on the 25 hour day) = 2 to 3.
+- Book: `GET /api/vouchers`, `GET /api/vat-codes`, `POST /api/manual-vouchers` = 3.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /api/vouchers?startDate&endDate&includeReversed=true` duplicate check on `Favrit location ID NAME YYYY-MM-DD`.
+- `GET /api/vat-codes` for output VAT codes per rate.
+- `POST /api/manual-vouchers` with `pairVoucherRows` postings.
+
+## Accounting mapping
+
+- REGULAR lines: credit `account_reference` when it is four digits, else 3000/3010/3020/3100 by rate, VAT inclusive with the ReAI `output_vat` code for `vat_percentage` (a fraction in the docs example; values above 1 are read as percent).
+- TIP lines: credit 2930 with VAT code 0.
+- Debit 1580 for sales plus tips, matched against the payout in the bank, where payment fees are booked.
+- Refund and discard lines (negative quantity) reduce sales on the day they are created; a positive amount on a negative quantity is negated.
+- Currency from `currency`; one per day, and booking requires it to match the company currency.
 
 ## Caveats
 
-Favrit marks the Accounting API as 'will be deprecated in the near future' (notice since Dec 2023) and points to the Orderline API (CSV, 24 h window, no fees or settlement grouping). If Favrit retires it, switch to GET /api/orderlines/v6/{location}. The settlements list is described as 'sync able settlement_ids'; settlements already marked complete by another integration may not be listed (status parameter values undocumented). deliveryFee treatment is undocumented; booked as 25 % revenue on 3000. The shared test provider-api.test.mjs calls fetchFavrit with { apiToken } and a single mock route, so it will fail.
+- Not documented: whether `amount_with_vat` is the line total (assumed) or unit price, whether refund amounts are negative, how delivery fees appear. Payment fees and payment methods are not in the orderlines.
+- Customers with an existing `prod/accounting` client app must create one with `prod/transaction`.
 
-## Rules
-
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
-
-Last verified: 2026-11-28.
+Last verified: 2026-11-28

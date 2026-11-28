@@ -88,11 +88,11 @@ function renderPreview(v, isSample) {
   return reaiCard({
     eyebrow: `${BRAND.toUpperCase()} → REAI REVIEW VOUCHER`,
     title: `${v.ref} · ${v.date}`,
-    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))} NOK`, tone: 'danger' }),
+    badge: balanced ? reaiBadge({ text: 'Balanced (0.00 diff)', tone: 'success' }) : reaiBadge({ text: `Diff ${formatMinor(Math.abs(diff))}`, tone: 'danger' }),
     body: html`
       <div class="metric-grid">
-        ${reaiMetric({ label: 'Tenders (debit)', value: `${formatMinor(v.debitMinor)} NOK` })}
-        ${reaiMetric({ label: 'Revenue incl. VAT (credit)', value: `${formatMinor(v.creditMinor)} NOK` })}
+        ${reaiMetric({ label: 'Tenders (debit)', value: formatMinor(v.debitMinor) })}
+        ${reaiMetric({ label: 'Revenue incl. VAT (credit)', value: formatMinor(v.creditMinor) })}
       </div>
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Account</th><th>Posting</th><th>VAT code</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
@@ -174,6 +174,8 @@ export async function handle(request, env) {
       if (!Array.isArray(v.lines) || !v.lines.length || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v.date))) throw new HttpError(400, 'Voucher is empty.');
       const sum = v.lines.reduce((t, l) => t + Math.round(Number(l.signedMinor)), 0);
       if (sum !== 0 || !v.lines.every((l) => /^[0-9]{4}$/.test(String(l.account)))) throw new HttpError(400, 'Voucher must balance to 0.00.');
+      // GBAT10 has no currency column; amounts are in the shop currency, which must be the company's accounting currency.
+      const currencyCode = session.tenants.find((t) => t.id === session.tenantId)?.currencyCode ?? 'NOK';
       const marker = `${BRAND} ${String(v.ref).slice(0, 80)} ${v.date}`;
       const auth = { token: session.accessToken, tenantId: session.tenantId };
       const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: v.date, endDate: v.date, includeReversed: 'true' } }));
@@ -190,7 +192,7 @@ export async function handle(request, env) {
           postings: pairVoucherRows(v.lines.map((l) => ({
             accountNumber: String(l.account),
             postingDate: v.date,
-            currencyCode: 'NOK',
+            currencyCode,
             amount: Number((Math.round(Number(l.signedMinor)) / 100).toFixed(2)),
             vatCode: String(l.vatCode) === '0' ? '0' : knownOutputVatCode(vatCodes, String(l.vatCode)),
             description: String(l.description).slice(0, 200),

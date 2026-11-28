@@ -671,5 +671,117 @@
     "industry": "operations",
     "path": "web/worker/apps/workfeed/",
     "route": "/app/workfeed/"
+  },
+  "bikedesk-web": {
+    "name": "ReAI Bikedesk Day Close Accounting",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/bikedesk/",
+    "route": "/app/bikedesk/"
+  },
+  "billetto-web": {
+    "name": "ReAI Billetto Ticket Sales Accounting",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/billetto/",
+    "route": "/app/billetto/"
+  },
+  "driversnote-web": {
+    "name": "ReAI Driversnote Driving Log",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/driversnote/",
+    "route": "/app/driversnote/"
+  },
+  "eduadmin-web": {
+    "name": "ReAI EduAdmin Course Bookings",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/eduadmin/",
+    "route": "/app/eduadmin/"
+  },
+  "letsreg-web": {
+    "name": "ReAI LetsReg Settlement Accounting",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/letsreg/",
+    "route": "/app/letsreg/"
+  },
+  "mapon-web": {
+    "name": "ReAI Mapon Driving Log",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/mapon/",
+    "route": "/app/mapon/"
+  },
+  "mirakl-web": {
+    "name": "ReAI Mirakl Marketplace Payout Reconcile",
+    "platform": "web",
+    "industry": "ecommerce-logistics",
+    "path": "web/worker/apps/mirakl/",
+    "route": "/app/mirakl/"
+  },
+  "mollie-web": {
+    "name": "ReAI Mollie Settlement Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/mollie/",
+    "route": "/app/mollie/"
+  },
+  "muntra-web": {
+    "name": "ReAI Muntra Ledger",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/muntra/",
+    "route": "/app/muntra/"
+  },
+  "qondor-web": {
+    "name": "ReAI Qondor Invoicing",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/qondor/",
+    "route": "/app/qondor/"
+  },
+  "rafisklaget-web": {
+    "name": "ReAI Råfisklaget Settlements",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/rafisklaget/",
+    "route": "/app/rafisklaget/"
+  },
+  "teamtailor-web": {
+    "name": "ReAI Teamtailor New Hires",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/teamtailor/",
+    "route": "/app/teamtailor/"
+  },
+  "timelog-web": {
+    "name": "ReAI TimeLog Hours",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/timelog/",
+    "route": "/app/timelog/"
+  },
+  "upsales-web": {
+    "name": "ReAI Upsales Orders",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/upsales/",
+    "route": "/app/upsales/"
+  },
+  "viatracks-web": {
+    "name": "ReAI ViaTracks Driving Log",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/viatracks/",
+    "route": "/app/viatracks/"
+  },
+  "webcrm-web": {
+    "name": "ReAI webCRM Orders",
+    "platform": "web",
+    "industry": "operations",
+    "path": "web/worker/apps/webcrm/",
+    "route": "/app/webcrm/"
   }
 }

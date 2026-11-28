@@ -14,12 +14,12 @@ highlights:
 
 ## Move ABAX business trips into ReAI
 
-The integration fetches business trips for a period from ABAX, converts the distance to kilometres and adds the road tolls ABAX recorded for each trip. You review every trip before recording it in the ReAI driving log, where the mileage allowance is calculated.
+The integration fetches business trips for a period from ABAX, converts the distance to kilometres and adds the road tolls ABAX recorded for each trip. A passenger registered in ABAX is added to the trip. Each trip goes to the ReAI employee with the same email as the ABAX driver; when every trip has one driver, the employee you choose is used. Trips already in the driving log are marked. You review every trip before recording it in the ReAI driving log, where the mileage allowance is calculated.
 
 ## Set up ABAX with ReAI
 
 1. Sign in to the [ABAX Developer Portal](https://developers.abax.cloud) as an administrator and create production API credentials.
 2. Ask ABAX support to enable the client credentials flow for these credentials. It is off by default.
-3. Click **Open integration**, connect ReAI and choose the employee and, if you like, the vehicle.
+3. Click **Open integration**, connect ReAI and, if you like, choose the employee and the vehicle.
 4. Paste the client ID and client secret, choose a period of at most three months and, optionally, the driver's email in ABAX.
 5. Review the trips and click **Record trip** for each trip you want to record.

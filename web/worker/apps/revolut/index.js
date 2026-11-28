@@ -8,12 +8,12 @@ import { formatMinor } from '../../lib/reconcile.js';
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../../lib/ui.js';
 import { pairVoucherRows } from '../../lib/voucher-rows.js';
 
-/** @typedef {{ date: string, merchant: string, account: string, amountMinor: number }} ExpenseLine */
+/** @typedef {{ date: string, merchant: string, account: string, amountMinor: number }} ExpenseLine amountMinor is positive for an expense, negative for a card refund */
 /** @typedef {{ lines: ExpenseLine[], skippedForeign: number }} ExpenseBatch */
 
 const BRAND = 'Revolut Business';
 const TITLE = 'Revolut Business Card Expenses';
-const LEAD = 'Fetch completed Revolut Business card payments and fees for a period and create one review voucher in ReAI against your Revolut bank account.';
+const LEAD = 'Fetch completed Revolut Business card payments, card refunds and fees for a period and create one review voucher in ReAI against your Revolut bank account.';
 const DEFAULT_CLEARING = '1925';
 const DEFAULT_EXPENSE = '6800';
 const FEE_ACCOUNT = '7770';
@@ -67,10 +67,27 @@ async function signHeaders(pem, url) {
   return { 'revolut-api-timestamp': timestamp, 'revolut-api-signature': btoa(String.fromCharCode(...sig)) };
 }
 
+const OSLO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' });
+
 /**
- * Fetches completed NOK card payments and fees from the Revolut Business API.
- * Docs: https://developer.revolut.com/docs/api/business#tag-transactions (GET /transactions with from, to, count;
- * paginate by passing the last created_at as to; legs[].amount, fee, currency, description; merchant.name),
+ * Returns the Europe/Oslo calendar day of an ISO timestamp.
+ * @param {unknown} ts
+ * @param {string} fallback
+ */
+function osloDay(ts, fallback) {
+  const ms = Date.parse(String(ts ?? ''));
+  return Number.isFinite(ms) ? OSLO_DAY.format(ms) : fallback;
+}
+
+/** @param {string} day @param {number} delta */
+const addDays = (day, delta) => new Date(Date.parse(`${day}T00:00:00Z`) + delta * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * Fetches completed NOK card payments, card refunds and fees from the Revolut Business API.
+ * Docs: https://developer.revolut.com/docs/api/business#tag-transactions (GET /transactions with from, to (exclusive), count
+ * up to 1000, state; newest first, paginate by passing the last created_at as to; legs[].amount, fee, currency, description;
+ * merchant.name). from/to filter on created_at, so the window is widened to cover Oslo midnight and every transaction is
+ * dated by the Oslo day of created_at; consecutive periods therefore never overlap or leave gaps.
  * https://developer.revolut.com/docs/guides/api-console/create-key (API key with Accounts → Transactions → Read),
  * https://developer.revolut.com/docs/guides/api-console/make-a-request (Revolut-Api-Timestamp and Ed25519
  * Revolut-Api-Signature) and the OpenAPI spec https://github.com/revolut-engineering/revolut-openapi (yaml/business.yaml).
@@ -86,16 +103,16 @@ export async function fetchApi(creds, fetchImpl = fetch) {
   if (!apiKey) throw new HttpError(400, 'Enter your Revolut Business API key.');
   if (to < from) throw new HttpError(400, 'The end date must be on or after the start date.');
   const expenseAccount = /^[0-9]{4}$/.test((creds.expenseAccount ?? '').trim()) ? (creds.expenseAccount ?? '').trim() : DEFAULT_EXPENSE;
-  const toExclusive = new Date(Date.parse(`${to}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 
   /** @type {ExpenseLine[]} */ const lines = [];
   let skippedForeign = 0;
-  let cursor = toExclusive;
+  let cursor = `${addDays(to, 1)}T00:00:00Z`;
   for (let page = 0; page < 20; page++) {
     const url = new URL(`${API}/transactions`);
-    url.searchParams.set('from', from);
+    url.searchParams.set('from', `${addDays(from, -1)}T22:00:00Z`);
     url.searchParams.set('to', cursor);
     url.searchParams.set('count', '1000');
+    url.searchParams.set('state', 'completed');
     assertPublicHttpsUrl(url.toString());
     const res = await fetchImpl(url.toString(), {
       headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json', ...(signingKey ? await signHeaders(signingKey, url) : {}) },
@@ -110,15 +127,18 @@ export async function fetchApi(creds, fetchImpl = fetch) {
     const txs = /** @type {any[]} */ (await res.json());
     if (!Array.isArray(txs) || txs.length === 0) break;
     for (const tx of txs) {
-      if (tx.state !== 'completed' || (tx.type !== 'card_payment' && tx.type !== 'fee')) continue;
-      const date = isoDate(tx.completed_at ?? tx.created_at, to);
+      if (tx.state !== 'completed' || (tx.type !== 'card_payment' && tx.type !== 'card_refund' && tx.type !== 'fee')) continue;
+      const date = osloDay(tx.created_at, to);
+      if (date < from || date > to) continue;
       for (const leg of Array.isArray(tx.legs) ? tx.legs : []) {
         const amountMinor = Math.round(num(leg.amount) * 100);
         const feeMinor = Math.round(Math.abs(num(leg.fee)) * 100);
-        if (amountMinor >= 0 && feeMinor === 0) continue;
+        const refund = tx.type === 'card_refund' && amountMinor > 0;
+        if (amountMinor >= 0 && feeMinor === 0 && !refund) continue;
         if (String(leg.currency ?? '').toUpperCase() !== 'NOK') { skippedForeign += 1; continue; }
         const merchant = String(tx.merchant?.name ?? leg.description ?? (tx.type === 'fee' ? 'Revolut fee' : 'Card payment')).trim().slice(0, 120);
         if (amountMinor < 0) lines.push({ date, merchant, account: tx.type === 'fee' ? FEE_ACCOUNT : expenseAccount, amountMinor: -amountMinor });
+        if (refund) lines.push({ date, merchant: `${merchant} · refund`, account: expenseAccount, amountMinor: -amountMinor });
         if (feeMinor > 0) lines.push({ date, merchant: `${merchant} · Revolut fee`, account: FEE_ACCOUNT, amountMinor: feeMinor });
       }
     }
@@ -147,7 +167,7 @@ function renderPreview(state) {
     body: html`
       <div class="metric-grid">
         ${reaiMetric({ label: 'Expense lines', value: String(lines.length) })}
-        ${reaiMetric({ label: 'Total debit', value: `${formatMinor(totalMinor)} NOK` })}
+        ${reaiMetric({ label: 'Net expenses', value: `${formatMinor(totalMinor)} NOK` })}
         ${reaiMetric({ label: 'Credit Revolut account', value: state.clearingAccount })}
       </div>
       ${skippedForeign > 0 ? reaiCallout({ tone: 'warn', body: `${skippedForeign} transactions in other currencies were skipped. Book them from the bank statement in ReAI.` }) : ''}
@@ -222,7 +242,7 @@ export async function handle(request, env) {
       const clearingAccount = String(form.get('clearingAccount') ?? DEFAULT_CLEARING).trim();
       if (!Array.isArray(lines) || lines.length === 0 || !/^[0-9]{4}$/.test(clearingAccount)) throw new HttpError(400, 'Voucher is empty.');
       for (const l of lines) {
-        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(l.date)) || !/^[0-9]{4}$/.test(String(l.account)) || !Number.isInteger(l.amountMinor) || l.amountMinor <= 0) throw new HttpError(400, 'Voucher lines are invalid.');
+        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(l.date)) || !/^[0-9]{4}$/.test(String(l.account)) || !Number.isInteger(l.amountMinor) || l.amountMinor === 0) throw new HttpError(400, 'Voucher lines are invalid.');
       }
       const lastDate = lines.map((l) => l.date).sort().at(-1) ?? new Date().toISOString().slice(0, 10);
       const totalMinor = lines.reduce((s, l) => s + l.amountMinor, 0);
@@ -231,7 +251,7 @@ export async function handle(request, env) {
       const existing = /** @type {Array<{ id: number, number: string, description?: string | null }>} */ (await reaiAll(env, '/api/vouchers', { ...auth, query: { startDate: lastDate, endDate: lastDate, includeReversed: 'true' } }));
       const dup = existing.find((x) => typeof x.description === 'string' && x.description.startsWith(marker));
       if (dup) return htmlResponse(reaiCallout({ tone: 'warn', title: `Already booked (${dup.number})`, body: html`Duplicate prevented: <a href="${reaiOrigin(env)}/voucher/${dup.id}?tenantId=${session.tenantId}" target="_blank" rel="noopener">Open voucher ${dup.number} ↗</a>.` }));
-      // Each expense is paired with its own credit on the Revolut account on the same date (one debit + one credit per rowNumber).
+      // Each line is paired with its own counter posting on the Revolut account on the same date (one debit + one credit per rowNumber).
       /** @type {Array<{ accountNumber: string, postingDate: string, currencyCode: string, amount: number, vatCode: string, description: string, rowNumber: number }>} */
       const postings = [];
       for (const l of lines) {

@@ -31,7 +31,7 @@ Salesforce har ikke noe standardfelt for organisasjonsnummer. Har dere et eget f
 2. Slå på **Enable Client Credentials Flow** i OAuth-innstillingene og velg en bruker under **Run As** med lesetilgang til salgsmuligheter og kontoer.
 3. Kopier **Consumer Key** og **Consumer Secret**, og finn My Domain-adressen under **Setup → My Domain**.
 4. Klikk **Åpne integrasjon**, koble til ReAI og velg selskap.
-5. Fyll inn adressen, nøklene, periode og valuta, og hent salgsmulighetene.
+5. Fyll inn adressen, nøklene og perioden, og hent salgsmulighetene. Har Salesforce flere valutaer, brukes valutaen på hver salgsmulighet. Ellers fyller du inn valutaen dere bruker.
 6. Kontroller linjene og legg inn ordrene du vil fakturere.
 
 Nøklene brukes bare til denne forespørselen og lagres aldri.

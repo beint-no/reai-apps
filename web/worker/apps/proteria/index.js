@@ -59,16 +59,21 @@ function defaultMap(headers) {
  */
 export function mapRows(csvText, map) {
   const doc = parseCsv(csvText);
-  if (map.amount < 0 || map.date < 0) throw new HttpError(400, 'Choose the amount (ex. VAT) and date columns.');
+  if (map.amount < 0 || map.date < 0 || map.ref < 0) throw new HttpError(400, 'Choose the amount (ex. VAT), date and shipment number columns. The shipment number keeps a shipment from being staged twice.');
   /** @param {string[]} r @param {number} i */
   const cell = (r, i) => (i >= 0 ? (r[i] ?? '').trim() : '');
-  return doc.rows.slice(0, MAX_ROWS).map((r, i) => ({
-    ref: cell(r, map.ref) || `PROTERIA-${i + 1}`,
-    date: parseDate(cell(r, map.date)),
-    customerName: cell(r, map.customer),
-    description: (cell(r, map.description) ? `Freight ${cell(r, map.description)}` : 'Freight').concat(cell(r, map.ref) ? `, shipment ${cell(r, map.ref)}` : '').slice(0, 255),
-    amountExVat: Number(parseAmount(cell(r, map.amount)).toFixed(2)),
-  })).filter((x) => x.date && x.amountExVat > 0);
+  /** One line per shipment: surcharge rows for the same shipment are added up in øre, so the shipment is staged once in full. @type {Map<string, { row: FreightRow, minor: number }>} */
+  const byRef = new Map();
+  for (const r of doc.rows.slice(0, MAX_ROWS)) {
+    const ref = cell(r, map.ref);
+    const date = parseDate(cell(r, map.date));
+    const minor = Math.round(parseAmount(cell(r, map.amount)) * 100);
+    if (!ref || !date || minor === 0) continue;
+    const seen = byRef.get(ref);
+    if (seen) { seen.minor += minor; continue; }
+    byRef.set(ref, { minor, row: { ref, date, customerName: cell(r, map.customer), description: `${cell(r, map.description) ? `Freight ${cell(r, map.description)}` : 'Freight'}, shipment ${ref}`.slice(0, 255), amountExVat: 0 } });
+  }
+  return [...byRef.values()].filter((x) => x.minor > 0).map((x) => ({ ...x.row, amountExVat: x.minor / 100 }));
 }
 
 /** @param {string[]} headers @param {string} csvText @param {ColumnMap} map @param {number} defaultCustomerId */
@@ -88,7 +93,7 @@ function renderMapping(headers, csvText, map, defaultCustomerId) {
         <div class="mapping-grid">
           ${select('amount', 'Freight amount ex. VAT', map.amount, true)}
           ${select('date', 'Shipment or invoice date', map.date, true)}
-          ${select('ref', 'Shipment number', map.ref, false)}
+          ${select('ref', 'Shipment number', map.ref, true)}
           ${select('customer', 'Receiver or customer', map.customer, false)}
           ${select('description', 'Carrier or product', map.description, false)}
         </div>
@@ -191,9 +196,13 @@ export async function handle(request, env) {
       const amount = Number(form.get('amount') ?? '0');
       const customerId = Number(form.get('customerId') ?? '0');
       if (!ref || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) || !(amount > 0) || customerId <= 0) throw new HttpError(400, 'Shipment, date, amount and customer are required.');
-      const created = /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { token: session.accessToken, tenantId: session.tenantId, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference: `proteria-${ref}`.slice(0, 100), comment: `${BRAND} ${ref}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
+      const auth = { token: session.accessToken, tenantId: session.tenantId };
+      const externalReference = `proteria-${ref}`.slice(0, 100);
+      const existing = /** @type {{ items: Array<{ id: number }> }} */ (await reaiRequest(env, '/api/orders', { ...auth, query: { externalReference, pageSize: '1' } }));
+      const found = existing.items[0];
+      const created = found ?? /** @type {{ id: number }} */ (await reaiRequest(env, '/api/orders', { ...auth, method: 'POST', body: { customerId, currencyCode: 'NOK', daysUntilDue: 14, issueDate: date, orderDate: date, externalReference, comment: `${BRAND} ${ref}`, orderLines: [{ itemName: description, quantity: 1, unitPrice: Number(amount.toFixed(2)) }] } }));
       const url = `${reaiOrigin(env)}/order/${created.id}?tenantId=${session.tenantId}`;
-      return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td>${description}</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">Order #${created.id} ↗</a></td></tr>`);
+      return htmlResponse(html`<tr><td class="mono">${ref}</td><td class="mono">${date}</td><td>Customer #${customerId}</td><td>${description}</td><td class="num">${formatMinor(Math.round(amount * 100))}</td><td><a href="${url}" target="_blank" rel="noopener">${found ? 'Already staged' : 'Order'} #${created.id} ↗</a></td></tr>`);
     }
   } catch (err) {
     return htmlResponse(reaiCallout({ tone: 'danger', title: `${BRAND} error`, body: err instanceof Error ? err.message : 'Failed.' }));

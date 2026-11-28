@@ -2,38 +2,54 @@
 
 Route `/app/mynt/`. Docs pages: `web/content/{nb,en}/web-apps/mynt/index.md`.
 
+Turns a Mynt expense export (CSV) into one balanced ReAI review voucher: each card line on its expense account
+against a separate Mynt card account.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- Partner API (not for card customers): https://docs.mynt.com/get-started-with-mynt-platform
+- Export columns: https://help.mynt.com/en/articles/612739-export-via-excel
+- Reports for CSV and SIE: https://help.mynt.com/en/articles/612759-reports-for-csv-and-sie-exports
+- Accounting settings (nb): https://intercom.help/mynt/nb/articles/11951403-sett-opp-regnskapsinnstillingene-dine-i-mynt
 
-- https://docs.mynt.com/get-started-with-mynt-platform
-- https://help.mynt.com/en/articles/612739-export-via-excel
-- https://help.mynt.com/en/articles/612759-reports-for-csv-and-sie-exports
-- https://www.mynt.com/en/guides/bulk-export-transactions
-- https://intercom.help/mynt/nb/articles/11951403-sett-opp-regnskapsinnstillingene-dine-i-mynt
-- https://www.tripletex.no/integrasjoner/mynt/
+Version: none. Mynt's only API is the Partner API (`partner-api-token` issued "when your partnership begins",
+no version number, non-breaking changes without version updates), so customers cannot get a key and this app reads
+the documented export file instead. Vendor: Swedish company, mynt.com live and selling.
 
-- Mode: csv
-- Auth: None (file upload). Mynt's only API is the Partner API (partner-api.mynt.se); tokens are 'provided by Mynt when your partnership begins' and production is IP-whitelisted, so card customers cannot get a key.
-- Hosts in code: `docs.mynt.com`, `help.mynt.com`
-- Vendor status: Swedish company (org.nr 559100-8874 per mynt.com footer), no Norwegian register entry. mynt.com live, sells corporate cards and expense management.
+## Input
+
+CSV upload, no credentials. Columns used (documented names): Transaction date, Export date override, Amount,
+Currency, VAT rate, Reverse VAT, VAT code, Description, Account, Category, Comment, Person, Project.
+
+Subrequest budget: preview = 0. Book = 3 (voucher duplicate check, `GET /api/vat-codes` once, POST).
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vouchers`
+- `GET /api/vouchers?startDate=<last date>&endDate=<last date>&includeReversed=true` (marker duplicate check)
+- `GET /api/vat-codes`
+- `POST /api/manual-vouchers`
+
+## Mapping
+
+One voucher row per line, both sides on the line's date: debit the Mynt **Account** (default 6800) with the VAT code,
+credit the card account (default 1925, code 0). Refunds reverse the sides. VAT code: the Mynt **VAT code** when ReAI has
+it as an input VAT (VAT inclusive) or reverse charge code; otherwise the ReAI input VAT code (`input_vat`,
+`vat_inclusive`) for the **VAT rate**; Reverse VAT lines without a code, and 0 % lines, get code 0. Lines in another
+currency than the company currency are rejected. `pairVoucherRows` is not used because it pairs postings across
+different dates; each line is already one balanced pair.
 
 ## Caveats
 
-Uses documented export field names (Transaction date, Export date override, Amount, Currency, VAT rate, Reverse VAT, Description, Account, Category, Comment, Person, Project). Mynt does not document the amount sign, so the dominant sign is treated as purchases and the rest as refunds. VAT rate 25/15/12 maps to ReAI input VAT codes 1/11/13 (code 1 is confirmed vat_inclusive by the ReAI OpenAPI; 11 and 13 assumed to be the standard SAF-T codes present in GET /api/vat-codes); Reverse VAT lines get code 0 for the accountant to fix in review. One row per line (expense vs card account, default 1925, as Mynt recommends a separate 19xx account). support@mynt.com also listed on mynt.com contact page; no partner/integrations address published.
+- Mynt does not document the Amount sign; the dominant sign in the file is treated as purchases.
+- Mynt's VAT code values depend on the customer's Mynt accounting settings; unknown codes fall back to the rate.
+- Reverse charge lines without a code need the code set in review.
 
 ## Rules
 
-- Use only documented endpoints, auth, parameters and fields; prefer the newest API version and server-side filtering and paging.
-- Provider credentials are used for one request and never stored.
-- Vouchers use `pairVoucherRows` (`web/worker/lib/voucher-rows.js`) and real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
-- Update this file when the API version, endpoints or caveats change.
+- Use only documented fields of the export; never invent columns.
+- Vouchers use real VAT codes from `GET /api/vat-codes`; never VAT code 0 plus a manual 2700 line.
+- Update this file when the export format or caveats change.
 
 Last verified: 2026-11-28.

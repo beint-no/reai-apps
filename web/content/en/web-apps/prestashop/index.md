@@ -21,12 +21,12 @@ The integration reads your PrestaShop products and the latest valid orders, toge
 | Product with reference and price | Product with SKU and selling price |
 | Valid order | Draft order with one line for the order total excluding VAT and external reference `prestashop-<id>` |
 
-Check the VAT code and currency on the draft order before you invoice.
+The draft order gets the currency of the PrestaShop order. Check the VAT code before you invoice.
 
 ## Setup
 
 1. In the PrestaShop back office, open **Advanced Parameters → Webservice** and enable the webservice.
-2. Add a key with `GET` access to `products`, `orders` and `customers`, and copy it.
+2. Add a key with `GET` access to `products`, `orders`, `customers` and `currencies`, and copy it.
 3. Click **Open integration**, connect ReAI and choose the company.
 4. Enter the store address and the key, then click **Scan PrestaShop**.
 5. Create new products and click **Stage order** on the orders you want to invoice.

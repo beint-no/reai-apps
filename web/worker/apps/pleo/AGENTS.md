@@ -1,37 +1,75 @@
-# Pleo Expenses Import
+# Pleo Export to ReAI
 
 Route `/app/pleo/`. Docs pages: `web/content/{nb,en}/web-apps/pleo/index.md`.
 
-## Vendor API
+Books the oldest open Pleo export job as one ReAI review voucher and reports the result back to
+Pleo (Level 1 export integration).
 
-Current documentation (read before changing any provider call):
+## Vendor docs
 
-- https://developers.pleo.io/docs/current/authentication/standalone-api-keys-overview.md
-- https://developers.pleo.io/docs/current/how-tos/api-keys/how-to-generate-standalone-api-keys.md
-- https://developers.pleo.io/docs/current/guides/export-integration-workflow-guide.md
-- https://developers.pleo.io/reference/export-api/export-api-v3/get-a-list-of-export-jobs.md
-- https://developers.pleo.io/reference/export-api/export-items-v3/get-export-items.md
-- https://developers.pleo.io/reference/export-api/export-api-v3/update-export-job-items.md
-- https://developers.pleo.io/reference/export-api/export-api-v3/create-an-export-job-event.md
-- https://developers.pleo.io/reference/export-api/export-api-scopes.md
-- https://developers.pleo.io/docs/current/integration-design/exports/integration-design-exports-bookkeeping-method-journal-entry.md
+- Standalone API keys (auth): https://developers.pleo.io/docs/current/authentication/standalone-api-keys-overview.md
+- Creating a key: https://developers.pleo.io/docs/current/how-tos/api-keys/how-to-generate-standalone-api-keys.md
+- Export workflow guide: https://developers.pleo.io/docs/current/guides/export-integration-workflow-guide.md
+- List export jobs: https://developers.pleo.io/reference/export-api/export-api-v3/get-a-list-of-export-jobs.md
+- Export items: https://developers.pleo.io/reference/export-api/export-items-v3/get-export-items.md
+- Update job items: https://developers.pleo.io/reference/export-api/export-api-v3/update-export-job-items.md
+- Job events: https://developers.pleo.io/reference/export-api/export-api-v3/create-an-export-job-event.md
+- Scopes: https://developers.pleo.io/reference/export-api/export-api-scopes.md
+- Journal bookkeeping method: https://developers.pleo.io/docs/current/integration-design/exports/integration-design-exports-bookkeeping-method-journal-entry.md
 
-- Mode: fix
-- Calls: Standalone API key (Basic auth, key as username) against the documented Level 1 export workflow: GET /v3/export-jobs?statuses=pending&statuses=in_progress (oldest job), GET /v3/export-items?job_id=&limit=100 with cursor pagination (values in cents). Each accountingEntryLines entry becomes a debit on account.code with the ReAI input VAT code matching tax.rate (vat_inclusive, from GET /api/vat-codes), credit to contraAccount.code per item, rows built with pairVoucherRows per item. On book the job is re-read server side, duplicate checked by voucher description, then POST /v3/export-job-events started, PUT /v3/export-jobs/{id}/items in_progress, POST /api/manual-vouchers, PUT items successful (externalId/externalUrl/exportedAt) and event completed; on ReAI failure items and job are reported failed. accounts_payable items are left in Pleo. CSV removed.
-- Hosts in code: `developers.pleo.io`, `external.pleo.io`
-- Vendor status: pleo.io live and sold; developers.pleo.io current (Export API v3, spec version 33.25.0).
+## API version and auth
+
+- Export API v3 (spec 33.25.0, checked 2026-11-28; no v4 and no v3 deprecation). v3 replaces
+  the legacy Expenses API, which does not accept standalone keys.
+- The customer asks Pleo Support to enable API keys, then creates one under Settings → API Keys
+  with `export-jobs:read`, `export-jobs:write`, `export-items:read`.
+  Header: `Authorization: Basic base64(<key>:)` (key as username, empty password).
+- Host: `https://external.pleo.io`.
+
+## Endpoints
+
+- `GET /v3/export-jobs?statuses=pending&statuses=in_progress&limit=100`; the oldest by
+  `createdAt` is picked locally (sorting key names are not documented).
+- `GET /v3/export-items?job_id=&limit=100&after=` cursor paging (`pagination.hasNextPage`,
+  `endCursor`), at most 50 pages. No maximum `limit` is documented. Values are in cents;
+  `tax.rate` is a fraction (0.25); `date` is a UTC date-time.
+- `POST /v3/export-job-events` (`started`, `completed`, `failed`).
+- `PUT /v3/export-jobs/{id}/items` in batches of 100 (`in_progress`, `successful` with
+  `externalId`/`externalUrl`/`exportedAt`, or `failed` with `failureReasonType`).
+- No rate limit is documented.
+
+## Subrequests per action (n items)
+
+- Fetch: 1 + ceil(n/100).
+- Book: fetch again server side (1 + ceil(n/100)), ReAI `GET /api/vouchers` pages, `GET /api/vat-codes`,
+  1 started event (pending jobs), 2 × ceil(n/100) item updates, 1 `POST /api/manual-vouchers`,
+  1 completed event. About 9 for a job of up to 100 items.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vat-codes`
-- `/api/vouchers`
+- `GET /api/vouchers?voucherType=manual&includeReversed=true` over the job's date range (duplicate check on the description marker `Pleo export <jobId>`)
+- `GET /api/vat-codes` (input VAT, `vat_inclusive`, not reverse charge, rate match)
+- `POST /api/manual-vouchers` with `reviewReason`, rows from `pairVoucherRows` per item
+
+## Accounting mapping
+
+- Each `accountingEntryLines` entry: debit `account.code` with `lineAmount.inWalletCurrency`
+  (gross) and the ReAI input VAT code for `tax.rate` (`tax.type` must be `inclusive`).
+- Credit `contraAccount.code` with the item total (`amount.inWalletCurrency`); lines must add up.
+- Signs follow Pleo, so refunds reverse both sides. Date = the Europe/Oslo day of the item `date`.
+- Only `bookkeeping.method` `journal` or `none` is booked; others (accounts payable) stay in Pleo.
+- On a ReAI error the items and job are reported `failed`. If the voucher already exists (an
+  earlier run stopped after booking), the items are marked successful and the job completed.
 
 ## Caveats
 
-Standalone API keys are not self service: the customer asks Pleo Support to enable them, then creates the key as Admin or Bookkeeper (docs say so). Pleo's accounting settings may need the custom API integration selected so that Export produces jobs for this key; I could not verify that menu without an account. Only four digit Pleo accounts and NOK wallets are accepted. The page keeps the Pleo key in a hidden form field between preview and book (same pattern as recman). Multi-entity organisations would need company_id, which is not sent. web/test/provider-api.test.mjs still calls the old fetchApi signature for this slug; update or drop that case.
+- Only four digit Pleo accounts and NOK wallets are accepted.
+- The Pleo accounting settings may need the custom API integration selected so that Export
+  creates jobs for this key; not verified without an account.
+- Multi-entity organisations would need `company_id`, which is not sent.
+- The key stays in a hidden form field between preview and book.
 
 ## Rules
 

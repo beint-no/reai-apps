@@ -1,32 +1,42 @@
-# Revolut & Wise Import
+# Revolut Business Card Expenses
 
 Route `/app/revolut/`. Docs pages: `web/content/{nb,en}/web-apps/revolut/index.md`.
 
+Fetches completed NOK card payments, card refunds and fees for a period and creates one ReAI review voucher against the Revolut bank account.
+
 ## Vendor API
 
-Current documentation (read before changing any provider call):
+- Reference: https://developer.revolut.com/docs/api/business#tag-transactions
+- OpenAPI (released continuously, last spec release 2026-11-26): https://github.com/revolut-engineering/revolut-openapi/blob/master/yaml/business.yaml
+- Create an API key: https://developer.revolut.com/docs/guides/api-console/create-key
+- Signing: https://developer.revolut.com/docs/guides/api-console/make-a-request and https://developer.revolut.com/docs/guides/api-console/signing-requirements
+- Retrieve transactions guide: https://developer.revolut.com/docs/guides/manage-accounts/accounts-and-transactions/retrieve-transactions
 
-- https://github.com/revolut-engineering/revolut-openapi/blob/master/yaml/business.yaml
-- https://developer.revolut.com/docs/api/business#tag-transactions
-- https://developer.revolut.com/docs/guides/api-console/create-key
-- https://developer.revolut.com/docs/guides/api-console/make-a-request
-- https://developer.revolut.com/docs/guides/api-console/signing-requirements
+API version: Business API 1.0 (`https://b2b.revolut.com/api/1.0`), the current and only version. Auth is API keys from the API Console; the older OAuth access token method is marked deprecated in the spec and is not used.
 
-- Mode: fix
-- Calls: Revolut Business only. GET https://b2b.revolut.com/api/1.0/transactions?from&to&count=1000 with Bearer API key and optional Ed25519 signing (timestamp + GET + /api path + query) using the private.pem from the API Console; paginates by last created_at as to. Imports state=completed card_payment and fee transactions in NOK only (leg.amount to the chosen expense account, leg.fee and fee transactions to 7770), skipped foreign legs are reported. Each expense is paired with its own credit on the Revolut bank account on the same date via pairVoucherRows; vatCode 0 with a note to set VAT on review. CSV upload and Wise removed. Docs pages rewritten with API Console steps.
-- Hosts in code: `b2b.revolut.com`, `developer.revolut.com`, `github.com`
-- Vendor status: Foreign vendor (Lithuania), not in Brreg. Revolut Business is sold and its Business API spec is current (revolut-openapi business.yaml, API keys via API Console).
+Auth: API key with permission Accounts → Transactions → Read (`transactions:read`), header `Authorization: Bearer <key>`. If the key has signing enabled, `Revolut-Api-Timestamp` (ms) and `Revolut-Api-Signature` = base64 Ed25519 over timestamp + `GET` + path from `/api` + URL-encoded query without `?` (no body), using the console's `private.pem`.
+
+Endpoint: `GET /transactions?from=<day before>T22:00:00Z&to=<day after>T00:00:00Z&count=1000&state=completed`. Fields: `type, state, created_at, merchant.name, legs[].amount, fee, currency, description`.
+
+Paging and budget: newest first; next page uses the last `created_at` as `to` (exclusive), up to 20 pages of 1000. Fetch action: 1 request per 1000 completed transactions (normally 1). Book action: 2 ReAI requests (duplicate check, create). No rate limit is published.
 
 ## ReAI API
 
-Contract: https://app.reai.no/openapi/public. Endpoints used:
+Contract: https://app.reai.no/openapi/public.
 
-- `/api/manual-vouchers`
-- `/api/vouchers`
+- `GET /api/vouchers?startDate=&endDate=&includeReversed=true` (duplicate check by description marker)
+- `POST /api/manual-vouchers` (review voucher)
+
+## Mapping
+
+`card_payment` leg amount → debit the chosen expense account; `card_refund` → credit the same account; leg `fee` and `fee` transactions → `7770`; counter posting on the Revolut bank account (default `1925`). Each line is its own row pair via `pairVoucherRows`. Amounts are in minor units, NOK only; other currencies are counted and skipped. Each transaction is dated by the Europe/Oslo day of `created_at` (the field the API filters on), so consecutive periods neither overlap nor leave gaps.
 
 ## Caveats
 
-Wise removed from this slug; if Wise should be offered it needs its own slug and a design that does not book transfers as expenses (personal tokens in the EEA also cannot read statements). Non-NOK accounts are skipped because the API gives no NOK amount; bill_amount could be used later when bill_currency is NOK. Ed25519 Web Crypto is used for signing (supported in Workers and Node). fetchApi creds changed (apiKey, signingKey, expenseAccount; no provider/apiToken) and returns {lines, skippedForeign}: web/test/provider-api.test.mjs revolut cases need updating. Brand/title changed from Revolut / Wise to Revolut Business; apps.json/catalog naming may need the same.
+- VAT code 0 on every line; the user sets VAT (for example reverse charge) when attaching receipts.
+- Non-NOK legs are skipped because the API gives no NOK amount; `bill_amount` could be used when `bill_currency` is NOK.
+- Transactions sharing the exact `created_at` microsecond at a page boundary could be skipped (theoretical).
+- The duplicate marker is month, line count and total; booking an overlapping period with different lines is not detected.
 
 ## Rules
 

@@ -14,7 +14,7 @@ highlights:
 
 ## Lease billing from Fazile in ReAI
 
-Fazile stores rent, common costs and marketing contributions as annual amounts on contract lines. The integration reads active contracts, divides each annual amount by the line's invoice frequency and creates one ReAI subscription per contract and frequency. Lines with VAT get the ReAI output VAT code with the same rate; lines without VAT get the code you choose. Discounts, rent exemptions and accruals are left out and must be added in ReAI if needed.
+Fazile stores rent, common costs and marketing contributions as annual amounts on contract lines. The integration reads active contracts, divides each annual amount by the line's invoice frequency and creates one ReAI subscription per contract and frequency. Lines with VAT get the ReAI output VAT code with the same rate; lines without VAT get the code you choose. Discounts, rent exemptions, accruals and later price steps are left out and must be added in ReAI if needed.
 
 Fazile normally sends invoice basis to your ERP itself. Use this integration for contracts that ReAI will invoice.
 

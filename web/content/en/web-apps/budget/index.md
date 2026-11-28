@@ -1,30 +1,26 @@
 ---
-title: "12-Month NS 4102 Budget Importer"
-seoTitle: "12-Month NS 4102 Budget Importer — Free Open-Source ReAI Integration"
-description: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budgets and inspect quarterly totals live."
-summary: "Upload a 12-month Excel/CSV budget straight into ReAI Company Budgets and inspect quarterly totals live."
+title: "Budget import from CSV"
+seoTitle: "Budget from CSV to ReAI | Free open source integration"
+description: "Upload a monthly budget per result account from Excel or CSV to ReAI and review the saved budget by quarter."
+summary: "Upload a monthly budget per result account to ReAI and review the saved budget by quarter."
 industry: operations
 webAppUrl: /app/budget/
 sourcePath: web/worker/apps/budget/
 highlights:
-  - "Built for Norwegian bookkeeping rules (FP&A & annual company budgeting)"
-  - "Direct integration with ReAI Public API (PUT /api/company-budgets/{year} & GET /api/company-budgets/{year})"
-  - "Included free with ReAI — MIT open source with 1-click sample preview"
+  - "Saves a whole budget year in ReAI at once"
+  - "Accepts Norwegian number formats"
+  - "Shows the saved budget by quarter"
 ---
 
-## How 12-Month NS 4102 Budget Importer works with ReAI
+## What moves into ReAI
 
-Use **12-Month NS 4102 Budget Importer** directly in your browser at `apps.reai.no/app/budget/` with zero add-on fees.
+The file has the account number in the first column and one amount per month from January to December. Only result accounts (3000 to 8999) are accepted. Income and costs are positive amounts, reductions negative.
 
-| Dimension | Details |
-| --- | --- |
-| **Workflow** | FP&A & annual company budgeting |
-| **ReAI API / NS 4102** | `PUT /api/company-budgets/{year} & GET /api/company-budgets/{year}` |
-| **Authentication** | Browser approval via ReAI with encrypted `HttpOnly` session cookie |
-| **License & price** | Free with ReAI · MIT open source (`web/worker/apps/budget.js`) |
+The app replaces the whole budget year in ReAI. Accounts that are not in the file get a zero budget. If someone changed the budget in ReAI during the upload, it is rejected and you can try again.
 
 ## Getting started
 
-1. Open [apps.reai.no/app/budget/](/app/budget/) and click **Connect to ReAI**.
-2. Try the built-in **Load sample** button or connect your live account/export.
-3. Verify the preview table and push directly to your ReAI company.
+1. Save the budget from Excel as CSV with a header row.
+2. Open the app, click **Connect to ReAI** and choose a company.
+3. Choose the year, upload the file and click **Replace budget in ReAI**.
+4. Click **Load live ReAI budget** to check the result.

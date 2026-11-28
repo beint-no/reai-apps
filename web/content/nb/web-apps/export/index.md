@@ -1,17 +1,21 @@
 ---
-title: Eksport til Excel, Power BI og rapportering
-seoTitle: Eksporter regnskapsdata til Excel og Power BI — Gratis verktøy for ReAI
-description: Eksporter hovedboksposteringer, fakturaer, leverandørfakturaer, kunder og produkter fra ReAI til Excel (UTF-8 BOM CSV) eller JSON for Power BI.
-summary: Hent ut rene hovedboksposteringer, fakturaer, kunder og varer til Excel, Power BI og egne analyser.
+title: "Eksport til Excel og Power BI"
+seoTitle: "Eksporter regnskapsdata fra ReAI til Excel og Power BI | Gratis verktøy"
+description: "Eksporter posteringer, fakturaer, leverandørfakturaer, kunder og varer fra ReAI til Excel (CSV) eller JSON for Power BI."
+summary: "Hent posteringer, fakturaer, kunder og varer fra ReAI til Excel, Power BI og egne analyser."
 industry: operations
 webAppUrl: /app/export/
 sourcePath: web/worker/apps/export/
 highlights:
-  - "Eksporterer 5 datasett: hovedboksposteringer, kundefakturaer, leverandørfakturaer, kunder og varer"
-  - "Excel-klar semikolonseparert CSV med UTF-8 BOM (riktige norske bokstaver æ, ø, å)"
-  - "Strukturert JSON klar for Power BI, Google Sheets eller egne rapporter"
+  - "Posteringer, kundefakturaer, leverandørfakturaer, kunder og varer"
+  - "CSV med semikolon og UTF-8 BOM, så Excel viser æ, ø og å riktig"
+  - "JSON klar for Power BI, Google Sheets eller egne rapporter"
 ---
 
-## Laget for økonomiansvarlige, styrerapporter og BI
+## Slik fungerer det
 
-Når du trenger egne analyser i Excel, Power BI eller Google Sheets, slipper du å klippe og lime fra PDF-rapporter. Velg datasett og måned, forhåndsvis tabellen direkte i nettleseren og last ned enten norsk Excel-klar CSV (UTF-8 BOM og semikolon) eller strukturert JSON.
+Velg datasett og måned. Forhåndsvisningen viser de første radene og hvor mange som finnes. Nedlastingen henter alle radene direkte fra ReAI.
+
+Posteringer har beløp i selskapets valuta og i transaksjonsvalutaen i egne kolonner. Fakturaer har betalt og utestående beløp. Kunder tar med både aktive og arkiverte.
+
+Én nedlasting har en øvre grense for antall rader. Blir måneden for stor, får du beskjed i forhåndsvisningen.

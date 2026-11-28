@@ -14,7 +14,7 @@ highlights:
 
 ## What moves into ReAI
 
-The integration reads the Severa (formerly Visma Severa) work hours dated within the chosen period, at most 93 days at a time. You can limit it to one Severa user. Each line shows date, user, project with phase, comment and hours. You post lines one by one to ReAI Timesheets for the employee and project you choose.
+The integration reads the Severa (formerly Visma Severa) work hours dated within the chosen period, at most 93 days at a time. You can limit it to one Severa user. Each line shows date, user, project with phase, comment and hours. You post lines one by one to ReAI Timesheets for the employee and project you choose. A line that is already posted is skipped.
 
 ## Setup
 

@@ -83,18 +83,21 @@ export async function reaiRequest(env, path, options) {
 }
 
 /**
- * Follows ReAI paginated list endpoints ({ items, hasNext }).
+ * Follows ReAI paginated list endpoints ({ items, hasNext }). Endpoints that return a plain array are
+ * returned as is. `maxPages` caps subrequests (200 records per page); exceeding it is an error, never
+ * a silently truncated list.
  * @template T
  * @param {import('./types.d.ts').Env} env
  * @param {string} path
- * @param {{ token: string, tenantId: number, query?: Record<string, string> }} options
+ * @param {{ token: string, tenantId: number, query?: Record<string, string>, maxPages?: number }} options
  * @returns {Promise<T[]>}
  */
 export async function reaiAll(env, path, options) {
+  const maxPages = options.maxPages ?? 100;
   /** @type {T[]} */
   const all = [];
-  for (let page = 1; page <= 100; page++) {
-    const result = /** @type {{ items: T[], hasNext: boolean }} */ (
+  for (let page = 1; page <= maxPages; page++) {
+    const result = /** @type {{ items: T[], hasNext: boolean } | T[]} */ (
       await reaiRequest(env, path, {
         token: options.token,
         tenantId: options.tenantId,
@@ -105,10 +108,13 @@ export async function reaiAll(env, path, options) {
         },
       })
     );
+    if (Array.isArray(result)) {
+      return result;
+    }
     all.push(...result.items);
     if (!result.hasNext) {
       return all;
     }
   }
-  throw new HttpError(502, 'ReAI pagination exceeded safety limit.');
+  throw new HttpError(502, `ReAI returned more than ${maxPages * 200} records for ${path}. Narrow the selection and try again.`);
 }

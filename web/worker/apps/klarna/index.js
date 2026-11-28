@@ -24,8 +24,7 @@ const CFG = {
       "secret": true,
       "placeholder": "klarna_live_api_\u2026"
     }
-  ],
-  "hasFees": false
+  ]
 };
 
 /**
@@ -43,70 +42,97 @@ async function providerJson(url, init, errPrefix) {
     throw new HttpError(502, `${errPrefix} returned an unexpected redirect.`);
   }
   const text = await res.text();
-  return { status: res.status, ok: res.ok, data: text ? JSON.parse(text) : null };
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  return { status: res.status, ok: res.ok, data };
 }
 
 /**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
+ * Returns the UTC instant of 00:00 Europe/Oslo on the given day.
+ * @param {string} day YYYY-MM-DD
+ * @returns {Date}
  */
+function osloMidnight(day) {
+  const guess = new Date(`${day}T00:00:00Z`);
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Oslo', hour: '2-digit', hourCycle: 'h23' }).formatToParts(guess);
+  const offsetHours = Number(parts.find((x) => x.type === 'hour')?.value ?? '0');
+  return new Date(guess.getTime() - offsetHours * 3_600_000);
+}
 
 /**
+ * Formats an ISO instant as the Europe/Oslo calendar day.
+ * @param {string} iso
+ * @returns {string}
+ */
+function osloDay(iso) {
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return iso.slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
+}
+
+/** Documented maximum page size for GET /settlements/v1/payouts. */
+const PAGE_SIZE = 500;
+
+/**
+ * Lists Klarna payouts with a payout date in the month (Europe/Oslo days), filtered server-side by currency.
  * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
+ * @param {string} start First day of the month, YYYY-MM-DD.
+ * @param {string} end First day of the next month, YYYY-MM-DD.
+ * @param {string} currency ISO 4217 currency of the ReAI company.
  * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
  */
-async function fetchKlarnaPayouts(fields, start, end) {
-  const key = fields.apiKey ?? '';
-  if (!key.startsWith('klarna_live_api_')) {
-    throw new HttpError(400, 'Paste a Klarna API key beginning with klarna_live_api_.');
+async function fetchKlarnaPayouts(fields, start, end, currency) {
+  const key = (fields.apiKey ?? '').trim();
+  if (!/^klarna_live_api_[A-Za-z0-9_.+/=*-]+$/.test(key)) {
+    throw new HttpError(400, 'Paste a live Klarna API key beginning with klarna_live_api_ from the Klarna Partner Portal.');
   }
+  const from = osloMidnight(start).toISOString().replace('.000Z', 'Z');
+  const to = new Date(osloMidnight(end).getTime() - 1000).toISOString().replace('.000Z', 'Z');
   /** @type {import('../../lib/reconcile.js').PayoutItem[]} */
   const payouts = [];
   let offset = 0;
-  for (let p = 0; p < 50; p++) {
+  for (let p = 0; p < 10; p++) {
     const url = new URL('https://api.klarna.com/settlements/v1/payouts');
-    url.searchParams.set('size', '100');
+    url.searchParams.set('start_date', from);
+    url.searchParams.set('end_date', to);
+    url.searchParams.set('currency_code', currency);
+    url.searchParams.set('size', String(PAGE_SIZE));
     url.searchParams.set('offset', String(offset));
-    url.searchParams.set('start_date', `${start}T00:00:00Z`);
-    url.searchParams.set('end_date', `${end}T00:00:00Z`);
     const r = await providerJson(
       url.toString(),
       { headers: { authorization: `Basic ${key}`, accept: 'application/json' } },
       'Klarna',
     );
     if (!r.ok) {
-      throw new HttpError(400, r.status === 401 || r.status === 403 ? 'Klarna rejected this API key or denied settlement access.' : `Klarna returned HTTP ${r.status}.`);
+      if (r.status === 401 || r.status === 403) throw new HttpError(400, 'Klarna rejected this API key or it lacks access to settlements. Create a live API key in the Klarna Partner Portal.');
+      if (r.status === 429) throw new HttpError(429, 'Klarna is rate limiting this key. Wait a minute and try again.');
+      const detail = Array.isArray(r.data?.error_messages) ? ` ${r.data.error_messages.join(' ')}` : '';
+      throw new HttpError(400, `Klarna returned HTTP ${r.status}.${detail}`);
     }
     const items = Array.isArray(r.data?.payouts) ? r.data.payouts : [];
     for (const item of items) {
+      const t = item.totals ?? {};
       payouts.push({
         id: String(item.payment_reference),
-        date: String(item.payout_date).slice(0, 10),
-        amountMinor: Number(item.totals?.settlement_amount ?? 0),
+        date: osloDay(String(item.payout_date)),
+        amountMinor: Math.round(Number(t.settlement_amount ?? 0)),
         currency: String(item.currency_code),
         reference: String(item.payment_reference),
-        detail: `Sales ${item.totals?.sale_amount ?? 0}, fees ${item.totals?.fee_amount ?? 0}, returns ${item.totals?.return_amount ?? 0} minor units`,
+        detail: `Sales ${formatMinor(Number(t.sale_amount ?? 0))}, returns ${formatMinor(Number(t.return_amount ?? 0))}, fees ${formatMinor(Number(t.fee_amount ?? 0))}${Number(t.holdback_amount ?? 0) ? `, holdback ${formatMinor(Number(t.holdback_amount))}` : ''} (${item.merchant_settlement_type ?? 'NET'})`,
       });
     }
     offset += items.length;
     const total = typeof r.data?.pagination?.total === 'number' ? r.data.pagination.total : Infinity;
-    if (items.length < 100 || offset >= total) {
-      break;
+    if (items.length < PAGE_SIZE || offset >= total) {
+      return payouts;
     }
   }
-  return payouts;
+  throw new HttpError(400, 'Klarna returned more payouts than one review can show. Contact ReAI support.');
 }
-
-/**
- * @param {Record<string, string>} fields
- * @param {string} start
- * @param {string} end
- * @returns {Promise<import('../../lib/reconcile.js').PayoutItem[]>}
- */
 
 /**
  * @returns {{ payouts: import('../../lib/reconcile.js').PayoutItem[], bankTx: import('../../lib/reconcile.js').BankTx[], month: string, currency: string }}
@@ -129,22 +155,15 @@ function sampleData() {
 }
 
 /**
- * @param {{ rows: import('../../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean, accountID?: string }} state
+ * @param {{ rows: import('../../lib/reconcile.js').ReconcileRow[], month: string, currency: string, excluded: number, bankCount: number, isSample?: boolean }} state
  */
 function renderReviewResults(state) {
-  const { rows, month, currency, excluded, bankCount, isSample, accountID } = state;
+  const { rows, month, currency, excluded, bankCount, isSample } = state;
   const matched = rows.filter((r) => r.match !== null).length;
   const totalNet = rows.reduce((s, r) => s + r.payout.amountMinor, 0);
-  const totalFees = rows.reduce((s, r) => s + Math.abs(r.payout.feeMinor ?? 0), 0);
   const csvRows = [
-    CFG.hasFees
-      ? ['provider', 'reference', 'payout_date', 'net_payout', 'fee_field', 'currency', 'match_status', 'reai_bank_transaction_id', 'detail']
-      : ['provider', 'reference', 'payout_date', 'amount', 'currency', 'match_status', 'reai_bank_transaction_id', 'detail'],
-    ...rows.map((r) =>
-      CFG.hasFees
-        ? [CFG.brand, r.payout.reference, r.payout.date, (r.payout.amountMinor / 100).toFixed(2), ((r.payout.feeMinor ?? 0) / 100).toFixed(2), r.payout.currency, r.status, r.match ? String(r.match.id) : '', r.payout.detail]
-        : [CFG.brand, r.payout.reference, r.payout.date, (r.payout.amountMinor / 100).toFixed(2), r.payout.currency, r.status, r.match ? String(r.match.id) : '', r.payout.detail],
-    ),
+    ['provider', 'reference', 'payout_date', 'amount', 'currency', 'match_status', 'reai_bank_transaction_id', 'detail'],
+    ...rows.map((r) => [CFG.brand, r.payout.reference, r.payout.date, (r.payout.amountMinor / 100).toFixed(2), r.payout.currency, r.status, r.match ? String(r.match.id) : '', r.payout.detail]),
   ];
 
   return html`
@@ -156,23 +175,20 @@ function renderReviewResults(state) {
         : reaiBadge({ text: `${matched}/${rows.length} matched`, tone: matched === rows.length && rows.length > 0 ? 'success' : 'warn' }),
       body: html`
         <div class="metric-grid">
-          ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: `${excluded} other-currency excluded` })}
+          ${reaiMetric({ label: 'Payouts', value: String(rows.length), detail: excluded > 0 ? `${excluded} other-currency excluded` : `${currency} only` })}
           ${reaiMetric({ label: 'Net payout total', value: `${formatMinor(totalNet)} ${currency}`, detail: `${bankCount} pending ReAI bank rows` })}
-          ${CFG.hasFees
-            ? reaiMetric({ label: 'Withheld fees', value: `${formatMinor(totalFees)} ${currency}`, detail: 'Compare against Dintero report' })
-            : reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
+          ${reaiMetric({ label: 'Bank matches', value: `${matched} / ${rows.length}`, detail: '±8 day window, exact ref or unique amount' })}
         </div>
 
         ${rows.length === 0
           ? reaiCallout({ tone: 'info', body: `No ${currency} payouts found for ${month}.` })
           : html`
             <div class="table-wrap"><table class="data-table">
-              <thead><tr><th>Date</th><th>Reference</th><th class="num">Net amount</th>${CFG.hasFees ? html`<th class="num">Fee</th>` : ''}<th>Bank match</th><th>ReAI Bank Tx</th><th>Details</th></tr></thead>
+              <thead><tr><th>Date</th><th>Reference</th><th class="num">Net amount</th><th>Bank match</th><th>ReAI Bank Tx</th><th>Details</th></tr></thead>
               <tbody>${rows.map(
                 (r) => html`<tr>
                   <td class="mono">${r.payout.date}</td><td class="mono">${r.payout.reference}</td>
                   <td class="num">${formatMinor(r.payout.amountMinor)} ${r.payout.currency}</td>
-                  ${CFG.hasFees ? html`<td class="num">${formatMinor(r.payout.feeMinor ?? 0)}</td>` : ''}
                   <td>${reaiBadge({ text: r.status, tone: r.match ? 'success' : 'warn' })}</td>
                   <td class="mono">${r.match ? `#${r.match.id} (${r.match.transactionDate})` : '—'}</td>
                   <td>${r.payout.detail}</td>
@@ -187,26 +203,6 @@ function renderReviewResults(state) {
           `}
       `,
     })}
-    ${CFG.hasFees && !isSample && totalFees > 0 && accountID
-      ? reaiCard({
-          eyebrow: 'OPTIONAL · BOOK WITHHELD FEES',
-          title: 'Create monthly fee voucher for review',
-          body: html`
-            <p class="muted-note">Only book if Dintero withheld these fees directly from payouts and has not separately invoiced them.</p>
-            <form class="stack" hx-post="/app/dintero/voucher" hx-target="#dintero-booking" hx-swap="innerHTML">
-              <input type="hidden" name="month" value="${month}"><input type="hidden" name="accountID" value="${accountID}"><input type="hidden" name="totalFeeMinor" value="${totalFees}">
-              <div class="inline-row">
-                <div class="field"><label for="dintero-expense">Fee expense account (e.g. 7770)</label><input id="dintero-expense" name="expenseAccount" type="text" pattern="[0-9]{4}" required placeholder="7770"></div>
-                <div class="field"><label for="dintero-clearing">Payout clearing account (asset/liability)</label><input id="dintero-clearing" name="clearingAccount" type="text" pattern="[0-9]{4}" required placeholder="1580"></div>
-              </div>
-              <label class="check-row"><input type="checkbox" name="c_deducted" required> I confirm ${formatMinor(totalFees)} ${currency} was withheld from payouts and not separately invoiced.</label>
-              <label class="check-row"><input type="checkbox" name="c_report" required> I verified this total against Dintero's official payout reports for ${month}.</label>
-              <div><button type="submit" class="button primary">Create review voucher (${formatMinor(totalFees)} ${currency})</button></div>
-            </form>
-            <div id="dintero-booking" class="stack-sm"></div>
-          `,
-        })
-      : ''}
   `;
 }
 
@@ -241,7 +237,7 @@ export async function handle(request, env) {
               <div class="mapping-grid">
                 ${CFG.fields.map((f) => html`<div class="field"><label for="f-${f.key}">${f.label}</label><input id="f-${f.key}" name="${f.key}" type="${f.secret ? 'password' : 'text'}" autocomplete="off" required placeholder="${f.placeholder}"></div>`)}
                 <div class="field"><label for="reconcile-month">Payout month</label><input id="reconcile-month" name="month" type="text" pattern="[0-9]{4}-[0-9]{2}" value="${defaultMonth}" required placeholder="YYYY-MM"></div>
-                <div class="field"><label for="reconcile-bank">ReAI bank account${CFG.hasFees ? ' (optional)' : ''}</label><select id="reconcile-bank" name="bankId"><option value="0">${banks.length > 0 ? 'Select bank account…' : 'Connect to ReAI to load banks'}</option>${banks.map((b) => html`<option value="${b.id}">${b.displayName} (${b.ledgerAccountNumber} · ${b.currencyCode})</option>`)}</select></div>
+                <div class="field"><label for="reconcile-bank">ReAI bank account</label><select id="reconcile-bank" name="bankId"><option value="0">${banks.length > 0 ? 'Select bank account…' : 'Connect to ReAI to load banks'}</option>${banks.map((b) => html`<option value="${b.id}">${b.displayName} (${b.ledgerAccountNumber} · ${b.currencyCode})</option>`)}</select></div>
               </div>
               <div class="inline-row">
                 <button type="submit" class="button primary">Review ${CFG.brand} payouts</button>
@@ -289,7 +285,7 @@ export async function handle(request, env) {
         fields[f.key] = val;
       }
       const [fetched, bankTx] = await Promise.all([
-        fetchKlarnaPayouts(fields, bounds.start, bounds.end),
+        fetchKlarnaPayouts(fields, bounds.start, bounds.end, company.currencyCode),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
       const matching = fetched.filter((p) => p.currency === company.currencyCode).sort((a, b) => b.date.localeCompare(a.date));
