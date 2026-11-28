@@ -4,10 +4,16 @@
     "url": "https://github.com/beint-no/reai-apps/releases/download/time-tracker/v0.3.4/ReAI-Time-Tracker-Apple-Silicon.dmg",
     "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/time-tracker/v0.3.4"
   },
-  "finder-vault": {
-    "version": "0.2.2",
-    "url": "https://github.com/beint-no/reai-apps/releases/download/finder-vault/v0.2.2/ReAI-Finder-Vault-Apple-Silicon.dmg",
-    "releaseUrl": "https://github.com/beint-no/reai-apps/releases/tag/finder-vault/v0.2.2"
+  "document-scanner": {
+    "version": "latest",
+    "url": "https://github.com/beint-no/reai-apps/releases",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases"
+  },
+  "document-scanner-windows": {
+    "version": "latest",
+    "url": "https://github.com/beint-no/reai-apps/releases",
+    "releaseUrl": "https://github.com/beint-no/reai-apps/releases",
+    "arm64Url": "https://github.com/beint-no/reai-apps/releases"
   },
   "time-tracker-windows": {
     "version": "0.1.1",
