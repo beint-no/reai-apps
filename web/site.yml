@@ -3,12 +3,14 @@ title: ReAI Apps
 endpoints:
   - /app/hybel/
   - /app/import/
+  - /app/export/
+  - /app/hubspot/
   - /app/stripe/
   - /app/vipps/
   - /app/klarna/
   - /app/zettle/
   - /app/dintero/
-  - /app/close-check/
+  - /app/sumup/
   - /app/lab/
   - /app/auth/session
   - /app/auth/device/start
@@ -25,6 +27,12 @@ endpoints:
   - /app/import/preview
   - /app/import/run
   - /app/import/export
+  - /app/export/sample
+  - /app/export/preview
+  - /app/export/download
+  - /app/hubspot/sample
+  - /app/hubspot/scan
+  - /app/hubspot/create
   - /app/stripe/sample
   - /app/stripe/preview
   - /app/stripe/import-invoice
@@ -42,8 +50,9 @@ endpoints:
   - /app/dintero/review
   - /app/dintero/export
   - /app/dintero/voucher
-  - /app/close-check/sample
-  - /app/close-check/run
+  - /app/sumup/sample
+  - /app/sumup/review
+  - /app/sumup/export
   - /app/lab/ping
 languages:
   - code: en
@@ -51,34 +60,34 @@ languages:
     label: English
     menus:
       main:
-        - name: Industries
-          pageRef: /industries/
-          weight: 1
         - name: Web apps
           pageRef: /web-apps/
-          weight: 2
-        - name: Desktop apps
+          weight: 1
+        - name: Desktop
           pageRef: /desktop/
+          weight: 2
+        - name: Industries
+          pageRef: /industries/
           weight: 3
-        - name: UI lab
-          url: /app/lab/
+        - name: Docs
+          pageRef: /docs/
           weight: 4
   - code: nb
     locale: nb-NO
     label: Norsk
     menus:
       main:
-        - name: Bransjer
-          pageRef: /industries/
-          weight: 1
         - name: Nettapper
           pageRef: /web-apps/
-          weight: 2
-        - name: Skrivebordsapper
+          weight: 1
+        - name: Skrivebord
           pageRef: /desktop/
+          weight: 2
+        - name: Bransjer
+          pageRef: /industries/
           weight: 3
-        - name: UI-lab
-          url: /app/lab/
+        - name: Dokumentasjon
+          pageRef: /docs/
           weight: 4
 pageParams:
   eyebrow: string
@@ -87,7 +96,6 @@ pageParams:
   windowsAppId: string
   webAppUrl: string
   icon: string
-  status: string
   sourcePath: string
   windowsSourcePath: string
   highlights: list
@@ -95,6 +103,6 @@ params:
   githubUrl: https://github.com/beint-no/reai-apps
   apiDocsUrl: https://app.reai.no/openapi/public/ui
   reaiUrl: https://reai.no
+  signupUrl: https://app.reai.no/auth/signup
   suggestUrl: https://github.com/beint-no/reai-apps/issues/new?template=app-idea.yml
   issuesUrl: https://github.com/beint-no/reai-apps/issues
-  profileTokensUrl: https://app.reai.no/user/profile#user-access-tokens

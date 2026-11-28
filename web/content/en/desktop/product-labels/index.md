@@ -1,19 +1,18 @@
 ---
-title: Product Labels
-seoTitle: ReAI Product Labels — Mac barcode and price label printer
-description: Create and batch-print product, price and barcode labels directly from your ReAI catalog on Apple Silicon Macs.
-summary: Price tags, product details and barcodes printed in bulk from your Mac.
+title: "Product & Price Labels for Mac"
+seoTitle: "ReAI Product Labels — Print Price Tags & Barcodes from ReAI on Mac"
+description: Print price tags, variant details and barcodes directly from your ReAI product catalog in bulk on macOS with multi-currency support.
+summary: Create and batch-print price tags, product details and barcodes directly from your ReAI catalog.
 industry: ecommerce-logistics
-status: maintained
-icon: icons/product-labels.avif
+icon: icons/product-labels.svg
 appId: product-labels
 sourcePath: apple/product-labels
 highlights:
-  - "Manual labels or live products and variants from ReAI"
-  - "50 x 30 mm price label defaults, stock presets and custom sizes"
-  - "Multi-currency price lists, live preview, PDF export and Sparkle updates"
+  - "Pulls live products, variants, SKUs and multi-currency price lists from ReAI"
+  - "50 x 30 mm price-tag defaults, custom label sizes and instant PDF preview"
+  - "One print job with exact copy counts per variant and automatic signed updates"
 ---
 
-## Production use
+## Instant retail price tags from your catalog
 
-ReAI Product Labels is maintained for daily retail and warehouse label printing on macOS 15+ (Apple Silicon). Releases are Developer ID signed, Apple notarized and updated in-app via Sparkle.
+Select products or variants directly from ReAI, choose domestic VAT or multi-currency price lists, verify one test label and print the entire shipment's price tags in one printer job.

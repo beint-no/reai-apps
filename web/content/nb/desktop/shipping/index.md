@@ -1,21 +1,20 @@
 ---
-title: Frakt og etiketter
-seoTitle: ReAI Frakt — Bestill frakt og skriv ut etiketter på Mac og Windows
-description: Bestill frakt på åpne ReAI-ordrer og skriv ut transportøretiketter direkte til Zebra-skrivere på Mac og Windows.
-summary: Velg ordre, bestill frakt og skriv ut direkte til etikettskriveren.
+title: Fraktbestilling og Zebra-etiketter
+seoTitle: ReAI Fraktapp — Direkte utskrift av fraktetiketter på Mac og Windows
+description: Bestill frakt med Bring, PostNord og DHL direkte fra ReAI-ordrer og skriv ut etiketter rett til Zebra-skriver på Mac og Windows uten utskriftsdialog.
+summary: Bestill frakt på åpne ReAI-ordrer og skriv ut transportøretiketter rett på Zebra-skriver.
 industry: ecommerce-logistics
-status: maintained
-icon: icons/shipping.avif
+icon: icons/shipping.svg
 appId: shipping
 sourcePath: apple/shipping
 highlights:
-  - "Åpne ordrer, Klikk og Hent og oppdaterte fraktpriser"
-  - "Automatisk valg av Zebra-skriver og riktig etikettstørrelse fra transportør"
-  - "Trygg feilhåndtering, eksplisitt ny utskrift og innebygde oppdateringer"
+  - "Støtter Bring, PostNord, DHL og Klikk & Hent rett fra ordrene i ReAI"
+  - "Automatisk valg av Zebra-skriver og riktig etikettstørrelse uten utskriftsdialog"
+  - "Signert for macOS 15+ (Apple Silicon) og native Windows 11 (x64/ARM64)"
 windowsAppId: shipping-windows
 windowsSourcePath: windows/shipping
 ---
 
-## Vedlikeholdt for Mac og Windows
+## Laget for rask pakking på lager og i nettbutikk
 
-ReAI Frakt brukes daglig på lager både på Apple Silicon Mac og Windows 11. Koble til via nettleseren slik at nøkler lagres trygt i macOS Keychain eller Windows Credential Locker.
+Utskriftsdialoger i nettleseren skalerer ofte termiske etiketter feil og stjeler tid på pakkebordet. ReAI Frakt snakker direkte med skriverkøen på Mac og Windows slik at du velger ordre, sammenligner fraktpris og sender riktig etikett rett til Zebra-skriveren med ett klikk.

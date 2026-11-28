@@ -1,8 +1,8 @@
 ---
-title: "Payments & payouts"
-seoTitle: "Payments & payouts — ReAI Apps"
-description: Reconcile Stripe, Vipps, Klarna, Zettle and Dintero settlements against ReAI bank transactions and accounting records.
-summary: Review payment provider settlements, fees and bank payouts.
+title: "Payments & POS"
+seoTitle: "Payments & POS Integrations — ReAI"
+description: Reconcile Vipps, Klarna, Stripe, Zettle, SumUp and Dintero payouts against your ReAI bank feed and book withheld fees cleanly.
+summary: Reconcile online checkout and card-terminal payouts against bank transactions.
 industry: payments
 eyebrow: INDUSTRY
 ---

@@ -3,6 +3,6 @@
   <nav class="main-nav">
     {{ range site.Menus.main }}<a href="{{ .URL }}">{{ .Name }}</a>{{ end }}
     {{ range .Translations }}<a class="lang-switch" href="{{ .RelPermalink }}" lang="{{ .Language.Code }}">{{ .Language.Label }}</a>{{ end }}
-    <a class="source-link" href="{{ site.Params.githubUrl }}">GitHub ↗</a>
+    <a class="button primary nav-cta" href="{{ site.Params.signupUrl }}">{{ T "try_reai_free" }} →</a>
   </nav>
 </header>

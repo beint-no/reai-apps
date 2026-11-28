@@ -52,12 +52,54 @@
     "sparkle": true,
     "sparkle_key_secret": "PRODUCT_LABELS_SPARKLE_PRIVATE_KEY"
   },
-  "close-check": {
-    "name": "ReAI Month-End Close Checker",
+  "vipps-web": {
+    "name": "ReAI Vipps Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/vipps/"
+  },
+  "klarna-web": {
+    "name": "ReAI Klarna Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/klarna/"
+  },
+  "stripe-web": {
+    "name": "ReAI Stripe Import",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/stripe.js",
+    "route": "/app/stripe/"
+  },
+  "zettle-web": {
+    "name": "ReAI Zettle Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/zettle/"
+  },
+  "sumup-web": {
+    "name": "ReAI SumUp Reconcile",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/sumup/"
+  },
+  "dintero-web": {
+    "name": "ReAI Dintero Fees",
+    "platform": "web",
+    "industry": "payments",
+    "path": "web/worker/apps/reconcile.js",
+    "route": "/app/dintero/"
+  },
+  "hubspot-web": {
+    "name": "ReAI HubSpot CRM Sync",
     "platform": "web",
     "industry": "operations",
-    "path": "web/worker/apps/close-check.js",
-    "route": "/app/close-check/"
+    "path": "web/worker/apps/hubspot.js",
+    "route": "/app/hubspot/"
   },
   "hybel-web": {
     "name": "ReAI Hybel Journal",
@@ -73,40 +115,12 @@
     "path": "web/worker/apps/import.js",
     "route": "/app/import/"
   },
-  "stripe-web": {
-    "name": "ReAI Stripe Import",
+  "export-web": {
+    "name": "ReAI BI & Accounting Export",
     "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/stripe.js",
-    "route": "/app/stripe/"
-  },
-  "vipps-web": {
-    "name": "ReAI Vipps Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/vipps/"
-  },
-  "klarna-web": {
-    "name": "ReAI Klarna Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/klarna/"
-  },
-  "zettle-web": {
-    "name": "ReAI Zettle Reconcile",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/zettle/"
-  },
-  "dintero-web": {
-    "name": "ReAI Dintero Fees",
-    "platform": "web",
-    "industry": "payments",
-    "path": "web/worker/apps/reconcile.js",
-    "route": "/app/dintero/"
+    "industry": "operations",
+    "path": "web/worker/apps/export.js",
+    "route": "/app/export/"
   },
   "ui-lab": {
     "name": "ReAI UI Component Lab",

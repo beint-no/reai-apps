@@ -1,19 +1,21 @@
 ---
-title: Stripe-import
-seoTitle: ReAI Stripe-import — Betalte fakturaer og klargjorte abonnementer
-description: Gjennomgå betalte MVA-frie Stripe-fakturaer og klargjør enkle abonnementer i ReAI direkte i nettleseren.
-summary: Importer enkle historiske Stripe-fakturaer og klargjør abonnementer uten autofakturering.
+title: Integrasjon mellom Stripe og regnskap
+seoTitle: Integrasjon mellom Stripe og regnskap — Fakturaer og abonnementer i ReAI
+description: Importer betalte Stripe-fakturaer og flytt faste abonnementer til ReAI gratis. Guide til trygg regnskapsføring og overgang fra Stripe.
+summary: Importer betalte Stripe-fakturaer trygt til ReAI og klargjør aktive abonnementer uten dobbeltfakturering.
 industry: payments
-status: example
+icon: icons/stripe.svg
 webAppUrl: /app/stripe/
 sourcePath: web/worker/apps/stripe.js
 highlights:
-  - "Bruker begrenset Stripe-lesenøkkel per forespørsel uten å lagre nøkkelen"
-  - "Idempotent import av historiske fakturaer med accounting=none"
-  - "Klargjør faste måneds- eller årsabonnementer med automatisk fakturering skrudd av"
-icon: icons/stripe.avif
+  - "Bruker begrenset lesenøkkel fra Stripe (rk_live_ eller rk_test_) uten skrivetilgang"
+  - "Idempotent import av historiske fakturaer (accounting=none) så ingenting dobbeltføres"
+  - "Klargjør måneds- og årsabonnementer i ReAI med autofakturering skrudd av"
 ---
 
-## Kontrollert overgang fra Stripe
+## Trygg migrering av Stripe-fakturaer og abonnementer
 
-Kjører server-til-server mellom Cloudflare Worker, Stripe og ReAI med full kontroll på valuta, MVA og kundematch.
+Ved overgang fra Stripe til fakturering i ReAI er de to vanligste feilene dobbeltbokføring av historiske inntekter eller dobbeltfakturering av abonnenter. Denne integrasjonen har innebygde sikkerhetssperrer:
+
+* **Historiske betalte fakturaer** importeres idempotent med `accounting=none`, slik at historisk regnskap ikke bokføres på nytt.
+* **Aktive abonnementer** opprettes fra neste periodeskifte med automatisk fakturering skrudd av, slik at du kan kontrollere MVA, beløp og betalingsmåte før du skrur av fakturering i Stripe.

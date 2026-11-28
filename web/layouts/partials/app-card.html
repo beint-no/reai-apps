@@ -2,11 +2,10 @@
 {{ $h2 := eq .level "h2" }}
 <article class="app-card">
   <div class="card-head">
-    {{ with $p.Params.icon }}{{ with asset . }}<img class="app-icon" src="{{ .RelPermalink }}" width="56" height="56" alt="">{{ end }}{{ end }}
+    {{ with $p.Params.icon }}{{ with asset . }}<img class="app-icon" src="{{ .RelPermalink }}" width="116" height="40" alt="">{{ end }}{{ end }}
     <div class="card-badges">
       {{ if $p.Params.webAppUrl }}<span class="badge accent">{{ T "web_badge" }}</span>{{ end }}
       {{ if or $p.Params.appId $p.Params.windowsAppId }}<span class="badge">{{ T "desktop_badge" }}</span>{{ end }}
-      {{ with $p.Params.status }}<span class="badge">{{ if eq . "maintained" }}{{ T "maintained" }}{{ else if eq . "experimental" }}{{ T "experimental" }}{{ else }}{{ T "example" }}{{ end }}</span>{{ end }}
     </div>
   </div>
   {{ if $h2 }}<h2><a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a></h2>{{ else }}<h3><a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a></h3>{{ end }}

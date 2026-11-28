@@ -1,21 +1,20 @@
 ---
-title: Shipping
-seoTitle: ReAI Shipping — Book shipments and print labels on Mac and Windows
-description: Book shipments for open ReAI orders and print carrier labels directly to Zebra thermal printers on Mac and Windows.
-summary: Select an order, book carrier shipping and print directly to your label printer.
+title: "Shipping & Zebra Label Printing"
+seoTitle: "ReAI Shipping App — One-Click Carrier Labels for Mac & Windows"
+description: Book Bring, PostNord and DHL shipments for ReAI orders and print carrier labels straight to Zebra thermal printers on Mac and Windows with zero dialogs.
+summary: Book carrier shipping on open ReAI orders and print labels straight to Zebra thermal printers.
 industry: ecommerce-logistics
-status: maintained
-icon: icons/shipping.avif
+icon: icons/shipping.svg
 appId: shipping
 sourcePath: apple/shipping
 highlights:
-  - "Open orders, Click and Collect workflows and live carrier pricing"
-  - "Automatic Zebra printer selection and native carrier PDF page sizes"
-  - "Safe shipping recovery, explicit reprinting and built-in updates"
+  - "Supports Bring, PostNord, DHL and Click & Collect directly from ReAI orders"
+  - "Automatic Zebra printer selection and native carrier PDF label sizing with no print dialog"
+  - "Signed and notarized for macOS 15+ (Apple Silicon) plus native Windows 11 x64/ARM64 builds"
 windowsAppId: shipping-windows
 windowsSourcePath: windows/shipping
 ---
 
-## Maintained on Mac and Windows
+## Built for fast warehouse packing
 
-ReAI Shipping is in daily warehouse use on both Apple Silicon Macs and Windows 11 PCs. Connect via browser approval so credentials remain inside macOS Keychain or Windows Credential Locker.
+Browser print dialogs slow down packing desks and frequently scale thermal labels incorrectly. ReAI Shipping talks directly to macOS and Windows print queues so warehouse staff pick an order, compare live carrier rates and print one crisp label per parcel in a single click.

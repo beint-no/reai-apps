@@ -1,8 +1,8 @@
 ---
-title: Betaling og utbetalinger
-seoTitle: Betaling og utbetalinger — ReAI Apps
-description: Avstem oppgjør fra Stripe, Vipps, Klarna, Zettle og Dintero mot banktransaksjoner og regnskap i ReAI.
-summary: Kontroller oppgjør, gebyrer og utbetalinger fra betalingsleverandører.
+title: Betaling og kasse
+seoTitle: Betaling og kasse — Integrasjoner for ReAI
+description: Avstem utbetalinger fra Vipps, Klarna, Stripe, Zettle, SumUp og Dintero mot bank i ReAI og bokfør gebyrer riktig.
+summary: Avstem nettbetaling og kortterminaler mot banktransaksjoner i regnskapet.
 industry: payments
 eyebrow: BRANSJE
 ---

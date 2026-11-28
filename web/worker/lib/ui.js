@@ -131,21 +131,26 @@ export function appShell(props) {
       <a href="https://github.com/beint-no/reai-apps">GitHub ↗</a>
     </nav>
     <nav id="app-switcher" popover class="app-switcher">
-      <a href="/app/close-check/"${props.activePath === '/app/close-check/' ? html` data-current="true"` : ''}>Month-End Close Checker</a>
-      <a href="/app/hybel/"${props.activePath === '/app/hybel/' ? html` data-current="true"` : ''}>Hybel Journal</a>
-      <a href="/app/import/"${props.activePath === '/app/import/' ? html` data-current="true"` : ''}>Spreadsheet Import</a>
-      <a href="/app/stripe/"${props.activePath === '/app/stripe/' ? html` data-current="true"` : ''}>Stripe Import</a>
       <a href="/app/vipps/"${props.activePath === '/app/vipps/' ? html` data-current="true"` : ''}>Vipps Reconcile</a>
       <a href="/app/klarna/"${props.activePath === '/app/klarna/' ? html` data-current="true"` : ''}>Klarna Reconcile</a>
+      <a href="/app/stripe/"${props.activePath === '/app/stripe/' ? html` data-current="true"` : ''}>Stripe Import</a>
       <a href="/app/zettle/"${props.activePath === '/app/zettle/' ? html` data-current="true"` : ''}>Zettle Reconcile</a>
+      <a href="/app/sumup/"${props.activePath === '/app/sumup/' ? html` data-current="true"` : ''}>SumUp Reconcile</a>
       <a href="/app/dintero/"${props.activePath === '/app/dintero/' ? html` data-current="true"` : ''}>Dintero Fees</a>
-      <a href="/app/lab/"${props.activePath === '/app/lab/' ? html` data-current="true"` : ''}>UI Component Lab</a>
+      <a href="/app/hubspot/"${props.activePath === '/app/hubspot/' ? html` data-current="true"` : ''}>HubSpot CRM Sync</a>
+      <a href="/app/hybel/"${props.activePath === '/app/hybel/' ? html` data-current="true"` : ''}>Hybel Journal</a>
+      <a href="/app/import/"${props.activePath === '/app/import/' ? html` data-current="true"` : ''}>Spreadsheet Import</a>
+      <a href="/app/export/"${props.activePath === '/app/export/' ? html` data-current="true"` : ''}>BI &amp; Excel Export</a>
     </nav>
   </header>
   <main class="app-main wrap">${props.body}</main>
   <footer class="app-footer wrap">
-    <span>apps.reai.no · SSR + HTMX 4 + Declarative Shadow DOM</span>
-    <a href="https://app.reai.no/user/profile#user-access-tokens">Manage ReAI tokens ↗</a>
+    <span>Free ReAI integration · <a href="https://app.reai.no/auth/signup">Try ReAI free →</a></span>
+    <nav class="app-nav">
+      <a href="/docs/">Docs</a>
+      <a href="/app/lab/">UI Lab</a>
+      <a href="https://app.reai.no/user/profile#user-access-tokens">Manage tokens ↗</a>
+    </nav>
   </footer>
 </body>
 </html>`;

@@ -16,7 +16,7 @@ import {
 import { appShell, reaiBadge, reaiCallout, reaiCard, reaiMetric } from '../lib/ui.js';
 
 /**
- * @typedef {'vipps' | 'klarna' | 'zettle' | 'dintero'} ProviderSlug
+ * @typedef {'vipps' | 'klarna' | 'zettle' | 'dintero' | 'sumup'} ProviderSlug
  * @typedef {{ key: string, label: string, secret?: boolean, placeholder: string }} CredentialField
  * @typedef {{ slug: ProviderSlug, brand: string, title: string, lead: string, clientId: string, clientName: string, fields: CredentialField[], hasFees?: boolean }} ProviderConfig
  */
@@ -72,6 +72,18 @@ const PROVIDERS = {
       { key: 'accountID', label: 'Dintero Account ID', placeholder: 'P12345678' },
       { key: 'clientID', label: 'Client ID', placeholder: 'Backoffice API client ID' },
       { key: 'clientSecret', label: 'Client secret', secret: true, placeholder: 'Backoffice API client secret' },
+    ],
+  },
+  sumup: {
+    slug: 'sumup',
+    brand: 'SumUp',
+    title: 'SumUp Reconcile',
+    lead: 'Compare SumUp card terminal payouts and fees against pending ReAI bank transactions for one month and export a CSV report.',
+    clientId: 'reai-sumup-web',
+    clientName: 'ReAI SumUp Reconcile (Web)',
+    fields: [
+      { key: 'merchantCode', label: 'SumUp Merchant Code', placeholder: 'M1234ABCD' },
+      { key: 'apiKey', label: 'SumUp API key', secret: true, placeholder: 'sup_sk_…' },
     ],
   },
 };
@@ -378,6 +390,57 @@ async function fetchDinteroSettlements(fields, start, end) {
     if (!cursor) {
       break;
     }
+  }
+  return payouts;
+}
+
+/**
+ * Fetches SumUp payouts for a merchant code and date range.
+ * @param {Record<string, string>} fields
+ * @param {string} start
+ * @param {string} end
+ * @returns {Promise<import('../lib/reconcile.js').PayoutItem[]>}
+ */
+async function fetchSumUpPayouts(fields, start, end) {
+  const merchantCode = (fields.merchantCode ?? '').trim();
+  const apiKey = (fields.apiKey ?? '').trim();
+  if (!/^[A-Za-z0-9_-]{4,32}$/.test(merchantCode) || !apiKey) {
+    throw new HttpError(400, 'Enter a valid SumUp Merchant Code and API key.');
+  }
+  const lastDay = new Date(Date.parse(`${end}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  const url = new URL(`https://api.sumup.com/v1.0/merchants/${encodeURIComponent(merchantCode)}/payouts`);
+  url.searchParams.set('start_date', start);
+  url.searchParams.set('end_date', lastDay);
+  url.searchParams.set('format', 'json');
+  const r = await providerJson(
+    url.toString(),
+    { headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' } },
+    'SumUp',
+  );
+  if (!r.ok) {
+    throw new HttpError(
+      400,
+      r.status === 401 || r.status === 403
+        ? 'SumUp rejected this API key or merchant code.'
+        : `SumUp returned HTTP ${r.status}.`,
+    );
+  }
+  const items = Array.isArray(r.data) ? r.data : [];
+  /** @type {import('../lib/reconcile.js').PayoutItem[]} */
+  const payouts = [];
+  for (const row of items) {
+    if (row.type !== 'PAYOUT' || row.status !== 'SUCCESSFUL' || typeof row.amount !== 'number') {
+      continue;
+    }
+    const feeMajor = typeof row.fee === 'number' ? row.fee : 0;
+    payouts.push({
+      id: String(row.id ?? row.reference ?? `${row.date}-${row.amount}`),
+      date: String(row.date ?? '').slice(0, 10),
+      amountMinor: Math.round(row.amount * 100),
+      currency: String(row.currency ?? 'NOK').toUpperCase(),
+      reference: String(row.reference ?? row.transaction_code ?? ''),
+      detail: `SumUp payout · fee ${feeMajor.toFixed(2)} ${String(row.currency ?? '').toUpperCase()}`,
+    });
   }
   return payouts;
 }
@@ -699,7 +762,9 @@ export async function handleReconcile(request, env, slug) {
             ? fetchKlarnaPayouts(fields, bounds.start, bounds.end)
             : slug === 'zettle'
               ? fetchZettlePayouts(fields, bounds.start, bounds.end)
-              : fetchDinteroSettlements(fields, bounds.start, bounds.end),
+              : slug === 'sumup'
+                ? fetchSumUpPayouts(fields, bounds.start, bounds.end)
+                : fetchDinteroSettlements(fields, bounds.start, bounds.end),
         bankId > 0 ? loadPendingBankTransactions(env, session, bankId, bounds.month) : Promise.resolve([]),
       ]);
 

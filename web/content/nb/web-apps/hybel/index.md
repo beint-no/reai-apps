@@ -1,20 +1,18 @@
 ---
-title: Hybel Bilagsjournal
-seoTitle: Hybel Bilagsjournal — Månedlig CSV-bro for ReAI regnskap
-description: Forhåndsvis, valider og bokfør en månedlig Hybel CSV-journal i ReAI som et balansert kontrollbilag rett fra nettleseren.
-summary: Valider en månedlig Hybel CSV-bilagsjournal i nettleseren og opprett kontrollbilag i ReAI.
+title: Integrasjon mellom Hybel.no og regnskap
+seoTitle: Integrasjon mellom Hybel.no og regnskap — Månedlig bilagsjournal til ReAI
+description: Valider og bokfør månedlig bilagsjournal fra Hybel.no rett inn i ReAI gratis. Praktisk guide for utleiere og regnskapsførere.
+summary: Valider en månedlig bilagsjournal (CSV) fra Hybel og opprett et balansert kontrollbilag i ReAI.
 industry: real-estate
-status: experimental
+icon: icons/hybel.svg
 webAppUrl: /app/hybel/
 sourcePath: web/worker/apps/hybel.js
 highlights:
-  - "CSV-parsing, automatisk kolonnegjenkjenning og balansekontroll per referanse"
-  - "Innebygd eksempel-CSV for å teste hele flyten uten konto"
-  - "Validerer organisasjonsnummer, kontoplan, bankkontoer og duplikater mot ReAI-API-et"
-  - "Oppretter ett balansert kontrollbilag med SHA-256 kontrollspor"
-icon: icons/hybel.avif
+  - "Leser UTF-8 og Windows-1252 CSV fra Hybel med automatisk kolonnegjenkjenning"
+  - "Kontrollerer at alle dato- og bilagsgrupper balanserer til 0,00 før bokføring"
+  - "Validerer org.nr, kontoplan, aktive bankkontoer og duplikater mot ReAI"
 ---
 
-## Rett i nettleseren
+## Slik får du utleieregnskapet fra Hybel inn i ReAI
 
-Erstatter den tidligere Mac-prototypen slik at regnskapsførere og utleiere på alle plattformer kan validere månedlig Hybel-CSV (NOK, MVA-kode `0`) og opprette kontrollbilag uten installasjon.
+Mange norske utleieselskaper bruker Hybel.no til leiekontrakter, depositum og leietakeroppfølging, og ReAI til hovedbok, skattemelding og årsregnskap. Ved å eksportere månedens **Bilagsjournal** (hovedbok, NOK, MVA-kode `0`) som CSV og kjøre den gjennom denne integrasjonen får du automatisk kontroll av balanse, kontoplan, bankkonto og duplikater—og ett ryddig kontrollbilag i ReAI med SHA-256-kontrollspor. Leietakerreskontro forblir i Hybel.
